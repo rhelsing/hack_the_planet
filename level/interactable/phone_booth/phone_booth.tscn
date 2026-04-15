@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://cb9kx1qyctv2k"]
+
+[ext_resource type="Script" path="res://level/interactable/phone_booth/phone_booth.gd" id="1_booth"]
+
+[sub_resource type="BoxMesh" id="Mesh_booth"]
+size = Vector3(1.0, 2.2, 1.0)
+
+[sub_resource type="StandardMaterial3D" id="Mat_booth"]
+albedo_color = Color(0.15, 0.35, 0.75, 1)
+
+[sub_resource type="BoxShape3D" id="Shape_booth"]
+size = Vector3(1.0, 2.2, 1.0)
+
+[sub_resource type="BoxShape3D" id="Shape_trigger"]
+size = Vector3(6.0, 4.0, 6.0)
+
+[node name="PhoneBooth" type="Node3D"]
+script = ExtResource("1_booth")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+mesh = SubResource("Mesh_booth")
+surface_material_override/0 = SubResource("Mat_booth")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+shape = SubResource("Shape_booth")
+
+[node name="Area3D" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+shape = SubResource("Shape_trigger")

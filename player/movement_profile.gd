@@ -46,6 +46,12 @@ extends Resource
 ## Max degrees a surface can tilt from vertical and still count as a wall.
 ## 17° = strictly walls, 45° = steep ramps allowed, 90° = anything.
 @export_range(0.0, 90.0) var wall_ride_max_tilt_deg := 17.0
+
+@export_group("Rail Grind")
+## Speed the player moves along a rail (m/s). 0 disables grinding.
+@export var grind_speed := 0.0
+## Upward impulse applied when jumping off a rail (on top of normal jump).
+@export var grind_exit_boost := 0.0
 ## Extra downward offset applied to the skin proportional to total tilt
 ## magnitude (radians). Gives a "crouch into the turn" feel.
 @export var tilt_height_drop := 0.0

@@ -70,6 +70,10 @@ var _was_pressing_forward := false
 var _wall_ride_active := false
 var _wall_ride_timer := 0.0
 var _wall_normal := Vector3.ZERO
+var _grinding := false
+var _grind_rail: Path3D = null
+var _grind_progress := 0.0
+var _grind_direction := 1.0
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -98,6 +102,8 @@ func _ready() -> void:
 	_spring.margin = spring_margin
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_register_debug_panel()
+	Events.rail_touched.connect(_on_rail_touched)
+	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	Events.kill_plane_touched.connect(func on_kill_plane_touched() -> void:
 		global_position = _start_position
 		velocity = Vector3.ZERO
@@ -146,8 +152,38 @@ func _snap_camera_to_player() -> void:
 		_camera_pivot.position = pivot_offset
 
 
+func _on_rail_touched(rail: Node, body: Node) -> void:
+	if body != self or _grinding:
+		return
+	var profile: MovementProfile = _current_profile
+	if profile == null or profile.grind_speed <= 0.0:
+		return
+	_grind_rail = rail as Path3D
+	_grind_progress = _grind_rail.closest_progress(global_position)
+	# Pick direction: compare player's velocity to the curve tangent at the entry
+	# point. If they disagree, grind backward along the curve.
+	var pf: PathFollow3D = _grind_rail.get_node_or_null("PathFollow3D") as PathFollow3D
+	_grind_direction = 1.0
+	if pf != null:
+		pf.progress = _grind_progress
+		var tangent: Vector3 = -pf.global_transform.basis.z
+		var h_vel: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
+		if h_vel.length() > 0.1 and h_vel.dot(tangent) < 0.0:
+			_grind_direction = -1.0
+	_grinding = true
+
+
+func _on_checkpoint_reached(pos: Vector3) -> void:
+	_start_position = pos
+
+
 func _physics_process(delta: float) -> void:
 	var profile := _current_profile
+
+	if _grinding:
+		_update_grind(delta, profile)
+		_update_follow_camera(delta)
+		return
 
 	# Input direction is based on current camera yaw — camera is follow-driven
 	# so this naturally aligns with the direction of travel.
@@ -266,6 +302,35 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	_update_follow_camera(delta)
+
+
+func _update_grind(delta: float, profile: MovementProfile) -> void:
+	if _grind_rail == null or not is_instance_valid(_grind_rail):
+		_grinding = false
+		return
+	var pf: PathFollow3D = _grind_rail.get_node_or_null("PathFollow3D") as PathFollow3D
+	if pf == null or _grind_rail.curve == null:
+		_grinding = false
+		return
+	_grind_progress += profile.grind_speed * _grind_direction * delta
+	var length: float = _grind_rail.curve.get_baked_length()
+	var exit_end: bool = _grind_progress >= length or _grind_progress <= 0.0
+	var jumped: bool = Input.is_action_just_pressed("jump")
+	pf.progress = clamp(_grind_progress, 0.0, length)
+	# Stand on top of the rail rather than inside it (CSG rail is a thin bar
+	# hanging below the curve line, so player feet sit at the curve).
+	global_position = pf.global_position
+	var tangent: Vector3 = -pf.global_transform.basis.z * _grind_direction
+	velocity = tangent * profile.grind_speed
+	# Drive move_and_slide so render interpolation smooths visuals between ticks.
+	move_and_slide()
+	# Snap back to the curve in case physics pushed us off.
+	global_position = pf.global_position
+	if exit_end or jumped:
+		if jumped:
+			velocity += Vector3.UP * (profile.jump_impulse + profile.grind_exit_boost)
+		_grinding = false
+		_grind_rail = null
 
 
 func _update_wall_ride(delta: float, profile: MovementProfile) -> void:
@@ -434,6 +499,12 @@ func _register_debug_panel() -> void:
 		DebugPanel.add_slider("Movement/skate/wall_ride_max_tilt_deg", 0.0, 90.0, 0.5,
 			func() -> float: return skate_profile.wall_ride_max_tilt_deg,
 			func(v: float) -> void: skate_profile.wall_ride_max_tilt_deg = v)
+		DebugPanel.add_slider("Movement/skate/grind_speed", 0.0, 30.0, 0.25,
+			func() -> float: return skate_profile.grind_speed,
+			func(v: float) -> void: skate_profile.grind_speed = v)
+		DebugPanel.add_slider("Movement/skate/grind_exit_boost", 0.0, 15.0, 0.25,
+			func() -> float: return skate_profile.grind_exit_boost,
+			func(v: float) -> void: skate_profile.grind_exit_boost = v)
 		DebugPanel.add_slider("Skin/Sway/skate/duration", 0.0, 5.0, 0.1,
 			func() -> float: return skate_profile.speedup_duration,
 			func(v: float) -> void: skate_profile.speedup_duration = v)

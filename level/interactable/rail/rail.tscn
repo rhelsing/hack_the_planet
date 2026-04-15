@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://c8aaill4ns1rl"]
+
+[ext_resource type="Script" path="res://level/interactable/rail/rail.gd" id="1_rail"]
+
+[sub_resource type="Curve3D" id="Curve3D_rail"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 5),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="BoxShape3D" id="Box_detect"]
+size = Vector3(0.8, 1.0, 6.0)
+
+[sub_resource type="StandardMaterial3D" id="Mat_rail"]
+albedo_color = Color(0.72, 0.74, 0.82, 1)
+metallic = 0.8
+roughness = 0.25
+
+[node name="Rail" type="Path3D"]
+curve = SubResource("Curve3D_rail")
+script = ExtResource("1_rail")
+
+[node name="Area3D" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 2.5)
+shape = SubResource("Box_detect")
+
+[node name="PathFollow3D" type="PathFollow3D" parent="."]
+loop = false
+
+[node name="CSGPolygon3D" type="CSGPolygon3D" parent="."]
+polygon = PackedVector2Array(-0.04, -0.08, 0.04, -0.08, 0.04, 0, -0.04, 0)
+mode = 2
+path_node = NodePath("..")
+path_interval_type = 0
+path_interval = 0.05
+path_rotation = 2
+path_local = true
+material = SubResource("Mat_rail")

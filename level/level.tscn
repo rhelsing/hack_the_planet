@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" uid="uid://cip1awte2184j" path="res://level/cactus/cactus_small_2.tscn" id="6_ona4a"]
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="7_njuj4"]
 [ext_resource type="PackedScene" uid="uid://c6uew1wfpkt16" path="res://level/interactable/flag/flag_3d.tscn" id="8_kebk2"]
+[ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="12_l5lfc"]
+[ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="13_l5lfc"]
 
 [sub_resource type="Curve" id="Curve_k4wis"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -78,6 +80,14 @@ volumetric_fog_density = 0.01
 volumetric_fog_albedo = Color(0.843137, 0.737255, 0.329412, 1)
 volumetric_fog_emission = Color(0.843137, 0.737255, 0.329412, 1)
 
+[sub_resource type="Curve3D" id="Curve3D_m3nah"]
+bake_interval = 176.47
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 3.5279846, 0.51191807, 0, 0, 0, 0, 0, 0, 0, -5.2997627, 1.0529041, 8.330693, 0, 0, 0, 0, 0, 0, -20.32687, 1.8204193, 3.974308),
+"tilts": PackedFloat32Array(0, 0, 0)
+}
+point_count = 3
+
 [node name="Level" type="Node3D" unique_id=437840544]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=659135345]
@@ -117,44 +127,62 @@ transform = Transform3D(-2.0693, 0.241202, -1.93468, 0.670546, 2.7372, -0.375951
 transform = Transform3D(-2.0693, 0.241202, -1.93468, -0.140842, 2.7954, 0.499148, 1.94458, 0.459138, -2.02263, 6.26628, 4.19006, -20.6183)
 
 [node name="CSGPolygon3D8" type="CSGPolygon3D" parent="." unique_id=933976850]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -48.25, 8, -22)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -79.91054, 8, -22)
 use_collision = true
 polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
 depth = 4.0
 material = ExtResource("7_njuj4")
 
 [node name="CSGBox3D8" type="CSGBox3D" parent="." unique_id=1590573054]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -55.25, -4.5, -20)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -86.91054, -4.5, -20)
 material_override = ExtResource("7_njuj4")
 use_collision = true
 size = Vector3(8, 29, 10)
 
 [node name="CSGBox3D9" type="CSGBox3D" parent="." unique_id=928814324]
-transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -45.75, -5.5, -20)
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -46.79051, -5.5, -22.497093)
+material_override = ExtResource("7_njuj4")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D9" type="CSGBox3D" parent="CSGBox3D9" unique_id=1151191398]
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.41054, -5.5, -20)
+material_override = ExtResource("7_njuj4")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D12" type="CSGBox3D" parent="." unique_id=1794427864]
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.90637, -5.5, -20)
+material_override = ExtResource("7_njuj4")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D9" type="CSGBox3D" parent="CSGBox3D12" unique_id=1042639805]
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.41054, -5.5, -20)
 material_override = ExtResource("7_njuj4")
 use_collision = true
 size = Vector3(7, 27, 11)
 
 [node name="Flag3D" parent="." unique_id=1006749816 instance=ExtResource("8_kebk2")]
-transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -55.25, 10, -20)
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -86.91054, 10, -20)
 
 [node name="Cactus_Tall_4" parent="." unique_id=1602055079 instance=ExtResource("3_b7ara")]
-transform = Transform3D(2.61213, -0.568739, 2.70573, 0.733066, 3.73154, 0.0766514, -2.66589, 0.468831, 2.67223, -57.8124, 8.07102, -16.5215)
+transform = Transform3D(2.61213, -0.568739, 2.70573, 0.733066, 3.73154, 0.0766514, -2.66589, 0.468831, 2.67223, -89.47294, 8.07102, -16.5215)
 
 [node name="Cactus_Small_6" parent="." unique_id=1239006335 instance=ExtResource("5_ka65c")]
-transform = Transform3D(-0.835645, -0.807971, -3.00138, 0.459363, 3.04172, -0.946727, 3.0741, -0.67416, -0.6744, -58.1859, 10.1568, -24.2418)
+transform = Transform3D(-0.835645, -0.807971, -3.00138, 0.459363, 3.04172, -0.946727, 3.0741, -0.67416, -0.6744, -89.846436, 10.1568, -24.2418)
 
 [node name="Cactus_Small_10" parent="." unique_id=829472273 instance=ExtResource("5_ka65c")]
-transform = Transform3D(-0.343258, 0.118638, -2.12375, -0.220623, 1.66642, 0.18614, 2.19645, 0.185923, -0.313194, -41.9811, 8.26512, -17.7959)
+transform = Transform3D(-0.343258, 0.118638, -2.12375, -0.220623, 1.66642, 0.18614, 2.19645, 0.185923, -0.313194, -73.64163, 8.26512, -17.7959)
 
 [node name="Cactus_Small_7" parent="." unique_id=31151638 instance=ExtResource("6_ona4a")]
-transform = Transform3D(1.41309, -0.625184, -3.11244, -0.316167, 3.3622, -0.818895, 3.15882, 0.616194, 1.31036, -58.1225, 10.3795, -23.1583)
+transform = Transform3D(1.41309, -0.625184, -3.11244, -0.316167, 3.3622, -0.818895, 3.15882, 0.616194, 1.31036, -51.743385, 8.693122, -25.655394)
 
 [node name="Cactus_Small_8" parent="." unique_id=279288194 instance=ExtResource("6_ona4a")]
-transform = Transform3D(-3.02021, 0.729762, 0.355604, 0.681151, 3.02339, -0.419376, -0.441628, -0.327551, -3.07869, -57.2293, 10.276, -23.5882)
+transform = Transform3D(-3.02021, 0.729762, 0.355604, 0.681151, 3.02339, -0.419376, -0.441628, -0.327551, -3.07869, -88.88984, 10.276, -23.5882)
 
 [node name="Cactus_Small_9" parent="." unique_id=1579896906 instance=ExtResource("6_ona4a")]
-transform = Transform3D(-2.99633, 0.231602, -1.56352, 0.381736, 3.35793, -0.234152, 1.5338, -0.383288, -2.99613, -47.7949, 8.42468, -22.8013)
+transform = Transform3D(-2.99633, 0.231602, -1.56352, 0.381736, 3.35793, -0.234152, 1.5338, -0.383288, -2.99613, -43.20494, 8.42468, -25.298393)
 
 [node name="CSGBox3D10" type="CSGBox3D" parent="." unique_id=1128607913]
 transform = Transform3D(0.9997164, -0.015850415, -0.017778827, -0.014073206, 0.20912361, -0.97778803, 0.019216327, 0.9777608, 0.20884116, -26.971228, 10.253992, -23.575397)
@@ -163,10 +191,10 @@ use_collision = true
 size = Vector3(16.806152, 1, 8)
 
 [node name="CSGBox3D11" type="CSGBox3D" parent="." unique_id=1303607154]
-transform = Transform3D(1, 0, 0, 0, 0.26018435, 0.96555895, 0, -0.96555895, 0.26018435, -35.44754, 10.828637, -15.142342)
+transform = Transform3D(1, 0, 0, 0, 0.26018435, 0.96555895, 0, -0.96555895, 0.26018435, -36.470604, 10.735246, -15.023977)
 material_override = ExtResource("7_njuj4")
 use_collision = true
-size = Vector3(9.102539, 1, 8)
+size = Vector3(16.47461, 1, 8)
 
 [node name="CSGBox3D2" type="CSGBox3D" parent="." unique_id=429238284]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -9.5, -31)
@@ -233,3 +261,10 @@ use_collision = true
 polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
 depth = 4.0
 material = ExtResource("7_njuj4")
+
+[node name="PhoneBooth" parent="." unique_id=392416334 instance=ExtResource("12_l5lfc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.886671, 5.999999, -17.867033)
+
+[node name="Rail" parent="." unique_id=1908578088 instance=ExtResource("13_l5lfc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.859394, 8.000002, -22.37413)
+curve = SubResource("Curve3D_m3nah")

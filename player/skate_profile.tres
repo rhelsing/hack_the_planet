@@ -19,4 +19,6 @@ wall_ride_duration = 1.5
 wall_ride_min_speed = 6.0
 wall_ride_gravity_scale = 0.15
 wall_ride_jump_push = 8.0
+grind_speed = 8.0
+grind_exit_boost = 3.0
 tilt_height_drop = 0.5
