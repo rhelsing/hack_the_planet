@@ -21,6 +21,6 @@ func _enter_tree() -> void:
 				)
 				return Color8(rgb[0], rgb[1], rgb[2])
 		)
-		get_editor_interface().get_editor_settings().set_project_metadata(
+		EditorInterface.get_editor_settings().set_project_metadata(
 			"color_picker", "presets", presets
 		)

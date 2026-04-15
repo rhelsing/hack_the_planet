@@ -4,6 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://prh35jb6tjtd" path="res://player/sophia_skin/sophia_skin.tscn" id="2_4dj54"]
 [ext_resource type="AudioStream" uid="uid://bhoyegbjust84" path="res://player/sounds/robot_land.wav" id="3_kbqxf"]
 [ext_resource type="AudioStream" uid="uid://b4x0f4pgfifoo" path="res://player/sounds/robot_jump.wav" id="4_1v0dq"]
+[ext_resource type="Resource" path="res://player/walk_profile.tres" id="5_walk"]
+[ext_resource type="Resource" path="res://player/skate_profile.tres" id="6_skate"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e8pdu"]
 radius = 0.4
@@ -52,7 +54,8 @@ axis_lock_angular_x = true
 axis_lock_angular_y = true
 axis_lock_angular_z = true
 script = ExtResource("1_dpokc")
-acceleration = 30.0
+walk_profile = ExtResource("5_walk")
+skate_profile = ExtResource("6_skate")
 
 [node name="CharacterCollisionShape" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
@@ -89,7 +92,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.09401, 0)
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
 transform = Transform3D(-1, 2.1052e-08, -1.40279e-07, -3.23484e-08, 0.929023, 0.370022, 1.38112e-07, 0.370022, -0.929023, 0, 0.33984, 0)
 shape = SubResource("SeparationRayShape3D_h1hkf")
-spring_length = 8.0
+spring_length = 9.2
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
 unique_name_in_owner = true
