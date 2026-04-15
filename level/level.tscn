@@ -157,10 +157,10 @@ transform = Transform3D(-3.02021, 0.729762, 0.355604, 0.681151, 3.02339, -0.4193
 transform = Transform3D(-2.99633, 0.231602, -1.56352, 0.381736, 3.35793, -0.234152, 1.5338, -0.383288, -2.99613, -47.7949, 8.42468, -22.8013)
 
 [node name="CSGBox3D10" type="CSGBox3D" parent="." unique_id=1128607913]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.429472, 7.5, -20)
+transform = Transform3D(0.9997164, -0.015850415, -0.017778827, -0.014073206, 0.20912361, -0.97778803, 0.019216327, 0.9777608, 0.20884116, -26.971228, 10.253992, -23.575397)
 material_override = ExtResource("7_njuj4")
 use_collision = true
-size = Vector3(7.381836, 1, 8)
+size = Vector3(16.806152, 1, 8)
 
 [node name="CSGBox3D11" type="CSGBox3D" parent="." unique_id=1303607154]
 transform = Transform3D(1, 0, 0, 0, 0.26018435, 0.96555895, 0, -0.96555895, 0.26018435, -35.44754, 10.828637, -15.142342)
