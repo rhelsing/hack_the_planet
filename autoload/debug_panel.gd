@@ -116,8 +116,8 @@ func _get_or_create_section(section_parts: PackedStringArray) -> VBoxContainer:
 	return current_parent
 
 
-func _header_text(name: String, expanded: bool) -> String:
-	return ("▼ " if expanded else "▶ ") + name
+func _header_text(label: String, expanded: bool) -> String:
+	return ("▼ " if expanded else "▶ ") + label
 
 
 func _split_path(path: String) -> Array:
@@ -143,9 +143,8 @@ func add_slider(path: String, min_v: float, max_v: float, step: float, getter: C
 	var leaf: String = sp[1]
 
 	var initial: float = float(getter.call())
-	var saved = _config.get_value("values", path, null)
-	if saved != null:
-		initial = float(saved)
+	if _config.has_section_key("values", path):
+		initial = float(_config.get_value("values", path))
 		setter.call(initial)
 
 	var label := Label.new()
@@ -174,9 +173,8 @@ func add_toggle(path: String, getter: Callable, setter: Callable) -> void:
 	var leaf: String = sp[1]
 
 	var initial: bool = bool(getter.call())
-	var saved = _config.get_value("values", path, null)
-	if saved != null:
-		initial = bool(saved)
+	if _config.has_section_key("values", path):
+		initial = bool(_config.get_value("values", path))
 		setter.call(initial)
 
 	var check := CheckBox.new()
@@ -206,9 +204,8 @@ func add_enum(path: String, options: PackedStringArray, getter: Callable, setter
 	for o in options:
 		option.add_item(o)
 	var initial: int = int(getter.call())
-	var saved = _config.get_value("values", path, null)
-	if saved != null:
-		initial = int(saved)
+	if _config.has_section_key("values", path):
+		initial = int(_config.get_value("values", path))
 		setter.call(initial)
 	option.select(initial)
 	row.add_child(option)

@@ -63,6 +63,10 @@ var _prev_skin_yaw := 0.0
 var _prev_h_vel := Vector3.ZERO
 var _current_lean_pitch := 0.0
 var _current_lean_roll := 0.0
+var _speedup_timer := 999.0
+var _was_moving := false
+var _brake_impulse := 0.0
+var _was_pressing_forward := false
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -76,7 +80,7 @@ var _current_lean_roll := 0.0
 
 
 func _ready() -> void:
-	_current_profile = walk_profile if walk_profile != null else skate_profile
+	_current_profile = skate_profile if skate_profile != null else walk_profile
 	_apply_follow_mode()
 	_target_yaw = _camera_pivot.global_rotation.y
 	_spring = _camera_pivot.get_node("SpringArm3D")
@@ -160,21 +164,57 @@ func _physics_process(delta: float) -> void:
 	if profile.face_velocity and h_vel.length() > 0.5:
 		face_target = h_vel.normalized()
 	var target_angle := Vector3.BACK.signed_angle_to(face_target, Vector3.UP)
-	_skin.rotation.y = lerp_angle(_skin.rotation.y, target_angle, profile.rotation_speed * delta)
+	var new_yaw: float = lerp_angle(_skin.rotation.y, target_angle, profile.rotation_speed * delta)
 
 	# Body lean: forward tilt scales with speed; side roll scales with
 	# angular turn rate × speed (centripetal force feel).
-	var d_yaw: float = wrapf(_skin.rotation.y - _prev_skin_yaw, -PI, PI) / max(delta, 0.0001)
-	_prev_skin_yaw = _skin.rotation.y
+	var d_yaw: float = wrapf(new_yaw - _prev_skin_yaw, -PI, PI) / max(delta, 0.0001)
+	_prev_skin_yaw = new_yaw
 	_prev_h_vel = h_vel
 	var speed: float = h_vel.length()
-	var target_pitch: float = clamp(-speed * profile.forward_lean_amount, -0.5, 0.5)
-	var target_roll: float = clamp(-d_yaw * speed * profile.side_lean_amount, -0.5, 0.5)
+	# Startup sway: side-to-side rocking for the first couple seconds of motion.
+	var is_moving: bool = speed > 0.5
+	if is_moving and not _was_moving:
+		_speedup_timer = 0.0
+	if is_moving:
+		_speedup_timer += delta
+	_was_moving = is_moving
+	var speedup_roll := 0.0
+	if is_moving and _speedup_timer < profile.speedup_duration:
+		var t: float = _speedup_timer / max(profile.speedup_duration, 0.001)
+		var decay: float = 1.0 - t
+		speedup_roll = profile.speedup_amplitude * sin(TAU * profile.speedup_frequency * _speedup_timer) * decay
+	# Kill the sway while airborne so jumps read clean.
+	if not is_on_floor():
+		speedup_roll = 0.0
+	var target_pitch: float = clamp(-speed * profile.forward_lean_amount, -0.6, 0.6)
+	# Smooth the lean/centripetal components only. Sway is applied unsmoothed
+	# on top so the oscillation isn't damped out by lean_smoothing.
+	var centripetal_roll: float = clamp(-d_yaw * speed * profile.side_lean_amount, -0.6, 0.6)
 	var lean_factor := 1.0 - exp(-profile.lean_smoothing * delta)
 	_current_lean_pitch = lerp(_current_lean_pitch, target_pitch, lean_factor)
-	_current_lean_roll = lerp(_current_lean_roll, target_roll, lean_factor)
-	_skin.rotation.x = _current_lean_pitch
-	_skin.rotation.z = _current_lean_roll
+	_current_lean_roll = lerp(_current_lean_roll, centripetal_roll, lean_factor)
+
+	# Brake impulse: fire a one-shot reversed-lean the instant forward is
+	# released at speed; exp-decay back to zero.
+	var pressing_forward: bool = raw_input.y < -0.2
+	if _was_pressing_forward and not pressing_forward and speed > 1.0:
+		_brake_impulse = profile.brake_impulse_amount
+	_was_pressing_forward = pressing_forward
+	_brake_impulse = lerp(_brake_impulse, 0.0, 1.0 - exp(-profile.brake_impulse_decay * delta))
+
+	var final_pitch: float = _current_lean_pitch + _brake_impulse
+	var final_roll: float = _current_lean_roll + speedup_roll
+
+	# Rotate the skin around a head-height pivot: the basis holds yaw+pitch+roll,
+	# and we shift the skin's origin so the pivot point stays fixed in space.
+	var pivot: Vector3 = Vector3(0, profile.lean_pivot_height, 0)
+	var tilt_basis: Basis = Basis(Vector3.RIGHT, final_pitch) * Basis(Vector3.BACK, final_roll)
+	var full_basis: Basis = Basis(Vector3.UP, new_yaw) * tilt_basis
+	var origin_offset: Vector3 = pivot - full_basis * pivot
+	var tilt_magnitude: float = sqrt(final_pitch * final_pitch + final_roll * final_roll)
+	origin_offset.y -= tilt_magnitude * profile.tilt_height_drop
+	_skin.transform = Transform3D(full_basis, origin_offset)
 
 	# Horizontal movement.
 	var y_velocity := velocity.y
@@ -240,7 +280,7 @@ func _register_debug_panel() -> void:
 	DebugPanel.add_enum("Camera/Follow/mode", PackedStringArray(["PARENTED", "DETACHED"]),
 		func() -> int: return int(follow_mode),
 		func(v: int) -> void:
-			follow_mode = v
+			follow_mode = FollowMode.PARENTED if v == 0 else FollowMode.DETACHED
 			_apply_follow_mode())
 	DebugPanel.add_slider("Camera/Follow/angle_smoothing", 0.001, 0.3, 0.001,
 		func() -> float: return angle_smoothing,
@@ -275,20 +315,73 @@ func _register_debug_panel() -> void:
 		func() -> float: return min_camera_distance,
 		func(v: float) -> void: min_camera_distance = v)
 	if walk_profile != null:
-		DebugPanel.add_slider("Skin/Lean/walk/forward", -0.25, 0.25, 0.005,
+		DebugPanel.add_slider("Skin/Lean/walk/forward", -0.5, 0.5, 0.005,
 			func() -> float: return walk_profile.forward_lean_amount,
 			func(v: float) -> void: walk_profile.forward_lean_amount = v)
-		DebugPanel.add_slider("Skin/Lean/walk/side", -0.05, 0.05, 0.001,
+		DebugPanel.add_slider("Skin/Lean/walk/side", -0.15, 0.15, 0.001,
 			func() -> float: return walk_profile.side_lean_amount,
 			func(v: float) -> void: walk_profile.side_lean_amount = v)
 		DebugPanel.add_slider("Skin/Lean/walk/smoothing", 0.5, 20.0, 0.1,
 			func() -> float: return walk_profile.lean_smoothing,
 			func(v: float) -> void: walk_profile.lean_smoothing = v)
 	if skate_profile != null:
-		DebugPanel.add_slider("Skin/Lean/skate/forward", -0.25, 0.25, 0.005,
+		DebugPanel.add_slider("Movement/skate/max_speed", 1.0, 30.0, 0.1,
+			func() -> float: return skate_profile.max_speed,
+			func(v: float) -> void: skate_profile.max_speed = v)
+		DebugPanel.add_slider("Movement/skate/accel", 0.5, 100.0, 0.5,
+			func() -> float: return skate_profile.accel,
+			func(v: float) -> void: skate_profile.accel = v)
+		DebugPanel.add_slider("Movement/skate/friction", 0.0, 60.0, 0.5,
+			func() -> float: return skate_profile.friction,
+			func(v: float) -> void: skate_profile.friction = v)
+		DebugPanel.add_slider("Movement/skate/air_accel_mult", 0.0, 1.0, 0.02,
+			func() -> float: return skate_profile.air_accel_mult,
+			func(v: float) -> void: skate_profile.air_accel_mult = v)
+		DebugPanel.add_slider("Movement/skate/turn_rate", 0.5, 50.0, 0.1,
+			func() -> float: return skate_profile.turn_rate,
+			func(v: float) -> void: skate_profile.turn_rate = v)
+		DebugPanel.add_slider("Movement/skate/jump_impulse", 1.0, 30.0, 0.25,
+			func() -> float: return skate_profile.jump_impulse,
+			func(v: float) -> void: skate_profile.jump_impulse = v)
+		DebugPanel.add_slider("Movement/skate/rotation_speed", 0.5, 30.0, 0.25,
+			func() -> float: return skate_profile.rotation_speed,
+			func(v: float) -> void: skate_profile.rotation_speed = v)
+		DebugPanel.add_slider("Movement/skate/stopping_speed", 0.0, 5.0, 0.05,
+			func() -> float: return skate_profile.stopping_speed,
+			func(v: float) -> void: skate_profile.stopping_speed = v)
+		DebugPanel.add_toggle("Movement/skate/face_velocity",
+			func() -> bool: return skate_profile.face_velocity,
+			func(v: bool) -> void: skate_profile.face_velocity = v)
+		DebugPanel.add_slider("Skin/Sway/skate/duration", 0.0, 5.0, 0.1,
+			func() -> float: return skate_profile.speedup_duration,
+			func(v: float) -> void: skate_profile.speedup_duration = v)
+		DebugPanel.add_slider("Skin/Sway/skate/amplitude", 0.0, 0.5, 0.005,
+			func() -> float: return skate_profile.speedup_amplitude,
+			func(v: float) -> void: skate_profile.speedup_amplitude = v)
+		DebugPanel.add_slider("Skin/Sway/skate/frequency", 0.2, 8.0, 0.1,
+			func() -> float: return skate_profile.speedup_frequency,
+			func(v: float) -> void: skate_profile.speedup_frequency = v)
+		DebugPanel.add_slider("Skin/Sway/skate/pivot_height", 0.0, 3.0, 0.05,
+			func() -> float: return skate_profile.lean_pivot_height,
+			func(v: float) -> void: skate_profile.lean_pivot_height = v)
+	if walk_profile != null:
+		DebugPanel.add_slider("Skin/Lean/walk/tilt_height_drop", 0.0, 2.0, 0.02,
+			func() -> float: return walk_profile.tilt_height_drop,
+			func(v: float) -> void: walk_profile.tilt_height_drop = v)
+	if skate_profile != null:
+		DebugPanel.add_slider("Skin/Lean/skate/tilt_height_drop", 0.0, 2.0, 0.02,
+			func() -> float: return skate_profile.tilt_height_drop,
+			func(v: float) -> void: skate_profile.tilt_height_drop = v)
+		DebugPanel.add_slider("Skin/Lean/skate/brake_impulse", -0.6, 0.6, 0.02,
+			func() -> float: return skate_profile.brake_impulse_amount,
+			func(v: float) -> void: skate_profile.brake_impulse_amount = v)
+		DebugPanel.add_slider("Skin/Lean/skate/brake_decay", 0.5, 15.0, 0.1,
+			func() -> float: return skate_profile.brake_impulse_decay,
+			func(v: float) -> void: skate_profile.brake_impulse_decay = v)
+		DebugPanel.add_slider("Skin/Lean/skate/forward", -0.5, 0.5, 0.005,
 			func() -> float: return skate_profile.forward_lean_amount,
 			func(v: float) -> void: skate_profile.forward_lean_amount = v)
-		DebugPanel.add_slider("Skin/Lean/skate/side", -0.05, 0.05, 0.001,
+		DebugPanel.add_slider("Skin/Lean/skate/side", -0.15, 0.15, 0.001,
 			func() -> float: return skate_profile.side_lean_amount,
 			func(v: float) -> void: skate_profile.side_lean_amount = v)
 		DebugPanel.add_slider("Skin/Lean/skate/smoothing", 0.5, 20.0, 0.1,
