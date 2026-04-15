@@ -63,6 +63,7 @@ var _prev_skin_yaw := 0.0
 var _prev_h_vel := Vector3.ZERO
 var _current_lean_pitch := 0.0
 var _current_lean_roll := 0.0
+var _natural_lean_roll := 0.0
 var _speedup_timer := 999.0
 var _was_moving := false
 var _brake_impulse := 0.0
@@ -74,6 +75,8 @@ var _grinding := false
 var _grind_rail: Path3D = null
 var _grind_progress := 0.0
 var _grind_direction := 1.0
+var _grind_snap_t := 1.0
+var _grind_start_pos := Vector3.ZERO
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -171,6 +174,10 @@ func _on_rail_touched(rail: Node, body: Node) -> void:
 		if h_vel.length() > 0.1 and h_vel.dot(tangent) < 0.0:
 			_grind_direction = -1.0
 	_grinding = true
+	_grind_snap_t = 0.0
+	_grind_start_pos = global_position
+	_natural_lean_roll = 0.0
+	_skin.idle()
 
 
 func _on_checkpoint_reached(pos: Vector3) -> void:
@@ -317,15 +324,54 @@ func _update_grind(delta: float, profile: MovementProfile) -> void:
 	var exit_end: bool = _grind_progress >= length or _grind_progress <= 0.0
 	var jumped: bool = Input.is_action_just_pressed("jump")
 	pf.progress = clamp(_grind_progress, 0.0, length)
-	# Stand on top of the rail rather than inside it (CSG rail is a thin bar
-	# hanging below the curve line, so player feet sit at the curve).
-	global_position = pf.global_position
+	# Smoothly lerp the character onto the rail over ~0.2s instead of snapping.
+	# Ease-out curve so the approach feels smooth, not abrupt at the end.
+	_grind_snap_t = minf(_grind_snap_t + delta / 0.35, 1.0)
+	var eased: float = 1.0 - pow(1.0 - _grind_snap_t, 3.0)
+	global_position = _grind_start_pos.lerp(pf.global_position, eased)
 	var tangent: Vector3 = -pf.global_transform.basis.z * _grind_direction
 	velocity = tangent * profile.grind_speed
+	# Track curvature in rail-direction space (independent of the body's
+	# sideways offset) so banking keys off the actual rail bend, not body yaw.
+	var tangent_yaw: float = Vector3.BACK.signed_angle_to(tangent, Vector3.UP)
+	var d_yaw: float = wrapf(tangent_yaw - _prev_skin_yaw, -PI, PI) / max(delta, 0.0001)
+	_prev_skin_yaw = tangent_yaw
+	# Natural centripetal lean — smoothed in its own tracked variable so the
+	# counter input (applied later) can't artificially push us past the fall
+	# threshold or mask a real fall.
+	var centripetal: float = d_yaw * profile.grind_speed * profile.side_lean_amount * profile.grind_lean_multiplier
+	var lean_factor: float = 1.0 - exp(-profile.lean_smoothing * delta)
+	_natural_lean_roll = lerp(_natural_lean_roll, centripetal, lean_factor)
+	_current_lean_pitch = lerp(_current_lean_pitch, 0.0, lean_factor)
+
+	# Fall only when the smoothed NATURAL lean exceeds the threshold
+	# (counter input is ignored for this check).
+	if absf(_natural_lean_roll) > profile.grind_fall_threshold:
+		_grinding = false
+		_grind_rail = null
+		velocity.y += 2.0
+		return
+
+	# Player counter-balance integrates over time, producing the combined roll.
+	var raw_input := Input.get_vector("move_left", "move_right", "move_up", "move_down", 0.2)
+	_current_lean_roll = clamp(_natural_lean_roll - raw_input.x * profile.grind_counter_strength * delta, -1.5, 1.5)
+
+
+	# Build orientation: 1) face rail direction, 2) bank around rail tangent,
+	# 3) rotate sideways around banked up (skater-style body offset).
+	var rail_frame: Basis = Basis(Vector3.UP, tangent_yaw)
+	var rail_forward: Vector3 = rail_frame * Vector3.FORWARD
+	var banked: Basis = Basis(rail_forward, _current_lean_roll) * rail_frame
+	var body_up: Vector3 = banked * Vector3.UP
+	var full_basis: Basis = Basis(body_up, deg_to_rad(profile.grind_yaw_offset_deg)) * banked
+	# Feet pivot so the body rotates like someone actually balancing on the rail.
+	_skin.transform = Transform3D(full_basis, Vector3.ZERO)
 	# Drive move_and_slide so render interpolation smooths visuals between ticks.
 	move_and_slide()
-	# Snap back to the curve in case physics pushed us off.
-	global_position = pf.global_position
+	# Once snapped on, keep locked to the curve. During the entry lerp we let
+	# the interpolated position win so the approach is smooth.
+	if _grind_snap_t >= 1.0:
+		global_position = pf.global_position
 	if exit_end or jumped:
 		if jumped:
 			velocity += Vector3.UP * (profile.jump_impulse + profile.grind_exit_boost)
@@ -505,6 +551,18 @@ func _register_debug_panel() -> void:
 		DebugPanel.add_slider("Movement/skate/grind_exit_boost", 0.0, 15.0, 0.25,
 			func() -> float: return skate_profile.grind_exit_boost,
 			func(v: float) -> void: skate_profile.grind_exit_boost = v)
+		DebugPanel.add_slider("Movement/skate/grind_yaw_offset_deg", -90.0, 90.0, 1.0,
+			func() -> float: return skate_profile.grind_yaw_offset_deg,
+			func(v: float) -> void: skate_profile.grind_yaw_offset_deg = v)
+		DebugPanel.add_slider("Movement/skate/grind_counter_strength", 0.0, 10.0, 0.1,
+			func() -> float: return skate_profile.grind_counter_strength,
+			func(v: float) -> void: skate_profile.grind_counter_strength = v)
+		DebugPanel.add_slider("Movement/skate/grind_fall_threshold", 0.1, 12.0, 0.1,
+			func() -> float: return skate_profile.grind_fall_threshold,
+			func(v: float) -> void: skate_profile.grind_fall_threshold = v)
+		DebugPanel.add_slider("Movement/skate/grind_lean_multiplier", 0.0, 10.0, 0.1,
+			func() -> float: return skate_profile.grind_lean_multiplier,
+			func(v: float) -> void: skate_profile.grind_lean_multiplier = v)
 		DebugPanel.add_slider("Skin/Sway/skate/duration", 0.0, 5.0, 0.1,
 			func() -> float: return skate_profile.speedup_duration,
 			func(v: float) -> void: skate_profile.speedup_duration = v)

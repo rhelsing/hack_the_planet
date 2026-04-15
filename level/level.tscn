@@ -268,3 +268,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.886671, 5.999999, -17.8670
 [node name="Rail" parent="." unique_id=1908578088 instance=ExtResource("13_l5lfc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.790047, 7.9697123, -22.37413)
 curve = SubResource("Curve3D_m3nah")
+
+[node name="PhoneBooth2" parent="." unique_id=1346027676 instance=ExtResource("12_l5lfc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.40565, 8.000001, -25.190847)

@@ -34,7 +34,7 @@ func _fit_area_to_curve() -> void:
 	for p in points:
 		min_p = min_p.min(p)
 		max_p = max_p.max(p)
-	var pad := 1.2
+	var pad := 0.4
 	var center: Vector3 = (min_p + max_p) * 0.5
 	var size: Vector3 = (max_p - min_p) + Vector3.ONE * (pad * 2.0)
 	# BoxShape3D can't have a zero extent along any axis.

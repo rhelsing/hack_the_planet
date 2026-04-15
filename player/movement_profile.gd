@@ -52,6 +52,17 @@ extends Resource
 @export var grind_speed := 0.0
 ## Upward impulse applied when jumping off a rail (on top of normal jump).
 @export var grind_exit_boost := 0.0
+## Yaw offset (degrees) applied to the skin while grinding — rotates the body
+## sideways relative to the rail direction. 90 = fully perpendicular.
+@export_range(-180.0, 180.0) var grind_yaw_offset_deg := 0.0
+## Max roll (radians) player can add with left/right input to counter-balance
+## the rail tilt.
+@export var grind_counter_strength := 0.6
+## If roll exceeds this magnitude (radians) the player falls off the rail.
+## ~0.5 = 28°, ~0.7 = 40°.
+@export var grind_fall_threshold := 0.55
+## Multiplier on centripetal roll while grinding — higher = bigger lean into curves.
+@export var grind_lean_multiplier := 3.0
 ## Extra downward offset applied to the skin proportional to total tilt
 ## magnitude (radians). Gives a "crouch into the turn" feel.
 @export var tilt_height_drop := 0.0

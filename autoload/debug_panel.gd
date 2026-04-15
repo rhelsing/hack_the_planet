@@ -1,7 +1,7 @@
 extends Node
 
 const CONFIG_PATH := "user://debug_panel.cfg"
-const CONFIG_VERSION := 2
+const CONFIG_VERSION := 3
 
 var _canvas: CanvasLayer
 var _root_vbox: VBoxContainer
@@ -18,6 +18,8 @@ func _ready() -> void:
 	if saved_version < CONFIG_VERSION:
 		if _config.has_section("sections"):
 			_config.erase_section("sections")
+		if _config.has_section("values"):
+			_config.erase_section("values")
 		_config.set_value("_meta", "version", CONFIG_VERSION)
 		_config.save(CONFIG_PATH)
 	_build_ui()
