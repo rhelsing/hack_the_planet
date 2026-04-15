@@ -30,6 +30,22 @@ extends Resource
 @export var brake_impulse_amount := 0.0
 ## Exponential decay rate for the brake impulse. ~4 ≈ 95% in 0.75s.
 @export var brake_impulse_decay := 4.0
+
+@export_group("Wall Ride")
+## How long the player can stick to a wall, in seconds. 0 disables wall ride.
+@export var wall_ride_duration := 0.0
+## Minimum horizontal speed required to trigger / maintain a wall ride.
+@export var wall_ride_min_speed := 5.0
+## Fraction of gravity applied while on the wall (0 = stick, 1 = normal gravity).
+@export_range(0.0, 1.0) var wall_ride_gravity_scale := 0.0
+## How far sideways to check for walls (meters).
+@export var wall_ride_reach := 1.0
+## Outward push applied along the wall normal when jumping off. High values
+## launch you across the map.
+@export var wall_ride_jump_push := 14.0
+## Max degrees a surface can tilt from vertical and still count as a wall.
+## 17° = strictly walls, 45° = steep ramps allowed, 90° = anything.
+@export_range(0.0, 90.0) var wall_ride_max_tilt_deg := 17.0
 ## Extra downward offset applied to the skin proportional to total tilt
 ## magnitude (radians). Gives a "crouch into the turn" feel.
 @export var tilt_height_drop := 0.0

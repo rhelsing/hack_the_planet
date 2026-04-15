@@ -67,6 +67,9 @@ var _speedup_timer := 999.0
 var _was_moving := false
 var _brake_impulse := 0.0
 var _was_pressing_forward := false
+var _wall_ride_active := false
+var _wall_ride_timer := 0.0
+var _wall_normal := Vector3.ZERO
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -255,10 +258,71 @@ func _physics_process(delta: float) -> void:
 	if on_floor and not _was_on_floor_last_frame:
 		_landing_sound.play()
 
+	# Wall ride (only runs if the current profile enables it).
+	if profile.wall_ride_duration > 0.0:
+		_update_wall_ride(delta, profile)
+
 	_was_on_floor_last_frame = on_floor
 	move_and_slide()
 
 	_update_follow_camera(delta)
+
+
+func _update_wall_ride(delta: float, profile: MovementProfile) -> void:
+	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
+
+	if _wall_ride_active:
+		_wall_ride_timer += delta
+		var detected: Vector3 = _find_wall(profile)
+		var lost_contact: bool = detected == Vector3.ZERO
+		var too_slow: bool = horizontal_speed < profile.wall_ride_min_speed * 0.5
+		var expired: bool = _wall_ride_timer >= profile.wall_ride_duration
+		var jumped: bool = Input.is_action_just_pressed("jump")
+		if lost_contact or too_slow or expired or jumped:
+			if jumped:
+				velocity += _wall_normal * profile.wall_ride_jump_push
+				velocity.y = profile.jump_impulse
+			_wall_ride_active = false
+			return
+		_wall_normal = detected
+		# Scale gravity (we undo the physics_process gravity for this frame and
+		# re-apply the scaled version).
+		velocity.y -= _gravity * delta
+		velocity.y += _gravity * profile.wall_ride_gravity_scale * delta
+		# Strip any velocity component pushing into the wall so we slide along it.
+		var into_wall: float = velocity.dot(_wall_normal)
+		if into_wall < 0.0:
+			velocity -= _wall_normal * into_wall
+	else:
+		if is_on_floor():
+			return
+		if horizontal_speed < profile.wall_ride_min_speed:
+			return
+		var detected: Vector3 = _find_wall(profile)
+		if detected != Vector3.ZERO:
+			_wall_ride_active = true
+			_wall_ride_timer = 0.0
+			_wall_normal = detected
+
+
+func _find_wall(profile: MovementProfile) -> Vector3:
+	var h_vel := Vector3(velocity.x, 0.0, velocity.z)
+	if h_vel.length() < 0.1:
+		return Vector3.ZERO
+	var forward: Vector3 = h_vel.normalized()
+	var right: Vector3 = forward.cross(Vector3.UP).normalized()
+	var space := get_world_3d().direct_space_state
+	var from: Vector3 = global_position + Vector3(0, 1.0, 0)
+	for side: Vector3 in [right, -right]:
+		var query := PhysicsRayQueryParameters3D.create(from, from + side * profile.wall_ride_reach)
+		query.exclude = [self.get_rid()]
+		var hit: Dictionary = space.intersect_ray(query)
+		if not hit.is_empty():
+			var n: Vector3 = hit["normal"]
+			var max_normal_y: float = sin(deg_to_rad(profile.wall_ride_max_tilt_deg))
+			if absf(n.y) < max_normal_y:
+				return n
+	return Vector3.ZERO
 
 
 func _process(delta: float) -> void:
@@ -352,6 +416,24 @@ func _register_debug_panel() -> void:
 		DebugPanel.add_toggle("Movement/skate/face_velocity",
 			func() -> bool: return skate_profile.face_velocity,
 			func(v: bool) -> void: skate_profile.face_velocity = v)
+		DebugPanel.add_slider("Movement/skate/wall_ride_duration", 0.0, 5.0, 0.1,
+			func() -> float: return skate_profile.wall_ride_duration,
+			func(v: float) -> void: skate_profile.wall_ride_duration = v)
+		DebugPanel.add_slider("Movement/skate/wall_ride_min_speed", 0.0, 20.0, 0.1,
+			func() -> float: return skate_profile.wall_ride_min_speed,
+			func(v: float) -> void: skate_profile.wall_ride_min_speed = v)
+		DebugPanel.add_slider("Movement/skate/wall_ride_gravity", 0.0, 1.0, 0.05,
+			func() -> float: return skate_profile.wall_ride_gravity_scale,
+			func(v: float) -> void: skate_profile.wall_ride_gravity_scale = v)
+		DebugPanel.add_slider("Movement/skate/wall_ride_reach", 0.3, 3.0, 0.05,
+			func() -> float: return skate_profile.wall_ride_reach,
+			func(v: float) -> void: skate_profile.wall_ride_reach = v)
+		DebugPanel.add_slider("Movement/skate/wall_ride_jump_push", 0.0, 40.0, 0.5,
+			func() -> float: return skate_profile.wall_ride_jump_push,
+			func(v: float) -> void: skate_profile.wall_ride_jump_push = v)
+		DebugPanel.add_slider("Movement/skate/wall_ride_max_tilt_deg", 0.0, 90.0, 0.5,
+			func() -> float: return skate_profile.wall_ride_max_tilt_deg,
+			func(v: float) -> void: skate_profile.wall_ride_max_tilt_deg = v)
 		DebugPanel.add_slider("Skin/Sway/skate/duration", 0.0, 5.0, 0.1,
 			func() -> float: return skate_profile.speedup_duration,
 			func(v: float) -> void: skate_profile.speedup_duration = v)

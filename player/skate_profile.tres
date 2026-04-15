@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="MovementProfile" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="MovementProfile" format=3 uid="uid://bccqlooedrax4"]
 
-[ext_resource type="Script" path="res://player/movement_profile.gd" id="1"]
+[ext_resource type="Script" uid="uid://brgtkdpk35dq2" path="res://player/movement_profile.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
@@ -11,10 +11,12 @@ air_accel_mult = 0.54
 turn_rate = 39.9
 jump_impulse = 14.25
 rotation_speed = 19.75
-stopping_speed = 1.0
 face_velocity = true
 forward_lean_amount = -0.3
 side_lean_amount = 0.06
-lean_smoothing = 4.5
-tilt_height_drop = 0.5
 brake_impulse_amount = 0.3
+wall_ride_duration = 1.5
+wall_ride_min_speed = 6.0
+wall_ride_gravity_scale = 0.15
+wall_ride_jump_push = 8.0
+tilt_height_drop = 0.5
