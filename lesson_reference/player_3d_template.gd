@@ -31,6 +31,16 @@ enum FollowMode { PARENTED, DETACHED }
 ## Exponential decay rate for pitch return. ~1.5 ≈ 95% back in 2 seconds.
 @export var pitch_return_rate := 1.5
 
+@export_group("Skin Lean")
+## Forward tilt proportional to current speed (radians per m/s).
+## Positive leans forward as you pick up speed; negative to lean back.
+@export var forward_lean_amount := 0.03
+## How much the character rolls sideways while turning at speed (radians per
+## (rad/s × m/s) of centripetal force). Try 0.04.
+@export var side_lean_amount := 0.04
+## Exponential decay rate for lean smoothing. Higher = snappier.
+@export var lean_smoothing := 8.0
+
 @export_group("Camera Occlusion")
 ## Smooths SpringArm's instant-snap output into an eased response.
 ## Higher = snappier. ~8 ≈ 95% in 0.37s.
@@ -59,6 +69,10 @@ var _spring: SpringArm3D
 var _base_pitch := 0.0
 var _camera_original_z := 0.0
 var _current_camera_z := 0.0
+var _prev_skin_yaw := 0.0
+var _prev_h_vel := Vector3.ZERO
+var _current_lean_pitch := 0.0
+var _current_lean_roll := 0.0
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -156,7 +170,23 @@ func _physics_process(delta: float) -> void:
 	if profile.face_velocity and h_vel.length() > 0.5:
 		face_target = h_vel.normalized()
 	var target_angle := Vector3.BACK.signed_angle_to(face_target, Vector3.UP)
-	_skin.global_rotation.y = lerp_angle(_skin.rotation.y, target_angle, profile.rotation_speed * delta)
+	_skin.rotation.y = lerp_angle(_skin.rotation.y, target_angle, profile.rotation_speed * delta)
+
+	# Body lean: tilt forward based on acceleration, roll sideways based on
+	# angular turn rate × speed (centripetal force feel).
+	var d_yaw: float = wrapf(_skin.rotation.y - _prev_skin_yaw, -PI, PI) / max(delta, 0.0001)
+	_prev_skin_yaw = _skin.rotation.y
+	var accel: Vector3 = (h_vel - _prev_h_vel) / max(delta, 0.0001)
+	_prev_h_vel = h_vel
+	var forward_dir := Vector3(-sin(_skin.rotation.y), 0.0, -cos(_skin.rotation.y))
+	var forward_accel: float = accel.dot(forward_dir)
+	var target_pitch: float = clamp(forward_accel * forward_lean_amount, -0.5, 0.5)
+	var target_roll: float = clamp(-d_yaw * h_vel.length() * side_lean_amount, -0.5, 0.5)
+	var lean_factor := 1.0 - exp(-lean_smoothing * delta)
+	_current_lean_pitch = lerp(_current_lean_pitch, target_pitch, lean_factor)
+	_current_lean_roll = lerp(_current_lean_roll, target_roll, lean_factor)
+	_skin.rotation.x = _current_lean_pitch
+	_skin.rotation.z = _current_lean_roll
 
 	# Horizontal movement.
 	var y_velocity := velocity.y
@@ -256,6 +286,15 @@ func _register_debug_panel() -> void:
 	DebugPanel.add_slider("Camera/SpringArm/min_distance", 0.0, 10.0, 0.1,
 		func() -> float: return min_camera_distance,
 		func(v: float) -> void: min_camera_distance = v)
+	DebugPanel.add_slider("Skin/Lean/forward_amount", -0.2, 0.2, 0.005,
+		func() -> float: return forward_lean_amount,
+		func(v: float) -> void: forward_lean_amount = v)
+	DebugPanel.add_slider("Skin/Lean/side_amount", -0.2, 0.2, 0.005,
+		func() -> float: return side_lean_amount,
+		func(v: float) -> void: side_lean_amount = v)
+	DebugPanel.add_slider("Skin/Lean/smoothing", 0.5, 20.0, 0.1,
+		func() -> float: return lean_smoothing,
+		func(v: float) -> void: lean_smoothing = v)
 	DebugPanel.add_slider("Camera/SpringArm/base_pitch_deg", -60.0, 10.0, 0.5,
 		func() -> float: return rad_to_deg(_base_pitch),
 		func(v: float) -> void: _base_pitch = deg_to_rad(v))
