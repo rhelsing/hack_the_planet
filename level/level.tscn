@@ -81,9 +81,9 @@ volumetric_fog_albedo = Color(0.843137, 0.737255, 0.329412, 1)
 volumetric_fog_emission = Color(0.843137, 0.737255, 0.329412, 1)
 
 [sub_resource type="Curve3D" id="Curve3D_m3nah"]
-bake_interval = 176.47
+bake_interval = 0.01
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 3.5279846, 0.51191807, 0, 0, 0, 0, 0, 0, 0, -5.2997627, 1.0529041, 8.330693, 0, 0, 0, 0, 0, 0, -20.32687, 1.8204193, 3.974308),
+"points": PackedVector3Array(6.920456, 1.1097641, 2.1939392, -6.920456, -1.1097641, -2.1939392, 3.5279846, 0.51191807, 0, 4.6542206, -0.14643192, -1.3328218, -4.6542206, 0.14643192, 1.3328218, -6.6992645, 2.7348166, 9.12174, 3.7, -0.08, -0.44, 0, 0, 0, -18.764511, 0.58393, 3.2614212),
 "tilts": PackedFloat32Array(0, 0, 0)
 }
 point_count = 3
@@ -266,5 +266,5 @@ material = ExtResource("7_njuj4")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.886671, 5.999999, -17.867033)
 
 [node name="Rail" parent="." unique_id=1908578088 instance=ExtResource("13_l5lfc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.859394, 8.000002, -22.37413)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.790047, 7.9697123, -22.37413)
 curve = SubResource("Curve3D_m3nah")
