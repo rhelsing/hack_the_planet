@@ -13,3 +13,6 @@ jump_impulse = 12.0
 rotation_speed = 12.0
 stopping_speed = 0.0
 face_velocity = true
+forward_lean_amount = -0.12
+side_lean_amount = 0.015
+lean_smoothing = 3.5

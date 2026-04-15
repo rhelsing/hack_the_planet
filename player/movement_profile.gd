@@ -10,3 +10,8 @@ extends Resource
 @export var rotation_speed := 12.0
 @export var stopping_speed := 1.0
 @export var face_velocity := false
+
+@export_group("Lean")
+@export var forward_lean_amount := -0.095
+@export var side_lean_amount := 0.005
+@export var lean_smoothing := 4.5
