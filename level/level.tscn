@@ -13,6 +13,8 @@
 [ext_resource type="PackedScene" uid="uid://c6uew1wfpkt16" path="res://level/interactable/flag/flag_3d.tscn" id="8_kebk2"]
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="12_l5lfc"]
 [ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="13_l5lfc"]
+[ext_resource type="PackedScene" uid="uid://d4f8wna1b6pwj" path="res://enemy/enemy.tscn" id="14_enemy"]
+[ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="15_fm1jd"]
 
 [sub_resource type="Curve" id="Curve_k4wis"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -127,14 +129,35 @@ transform = Transform3D(-2.0693, 0.241202, -1.93468, 0.670546, 2.7372, -0.375951
 transform = Transform3D(-2.0693, 0.241202, -1.93468, -0.140842, 2.7954, 0.499148, 1.94458, 0.459138, -2.02263, 6.26628, 4.19006, -20.6183)
 
 [node name="CSGPolygon3D8" type="CSGPolygon3D" parent="." unique_id=933976850]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -79.91054, 8, -22)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -152.93665, 8, -22)
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("7_njuj4")
+
+[node name="CSGPolygon3D8" type="CSGPolygon3D" parent="CSGPolygon3D8" unique_id=1058713994]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -152.93665, 8, -22)
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("7_njuj4")
+
+[node name="CSGPolygon3D9" type="CSGPolygon3D" parent="." unique_id=747789610]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -103.463974, 8, -33.1658)
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("7_njuj4")
+
+[node name="CSGPolygon3D8" type="CSGPolygon3D" parent="CSGPolygon3D9" unique_id=1720170663]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -152.93665, 8, -22)
 use_collision = true
 polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
 depth = 4.0
 material = ExtResource("7_njuj4")
 
 [node name="CSGBox3D8" type="CSGBox3D" parent="." unique_id=1590573054]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -86.91054, -4.5, -20)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -160.28442, -4.5, -20)
 material_override = ExtResource("7_njuj4")
 use_collision = true
 size = Vector3(8, 29, 10)
@@ -152,10 +175,10 @@ use_collision = true
 size = Vector3(7, 27, 11)
 
 [node name="CSGBox3D12" type="CSGBox3D" parent="." unique_id=1794427864]
-transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.90637, -5.5, -20)
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -122.397064, -5.5, -20.176506)
 material_override = ExtResource("7_njuj4")
 use_collision = true
-size = Vector3(7, 27, 11)
+size = Vector3(36.105957, 27, 99.981384)
 
 [node name="CSGBox3D9" type="CSGBox3D" parent="CSGBox3D12" unique_id=1042639805]
 transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.41054, -5.5, -20)
@@ -164,13 +187,13 @@ use_collision = true
 size = Vector3(7, 27, 11)
 
 [node name="Flag3D" parent="." unique_id=1006749816 instance=ExtResource("8_kebk2")]
-transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -86.91054, 10, -20)
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -160.28442, 10, -20)
 
 [node name="Cactus_Tall_4" parent="." unique_id=1602055079 instance=ExtResource("3_b7ara")]
-transform = Transform3D(2.61213, -0.568739, 2.70573, 0.733066, 3.73154, 0.0766514, -2.66589, 0.468831, 2.67223, -89.47294, 8.07102, -16.5215)
+transform = Transform3D(2.61213, -0.568739, 2.70573, 0.733066, 3.73154, 0.0766514, -2.66589, 0.468831, 2.67223, -162.84682, 8.07102, -16.5215)
 
 [node name="Cactus_Small_6" parent="." unique_id=1239006335 instance=ExtResource("5_ka65c")]
-transform = Transform3D(-0.835645, -0.807971, -3.00138, 0.459363, 3.04172, -0.946727, 3.0741, -0.67416, -0.6744, -89.846436, 10.1568, -24.2418)
+transform = Transform3D(-0.835645, -0.807971, -3.00138, 0.459363, 3.04172, -0.946727, 3.0741, -0.67416, -0.6744, -163.2203, 10.1568, -24.2418)
 
 [node name="Cactus_Small_10" parent="." unique_id=829472273 instance=ExtResource("5_ka65c")]
 transform = Transform3D(-0.343258, 0.118638, -2.12375, -0.220623, 1.66642, 0.18614, 2.19645, 0.185923, -0.313194, -73.64163, 8.26512, -17.7959)
@@ -179,7 +202,7 @@ transform = Transform3D(-0.343258, 0.118638, -2.12375, -0.220623, 1.66642, 0.186
 transform = Transform3D(1.41309, -0.625184, -3.11244, -0.316167, 3.3622, -0.818895, 3.15882, 0.616194, 1.31036, -51.743385, 8.693122, -25.655394)
 
 [node name="Cactus_Small_8" parent="." unique_id=279288194 instance=ExtResource("6_ona4a")]
-transform = Transform3D(-3.02021, 0.729762, 0.355604, 0.681151, 3.02339, -0.419376, -0.441628, -0.327551, -3.07869, -88.88984, 10.276, -23.5882)
+transform = Transform3D(-3.02021, 0.729762, 0.355604, 0.681151, 3.02339, -0.419376, -0.441628, -0.327551, -3.07869, -162.26372, 10.276, -23.5882)
 
 [node name="Cactus_Small_9" parent="." unique_id=1579896906 instance=ExtResource("6_ona4a")]
 transform = Transform3D(-2.99633, 0.231602, -1.56352, 0.381736, 3.35793, -0.234152, 1.5338, -0.383288, -2.99613, -43.20494, 8.42468, -25.298393)
@@ -270,4 +293,40 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.790047, 7.9697123, -22.37
 curve = SubResource("Curve3D_m3nah")
 
 [node name="PhoneBooth2" parent="." unique_id=1346027676 instance=ExtResource("12_l5lfc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.40565, 8.000001, -25.190847)
+transform = Transform3D(-0.4628011, 0, -0.88646215, 0, 1, 0, 0.88646215, 0, -0.4628011, -46.40565, 8.000001, -25.190847)
+
+[node name="Enemy" parent="." unique_id=338827237 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100.60985, 11.161891, -35)
+
+[node name="Enemy2" parent="." unique_id=1011456803 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.85294, 9.009345, -20.17276)
+
+[node name="Enemy3" parent="." unique_id=110217350 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.010475, 9.009345, -20.17276)
+
+[node name="Enemy5" parent="." unique_id=829737949 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -125.40017, 11.161891, -26.03293)
+
+[node name="Enemy6" parent="." unique_id=255345555 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.64326, 9.009345, -11.20569)
+
+[node name="Enemy7" parent="." unique_id=1450016228 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.8008, 9.009345, -11.20569)
+
+[node name="Enemy4" parent="." unique_id=2111817553 instance=ExtResource("14_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.7546806, 9.009345, -20.17276)
+
+[node name="Coin" parent="." unique_id=949706647 instance=ExtResource("15_fm1jd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.53114, 8.4, -35.205612)
+
+[node name="Coin2" parent="." unique_id=78435696 instance=ExtResource("15_fm1jd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3001156, 0.4, -26.789938)
+
+[node name="Coin3" parent="." unique_id=1748863417 instance=ExtResource("15_fm1jd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2016468, 0.4, -31.938831)
+
+[node name="Coin4" parent="." unique_id=1640028186 instance=ExtResource("15_fm1jd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.29434, 2.4, -28.87487)
+
+[node name="Coin5" parent="." unique_id=963055175 instance=ExtResource("15_fm1jd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.096862, 4.4, -23.481585)

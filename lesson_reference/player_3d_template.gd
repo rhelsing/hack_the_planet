@@ -31,6 +31,46 @@ enum FollowMode { PARENTED, DETACHED }
 ## Exponential decay rate for pitch return. ~1.5 ≈ 95% back in 2 seconds.
 @export var pitch_return_rate := 1.5
 
+@export_group("Health")
+## Hits the player can take from enemies before dying. Falling off the world
+## (kill_plane) still skips straight to the death sequence regardless.
+@export var max_health := 3
+## Upward velocity applied at the start of the death sequence — the player
+## pops into a jump and arcs through gravity before bursting into confetti.
+@export var death_rise_speed := 9.0
+## Seconds between the death hit and the checkpoint respawn. Confetti fires
+## at the start of this window, so the player rises through their own burst.
+@export var death_duration := 0.55
+## Seconds without being hit before HP fully refills. Set high to make damage
+## sticky, low to make the player resilient. 0 disables regen.
+@export var health_regen_delay := 4.0
+@export var death_burst_scene: PackedScene = preload("res://enemy/confetti_burst.tscn")
+## Peak alpha of the red flash applied on a damage hit. Fades linearly to 0
+## over damage_tint_duration.
+@export_range(0.0, 1.0) var damage_tint_max := 0.55
+## Seconds over which the damage flash fades from damage_tint_max back to 0.
+@export var damage_tint_duration := 1.0
+
+@export_group("Attack")
+## Max distance (meters) from player center to enemy center for a hit to land.
+@export var attack_range := 3.5
+## Seconds the swing stays "live" after pressing J. While active, any enemy
+## that enters attack_range gets hit — so the forward lunge sweeps through
+## enemies that were just out of reach at the press frame. Each enemy can
+## only be hit once per swing.
+@export var attack_active_duration := 0.22
+## Horizontal knockback speed (m/s) applied to hit enemies.
+@export var attack_knockback := 14.0
+## Horizontal speed added to the player on attack (the "jostle" forward).
+## Normal movement friction decays it back to cruise speed. No animation
+## state change — this is the entire attack "animation."
+@export var attack_lunge_speed := 8.0
+## Vertical pop added on attack so the jostle reads as a mini-lunge.
+@export var attack_lunge_hop := 2.0
+## Peak additive forward pitch (radians) on the skin during the jostle.
+## Applied on top of the normal lean curve; peaks mid-jostle then decays.
+@export var attack_lunge_pitch := 0.5
+
 @export_group("Camera Occlusion")
 ## Smooths SpringArm's instant-snap output into an eased response.
 ## Higher = snappier. ~8 ≈ 95% in 0.37s.
@@ -77,6 +117,17 @@ var _grind_progress := 0.0
 var _grind_direction := 1.0
 var _grind_snap_t := 1.0
 var _grind_start_pos := Vector3.ZERO
+var _air_jump_available := false
+var _attack_timer := 0.0
+var _attack_duration := 0.3
+var _attack_active_timer := 0.0
+var _attack_forward := Vector3.ZERO
+var _attack_hit_enemies: Array[Node] = []
+var _health := 3
+var _dying := false
+var _dying_timer := 0.0
+var _regen_timer := 0.0
+var _tint_timer := 0.0
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -90,6 +141,7 @@ var _grind_start_pos := Vector3.ZERO
 
 
 func _ready() -> void:
+	add_to_group("player")
 	_current_profile = skate_profile if skate_profile != null else walk_profile
 	_apply_follow_mode()
 	_target_yaw = _camera_pivot.global_rotation.y
@@ -107,13 +159,13 @@ func _ready() -> void:
 	_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
+	_health = max_health
 	Events.kill_plane_touched.connect(func on_kill_plane_touched() -> void:
-		global_position = _start_position
-		velocity = Vector3.ZERO
-		_skin.idle()
-		_snap_camera_to_player()
-		set_physics_process(true)
+		# Falling off the world skips the HP system — it's always terminal.
+		if not _dying:
+			_start_death()
 	)
+	Events.enemy_hit_player.connect(_on_enemy_hit_player)
 	Events.flag_reached.connect(func on_flag_reached() -> void:
 		set_physics_process(false)
 		_skin.idle()
@@ -141,6 +193,125 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_follow_mode"):
 		follow_mode = FollowMode.DETACHED if follow_mode == FollowMode.PARENTED else FollowMode.PARENTED
 		_apply_follow_mode()
+	elif event.is_action_pressed("attack") and not _dying:
+		_start_attack_jostle()
+
+
+func _start_attack_jostle() -> void:
+	if _attack_timer > 0.0:
+		return
+	_attack_timer = _attack_duration
+	# Forward = flattened camera direction; fall back to character facing.
+	var forward := -_camera.global_basis.z
+	forward.y = 0.0
+	if forward.length_squared() > 0.0001:
+		forward = forward.normalized()
+	else:
+		forward = -global_basis.z
+	# Additive velocity kick. The existing friction handles decay; we don't
+	# need to lock out other movement or change animation state.
+	velocity.x += forward.x * attack_lunge_speed
+	velocity.z += forward.z * attack_lunge_speed
+	velocity.y = maxf(velocity.y, attack_lunge_hop)
+	# Open the active swing window. The sweep runs each frame in physics.
+	_attack_active_timer = attack_active_duration
+	_attack_forward = forward
+	_attack_hit_enemies.clear()
+	_sweep_attack()
+
+
+func _on_enemy_hit_player(impulse: Vector3) -> void:
+	if _dying:
+		return
+	_health -= 1
+	_regen_timer = 0.0
+	# Physical reaction to the slam — additive impulse applied on top of
+	# whatever the player was already doing, so a mid-air hit feels right.
+	velocity += impulse
+	# Fresh 1s red flash; the tint timer overrides any in-progress fade.
+	_tint_timer = damage_tint_duration
+	if _skin != null:
+		_skin.damage_tint = damage_tint_max
+	if _health <= 0:
+		_start_death()
+
+
+func _tick_health_regen(delta: float) -> void:
+	if health_regen_delay <= 0.0 or _health >= max_health:
+		return
+	_regen_timer += delta
+	if _regen_timer >= health_regen_delay:
+		_health = max_health
+		_regen_timer = 0.0
+
+
+func _tick_damage_tint(delta: float) -> void:
+	if _tint_timer <= 0.0 or _skin == null:
+		return
+	_tint_timer = maxf(0.0, _tint_timer - delta)
+	if damage_tint_duration <= 0.0:
+		_skin.damage_tint = 0.0
+		return
+	var fraction: float = _tint_timer / damage_tint_duration
+	_skin.damage_tint = fraction * damage_tint_max
+
+
+func _start_death() -> void:
+	_dying = true
+	_dying_timer = death_duration
+	_skin.jump()
+	# Clear the damage tint so the death rise isn't red — the confetti is
+	# the death visual; the red overlay is strictly for the damaged-but-alive
+	# state leading up to this moment.
+	_skin.damage_tint = 0.0
+	# Pop straight up so the arc reads clearly no matter which way the player
+	# was moving; horizontal motion is zeroed so they don't fly off mid-death.
+	velocity = Vector3(0.0, death_rise_speed, 0.0)
+	# Fire confetti immediately so the player rises up through the burst
+	# instead of poofing only at the peak.
+	_spawn_death_confetti()
+
+
+func _finish_death() -> void:
+	global_position = _start_position
+	velocity = Vector3.ZERO
+	_health = max_health
+	_dying = false
+	_attack_timer = 0.0
+	_tint_timer = 0.0
+	if _skin != null:
+		_skin.damage_tint = 0.0
+	_skin.idle()
+	_snap_camera_to_player()
+	set_physics_process(true)
+
+
+func _spawn_death_confetti() -> void:
+	if death_burst_scene == null:
+		return
+	var burst: Node3D = death_burst_scene.instantiate()
+	burst.call("set_direction", Vector3.UP)
+	get_parent().add_child(burst)
+	burst.global_position = global_position
+
+
+func _sweep_attack() -> void:
+	var range_sq := attack_range * attack_range
+	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
+		if not enemy is Enemy:
+			continue
+		if _attack_hit_enemies.has(enemy):
+			continue
+		# Horizontal distance only — hovering enemies sit well above the
+		# player, so using 3D distance would eat most of the reach on Y.
+		var dx: float = enemy.global_position.x - global_position.x
+		var dz: float = enemy.global_position.z - global_position.z
+		if dx * dx + dz * dz > range_sq:
+			continue
+		# Knockback follows the swing direction, so hits send enemies along
+		# the attack vector rather than radially outward from the player.
+		(enemy as Enemy).hit(_attack_forward, attack_knockback)
+		_attack_hit_enemies.append(enemy)
 
 
 func _apply_follow_mode() -> void:
@@ -185,6 +356,18 @@ func _on_checkpoint_reached(pos: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _dying:
+		_dying_timer -= delta
+		velocity.y += _gravity * delta
+		move_and_slide()
+		_update_follow_camera(delta)
+		if _dying_timer <= 0.0:
+			_finish_death()
+		return
+
+	_tick_health_regen(delta)
+	_tick_damage_tint(delta)
+
 	var profile := _current_profile
 
 	if _grinding:
@@ -226,10 +409,12 @@ func _physics_process(delta: float) -> void:
 		_speedup_timer += delta
 	_was_moving = is_moving
 	var speedup_roll := 0.0
-	if is_moving and _speedup_timer < profile.speedup_duration:
-		var t: float = _speedup_timer / max(profile.speedup_duration, 0.001)
-		var decay: float = 1.0 - t
-		speedup_roll = profile.speedup_amplitude * sin(TAU * profile.speedup_frequency * _speedup_timer) * decay
+	if is_moving:
+		var amp: float = profile.cruise_sway_amplitude
+		if _speedup_timer < profile.speedup_duration:
+			var t: float = _speedup_timer / max(profile.speedup_duration, 0.001)
+			amp = lerpf(profile.speedup_amplitude, profile.cruise_sway_amplitude, t)
+		speedup_roll = amp * sin(TAU * profile.speedup_frequency * _speedup_timer)
 	# Kill the sway while airborne so jumps read clean.
 	if not is_on_floor():
 		speedup_roll = 0.0
@@ -249,7 +434,14 @@ func _physics_process(delta: float) -> void:
 	_was_pressing_forward = pressing_forward
 	_brake_impulse = lerp(_brake_impulse, 0.0, 1.0 - exp(-profile.brake_impulse_decay * delta))
 
-	var final_pitch: float = _current_lean_pitch + _brake_impulse
+	# Procedural attack "jostle": additive forward pitch that peaks mid-swing
+	# and decays, so the attack reads without touching the animation state.
+	var attack_pitch := 0.0
+	if _attack_timer > 0.0 and _attack_duration > 0.0:
+		var p: float = 1.0 - _attack_timer / _attack_duration
+		attack_pitch = sin(p * PI) * attack_lunge_pitch
+
+	var final_pitch: float = _current_lean_pitch + _brake_impulse + attack_pitch
 	var final_roll: float = _current_lean_roll + speedup_roll
 
 	# Rotate the skin around a head-height pivot: the basis holds yaw+pitch+roll,
@@ -282,19 +474,42 @@ func _physics_process(delta: float) -> void:
 	velocity = Vector3(h_vel.x, y_velocity + _gravity * delta, h_vel.z)
 
 	# Animations and FX.
+	if on_floor:
+		_air_jump_available = true
 	var ground_speed := Vector2(velocity.x, velocity.z).length()
-	var is_just_jumping := Input.is_action_just_pressed("jump") and on_floor
+	var jump_pressed := Input.is_action_just_pressed("jump")
+	var is_just_jumping := jump_pressed and on_floor
+	var is_air_jumping := (jump_pressed and not on_floor and _air_jump_available
+		and not _wall_ride_active)
+
+	# Attack jostle is purely procedural (velocity kick + skin pitch) so we
+	# just let the timer tick down — no animation state to enter/exit.
+	if _attack_timer > 0.0:
+		_attack_timer = maxf(0.0, _attack_timer - delta)
+	# Active swing window: re-sweep each frame so the forward lunge can
+	# catch enemies the initial press missed.
+	if _attack_active_timer > 0.0:
+		_attack_active_timer = maxf(0.0, _attack_active_timer - delta)
+		_sweep_attack()
+
 	if is_just_jumping:
 		velocity.y += profile.jump_impulse
-		_skin.jump()
 		_jump_sound.play()
-	elif not on_floor and velocity.y < 0:
-		_skin.fall()
-	elif on_floor:
-		if ground_speed > 0.0:
-			_skin.move()
-		else:
-			_skin.idle()
+	elif is_air_jumping:
+		velocity.y = profile.jump_impulse
+		_jump_sound.play()
+		_air_jump_available = false
+
+	if not _wall_ride_active:
+		if is_just_jumping or is_air_jumping:
+			_skin.jump()
+		elif not on_floor and velocity.y < 0:
+			_skin.fall()
+		elif on_floor:
+			if ground_speed > 0.0:
+				_skin.move()
+			else:
+				_skin.idle()
 
 	_dust_particles.emitting = on_floor && ground_speed > 0.0
 
@@ -414,6 +629,7 @@ func _update_wall_ride(delta: float, profile: MovementProfile) -> void:
 			_wall_ride_active = true
 			_wall_ride_timer = 0.0
 			_wall_normal = detected
+			_skin.wall_slide()
 
 
 func _find_wall(profile: MovementProfile) -> Vector3:
@@ -575,6 +791,9 @@ func _register_debug_panel() -> void:
 		DebugPanel.add_slider("Skin/Sway/skate/pivot_height", 0.0, 3.0, 0.05,
 			func() -> float: return skate_profile.lean_pivot_height,
 			func(v: float) -> void: skate_profile.lean_pivot_height = v)
+		DebugPanel.add_slider("Skin/Sway/skate/cruise_amplitude", 0.0, 1.0, 0.01,
+			func() -> float: return skate_profile.cruise_sway_amplitude,
+			func(v: float) -> void: skate_profile.cruise_sway_amplitude = v)
 	if walk_profile != null:
 		DebugPanel.add_slider("Skin/Lean/walk/tilt_height_drop", 0.0, 2.0, 0.02,
 			func() -> float: return walk_profile.tilt_height_drop,

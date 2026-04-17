@@ -23,6 +23,9 @@ extends Resource
 @export var speedup_amplitude := 0.15
 ## Oscillations per second.
 @export var speedup_frequency := 2.0
+## Continuous sway amplitude once the startup burst has settled. Keeps a
+## low-level side-to-side rock going while moving. 0 = fully settle to still.
+@export var cruise_sway_amplitude := 0.0
 ## Height of the skin's rotation pivot (roughly head height, meters).
 ## Rotations at this pivot make the feet swing while the head stays put.
 @export var lean_pivot_height := 1.6

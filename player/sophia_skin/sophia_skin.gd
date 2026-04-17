@@ -10,8 +10,29 @@ var run_tilt = 0.0 : set = _set_run_tilt
 @onready var blink_timer = %BlinkTimer
 @onready var closed_eyes_timer = %ClosedEyesTimer
 @onready var eye_mat = $sophia/rig/Skeleton3D/Sophia.get("surface_material_override/2")
+@onready var _body_mesh: MeshInstance3D = $sophia/rig/Skeleton3D/Sophia
+
+var _damage_overlay: StandardMaterial3D
+
+## 0 = no tint, 1 = fully red. Ramps a red material overlay on the body mesh
+## so the skin flushes red as the player takes damage.
+var damage_tint: float = 0.0:
+	set(value):
+		damage_tint = clampf(value, 0.0, 1.0)
+		if _damage_overlay != null:
+			var c: Color = _damage_overlay.albedo_color
+			c.a = damage_tint
+			_damage_overlay.albedo_color = c
 
 func _ready():
+	_damage_overlay = StandardMaterial3D.new()
+	# Peak tint is the albedo when alpha=1; the `damage_tint` setter drives
+	# alpha from 0 (invisible) up to full tint strength.
+	_damage_overlay.albedo_color = Color(1.0, 0.12, 0.12, 0.0)
+	_damage_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_damage_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	_body_mesh.material_overlay = _damage_overlay
+
 	blink_timer.connect("timeout", func():
 		eye_mat.set("uv1_offset", Vector3(0.0, 0.5, 0.0))
 		closed_eyes_timer.start(0.2)
@@ -52,3 +73,6 @@ func edge_grab():
 
 func wall_slide():
 	state_machine.travel("WallSlide")
+
+func attack():
+	state_machine.start("EdgeGrab")
