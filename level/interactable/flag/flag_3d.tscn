@@ -1,8 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://c6uew1wfpkt16"]
+[gd_scene format=4 uid="uid://c6uew1wfpkt16"]
 
 [ext_resource type="PackedScene" uid="uid://drkqkt2fp2jca" path="res://level/interactable/flag/flag.glb" id="1_gjsm0"]
-[ext_resource type="Script" path="res://level/interactable/flag/flag_3d.gd" id="2_1g2ow"]
-[ext_resource type="Shader" path="res://level/interactable/flag/goal_flag.gdshader" id="2_pdycc"]
+[ext_resource type="Script" uid="uid://rf645lsi0qjc" path="res://level/interactable/flag/flag_3d.gd" id="2_1g2ow"]
+[ext_resource type="Shader" uid="uid://clvnglubl36h6" path="res://level/interactable/flag/goal_flag.gdshader" id="2_pdycc"]
+[ext_resource type="PackedScene" uid="uid://cupj5g2pdx6ef" path="res://level/interactable/rail/pool_-_lowpoly_-.glb" id="4_ox0ir"]
+[ext_resource type="Shader" uid="uid://idmmc8xny6g6" path="res://level/interactable/flag/water.gdshader" id="5_water"]
+[ext_resource type="Script" uid="uid://bq0ua7emdcu8d" path="res://level/interactable/flag/water_surface.gd" id="6_water_surface"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wfpnh"]
 albedo_color = Color(1, 0.623529, 0.101961, 1)
@@ -15,21 +18,63 @@ shader_parameter/albedo_color = Color(1, 0.435294, 0.0784314, 1)
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_pbioq"]
 radius = 2.0
 
-[node name="Flag3D" instance=ExtResource("1_gjsm0")]
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_water"]
+noise_type = 0
+frequency = 0.05
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_water"]
+noise = SubResource("FastNoiseLite_water")
+seamless = true
+as_normal_map = true
+bump_strength = 4.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]
+render_priority = 0
+shader = ExtResource("5_water")
+shader_parameter/normal_map_texture = SubResource("NoiseTexture2D_water")
+shader_parameter/water_color = Color(0.0625, 0.1992, 0.3594, 1)
+shader_parameter/index_of_refraction = 1.333
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_5j8io"]
+_surfaces = [{
+"aabb": AABB(-3, 0, -2.5, 5.5, 1e-05, 5),
+"attribute_data": PackedByteArray("AAAAAJqZmT7v5XM+AAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AACAP4wuuj0AAIA/jC66PQAAgD8AAAAAmpmZPgAAgD8AAAAA"),
+"format": 34359738391,
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 9,
+"vertex_data": PackedByteArray("AABAwAAAAAAAAIC/7FHYvwAAAAAAACDAAAAgQAAAAAAAACDAAAAgQAAAAAAAACDAAAAgQAAAAAAAACBAAAAgwAAAAAAAACBAAAAgwAAAAAAAACBAAABAwAAAAAAAAIC/AAAgQAAAAAAAACDA/3///////7//f///////v/9///////+//3///////7//f///////v/9///////+//3///////7//f///////v/9///////+/")
+}]
+
+[node name="Flag3D" unique_id=2107373629 instance=ExtResource("1_gjsm0")]
 script = ExtResource("2_1g2ow")
 
-[node name="GoalBody" parent="." index="0"]
+[node name="GoalBody" parent="." index="0" unique_id=1540446490]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+visible = false
 material_override = SubResource("StandardMaterial3D_wfpnh")
 
-[node name="GoalFlag" parent="." index="1"]
+[node name="GoalFlag" parent="." index="1" unique_id=1729781398]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0.03, 3.23518, 0)
+visible = false
 material_override = SubResource("ShaderMaterial_jw1k0")
 lod_bias = 10.0
 
-[node name="Area3D" type="Area3D" parent="." index="2"]
-unique_name_in_owner = true
+[node name="Sketchfab_Scene" parent="." index="2" unique_id=697325270 instance=ExtResource("4_ox0ir")]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, -0.024235606, 0)
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" index="0"]
+[node name="Area3D" type="Area3D" parent="." index="3" unique_id=454581587]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2214198, 0.23993683, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" index="0" unique_id=135080334]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("CylinderShape3D_pbioq")
+
+[node name="Water" type="MeshInstance3D" parent="." index="4" unique_id=1272388916]
+transform = Transform3D(1.7446944, 0, 0, 0, 1, 0, 0, 0, 1.2723061, -0.09763217, 1.7032161, 0)
+material_override = SubResource("ShaderMaterial_water")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_5j8io")
+script = ExtResource("6_water_surface")
+points = PackedVector2Array(-1.69, -2.5, 2.5, -2.5, 2.5, 2.5, -2.5, 2.5, -3, -1)

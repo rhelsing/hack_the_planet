@@ -53,7 +53,7 @@ enum FollowMode { PARENTED, DETACHED }
 
 @export_group("Attack")
 ## Max distance (meters) from player center to enemy center for a hit to land.
-@export var attack_range := 3.5
+@export var attack_range := 3.0
 ## Seconds the swing stays "live" after pressing J. While active, any enemy
 ## that enters attack_range gets hit — so the forward lunge sweeps through
 ## enemies that were just out of reach at the press frame. Each enemy can
@@ -308,9 +308,11 @@ func _sweep_attack() -> void:
 		var dz: float = enemy.global_position.z - global_position.z
 		if dx * dx + dz * dz > range_sq:
 			continue
-		# Knockback follows the swing direction, so hits send enemies along
-		# the attack vector rather than radially outward from the player.
-		(enemy as Enemy).hit(_attack_forward, attack_knockback)
+		# Confetti sprays outward along the player→enemy vector (so a hit
+		# to the side confettis sideways, not along the player's facing).
+		var to_enemy := Vector3(dx, 0.0, dz)
+		var impact_dir := to_enemy.normalized() if to_enemy.length_squared() > 0.0001 else _attack_forward
+		(enemy as Enemy).hit(impact_dir, attack_knockback)
 		_attack_hit_enemies.append(enemy)
 
 

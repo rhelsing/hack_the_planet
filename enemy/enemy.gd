@@ -321,27 +321,15 @@ func _play_anim(anim_name: String) -> void:
 	_anim.play(anim_name)
 
 
-## Registers a hit from the player. Jostles in the impact direction. On the
-## killing blow (hp reaches 0) the jostle is followed by the drone's Attack
-## animation playing in place, then the confetti burst. Hits landed while
-## the drone is already jostling or dying are ignored.
+## Instant-kill. The player's swing is the only thing that calls this, so
+## any hit is terminal — spawn confetti aimed along the impact vector and
+## despawn the enemy this frame. Second calls during the same frame are
+## harmless no-ops because queue_free is deferred.
 func hit(impact_direction: Vector3, _force: float) -> void:
-	if _jostle_timer > 0.0 or _death_anim_timer > 0.0:
+	if _death_anim_timer > 0.0:
 		return
-	_health -= 1
 	_pending_impact = impact_direction
-	# Cancel any attack-on-player sequence; the drone is too busy reacting.
-	_attack_phase = AttackPhase.IDLE
-	_attack_phase_timer = 0.0
-	_jostle_timer = hit_jostle_duration
-	var horizontal := Vector3(impact_direction.x, 0.0, impact_direction.z)
-	var dir: Vector3
-	if horizontal.length_squared() > 0.0001:
-		dir = horizontal.normalized()
-	else:
-		dir = -global_basis.z
-	velocity = dir * hit_jostle_speed
-	velocity.y = hit_jostle_hop
+	_explode()
 
 
 func _begin_death_anim() -> void:
