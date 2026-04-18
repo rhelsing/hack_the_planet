@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://dn8pfguwvq58a"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wheel"]
+albedo_color = Color(1, 0.1, 0.1, 1)
+roughness = 0.5
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_wheel"]
+top_radius = 0.075
+bottom_radius = 0.075
+height = 0.03
+
+[node name="RollerbladeWheels" type="Node3D" unique_id=1363128083]
+
+[node name="Wheel1" type="MeshInstance3D" parent="." unique_id=1796639795]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, -0.18406259, 0)
+material_override = SubResource("StandardMaterial3D_wheel")
+mesh = SubResource("CylinderMesh_wheel")
+
+[node name="Wheel2" type="MeshInstance3D" parent="." unique_id=334517410]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_wheel")
+mesh = SubResource("CylinderMesh_wheel")
+
+[node name="Wheel3" type="MeshInstance3D" parent="." unique_id=985352035]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, 0.17084134, 0)
+material_override = SubResource("StandardMaterial3D_wheel")
+mesh = SubResource("CylinderMesh_wheel")
