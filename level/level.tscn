@@ -42,8 +42,8 @@ seamless = true
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_g8ud2"]
 shader = ExtResource("1_hwp5q")
-shader_parameter/top_color = Color(0.288469, 0.182916, 1, 1)
-shader_parameter/bottom_color = Color(1, 0.46805, 0, 1)
+shader_parameter/top_color = Color(0.113560535, 0.06488352, 0.30650494, 1)
+shader_parameter/bottom_color = Color(0.23500425, 0.48292124, 0.4202249, 1)
 shader_parameter/gradient_curve = SubResource("CurveTexture_moxc7")
 shader_parameter/noise_texture = SubResource("NoiseTexture2D_83fre")
 shader_parameter/moon_texture = ExtResource("2_kb37w")
@@ -172,6 +172,7 @@ transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -122.397
 material_override = ExtResource("7_njuj4")
 use_collision = true
 size = Vector3(36.105957, 27, 99.981384)
+material = ExtResource("7_njuj4")
 
 [node name="CSGBox3D9" type="CSGBox3D" parent="CSGBox3D12" unique_id=1042639805]
 transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.41054, -5.5, -20)
