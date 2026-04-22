@@ -26,9 +26,6 @@ extends Resource
 ## Continuous sway amplitude once the startup burst has settled. Keeps a
 ## low-level side-to-side rock going while moving. 0 = fully settle to still.
 @export var cruise_sway_amplitude := 0.0
-## Height of the skin's rotation pivot (roughly head height, meters).
-## Rotations at this pivot make the feet swing while the head stays put.
-@export var lean_pivot_height := 1.6
 ## One-shot inverse-lean kick when releasing forward input at speed. Decays.
 @export var brake_impulse_amount := 0.0
 ## Exponential decay rate for the brake impulse. ~4 ≈ 95% in 0.75s.

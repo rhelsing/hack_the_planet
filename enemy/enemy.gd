@@ -126,7 +126,8 @@ func _physics_process(delta: float) -> void:
 func _physics_idle(delta: float) -> void:
 	var h_vel := Vector3.ZERO
 	if _brain != null:
-		h_vel = _brain.think(self, delta)
+		var intent: Intent = _brain.tick(self, delta)
+		h_vel = intent.move_direction
 
 	if hover_height > 0.0:
 		velocity = Vector3(h_vel.x, 0.0, h_vel.z)

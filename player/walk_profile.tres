@@ -8,5 +8,4 @@ turn_rate = 1000.0
 forward_lean_amount = -0.055
 speedup_duration = 0.0
 speedup_amplitude = 0.0
-lean_pivot_height = 0.0
 tilt_height_drop = 0.5

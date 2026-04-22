@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://cophriotskin0001"]
+
+[ext_resource type="Script" path="res://player/skins/cop_riot/cop_riot_skin.gd" id="1_cop"]
+[ext_resource type="PackedScene" uid="uid://bxdygsh0dn6mc" path="res://lib/cop_riot/cop_riot_multi_anim.glb" id="2_glb"]
+
+[node name="CopRiotSkin" type="Node3D"]
+script = ExtResource("1_cop")
+lean_pivot_height = 1.5
+body_center_y = 0.85
+
+[node name="Model" parent="." instance=ExtResource("2_glb")]

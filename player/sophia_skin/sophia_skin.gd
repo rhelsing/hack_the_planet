@@ -1,4 +1,5 @@
-class_name SophiaSkin extends Node3D
+class_name SophiaSkin
+extends CharacterSkin
 
 @onready var animation_tree = %AnimationTree
 @onready var state_machine : AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
@@ -13,16 +14,6 @@ var run_tilt = 0.0 : set = _set_run_tilt
 @onready var _body_mesh: MeshInstance3D = $sophia/rig/Skeleton3D/Sophia
 
 var _damage_overlay: StandardMaterial3D
-
-## 0 = no tint, 1 = fully red. Ramps a red material overlay on the body mesh
-## so the skin flushes red as the player takes damage.
-var damage_tint: float = 0.0:
-	set(value):
-		damage_tint = clampf(value, 0.0, 1.0)
-		if _damage_overlay != null:
-			var c: Color = _damage_overlay.albedo_color
-			c.a = damage_tint
-			_damage_overlay.albedo_color = c
 
 func _ready():
 	_damage_overlay = StandardMaterial3D.new()
@@ -51,6 +42,15 @@ func set_blink(state : bool):
 	else:
 		blink_timer.stop()
 		closed_eyes_timer.stop()
+
+
+func set_damage_tint(value: float) -> void:
+	# Sophia flushes red via a StandardMaterial3D overlay on her body mesh.
+	super(value)
+	if _damage_overlay != null:
+		var c: Color = _damage_overlay.albedo_color
+		c.a = damage_tint
+		_damage_overlay.albedo_color = c
 
 func _set_run_tilt(value : float):
 	run_tilt = clamp(value, -1.0, 1.0)

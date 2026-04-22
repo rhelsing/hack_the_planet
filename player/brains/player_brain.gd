@@ -1,0 +1,103 @@
+class_name PlayerBrain
+extends Brain
+
+## Human input driver. Reads Input + mouse, converts the 2D movement axis to
+## a world-space direction using the camera's yaw, and writes the result into
+## an Intent consumed by the body. Also owns player-only conveniences: mouse
+## look, skate/walk profile toggle, follow-mode toggle, cursor capture.
+##
+## Camera/spring/pivot references are exported so the brain can be used with
+## any body that wires them up in its scene. AI brains won't have these —
+## they just ignore camera entirely.
+
+## Paths to the body's camera rig, relative to this brain's parent (the body).
+## Exposed as NodePaths rather than typed node exports so the tscn serialization
+## is unambiguous — typed node exports require editor drag-and-drop to resolve
+## correctly, which breaks when the tscn is hand-edited.
+@export var camera_path: NodePath = "CameraPivot/SpringArm3D/Camera3D"
+@export var camera_pivot_path: NodePath = "CameraPivot"
+@export var spring_arm_path: NodePath = "CameraPivot/SpringArm3D"
+
+var camera: Camera3D
+var camera_pivot: Node3D
+var spring_arm: SpringArm3D
+
+@export_group("Mouse Look")
+@export var mouse_x_sensitivity := 0.002
+@export var mouse_y_sensitivity := 0.001
+@export var invert_y := true
+@export var pitch_min_deg := -75.0
+@export var pitch_max_deg := 20.0
+
+## Deadzone applied to the raw 2D movement axis before converting to world
+## direction. Small — the body layers its own thresholds on top.
+@export var move_deadzone := 0.1
+
+var _intent := Intent.new()
+## Set true the tick a mouse moved; the body reads this to re-engage manual
+## camera control. Exposed so the body's camera follow logic can query it.
+var time_since_mouse_input := 999.0
+
+
+func _ready() -> void:
+	# Resolve camera rig paths relative to the parent (body). Paths are
+	# node-relative, not brain-relative, so stock skins work without rewiring.
+	var body := get_parent()
+	if body != null:
+		if not camera_path.is_empty():
+			camera = body.get_node_or_null(camera_path) as Camera3D
+		if not camera_pivot_path.is_empty():
+			camera_pivot = body.get_node_or_null(camera_pivot_path) as Node3D
+		if not spring_arm_path.is_empty():
+			spring_arm = body.get_node_or_null(spring_arm_path) as SpringArm3D
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if event.relative.length() > 0.01:
+			time_since_mouse_input = 0.0
+		if camera_pivot != null:
+			camera_pivot.rotation.y -= event.relative.x * mouse_x_sensitivity
+		if spring_arm != null:
+			var y_sign := -1.0 if invert_y else 1.0
+			var new_pitch: float = spring_arm.rotation.x + event.relative.y * mouse_y_sensitivity * y_sign
+			spring_arm.rotation.x = clamp(new_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
+
+
+func _input(event: InputEvent) -> void:
+	var body := get_parent()
+	if body == null:
+		return
+	if event.is_action_pressed("toggle_skate") and body.has_method("toggle_profile"):
+		body.toggle_profile()
+	elif event.is_action_pressed("toggle_follow_mode") and body.has_method("toggle_follow_mode"):
+		body.toggle_follow_mode()
+
+
+func tick(_body: Node3D, delta: float) -> Intent:
+	time_since_mouse_input += delta
+
+	# Raw 2D input — deadzone here is tiny so the body's own thresholds remain
+	# the source of truth for "is the player pressing forward."
+	var raw_axis := Input.get_vector("move_left", "move_right", "move_up", "move_down", move_deadzone)
+
+	# Convert to world-space horizontal direction using the camera's yaw.
+	# Without a camera (shouldn't happen for a player), fall back to world axes.
+	var world_dir := Vector3.ZERO
+	if camera != null:
+		var forward: Vector3 = camera.global_basis.z
+		var right: Vector3 = camera.global_basis.x
+		world_dir = forward * raw_axis.y + right * raw_axis.x
+	else:
+		world_dir = Vector3(raw_axis.x, 0.0, raw_axis.y)
+	world_dir.y = 0.0
+	# Preserve magnitude (for analog sticks) while clamping to [0, 1].
+	var mag: float = min(world_dir.length(), 1.0)
+	if world_dir.length_squared() > 0.0001:
+		world_dir = world_dir.normalized() * mag
+
+	_intent.move_direction = world_dir
+	_intent.jump_pressed = Input.is_action_just_pressed("jump")
+	_intent.attack_pressed = Input.is_action_just_pressed("attack")
+	return _intent

@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://kaykitskin00001"]
+
+[ext_resource type="Script" path="res://player/skins/kaykit/kaykit_skin.gd" id="1_kaykit"]
+[ext_resource type="PackedScene" uid="uid://cuj11xk2culfy" path="res://player/skins/kaykit/model/kaykit_general.glb" id="2_model"]
+
+[node name="KayKitSkin" type="Node3D"]
+script = ExtResource("1_kaykit")
+lean_pivot_height = 1.55
+body_center_y = 0.85
+
+[node name="Model" parent="." instance=ExtResource("2_model")]

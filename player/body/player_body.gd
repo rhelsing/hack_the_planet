@@ -1,4 +1,16 @@
+class_name PlayerBody
 extends CharacterBody3D
+
+## Universal humanoid pawn. Reads an Intent each physics tick from a child
+## Brain node (PlayerBrain for humans, AI brains for NPCs, NetworkBrain for
+## remote peers), applies movement/physics/animation. No code path inside this
+## file knows what kind of brain is driving it — swap brains freely, same body.
+
+@export_group("Skin")
+## Optional skin scene override. If set, the hardcoded SophiaSkin child is
+## replaced with this at _ready. Lets the same body run as Sophia, cop_riot,
+## KayKit, etc. without any code changes — just drag a different scene in.
+@export var skin_scene: PackedScene
 
 @export_group("Movement")
 @export var walk_profile: MovementProfile
@@ -93,7 +105,6 @@ var _gravity := -30.0
 var _was_on_floor_last_frame := true
 var _current_profile: MovementProfile
 var _target_yaw := 0.0
-var _time_since_mouse_input := 999.0
 var _manual_weight := 0.0
 var _spring: SpringArm3D
 var _base_pitch := 0.0
@@ -138,14 +149,16 @@ var _tint_timer := 0.0
 
 @onready var _camera_pivot: Node3D = %CameraPivot
 @onready var _camera: Camera3D = %Camera3D
-@onready var _skin: SophiaSkin = %SophiaSkin
+@onready var _skin: CharacterSkin = %SophiaSkin
 @onready var _landing_sound: AudioStreamPlayer3D = %LandingSound
 @onready var _jump_sound: AudioStreamPlayer3D = %JumpSound
 @onready var _dust_particles: GPUParticles3D = %DustParticles
+@onready var _brain: Brain = $PlayerBrain
 
 
 func _ready() -> void:
 	add_to_group("player")
+	_swap_skin_if_overridden()
 	_current_profile = skate_profile if skate_profile != null else walk_profile
 	_apply_follow_mode()
 	_target_yaw = _camera_pivot.global_rotation.y
@@ -159,7 +172,6 @@ func _ready() -> void:
 	sphere.radius = spring_cast_radius
 	_spring.shape = sphere
 	_spring.margin = spring_margin
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
@@ -177,28 +189,37 @@ func _ready() -> void:
 	)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		if event.relative.length() > 0.01:
-			_time_since_mouse_input = 0.0
-		_camera_pivot.rotation.y -= event.relative.x * mouse_x_sensitivity
-		var spring: SpringArm3D = _camera_pivot.get_node("SpringArm3D")
-		var y_sign := -1.0 if invert_y else 1.0
-		var new_pitch: float = spring.rotation.x + event.relative.y * mouse_y_sensitivity * y_sign
-		spring.rotation.x = clamp(new_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
+## If skin_scene is set, replace the default skin child with a fresh instance
+## and rebind _skin. The default skin stays wired up in the tscn so running
+## without an override still works out of the box.
+func _swap_skin_if_overridden() -> void:
+	if skin_scene == null:
+		return
+	var new_skin := skin_scene.instantiate()
+	if not (new_skin is CharacterSkin):
+		push_error("skin_scene root must extend CharacterSkin, got %s" % new_skin.get_class())
+		new_skin.queue_free()
+		return
+	var anchor_xform := _skin.transform
+	var parent := _skin.get_parent()
+	_skin.queue_free()
+	parent.add_child(new_skin)
+	new_skin.transform = anchor_xform
+	_skin = new_skin
 
 
-func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("toggle_skate"):
-		if _current_profile == skate_profile and walk_profile != null:
-			_current_profile = walk_profile
-		elif skate_profile != null:
-			_current_profile = skate_profile
-	elif event.is_action_pressed("toggle_follow_mode"):
-		follow_mode = FollowMode.DETACHED if follow_mode == FollowMode.PARENTED else FollowMode.PARENTED
-		_apply_follow_mode()
-	elif event.is_action_pressed("attack") and not _dying:
-		_start_attack_jostle()
+## Public hook called by PlayerBrain when the skate/walk toggle is pressed.
+func toggle_profile() -> void:
+	if _current_profile == skate_profile and walk_profile != null:
+		_current_profile = walk_profile
+	elif skate_profile != null:
+		_current_profile = skate_profile
+
+
+## Public hook called by PlayerBrain when follow-mode toggle is pressed.
+func toggle_follow_mode() -> void:
+	follow_mode = FollowMode.DETACHED if follow_mode == FollowMode.PARENTED else FollowMode.PARENTED
+	_apply_follow_mode()
 
 
 func _start_attack_jostle() -> void:
@@ -362,6 +383,10 @@ func _on_checkpoint_reached(pos: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Brain pushes per-tick intent (movement direction, jump/attack edges).
+	# Body never touches Input directly — same code path drives player, AI, net.
+	var intent: Intent = _brain.tick(self, delta)
+
 	if _dying:
 		_dying_timer -= delta
 		velocity.y += _gravity * delta
@@ -374,24 +399,25 @@ func _physics_process(delta: float) -> void:
 	_tick_health_regen(delta)
 	_tick_damage_tint(delta)
 
+	# Attack: edge-triggered from intent (formerly handled in _input).
+	if intent.attack_pressed:
+		_start_attack_jostle()
+
 	var profile := _current_profile
 
 	if _grinding:
-		_update_grind(delta, profile)
+		_update_grind(delta, profile, intent)
 		_update_follow_camera(delta)
 		return
 
-	# Input direction is based on current camera yaw — camera is follow-driven
-	# so this naturally aligns with the direction of travel.
-	var raw_input := Input.get_vector("move_left", "move_right", "move_up", "move_down", 0.4)
-	var forward := _camera.global_basis.z
-	var right := _camera.global_basis.x
-	var move_direction := forward * raw_input.y + right * raw_input.x
-	move_direction.y = 0.0
-	move_direction = move_direction.normalized()
-
+	# Move direction comes pre-converted to world-space from the brain.
+	# Body applies its own threshold for "is the player pushing" logic.
+	var move_direction: Vector3 = intent.move_direction
 	if move_direction.length() > 0.2:
 		_last_input_direction = move_direction.normalized()
+	# Main movement code below expects a normalized direction.
+	if move_direction.length() > 0.01:
+		move_direction = move_direction.normalized()
 
 	# Skin facing.
 	var h_vel := Vector3(velocity.x, 0.0, velocity.z)
@@ -433,9 +459,11 @@ func _physics_process(delta: float) -> void:
 	_current_lean_pitch = lerp(_current_lean_pitch, target_pitch, lean_factor)
 	_current_lean_roll = lerp(_current_lean_roll, centripetal_roll, lean_factor)
 
-	# Brake impulse: fire a one-shot reversed-lean the instant forward is
-	# released at speed; exp-decay back to zero.
-	var pressing_forward: bool = raw_input.y < -0.2
+	# Brake impulse: fire a one-shot reversed-lean the instant movement input
+	# is released at speed; exp-decay back to zero. "Pressing forward" in the
+	# world-space intent model means "movement intent has magnitude" —
+	# releasing all keys drops move_direction to zero.
+	var pressing_forward: bool = intent.move_direction.length() > 0.2
 	if _was_pressing_forward and not pressing_forward and speed > 1.0:
 		_brake_impulse = profile.brake_impulse_amount
 	_was_pressing_forward = pressing_forward
@@ -453,7 +481,9 @@ func _physics_process(delta: float) -> void:
 
 	# Rotate the skin around a head-height pivot: the basis holds yaw+pitch+roll,
 	# and we shift the skin's origin so the pivot point stays fixed in space.
-	var pivot: Vector3 = Vector3(0, profile.lean_pivot_height, 0)
+	# Pivot height is per-skin, not per-movement-profile — different character
+	# proportions need different lean pivots.
+	var pivot: Vector3 = Vector3(0, _skin.lean_pivot_height, 0)
 	var tilt_basis: Basis = Basis(Vector3.RIGHT, final_pitch) * Basis(Vector3.BACK, final_roll)
 	var full_basis: Basis = Basis(Vector3.UP, new_yaw) * tilt_basis
 	var origin_offset: Vector3 = pivot - full_basis * pivot
@@ -468,7 +498,7 @@ func _physics_process(delta: float) -> void:
 		var progress: float = 1.0 - (_flip_timer / _flip_duration)
 		var flip_angle: float = progress * TAU
 		var flip_rot := Basis(_flip_axis, flip_angle)
-		var flip_pivot := Vector3(0, 0.9, 0)
+		var flip_pivot := Vector3(0, _skin.body_center_y, 0)
 		var t: Transform3D = _skin.transform
 		var new_basis: Basis = flip_rot * t.basis
 		var new_origin: Vector3 = flip_pivot + flip_rot * (t.origin - flip_pivot)
@@ -497,9 +527,8 @@ func _physics_process(delta: float) -> void:
 	if on_floor:
 		_air_jump_available = true
 	var ground_speed := Vector2(velocity.x, velocity.z).length()
-	var jump_pressed := Input.is_action_just_pressed("jump")
-	var is_just_jumping := jump_pressed and on_floor
-	var is_air_jumping := (jump_pressed and not on_floor and _air_jump_available
+	var is_just_jumping := intent.jump_pressed and on_floor
+	var is_air_jumping := (intent.jump_pressed and not on_floor and _air_jump_available
 		and not _wall_ride_active)
 
 	# Attack jostle is purely procedural (velocity kick + skin pitch) so we
@@ -540,7 +569,7 @@ func _physics_process(delta: float) -> void:
 
 	# Wall ride (only runs if the current profile enables it).
 	if profile.wall_ride_duration > 0.0:
-		_update_wall_ride(delta, profile)
+		_update_wall_ride(delta, profile, intent)
 
 	_was_on_floor_last_frame = on_floor
 	move_and_slide()
@@ -548,7 +577,7 @@ func _physics_process(delta: float) -> void:
 	_update_follow_camera(delta)
 
 
-func _update_grind(delta: float, profile: MovementProfile) -> void:
+func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> void:
 	if _grind_rail == null or not is_instance_valid(_grind_rail):
 		_grinding = false
 		return
@@ -559,7 +588,7 @@ func _update_grind(delta: float, profile: MovementProfile) -> void:
 	_grind_progress += profile.grind_speed * _grind_direction * delta
 	var length: float = _grind_rail.curve.get_baked_length()
 	var exit_end: bool = _grind_progress >= length or _grind_progress <= 0.0
-	var jumped: bool = Input.is_action_just_pressed("jump")
+	var jumped: bool = intent.jump_pressed
 	pf.progress = clamp(_grind_progress, 0.0, length)
 	# Smoothly lerp the character onto the rail over ~0.2s instead of snapping.
 	# Ease-out curve so the approach feels smooth, not abrupt at the end.
@@ -589,9 +618,11 @@ func _update_grind(delta: float, profile: MovementProfile) -> void:
 		velocity.y += 2.0
 		return
 
-	# Player counter-balance integrates over time, producing the combined roll.
-	var raw_input := Input.get_vector("move_left", "move_right", "move_up", "move_down", 0.2)
-	_current_lean_roll = clamp(_natural_lean_roll - raw_input.x * profile.grind_counter_strength * delta, -1.5, 1.5)
+	# Player counter-balance: project world-space move intent onto the camera's
+	# right axis so keyboard "A/D" gives the expected screen-relative lean.
+	var cam_right: Vector3 = _camera.global_basis.x
+	var balance_x: float = intent.move_direction.dot(cam_right)
+	_current_lean_roll = clamp(_natural_lean_roll - balance_x * profile.grind_counter_strength * delta, -1.5, 1.5)
 
 
 	# Build orientation: 1) face rail direction, 2) bank around rail tangent,
@@ -616,7 +647,7 @@ func _update_grind(delta: float, profile: MovementProfile) -> void:
 		_grind_rail = null
 
 
-func _update_wall_ride(delta: float, profile: MovementProfile) -> void:
+func _update_wall_ride(delta: float, profile: MovementProfile, intent: Intent) -> void:
 	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
 
 	if _wall_ride_active:
@@ -625,7 +656,7 @@ func _update_wall_ride(delta: float, profile: MovementProfile) -> void:
 		var lost_contact: bool = detected == Vector3.ZERO
 		var too_slow: bool = horizontal_speed < profile.wall_ride_min_speed * 0.5
 		var expired: bool = _wall_ride_timer >= profile.wall_ride_duration
-		var jumped: bool = Input.is_action_just_pressed("jump")
+		var jumped: bool = intent.jump_pressed
 		if lost_contact or too_slow or expired or jumped:
 			if jumped:
 				velocity += _wall_normal * profile.wall_ride_jump_push
@@ -811,8 +842,8 @@ func _register_debug_panel() -> void:
 			func() -> float: return skate_profile.speedup_frequency,
 			func(v: float) -> void: skate_profile.speedup_frequency = v)
 		DebugPanel.add_slider("Skin/Sway/skate/pivot_height", 0.0, 3.0, 0.05,
-			func() -> float: return skate_profile.lean_pivot_height,
-			func(v: float) -> void: skate_profile.lean_pivot_height = v)
+			func() -> float: return _skin.lean_pivot_height,
+			func(v: float) -> void: _skin.lean_pivot_height = v)
 		DebugPanel.add_slider("Skin/Sway/skate/cruise_amplitude", 0.0, 1.0, 0.01,
 			func() -> float: return skate_profile.cruise_sway_amplitude,
 			func(v: float) -> void: skate_profile.cruise_sway_amplitude = v)
@@ -871,15 +902,19 @@ func _register_debug_panel() -> void:
 
 
 func _update_follow_camera(delta: float) -> void:
+	# Mouse activity is tracked by the brain (player only). AI brains have no
+	# mouse so we treat them as "no recent input" (999).
+	var tsm: float = 999.0
+	if _brain is PlayerBrain:
+		tsm = (_brain as PlayerBrain).time_since_mouse_input
 	# Track mouse activity: ramp manual weight up on active input, down after release delay.
-	_time_since_mouse_input += delta
-	var target_weight: float = 1.0 if _time_since_mouse_input < mouse_release_delay else 0.0
+	var target_weight: float = 1.0 if tsm < mouse_release_delay else 0.0
 	var blend_factor := 1.0 - exp(-delta / max(mouse_blend_time, 0.001))
 	_manual_weight = lerp(_manual_weight, target_weight, blend_factor)
 
 	# Pitch returns only while the character is moving — stopped, it stays where aimed.
 	var h_vel_for_pitch := Vector3(velocity.x, 0.0, velocity.z)
-	if h_vel_for_pitch.length() > 0.5 and _time_since_mouse_input > pitch_return_delay:
+	if h_vel_for_pitch.length() > 0.5 and tsm > pitch_return_delay:
 		var pitch_factor := 1.0 - exp(-pitch_return_rate * delta)
 		_spring.rotation.x = lerp_angle(_spring.rotation.x, _base_pitch, pitch_factor)
 
