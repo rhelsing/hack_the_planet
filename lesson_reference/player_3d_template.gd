@@ -118,6 +118,10 @@ var _grind_direction := 1.0
 var _grind_snap_t := 1.0
 var _grind_start_pos := Vector3.ZERO
 var _air_jump_available := false
+var _flip_timer := 0.0
+var _flip_duration := 0.55
+var _flip_axis := Vector3.RIGHT
+var _yaw_state := 0.0
 var _attack_timer := 0.0
 var _attack_duration := 0.3
 var _attack_active_timer := 0.0
@@ -395,7 +399,8 @@ func _physics_process(delta: float) -> void:
 	if profile.face_velocity and h_vel.length() > 0.5:
 		face_target = h_vel.normalized()
 	var target_angle := Vector3.BACK.signed_angle_to(face_target, Vector3.UP)
-	var new_yaw: float = lerp_angle(_skin.rotation.y, target_angle, profile.rotation_speed * delta)
+	var new_yaw: float = lerp_angle(_yaw_state, target_angle, profile.rotation_speed * delta)
+	_yaw_state = new_yaw
 
 	# Body lean: forward tilt scales with speed; side roll scales with
 	# angular turn rate × speed (centripetal force feel).
@@ -456,6 +461,19 @@ func _physics_process(delta: float) -> void:
 	origin_offset.y -= tilt_magnitude * profile.tilt_height_drop
 	_skin.transform = Transform3D(full_basis, origin_offset)
 
+	# Double-jump front flip: spin 360° around a horizontal axis snapshotted
+	# at jump time, pivoting at body center.
+	if _flip_timer > 0.0:
+		_flip_timer = maxf(0.0, _flip_timer - delta)
+		var progress: float = 1.0 - (_flip_timer / _flip_duration)
+		var flip_angle: float = progress * TAU
+		var flip_rot := Basis(_flip_axis, flip_angle)
+		var flip_pivot := Vector3(0, 0.9, 0)
+		var t: Transform3D = _skin.transform
+		var new_basis: Basis = flip_rot * t.basis
+		var new_origin: Vector3 = flip_pivot + flip_rot * (t.origin - flip_pivot)
+		_skin.transform = Transform3D(new_basis, new_origin)
+
 	# Horizontal movement.
 	var y_velocity := velocity.y
 	var on_floor := is_on_floor()
@@ -501,6 +519,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y = profile.jump_impulse
 		_jump_sound.play()
 		_air_jump_available = false
+		_flip_axis = (Basis(Vector3.UP, new_yaw) * Vector3.RIGHT).normalized()
+		_flip_timer = _flip_duration
 
 	if not _wall_ride_active:
 		if is_just_jumping or is_air_jumping:
