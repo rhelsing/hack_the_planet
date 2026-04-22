@@ -116,19 +116,111 @@ Three stacked height contributions:
 
 Normal composition: produce scalar height `h`, derive a perturbed tangent-space normal, write `NORMAL_MAP` — Godot composes with `TANGENT`/`BINORMAL`/`NORMAL` automatically (same pattern as `water.gdshader` lines 27-29). No `dFdx(WORLD_VERTEX)` hacks.
 
-### 2.5 Performance: uniforms are the settings-menu surface
+### 2.5 Performance: concrete tuning guide
 
-The user's in-game settings menu will bind to these (and to `WorldEnvironment` properties in §2.7). Design guideline: every heavy pass should have a strength uniform that *zero* cleanly disables the work, guarded by `if (strength > 0.0)` for a real early-out.
+Design rule we follow: every heavy shader pass has a strength uniform where `0` cleanly skips the work via `if (strength > 0.0)` guards. The in-game settings menu should bind to these (shader uniforms) plus the environment toggles in §2.7.
 
-**Shader-side uniforms a quality menu should expose:**
-| Setting | Uniforms |
-|---|---|
-| "Surface detail: High/Med/Low/Off" | `pit_strength`, `smudge_strength` (0 disables voronoi/FBM work) |
-| "Circuit animation: On/Static" | `pulse_density` (0 disables pulse loop) |
-| "Code overlay: On/Off" | `code_opacity` (0 disables) |
+#### Shader-side costs, ranked most-to-least expensive per fragment
 
-**Scene-side settings to bind in the menu (on `WorldEnvironment`):**
-SSR on/off, SSIL on/off, SDFGI on/off, TAA on/off, volumetric fog density. These are where the real perf lives on Forward+, not the shaders.
+| Pass | Cost | Kill-switch | Effect of zeroing |
+|---|---|---|---|
+| `pit_strength` (smooth voronoi) | **Heavy** — 9-cell sample loop × exp/log. The single most expensive pass. | set `pit_strength = 0.0` | No pitting bump; other two bump layers still work |
+| `smudge_strength` (3-octave FBM) | Medium — 3 value-noise calls per triplanar axis | `smudge_strength = 0.0` | No low-freq smudges |
+| Frosted-blur path (building, currently disabled) | Heavy when active — `textureLod` on `hint_screen_texture` | leave disabled (current default) | — |
+| Circuit Truchet eval (platform) | Medium — 3 axes × ~8 hash calls + 4 line SDFs | reduce `circuit_density` *or* set `trace_probability = 0.0` | Fewer traces/cells to draw |
+| Code overlay eval (building) | Light — 2 axes × few hashes + per-row logic | `code_opacity = 0.0` skips write; full skip needs gate at call site | No code stripes |
+| `scratch_strength` (anisotropic noise) | Light — single value_noise | `scratch_strength = 0.0` | No fine scratches |
+| Pulse animation (platform) | Light — fract/smoothstep per axis | `pulse_density = 0.0` kills visible pulses | Pulse math still runs, but gated to 0; negligible |
+| Triplanar sampling | Unavoidable — baseline cost | — | — |
+| Bump gradient (4 triplanar samples) | Proportional to above bump layers; zero all 3 → early-out | max of the 3 strengths > 0 triggers the gradient | |
+
+#### Scene-side costs (all on `Environment_5pwhg` in `level.tscn`)
+
+These move the perf needle far more than shader uniforms on Forward+:
+
+| Toggle | Cost | Save by… | Visual cost |
+|---|---|---|---|
+| `volumetric_fog_density` | **Very heavy** | set to `0.0` | No fog scatter; emissive halos look flatter, sky no longer has god-ray feel |
+| `ssr_enabled` | **Heavy** | `false` | Platforms lose real-time reflections of nearby geometry; sky still reflects |
+| `sdfgi_enabled` | Very heavy (currently `false`) | keep `false` | No bounced GI from emission |
+| `ssil_enabled` | Medium | `false` | Lose screen-space indirect bounce; subtle |
+| `ssao_enabled` | Medium | `false` | Lose ambient occlusion in corners |
+| `glow_enabled` | Light–medium | `false` | No bloom on emission — dramatic loss of "glow" feel |
+| `glow_levels` count / resolution | Light | reduce levels | Less smooth bloom falloff |
+| Viewport `msaa_3d` / `use_taa` | Medium | lower MSAA, disable TAA | Traces + rims alias/crawl |
+| Building's `cull_disabled` mode | Medium — fragment shader runs on both sides of every face | switch shader to `cull_back` | Lose bottom-face glow visibility through glass top (see §4.4) |
+
+#### Preset tiers for a settings menu
+
+Concrete values to ship as presets. All perf-critical paths gated.
+
+**Ultra (M-series / RTX-class):**
+```
+# Shader (both materials)
+pit_strength   = tuned value (your current)
+smudge_strength= tuned value
+scratch_strength = tuned value
+pulse_density  = tuned value
+code_opacity   = tuned value
+# Environment
+ssr_enabled = true, ssr_max_steps = 48
+ssil_enabled = true
+ssao_enabled = true
+sdfgi_enabled = true   # optional but gorgeous
+glow_enabled = true
+volumetric_fog_density = 0.01
+msaa_3d = 2, use_taa = true
+```
+
+**High (modern desktop):**
+```
+# Same shader values.
+ssr_enabled = true, ssr_max_steps = 32
+ssil_enabled = true
+ssao_enabled = true
+sdfgi_enabled = false
+glow_enabled = true
+volumetric_fog_density = 0.005
+msaa_3d = 2, use_taa = true
+```
+
+**Medium:**
+```
+# Shader
+pit_strength   = 0.0             # kill voronoi
+smudge_strength= 0.15 (halved)
+ssr_enabled = true, ssr_max_steps = 16
+ssil_enabled = false
+ssao_enabled = true
+glow_enabled = true
+volumetric_fog_density = 0.0     # kill volumetric fog
+msaa_3d = 2, use_taa = false
+```
+
+**Low / integrated-GPU recovery:**
+```
+# Shader
+pit_strength   = 0.0
+smudge_strength= 0.0             # kill all bump work
+scratch_strength = 0.0
+pulse_density  = 0.3             # fewer pulses animating
+code_opacity   = 0.0             # no code overlay
+# Environment
+ssr_enabled = false
+ssil_enabled = false
+ssao_enabled = false
+sdfgi_enabled = false
+glow_enabled = true              # keep — pulses rely on bloom visually
+volumetric_fog_density = 0.0
+msaa_3d = 0, use_taa = false
+```
+
+#### Perf debugging tips
+
+- If the *building* shader is hot, the most likely culprit is `cull_disabled` doubling fragment work on transparent surfaces that are already sort-heavy. If you don't care about seeing the bottom-face-glow through the walls (you only need it visible from below), switch `render_mode` back to `cull_back`.
+- If the *platform* shader is hot with bump on, `pit_strength` is the single biggest lever — kill it first.
+- Per-pixel SSR cost scales with `ssr_max_steps`. 16 is a good floor, 48 an upper bound.
+- `volumetric_fog_density > 0` is the single biggest environment cost on M1. Drop it to 0 and see perf jump.
 
 ### 2.6 Emission + bloom + fog budget
 

@@ -31,6 +31,10 @@ extends Brain
 @export_group("Attack")
 ## Fire intent.attack_pressed when target is within this horizontal range.
 @export var attack_range := 2.0
+## Max vertical distance at which the AI will try to attack. Matches the
+## body's attack_vertical_range — no point firing a swing if the sweep would
+## miss anyway because the player is airborne overhead.
+@export var attack_vertical_range := 1.5
 ## Seconds between consecutive attack triggers.
 @export var attack_cooldown := 1.6
 
@@ -153,9 +157,13 @@ func _maybe_attack(body: Node3D) -> void:
 	if _target == null or _attack_cooldown_timer > 0.0:
 		return
 	var d: float = _horizontal_distance(body.global_position, _target.global_position)
-	if d <= attack_range:
-		_intent.attack_pressed = true
-		_attack_cooldown_timer = attack_cooldown
+	if d > attack_range:
+		return
+	var dy: float = absf(_target.global_position.y - body.global_position.y)
+	if dy > attack_vertical_range:
+		return
+	_intent.attack_pressed = true
+	_attack_cooldown_timer = attack_cooldown
 
 
 func _has_ground_ahead(body: Node3D) -> bool:

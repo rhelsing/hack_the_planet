@@ -86,6 +86,9 @@ enum FollowMode { PARENTED, DETACHED }
 @export_group("Attack")
 ## Max distance (meters) from player center to enemy center for a hit to land.
 @export var attack_range := 3.0
+## Max vertical distance at which a sweep can land. Prevents ground pawns
+## from hitting things far above/below them — so jumping dodges reliably.
+@export var attack_vertical_range := 1.5
 ## Seconds the swing stays "live" after pressing J. While active, any enemy
 ## that enters attack_range gets hit — so the forward lunge sweeps through
 ## enemies that were just out of reach at the press frame. Each enemy can
@@ -406,11 +409,16 @@ func _sweep_attack() -> void:
 			continue
 		if _attack_hit_enemies.has(enemy):
 			continue
-		# Horizontal distance only — hovering enemies sit well above the
-		# player, so using 3D distance would eat most of the reach on Y.
+		# Horizontal reach uses attack_range; vertical uses attack_vertical_range.
+		# Splitting the two axes means a jumping player reliably clears an
+		# enemy swing — straight up = out of reach — while side-by-side hits
+		# still land cleanly at the full attack_range.
 		var dx: float = (enemy as Node3D).global_position.x - global_position.x
+		var dy: float = (enemy as Node3D).global_position.y - global_position.y
 		var dz: float = (enemy as Node3D).global_position.z - global_position.z
 		if dx * dx + dz * dz > range_sq:
+			continue
+		if absf(dy) > attack_vertical_range:
 			continue
 		# Confetti sprays outward along the player→enemy vector (so a hit
 		# to the side confettis sideways, not along the player's facing).

@@ -1,6 +1,15 @@
-# Interactables, Dialogue & Audio Engine Spec (v1, Godot 4.6.2)
+# Interactables, Dialogue & Audio Engine Spec (v1.1, Godot 4.6.2)
 
 Implementation spec for the interaction system, the dialogue engine port, and the AAA audio layer that supports sidechain ducking. Every technical claim is tied to a Godot 4.6 doc page, an in-project reference file, or a file in the reference project at `/Users/ryanhelsing/GodotProjects/3dPFormer` — see **§ Sources** at the end.
+
+> **v1.1 amendments** — character-controller dev sync resolved five structural decisions that v1 had open:
+> 1. **Sensor lives on `PlayerBrain`, not `PlayerBody`** (drivers own the senses they need). `PlayerBody` is the universal pawn — enemies are `PlayerBody` with `EnemyAIBrain`; putting a sensor there would spam `get_overlapping_areas()` on every NPC. Body dispatches via `brain.try_activate(self)`; base `Brain` has a no-op default.
+> 2. **Gamepad `interact` → X (button_index 2)**, not A. A is already `jump`. Keyboard `E` unchanged.
+> 3. **`Intent.interact_held: bool` reserved** now. Enables "hold to lockpick" later at zero cost.
+> 4. **Layers.gd covers all four layers at once** — `world=1`, `player=2`, `enemy=3`, `interactable=10`. Named in Project Settings too, one source of truth.
+> 5. **Focus gate during attack** — sensor suppresses `try_activate` while `body.is_attack_active()` is true (prevents door-open mid-swing).
+>
+> AudioCue registry also flipped from auto-scan to **explicit manifest** (§8.4) per JB "no silent failures" principle.
 
 ---
 
@@ -62,26 +71,43 @@ None of this is custom framework — these are stock engine features. Listed so 
            └─────────────────────────────────────────────────────────┘
                  ▲              ▲               ▲          ▲
                  │              │               │          │
-                 │              │               │          │
- ┌───────────────────────┐    ┌─────────────────┴────┐   ┌─┴──────────┐
- │   PlayerBody          │    │ Interactable (base)  │   │ Puzzles    │
- │  ├─ Brain ─► Intent ──┼───►│  ├─ Door             │   │  └─ Hacking│
- │  └─ InteractionSensor │    │  ├─ DialogueTrigger  │   │     Puzzle │
- │        (Area3D sphere)│    │  ├─ Pickup           │   └────────────┘
- │        ↓ focused node │    │  └─ PuzzleTerminal   │
- └───────────────────────┘    └──────────────────────┘
+ ┌─────────────────────────────┐ │               │          │
+ │ PlayerBody (CharacterBody3D)│ │               │          │
+ │  ├─ Brain (PlayerBrain)     │ │               │          │
+ │  │    └─ InteractionSensor ─┤─┴───────┐       │          │
+ │  │         (Area3D sphere)  │         │      ┌┴──────────┴──┐
+ │  └─ Skin (SophiaSkin)       │         ▼      │  Narrative   │
+ └────────────┬────────────────┘  ┌──────────────┐  services    │
+              │ intent.interact_  │ Interactable │  react to    │
+              │ pressed           │    (base)    │  Events       │
+              │                   │  ├─ Door     │  broadcasts  │
+              │ brain.try_activate│  ├─ Dialogue-│              │
+              └──────────────────►│  │   Trigger │              │
+                                  │  ├─ Trap     │              │
+                                  │  ├─ Pickup   │ PromptUI ◄──┤
+                                  │  │ (quest)   │ (sibling     │
+                                  │  └─ Puzzle-  │  CanvasLayer │
+                                  │     Terminal │  in game.tscn)│
+                                  └──────────────┘              │
+                                                                │
+  Enemies (PlayerBody + EnemyAIBrain) have NO sensor —          │
+  AI brains leave interact_pressed = false. Zero physics cost.  │
 ```
+
+**Legend:** solid arrows = direct calls / signal connections. The sensor lives on the brain precisely so enemy pawns (same `PlayerBody` class, different brain) don't carry interaction machinery they never use.
 
 **Data flow for one interaction tick:**
 
-1. `InteractionSensor` (child of `PlayerBody`) runs every physics frame. Its `Area3D` child holds a sphere collider; it calls `get_overlapping_areas()` to get candidates in the `interactable` group.
+1. `InteractionSensor` (child of `PlayerBrain`, which is itself a child of `PlayerBody`) runs every physics frame. Its `Area3D` child holds a sphere collider; it calls `get_overlapping_areas()` to get candidates in the `interactable` group.
 2. Sensor scores each candidate by a weighted sum (proximity + body-forward alignment + optional camera-crosshair), picks the best.
-3. When focused candidate changes, sensor emits `Events.interactable_focused(node)` / `Events.interactable_unfocused()`. The `PromptUI` autoload listens and shows/hides the label + invokes `candidate.set_highlighted(true/false)`.
-4. `PlayerBrain` fills `Intent.interact_pressed` from `Input.is_action_just_pressed("interact")`.
-5. `PlayerBody` on `intent.interact_pressed` calls `interaction_sensor.try_activate(self)`. Sensor calls `focused.interact(actor)` on the focused interactable. The interactable *does the thing* — opens itself, calls `Dialogue.start(...)`, calls `Puzzles.start(...)`, mutates `GameState`.
-6. The interactable (or the service it called) emits lifecycle signals on `Events` — `door_opened(id)`, `dialogue_started`, `puzzle_solved` — so anyone who cares (audio, game state, analytics) can react *without* being directly wired in.
+3. When focused candidate changes, sensor emits a **local** signal `focus_changed(node_or_null)`. `PromptUI` (a sibling `CanvasLayer` in `game.tscn`) finds the sensor via `get_tree().get_first_node_in_group("interaction_sensor")` at `_ready` and connects. PromptUI shows/hides its label and calls `candidate.set_highlighted(true/false)`. No bus involvement — this is 1-to-1 wiring.
+4. `PlayerBrain` fills `Intent.interact_pressed` (and `interact_held`) from `Input.is_action_just_pressed/pressed("interact")`.
+5. `PlayerBody` on `intent.interact_pressed` calls `_brain.try_activate(self)`. `Brain.try_activate` is a no-op; `PlayerBrain.try_activate` overrides to delegate to its child sensor. The sensor suppresses activation while `body.is_attack_active()` is true, then calls `focused.interact(actor)`. The interactable *does the thing* — opens itself, calls `Dialogue.start(...)`, calls `Puzzles.start(...)`, mutates `GameState`.
+6. The interactable (or the service it called) emits **broadcast** lifecycle signals on `Events` — `door_opened(id)`, `dialogue_started`, `puzzle_solved` — so anyone who cares (audio, game state, analytics) can react *without* being directly wired in.
 
-**This is the whole mental model.** No manager, no orchestrator, no routing layer. The base `Interactable` has a single virtual method and ~50 lines.
+**Rule for bus vs. local signal:** broadcasts that multiple subsystems legitimately want (`door_opened`, `flag_reached`) go on `Events`. 1-to-1 wiring (sensor → PromptUI, puzzle UI → PuzzleTerminal) stays local. The bus isn't a garbage can for every signal.
+
+**This is the whole mental model.** No manager, no orchestrator, no routing layer. The base `Interactable` has a single virtual method and ~50 lines. `Brain.try_activate` is a 1-line no-op.
 
 ---
 
@@ -145,13 +171,15 @@ func set_highlighted(_on: bool) -> void:
 
 ---
 
-## 4. `InteractionSensor` — hybrid scoring, on the body
+## 4. `InteractionSensor` — hybrid scoring, on the brain
 
-Lives as a child of `PlayerBody`. One Area3D sphere + one script.
+Lives as a child of `PlayerBrain`. One Area3D sphere + one script. Enemy brains don't have one — enemies carry zero interaction cost.
+
+**Spatial-hierarchy note:** `PlayerBrain extends Node`, not `Node3D`. The sensor's `Area3D` is a Node3D — Godot's 3D transform system walks up past non-Node3D parents to find the nearest Node3D ancestor (which is `PlayerBody`), so the sphere tracks the body automatically with no per-frame sync. If this assumption ever breaks in a future Godot version, fallback is one line in `_physics_process`: `_area.global_position = _body.global_position`.
 
 ```gdscript
 class_name InteractionSensor
-extends Node3D
+extends Node
 
 ## Detection radius, meters. 2.5 feels right for a third-person platformer —
 ## you can point-blank clutter without the sphere swallowing background props.
@@ -166,14 +194,24 @@ extends Node3D
 ## around and shouldn't dominate selection. 0 disables the camera sample.
 @export_range(0.0, 1.0) var weight_camera_facing: float = 0.2
 
-## Optional: cap candidates at this dot-product floor (body.forward · dir) to
-## prevent "interact with the thing behind me." -0.5 allows slight over-shoulder.
+## Cap candidates at this dot-product floor (body.forward · dir) to prevent
+## "interact with the thing behind me." -0.5 allows slight over-shoulder.
 @export var facing_cutoff: float = -0.5
+
+## Local signal — 1-to-1 wire between sensor and PromptUI. Not on Events bus.
+signal focus_changed(focused: Interactable)
 
 var focused: Interactable = null
 
+## Body is injected by PlayerBrain at _ready so the sensor has no hard
+## assumption about tree shape above it.
+var body: CharacterBody3D
+
 @onready var _area: Area3D = %SensorArea
-@onready var _body: CharacterBody3D = get_parent() as CharacterBody3D
+
+
+func _ready() -> void:
+    add_to_group(&"interaction_sensor")  # PromptUI discovers us this way
 
 
 func _physics_process(_delta: float) -> void:
@@ -182,7 +220,7 @@ func _physics_process(_delta: float) -> void:
     for a in _area.get_overlapping_areas():
         var it := a as Interactable
         if it == null: continue
-        if not it.can_interact(_body): continue
+        if not it.can_interact(body): continue
         var score := _score(it)
         if score > best_score:
             best_score = score
@@ -192,57 +230,96 @@ func _physics_process(_delta: float) -> void:
 
 func try_activate(actor: Node3D) -> void:
     if focused == null: return
+    # Gate: no interactions while the player is mid-swing. Prevents
+    # accidental door-opens during an attack jostle — per character-
+    # controller dev sync (v1.1).
+    if body.has_method(&"is_attack_active") and body.is_attack_active(): return
     if not focused.can_interact(actor): return
     focused.interact(actor)
 
 
 func _score(it: Interactable) -> float:
-    var to_it := it.global_position - _body.global_position
+    var to_it := it.global_position - body.global_position
     var dist := to_it.length()
     if dist > range: return -INF
     var dir := to_it / max(dist, 0.0001)
-    var facing := _body.global_basis.z.dot(-dir)  # -Z is body "forward" in Godot
+    # Godot convention: -Z is "forward" for Node3Ds. Matches player_body.gd.
+    var facing := (-body.global_basis.z).dot(dir)
     if facing < facing_cutoff: return -INF
 
     var s := 0.0
     s += weight_proximity * (1.0 - dist / range)
     s += weight_body_facing * max(0.0, facing)
     if weight_camera_facing > 0.0:
-        var cam := _body.get_viewport().get_camera_3d()
+        var cam := body.get_viewport().get_camera_3d()
         if cam != null:
             var cam_facing := (-cam.global_basis.z).dot(dir)
             s += weight_camera_facing * max(0.0, cam_facing)
-    return s * it.priority
+    # Priority is additive (not multiplicative): a score near 0 shouldn't
+    # zero out priority. Small bonus, not a multiplier.
+    return s + (it.priority - 1.0) * 0.25
 
 
 func _set_focused(next: Interactable) -> void:
     if next == focused: return
     if focused != null:
         focused.set_highlighted(false)
-        Events.interactable_unfocused.emit(focused)
     focused = next
     if focused != null:
         focused.set_highlighted(true)
-        Events.interactable_focused.emit(focused)
+    focus_changed.emit(focused)  # local signal only
 ```
 
 **Why scan every physics frame, not signal-driven on body_entered/exited?** `get_overlapping_areas()` updates before `area_entered` emits in 4.x (see [Area3D docs](https://docs.godotengine.org/en/stable/classes/class_area3d.html)), so polling gives a consistent scored pick each frame. Cost is O(candidates) — for ~10 overlapping interactables (already overkill) it's a rounding error. Event-driven focus switches to a different scoring function would leak logic.
 
-**Why `-Z` for body forward?** Godot's convention: the default `-Z` axis of a Node3D is "forward" (same as camera default). Matches the existing `player_body.gd` which already uses `global_basis.z` for its skin-facing math.
+**PlayerBrain wiring (~10 lines added to `player_brain.gd`):**
+
+```gdscript
+@onready var _sensor: InteractionSensor = $InteractionSensor  # scene child
+
+func _ready() -> void:
+    # ...existing ready...
+    _sensor.body = get_parent() as CharacterBody3D
+
+func try_activate(actor_body: Node3D) -> void:
+    _sensor.try_activate(actor_body)
+```
+
+**Base `Brain.try_activate` (char-controller dev stubs this):**
+
+```gdscript
+## Body calls this on intent.interact_pressed. Base no-op; PlayerBrain
+## overrides. AI/network brains leave it unimplemented.
+func try_activate(_body: Node3D) -> void:
+    pass
+```
 
 ---
 
 ## 5. `Intent` extension
 
-One field added. Everything else in the existing file (`player/body/intent.gd`) stays.
+Two fields added. Everything else in the existing file (`player/body/intent.gd`) stays.
 
 ```gdscript
 ## Edge-triggered: true for exactly one physics tick when interact is pressed.
 ## Same contract as jump_pressed and attack_pressed.
 var interact_pressed: bool = false
+
+## Level-triggered: true as long as interact is held down. Reserved for "hold
+## to lockpick" style interactions — v1 interactables only read _pressed.
+## Filled by PlayerBrain regardless; consumers opt in.
+var interact_held: bool = false
 ```
 
-`PlayerBrain.tick()` fills it from `Input.is_action_just_pressed("interact")`. `PlayerBody._physics_process` reads `intent.interact_pressed` and calls `$InteractionSensor.try_activate(self)`. AI brains leave it false by default — enemies don't interact with doors (yet).
+`PlayerBrain.tick()` fills both:
+```gdscript
+_intent.interact_pressed = Input.is_action_just_pressed("interact")
+_intent.interact_held = Input.is_action_pressed("interact")
+```
+
+`PlayerBody._physics_process` reads `intent.interact_pressed` and calls `_brain.try_activate(self)`. Placement per char-controller dev sync: grouped with other edge-triggered intent dispatches (`attack_pressed` handler), before the main movement block — so if interact pauses the tree, physics settles cleanly.
+
+AI brains leave both false — they don't interact with doors. They also don't have a sensor, so `try_activate` is a no-op.
 
 ---
 
@@ -251,10 +328,6 @@ var interact_pressed: bool = false
 Adds to `autoload/events.gd`. Keep the existing signals — nothing breaks.
 
 ```gdscript
-# Focus / activation lifecycle (consumed by prompt UI, outline shader host)
-@warning_ignore("unused_signal") signal interactable_focused(node: Interactable)
-@warning_ignore("unused_signal") signal interactable_unfocused(node: Interactable)
-
 # Door
 @warning_ignore("unused_signal") signal door_opened(id: StringName)
 
@@ -277,8 +350,10 @@ Adds to `autoload/events.gd`. Keep the existing signals — nothing breaks.
 ```
 
 **Rule of thumb for what belongs on `Events` vs. a local signal:**
-- Cross-cutting (audio wants to know about dialogue starts; UI wants to know about inventory adds) → `Events`.
-- Parent-child only (a door telling its own animation to play) → local signal or direct call.
+- **On the bus** — cross-cutting world events many subsystems legitimately want. `door_opened` (audio plays a cue, state writes a flag, analytics logs it, tutorial checks completion). Existing: `flag_reached`, `checkpoint_reached`, `coin_collected`.
+- **Local signal** — 1-to-1 wiring. Sensor → PromptUI, Puzzle → PuzzleTerminal. Use a direct `signal` on the emitter and let the consumer `connect` to it (or find the emitter via a group).
+
+**v1.1 revision:** earlier draft put `interactable_focused/unfocused` on `Events`. That was a mistake — one sensor, one PromptUI, 1-to-1 wiring. Moved to `InteractionSensor.focus_changed(focused)` local signal. Keeps the bus reserved for genuine broadcasts, in line with the emitter-side-filter convention already established across `flag_3d.gd`, `phone_booth.gd`, `coin.gd`.
 
 ---
 
@@ -410,7 +485,7 @@ func stop_music(fade_out: float = 1.0) -> void: ...
 
 Positional SFX skips this API entirely — doors and props use their own `AudioStreamPlayer3D` with `bus = "SFX"`.
 
-### 8.4 `AudioCue` resource
+### 8.4 `AudioCue` resource + explicit registry
 
 Authored as `.tres` files so a "door open" cue is a data file, not a script.
 
@@ -426,7 +501,18 @@ extends Resource
 @export var bus: StringName = &"SFX"
 ```
 
-`Audio.play_sfx(&"door_open")` picks a random stream from the pool, randomizes volume/pitch in the configured range, routes to the declared bus. Twenty lines.
+**Registry is explicit, not auto-scan.** One file — `res://audio/cue_registry.tres` — is a `CueRegistry` resource with `@export var cues: Dictionary` mapping `StringName → AudioCue`. Editable in the inspector.
+
+```gdscript
+class_name CueRegistry
+extends Resource
+
+@export var cues: Dictionary = {}  # StringName -> AudioCue
+```
+
+`Audio._ready()` loads the registry. `Audio.play_sfx(&"door_open")` looks up the cue; **missing entries push a loud error** — `push_error("Audio cue not registered: %s" % id)` — rather than silently playing nothing. This is the anti-cargo-cult principle: silent failure in a shipped game is a week of bug-hunting; loud failure is a 5-second fix.
+
+**Why explicit over auto-scan of `res://audio/cues/`:** auto-scan makes `play_sfx(&"door_opne")` silently play nothing when the filename typo happens. The registry makes it a push_error with the exact missing ID. Also: one file to grep for "what cues exist."
 
 ### 8.5 Audio-reacts-to-Events pattern
 
@@ -505,7 +591,7 @@ Port the TTS logic from `dialogue_balloon/balloon.gd` lines 200–261, but fix t
 | API key hardcoded in source (`"6d55209ea42585939fb4650dbefe92d1"`) | Read from `user://tts_config.tres` (a `Resource` with `@export var api_key: String`), or env var `ELEVEN_LABS_API_KEY`. If neither present, skip TTS silently (dialogue still reads). |
 | Cache path `res://generated_audio/` — `res://` is **read-only in exported builds** | Move to `user://tts_cache/`. ([File paths in Godot](https://docs.godotengine.org/en/stable/tutorials/io/data_paths.html)) |
 | Voice ID → character map hardcoded in balloon | Move to `dialogue/voices.tres` — an authored `Resource` with `Dictionary` field. |
-| `HTTPRequest` node owned by the balloon (dies with it) | Owned by `Dialogue` autoload. Survives balloon close, lets next line fetch while previous plays. |
+| `HTTPRequest` node owned by the balloon (dies with it) | Owned by `Dialogue` autoload. Survives balloon close, lets next line fetch while previous plays. Requests are FIFO-queued — a second line starting before the first fetch completes no longer clobbers `current_file_name`; the queue tracks pending requests with their target filenames. |
 | Cache filename uses `md5_text().left(15)` of character+text+voice | **Keep.** Works fine, stable across runs. |
 | Playback via a local `AudioStreamPlayer` in the balloon | Route through `Audio.play_dialogue(stream)` so the Dialogue bus drives sidechain ducking on Music+Ambience. **This is the whole point** — voice-over must hit the Dialogue bus to duck music. |
 
@@ -523,16 +609,27 @@ Balloon node's `process_mode = PROCESS_MODE_WHEN_PAUSED` so the game freezes und
 
 ### 10.1 Physics layers
 
-Assigned once in Project Settings → Layer Names → 3D Physics:
+Per char-controller dev sync — codify all four layers at once in Project Settings → Layer Names → 3D Physics, so we have a single source of truth and no scattered magic numbers. Currently only layer 1 is implicitly used; this formalizes layers 2 and 3 while adding 10.
 
 | Layer # | Name | Used by |
 |---|---|---|
-| 1 | `world` | existing static geo |
-| 2 | `player` | PlayerBody |
-| 3 | `enemy` | Enemy |
+| 1 | `world` | existing static geo, level CSG |
+| 2 | `player` | PlayerBody (when `pawn_group == "player"`) |
+| 3 | `enemy` | PlayerBody (when `pawn_group == "enemies"`) |
 | 10 | `interactable` | All `Interactable` subclasses |
 
-A `Layers.gd` autoload or const file exposes `const INTERACTABLE = 1 << 9` for code use.
+`Layers.gd` autoload covers all four as bitmask constants so they're usable directly in `collision_layer`/`collision_mask` assignments:
+
+```gdscript
+extends Node
+
+const WORLD        = 1 << 0   # layer 1
+const PLAYER       = 1 << 1   # layer 2
+const ENEMY        = 1 << 2   # layer 3
+const INTERACTABLE = 1 << 9   # layer 10
+```
+
+Usage: `sensor_area.collision_mask = Layers.INTERACTABLE`. The body stays on its existing default layer 1 for now (char-controller owns that migration).
 
 ### 10.2 `Door`
 
@@ -569,7 +666,9 @@ func interact(_actor: Node3D) -> void:
     Dialogue.start(dialogue_resource, dialogue_start, interactable_id)
 ```
 
-### 10.4 `Pickup`
+### 10.4 `Pickup` — narrative items only
+
+**Scope clarification per §18:** `Pickup` is specifically for **press-E narrative items** — a village gate key on a pedestal, a story-relevant floppy disk, an NPC's handed item. Platformer collectibles (coins, scattered floppies, power-ups) are **not** `Interactable` subclasses; they stay on the existing `body_entered` auto-trigger pattern (see `level/interactable/coin/coin.gd`) so players can vacuum them up while running.
 
 ```gdscript
 class_name Pickup
@@ -582,7 +681,28 @@ func interact(_actor: Node3D) -> void:
     queue_free()
 ```
 
-### 10.5 `PuzzleTerminal`
+### 10.5 `Trap` — interactable that damages
+
+Added per char-controller dev sync. Example of an interactable that harms the actor. Uses the existing unified damage API on `PlayerBody.take_hit(dir, force)`.
+
+```gdscript
+class_name Trap
+extends Interactable
+
+@export var knockback: float = 14.0
+@export var activation_knocks_self_offline: bool = true
+
+func interact(actor: Node3D) -> void:
+    if actor.has_method(&"take_hit"):
+        var dir := (actor.global_position - global_position).normalized()
+        actor.take_hit(dir, knockback)
+    if activation_knocks_self_offline:
+        queue_free()  # single-use spike; remove to make resettable
+```
+
+Trap's `pauses_game` stays `false` — you want movement to continue so the knockback reads. Prompt verb like "disarm" or "touch" is author's choice.
+
+### 10.6 `PuzzleTerminal`
 
 ```gdscript
 class_name PuzzleTerminal
@@ -748,32 +868,37 @@ Add to `project.godot`:
 interact={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,...,"physical_keycode":69,...)
-, Object(InputEventJoypadButton,...,"button_index":0,...)
+, Object(InputEventJoypadButton,...,"button_index":2,...)
 ]
 }
 ```
 
-`physical_keycode 69` = `E`. `button_index 0` = A on Xbox / Cross on PlayStation / B on Switch (Godot uses the Xbox convention).
+`physical_keycode 69` = `E`. `button_index 2` = **X on Xbox / Square on PlayStation / Y on Switch**.
 
-Collides with nothing existing. `toggle_skate` is on `Q`, `attack` on `J`+mouse, `jump` on `Space`.
+**v1.1 fix:** earlier draft put `interact` on gamepad button 0 (A/Cross). That's already `jump` — pressing would double-trigger. Moved to button 2 (X/Square), which matches the Mario Odyssey / It Takes Two / A Hat in Time convention (A=jump, X=interact/action). Button 1 (B/Circle) is the pan-game "cancel" and must stay clear for UI.
+
+Keyboard `E` collides with nothing. Existing: `toggle_skate=Q`, `attack=J+LMB`, `jump=Space`, `toggle_follow_mode=F`, `toggle_fullscreen=F11`.
 
 ---
 
 ## 14. Integration points with existing code
 
-Minimally invasive. Files touched:
+Minimally invasive. Responsibility split between char-controller dev (CC) and interactables work (IX):
 
-| File | Change |
-|---|---|
-| `autoload/events.gd` | Add signals from §6. No removals. |
-| `player/body/intent.gd` | Add `interact_pressed: bool = false`. |
-| `player/brains/player_brain.gd` | Fill `_intent.interact_pressed = Input.is_action_just_pressed("interact")`. |
-| `player/body/player_body.gd` | In `_physics_process` after reading intent: `if intent.interact_pressed and _sensor: _sensor.try_activate(self)`. Add `@onready var _sensor: InteractionSensor = $InteractionSensor` (optional — absent on NPC pawns). |
-| `player/body/player_body.tscn` (or the player pawn scene wrapping it) | Add `InteractionSensor` child with an `Area3D` child with a `SphereShape3D` of radius 2.5. |
-| `project.godot` | Add the four new autoloads (`GameState`, `Audio`, `Dialogue`, `Puzzles`). Add `interact` InputMap action. Enable `dialogue_manager` plugin. Add `[dialogue_manager]` section. |
-| `default_bus_layout.tres` | Replace with the 5-bus layout from §8.1. |
+| File | Change | Owner |
+|---|---|---|
+| `autoload/events.gd` | Add signals from §6. No removals. | IX |
+| `player/body/intent.gd` | Add `interact_pressed: bool` + `interact_held: bool`. | IX (one field pair) |
+| `player/brains/brain.gd` | Add `func try_activate(_body: Node3D) -> void: pass` base no-op. | **CC — pre-commits this stub to unblock IX** |
+| `player/brains/player_brain.gd` | Fill `_intent.interact_pressed/held` from Input. Add `@onready var _sensor: InteractionSensor = $InteractionSensor`, inject `_sensor.body = get_parent()` at `_ready`, override `try_activate(b) -> _sensor.try_activate(b)`. | IX |
+| `player/brains/player_brain.tscn` | Add `InteractionSensor` child node, which owns a child `Area3D` named `%SensorArea` with a `SphereShape3D` of radius 2.5 and `collision_mask = Layers.INTERACTABLE`. | IX |
+| `player/body/player_body.gd` | **Two changes:** (1) in `_physics_process` after `attack_pressed` handling: `if intent.interact_pressed: _brain.try_activate(self)`. (2) Expose `func is_attack_active() -> bool: return _attack_active_timer > 0.0` so sensor can gate. | CC (or CC-approved IX edit) |
+| `player/brains/enemy_ai_brain.gd`, `scripted_brain.gd` | **Unchanged.** They inherit base `Brain.try_activate` no-op. Zero risk of enemies stealing your door. | — |
+| `project.godot` | Add autoloads (`GameState`, `Audio`, `Dialogue`, `Puzzles`, `Layers`). Add 3D Physics Layer names (`world`, `player`, `enemy`, `interactable`). Add `interact` InputMap action (keyboard E + gamepad button 2). Enable `dialogue_manager` plugin. Add `[dialogue_manager]` section. | IX |
+| `game.tscn` | Add `PromptUI` CanvasLayer sibling to `ControlsHint`. | IX |
+| `default_bus_layout.tres` | Replace with the 5-bus layout from §8.1. | IX |
 
-**AI brains (`enemy_ai_brain.gd`, `scripted_brain.gd`) unchanged** — they'll leave `Intent.interact_pressed = false`, and NPC bodies won't have an `InteractionSensor` child. Zero risk of enemies stealing your door.
+**Char-controller dev in-flight work noted:** filtering interactables by `pawn_group == "player"`, damage gating by group, vertical attack range. None conflicts with IX changes above.
 
 ---
 
@@ -788,9 +913,9 @@ autoload/
   audio.gd                           <-- NEW
   dialogue.gd                        <-- NEW
   puzzles.gd                         <-- NEW
-  prompt_ui.gd / prompt_ui.tscn      <-- NEW (CanvasLayer autoload)
   layers.gd                          <-- NEW (physics-layer constants)
 audio/
+  cue_registry.tres                  <-- CueRegistry manifest (explicit)
   cues/
     door_open.tres
     pickup_ding.tres
@@ -802,22 +927,27 @@ dialogue/
   *.dialogue                         <-- authored per level
 interactable/
   interactable.gd
-  interaction_sensor.gd / .tscn
-  door/        door.gd / .tscn
+  interaction_sensor.gd              <-- child of PlayerBrain (v1.1)
+  prompt_ui/
+    prompt_ui.gd / prompt_ui.tscn    <-- CanvasLayer sibling in game.tscn
+  door/              door.gd / .tscn
   dialogue_trigger/  dialogue_trigger.gd / .tscn
-  pickup/      pickup.gd / .tscn
+  pickup/            pickup.gd / .tscn       (narrative only — §10.4)
+  trap/              trap.gd / .tscn         (§10.6)
   puzzle_terminal/   puzzle_terminal.gd / .tscn
 puzzle/
   puzzle.gd
   hacking/ hacking_puzzle.gd / .tscn
 player/body/
-  intent.gd                          <-- +interact_pressed
-  player_body.gd                     <-- +sensor hookup
-  player_body.tscn                   <-- +InteractionSensor child
+  intent.gd                          <-- +interact_pressed, +interact_held
+  player_body.gd                     <-- +_brain.try_activate dispatch, +is_attack_active()
 player/brains/
-  player_brain.gd                    <-- +interact_pressed fill
+  brain.gd                           <-- +try_activate no-op (CC pre-stub)
+  player_brain.gd                    <-- +sensor child, +try_activate override
+  player_brain.tscn                  <-- +InteractionSensor + SensorArea subtree
+game.tscn                            <-- +PromptUI CanvasLayer sibling
 default_bus_layout.tres              <-- REPLACED (5 buses w/ sidechain)
-project.godot                        <-- autoloads, InputMap, plugin, dialogue_manager section
+project.godot                        <-- autoloads, layer names, InputMap, plugin, dialogue_manager section
 user:// (runtime)
   tts_cache/*.mp3                    <-- generated at runtime
   tts_config.tres                    <-- API key (gitignored)
@@ -827,12 +957,13 @@ user:// (runtime)
 
 ## 16. Open risks before prototype
 
-1. **Third-person hybrid scoring feel.** `weight_camera_facing = 0.2` is a guess. If the camera bias is too strong (player turning camera randomly retargets focus), drop to `0.0`. If too weak (player can't choose between two adjacent interactables), raise to `0.4`. Tune against a scene with 3+ close interactables.
-2. **ElevenLabs latency on first line.** A cold-cache response can take 1–3 seconds. The balloon should show the text immediately and play TTS whenever it arrives — don't block on the request. Reference code does this correctly; preserve that.
-3. **Sidechain threshold tuning.** `-30 dB` threshold assumes music is sitting around `-20 dB` average. If music mix is quieter, dialogue won't trigger ducking. Verify with a scene after music tracks are in.
-4. **`PROCESS_MODE_WHEN_PAUSED` notification reversal** ([godot#83160](https://github.com/godotengine/godot/issues/83160)). We don't rely on the notifications, but if a future contributor does, they'll be confused. Note it in a code comment at the pause site.
-5. **Input handling during dialogue/puzzle.** Balloon + Puzzle call `get_viewport().set_input_as_handled()` to swallow `interact` presses. Verify `PlayerBrain._unhandled_input` doesn't re-process them. Existing project uses `_input`/`_unhandled_input` inconsistently — audit during wiring.
-6. **Outline Stage 1 emission tween on shared materials.** If two interactables share a material (common with pickups), highlighting one lights both. Fix: `surface_material_override` or per-instance material duplication at `_ready()`. Known Godot gotcha; trivial once you hit it.
+1. **Sensor under non-Node3D parent (brain) global-transform inheritance.** Godot's 3D transform system walks up past `Node` parents to the nearest `Node3D` ancestor, so the sensor's Area3D should correctly track the body's world position even with `PlayerBrain (Node)` as its direct parent. Verified by convention; if the first wiring shows the sensor stuck at origin instead of following the player, the fix is one line in `_physics_process`: `_area.global_position = body.global_position`. **Test this first when implementing.**
+2. **Third-person hybrid scoring feel.** `weight_camera_facing = 0.2` is a guess. If the camera bias is too strong (player turning camera randomly retargets focus), drop to `0.0`. If too weak (player can't choose between two adjacent interactables), raise to `0.4`. Tune against a scene with 3+ close interactables.
+3. **ElevenLabs latency on first line.** A cold-cache response can take 1–3 seconds. The balloon should show the text immediately and play TTS whenever it arrives — don't block on the request. Reference code does this correctly; preserve that.
+4. **Sidechain threshold tuning.** `-30 dB` threshold assumes music is sitting around `-20 dB` average. If music mix is quieter, dialogue won't trigger ducking. Verify with a scene after music tracks are in.
+5. **`PROCESS_MODE_WHEN_PAUSED` notification reversal** ([godot#83160](https://github.com/godotengine/godot/issues/83160)). We don't rely on the notifications, but if a future contributor does, they'll be confused. Note it in a code comment at the pause site.
+6. **Input handling during dialogue/puzzle.** Balloon + Puzzle call `get_viewport().set_input_as_handled()` to swallow `interact` presses. Verify `PlayerBrain._unhandled_input` doesn't re-process them. Existing project uses `_input`/`_unhandled_input` inconsistently — audit during wiring.
+7. **Outline Stage 1 emission tween on shared materials.** If two interactables share a material (common with pickups), highlighting one lights both. Committed fix: `surface_material_override = mesh.get_active_material(0).duplicate()` at `_ready()` on any Interactable subclass that overrides `set_highlighted`. Pay the duplication cost once per instance; no shared-material bleed.
 
 ---
 
@@ -848,6 +979,78 @@ user:// (runtime)
 - **Puzzle tap cooldown** — mash protection for `HackingPuzzle`. Test without first.
 - **Dialogue-driven camera cuts** — cinematic framing during dialogue. v1 freezes the existing camera.
 - **Audio-reacts-to-GameState subtlety** — different pickup sounds per item. v1 plays one `pickup_ding` for everything. Add per-item cues when there are >3 item types.
+
+---
+
+## 18. Two interaction patterns — don't unify them
+
+Hack The Planet has **two distinct interaction paradigms** in the codebase. This section exists so future contributors stop trying to force one into the other.
+
+### 18.1 Auto-trigger (walk into it)
+
+Existing pattern across `level/interactable/flag/flag_3d.gd`, `level/interactable/phone_booth/phone_booth.gd`, `level/interactable/coin/coin.gd`, `level/interactable/rail/rail.gd`, `level/interactable/kill_plane/kill_plane_3d.gd`. Shape:
+
+- Area3D + `body_entered` signal.
+- Handler filters by `body.is_in_group("player")` (or similar) — the **emitter-side filter** convention.
+- Emits a broadcast on `Events` (`flag_reached`, `checkpoint_reached`, `coin_collected`).
+- No input required; no prompt; no focus.
+
+Use for: level volumes, scattered collectibles, checkpoints, hazards, grind rails.
+
+### 18.2 Action-activated (press E)
+
+New pattern specced in §3–§11:
+
+- Subclass of `Interactable` (Area3D + virtual `interact(actor)`).
+- Focused via `InteractionSensor`'s scored candidate loop.
+- Prompt label shown while focused; outline highlight optional.
+- Activated on `Intent.interact_pressed`.
+
+Use for: doors, NPCs / dialogue triggers, narrative pickups, puzzle terminals, traps.
+
+### 18.3 The decision tree
+
+> **Does the player need a moment of deliberation to activate it?**
+> - **Yes** → `Interactable` subclass. They need to choose to engage.
+> - **No** → plain Area3D + group-filtered emit. They walk into it and the game responds.
+
+| Interaction | Pattern | Reasoning |
+|---|---|---|
+| Coin / floppy disk | auto-trigger | Arcade-y feel; running pickup is the point |
+| Kill plane | auto-trigger | Not a choice — it's a falling death |
+| Checkpoint booth | auto-trigger | Drive-by banking; "press E to save" breaks flow |
+| Flag (level end) | auto-trigger | Contact = win, no deliberation |
+| Grind rail | auto-trigger | Jump onto it, commit = grind |
+| Door | `Interactable` | Deliberate gate — key check, prompt, commit |
+| NPC dialogue | `Interactable` | Commit to the conversation |
+| Puzzle terminal | `Interactable` | Commit to the minigame |
+| Narrative key pickup | `Interactable` | It's a story beat, not loot |
+| Trap | `Interactable` (§10.6) | Player chooses to poke the spike |
+
+### 18.4 Explicit non-migration
+
+**Do not convert existing auto-triggers to `Interactable` subclasses.** Char-controller dev flagged this specifically: "checkpoint booths stay on the old Events-based path — different UX from press-E interactables." Auto-trigger interactables in `level/interactable/*` are correct as-is. Leaving them alone.
+
+---
+
+## 19. Sync log — character-controller dev amendments
+
+v1.1 amendments originated from direct sync with the character-controller dev (who owns `player/body/player_body.{gd,tscn}`, `player/body/intent.gd`, `player/brains/*`, and skin contracts). Recording decisions here so the rationale survives.
+
+| v1 decision | v1.1 replacement | Why it changed |
+|---|---|---|
+| `InteractionSensor` child of `PlayerBody` | Child of `PlayerBrain`; `Brain.try_activate()` base no-op; body calls `_brain.try_activate(self)` | Body is the *universal* pawn — enemies are `PlayerBody` + `EnemyAIBrain`. Senses on body = ~7 Area3Ds ticking on NPCs for nothing. "Drivers own the senses they need" mirrors existing Brain/Body/Skin separation. |
+| `interact` gamepad = button 0 (A/Cross) | button 2 (X/Square) | Button 0 is already `jump`. Would double-trigger. |
+| Only `interact_pressed` on Intent | Also `interact_held: bool` reserved | Free to reserve for "hold to lockpick." Brain fills regardless; consumers opt in. |
+| Layer 10 (`interactable`) named in isolation | All four layers named at once in Project Settings (`world`, `player`, `enemy`, `interactable`); `Layers.gd` covers all as constants | Single source of truth. Prevents scattered magic numbers during the char-controller dev's concurrent damage-gating work. |
+| Sensor always activates on `intent.interact_pressed` | Gated: suppress if `body.is_attack_active()` | Prevents accidental door-open mid-attack-swing. One-line check on sensor side; body exposes `is_attack_active()`. |
+| `interactable_focused/unfocused` on `Events` bus | Local signal `InteractionSensor.focus_changed(node)`; PromptUI discovers sensor via group | 1-to-1 wire doesn't belong on a broadcast bus. Keeps bus reserved for world events multiple subsystems want. |
+| `AudioCue` registry via folder auto-scan | Explicit `CueRegistry.tres` manifest; missing cues `push_error` | No silent failures. Typo in `play_sfx(&"door_opne")` becomes a loud error, not a quiet miss. |
+| `Pickup` as generic "press E to collect" | `Pickup` narrative-only; arcade collectibles stay auto-trigger (§18) | Two different UX paradigms shouldn't share a base class. Running-coin-vacuum ≠ picking up a story item. |
+
+**Char-controller dev in-flight work (ongoing, no IX conflict):** pawn_group filtering on interactables, damage gating by group, vertical attack range. IX changes in §14 preserve these.
+
+**Stub agreement:** char-controller dev pre-commits `Brain.try_activate(_body: Node3D) -> void: pass` in `brain.gd`, unblocking IX implementation with zero risk to AI brain logic.
 
 ---
 
