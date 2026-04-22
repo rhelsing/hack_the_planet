@@ -11,5 +11,8 @@ func _ready() -> void:
 
 
 func _on_body_entered(body: Node3D) -> void:
-	if body is CharacterBody3D:
-		Events.checkpoint_reached.emit(global_position)
+	# Only the player banks checkpoints — if an enemy wanders through a booth
+	# it shouldn't move the player's respawn point to wherever the enemy was.
+	if not body.is_in_group("player"):
+		return
+	Events.checkpoint_reached.emit(global_position)

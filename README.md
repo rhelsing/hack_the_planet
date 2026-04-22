@@ -11,7 +11,7 @@
 - [ ] elevator / platforms / bouncy ones
 
 - [ ] Character Controllers 
-  - swap in, ai, pawn... 
+  - swap in, ai, pawn...  - ai needs visual debug cone of vision.. 
   - gamepad controls possible
   - standard movements.. - dash, wallrun, crouch, double jump
   - power ups - skate (grind), grapple hook, shoot flares, sunglasses/hack - love, sex, secret

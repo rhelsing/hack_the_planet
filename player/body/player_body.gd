@@ -12,6 +12,26 @@ extends CharacterBody3D
 ## KayKit, etc. without any code changes — just drag a different scene in.
 @export var skin_scene: PackedScene
 
+@export_group("Brain")
+## Optional brain scene override. If set, the default PlayerBrain child is
+## removed and this scene is instantiated as the new brain. Lets the same body
+## run under human input, AI, or networked replication by swapping a scene.
+@export var brain_scene: PackedScene
+
+## Group the body joins at _ready. Default "player" for human-controlled pawns;
+## enemy/companion variants override to "enemies" / "allies" so targeting
+## logic in brains can find the right pawns.
+@export var pawn_group: String = "player"
+
+## Group the attack sweep targets when this pawn lunges. Player hits "enemies";
+## an enemy pawn would hit "player". Cross-faction combat routed by groups.
+@export var attack_target_group: String = "enemies"
+
+## If true, death is terminal — the body queue_free()s instead of respawning
+## at the last checkpoint. Enemies set this true; players keep it false so
+## they respawn on death.
+@export var dies_permanently: bool = false
+
 @export_group("Movement")
 @export var walk_profile: MovementProfile
 @export var skate_profile: MovementProfile
@@ -153,12 +173,24 @@ var _tint_timer := 0.0
 @onready var _landing_sound: AudioStreamPlayer3D = %LandingSound
 @onready var _jump_sound: AudioStreamPlayer3D = %JumpSound
 @onready var _dust_particles: GPUParticles3D = %DustParticles
-@onready var _brain: Brain = $PlayerBrain
+## Brain found by type, not by name — lets AI pawns drop in EnemyAIBrain,
+## NetworkBrain, etc., without the body caring which one.
+@onready var _brain: Brain = _find_first_brain()
+
+
+func _find_first_brain() -> Brain:
+	for c: Node in get_children():
+		if c is Brain:
+			return c
+	push_error("PlayerBody has no Brain child")
+	return null
 
 
 func _ready() -> void:
-	add_to_group("player")
+	if not pawn_group.is_empty():
+		add_to_group(pawn_group)
 	_swap_skin_if_overridden()
+	_swap_brain_if_overridden()
 	_current_profile = skate_profile if skate_profile != null else walk_profile
 	_apply_follow_mode()
 	_target_yaw = _camera_pivot.global_rotation.y
@@ -176,17 +208,45 @@ func _ready() -> void:
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	_health = max_health
-	Events.kill_plane_touched.connect(func on_kill_plane_touched() -> void:
+	Events.kill_plane_touched.connect(func on_kill_plane_touched(body: PhysicsBody3D) -> void:
+		# Global signal — filter to self so one pawn falling off doesn't kill
+		# every other PlayerBody listening.
+		if body != self:
+			return
 		# Falling off the world skips the HP system — it's always terminal.
 		if not _dying:
 			_start_death()
 	)
-	Events.enemy_hit_player.connect(_on_enemy_hit_player)
-	Events.flag_reached.connect(func on_flag_reached() -> void:
-		set_physics_process(false)
-		_skin.idle()
-		_dust_particles.emitting = false
-	)
+	# enemy_hit_player and flag_reached are game-world events meant for the
+	# human-controlled pawn only — gate on pawn_group so enemy-PlayerBodies
+	# listening on the same autoload don't all react.
+	if pawn_group == "player":
+		Events.enemy_hit_player.connect(_on_enemy_hit_player)
+		Events.flag_reached.connect(func on_flag_reached() -> void:
+			set_physics_process(false)
+			_skin.idle()
+			_dust_particles.emitting = false
+		)
+
+
+## If brain_scene is set, remove any default Brain child and instantiate the
+## override. The default PlayerBrain stays wired in the base tscn so a plain
+## instance is playable out of the box; variants (enemies, companions) set
+## brain_scene to drop in AI or networked drivers.
+func _swap_brain_if_overridden() -> void:
+	if brain_scene == null:
+		return
+	var new_brain := brain_scene.instantiate()
+	if not (new_brain is Brain):
+		push_error("brain_scene root must extend Brain, got %s" % new_brain.get_class())
+		new_brain.queue_free()
+		return
+	# Remove any existing Brain child (the default PlayerBrain from the tscn).
+	for c: Node in get_children():
+		if c is Brain:
+			c.queue_free()
+	add_child(new_brain)
+	_brain = new_brain
 
 
 ## If skin_scene is set, replace the default skin child with a fresh instance
@@ -246,19 +306,12 @@ func _start_attack_jostle() -> void:
 
 
 func _on_enemy_hit_player(impulse: Vector3) -> void:
-	if _dying:
+	# Legacy Enemy.gd fires this signal with a pre-computed impulse vector.
+	# Route it through the universal take_hit so player damage handling
+	# stays in one place regardless of attacker type.
+	if impulse.length_squared() < 0.0001:
 		return
-	_health -= 1
-	_regen_timer = 0.0
-	# Physical reaction to the slam — additive impulse applied on top of
-	# whatever the player was already doing, so a mid-air hit feels right.
-	velocity += impulse
-	# Fresh 1s red flash; the tint timer overrides any in-progress fade.
-	_tint_timer = damage_tint_duration
-	if _skin != null:
-		_skin.damage_tint = damage_tint_max
-	if _health <= 0:
-		_start_death()
+	take_hit(impulse.normalized(), impulse.length())
 
 
 func _tick_health_regen(delta: float) -> void:
@@ -298,6 +351,11 @@ func _start_death() -> void:
 
 
 func _finish_death() -> void:
+	# Terminal-death pawns (enemies) poof and are gone; respawning pawns
+	# (players) snap back to their last checkpoint.
+	if dies_permanently:
+		queue_free()
+		return
 	global_position = _start_position
 	velocity = Vector3.ZERO
 	_health = max_health
@@ -320,24 +378,50 @@ func _spawn_death_confetti() -> void:
 	burst.global_position = global_position
 
 
+## Universal damage entry point. Decrement HP, apply knockback, flash tint;
+## trigger death sequence when HP hits zero. Works for player (max_health=3,
+## respawns) and enemies (max_health=1, dies_permanently=true → queue_free).
+## Pawns outside a sweep's attack_target_group are simply never called — no
+## faction gating needed inside the method.
+func take_hit(impact_direction: Vector3, force: float) -> void:
+	if _dying:
+		return
+	_health -= 1
+	_regen_timer = 0.0
+	# Additive knockback: direction-along-impact plus a small vertical pop so
+	# the hit reads kinetically regardless of current motion.
+	var dir := impact_direction.normalized() if impact_direction.length_squared() > 0.0001 else Vector3.BACK
+	velocity += dir * force + Vector3.UP * 3.5
+	_tint_timer = damage_tint_duration
+	if _skin != null:
+		_skin.damage_tint = damage_tint_max
+	if _health <= 0:
+		_start_death()
+
+
 func _sweep_attack() -> void:
 	var range_sq := attack_range * attack_range
-	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
-		if not enemy is Enemy:
+	for enemy: Node in get_tree().get_nodes_in_group(attack_target_group):
+		if not (enemy is Node3D):
 			continue
 		if _attack_hit_enemies.has(enemy):
 			continue
 		# Horizontal distance only — hovering enemies sit well above the
 		# player, so using 3D distance would eat most of the reach on Y.
-		var dx: float = enemy.global_position.x - global_position.x
-		var dz: float = enemy.global_position.z - global_position.z
+		var dx: float = (enemy as Node3D).global_position.x - global_position.x
+		var dz: float = (enemy as Node3D).global_position.z - global_position.z
 		if dx * dx + dz * dz > range_sq:
 			continue
 		# Confetti sprays outward along the player→enemy vector (so a hit
 		# to the side confettis sideways, not along the player's facing).
 		var to_enemy := Vector3(dx, 0.0, dz)
 		var impact_dir := to_enemy.normalized() if to_enemy.length_squared() > 0.0001 else _attack_forward
-		(enemy as Enemy).hit(impact_dir, attack_knockback)
+		# Unified damage dispatch: prefer take_hit (new universal API), fall
+		# back to hit() for legacy enemy/enemy.gd until it's retired.
+		if enemy.has_method("take_hit"):
+			enemy.take_hit(impact_dir, attack_knockback)
+		elif enemy.has_method("hit"):
+			enemy.hit(impact_dir, attack_knockback)
 		_attack_hit_enemies.append(enemy)
 
 
@@ -411,8 +495,11 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Move direction comes pre-converted to world-space from the brain.
-	# Body applies its own threshold for "is the player pushing" logic.
+	# Body applies its own threshold for "is the pawn pushing" logic.
+	# Magnitude [0, 1] scales target speed — lets AI wander at 0.3× and chase
+	# at 1.0× off the same max_speed config.
 	var move_direction: Vector3 = intent.move_direction
+	var move_magnitude: float = clampf(move_direction.length(), 0.0, 1.0)
 	if move_direction.length() > 0.2:
 		_last_input_direction = move_direction.normalized()
 	# Main movement code below expects a normalized direction.
@@ -514,7 +601,7 @@ func _physics_process(delta: float) -> void:
 	if move_direction.length() > 0.01:
 		var h_dir := h_vel.normalized() if h_vel.length() > 0.1 else move_direction
 		var steered := h_dir.slerp(move_direction, clamp(profile.turn_rate * delta, 0.0, 1.0))
-		var target_vel := steered * profile.max_speed
+		var target_vel := steered * profile.max_speed * move_magnitude
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
 	else:
 		h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)

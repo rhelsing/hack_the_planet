@@ -1,11 +1,30 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://da188d7yrcfr8"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://da188d7yrcfr8"]
 
-[ext_resource type="Texture2D" uid="uid://brbtohct73mlt" path="res://level/checkboard.png" id="1_u6jmt"]
+[ext_resource type="Shader" uid="uid://hybadyettemx" path="res://level/shaders/platform.gdshader" id="1_plat"]
 
 [resource]
-albedo_color = Color(0.293619, 0.169864, 0.728125, 1)
-albedo_texture = ExtResource("1_u6jmt")
-roughness = 0.85
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-uv1_triplanar = true
-uv1_triplanar_sharpness = 10.0
+render_priority = 0
+shader = ExtResource("1_plat")
+shader_parameter/scratch_strength = 0.0570000027075
+shader_parameter/smudge_strength = 0.2550000121125
+shader_parameter/pit_strength = 0.2370000112575
+shader_parameter/bump_scale = 0.05000000074506
+shader_parameter/palette_black = Color(0, 0, 0, 1)
+shader_parameter/palette_purple = Color(0.38768542, 0.18251339, 0.89471215, 1)
+shader_parameter/triplanar_scale = 0.50000002212006
+shader_parameter/triplanar_sharpness = 2.0670000506825
+shader_parameter/circuit_density = 1.8430000637925
+shader_parameter/trace_probability = 0.386000018335
+shader_parameter/trace_width = 0.09200000367148001
+shader_parameter/trace_glow = 0.210000009975
+shader_parameter/circuit_clustering = 1.0
+shader_parameter/circuit_cluster_scale = 3.03000014229506
+shader_parameter/pulse_speed_base = 1.6930000804175
+shader_parameter/pulse_speed_variance = 0.5930000281675
+shader_parameter/pulse_width = 0.5
+shader_parameter/pulse_brightness = 3.670000174325
+shader_parameter/pulse_density = 0.13600000646
+shader_parameter/acrylic_roughness = 0.26800001273
+shader_parameter/acrylic_metallic = 0.130000006175
+shader_parameter/acrylic_fresnel_power = 3.0770001224075
+shader_parameter/acrylic_reflect_strength = 1.518000072105

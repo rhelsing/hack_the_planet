@@ -1,11 +1,30 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://ucfwprjqe6oq"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://ucfwprjqe6oq"]
 
-[ext_resource type="Texture2D" uid="uid://brbtohct73mlt" path="res://level/checkboard.png" id="1_8pif6"]
+[ext_resource type="Shader" uid="uid://bvvk22m5to10l" path="res://level/shaders/building.gdshader" id="1_bldg"]
 
 [resource]
-albedo_color = Color(0.293619, 0.169864, 0.728125, 1)
-albedo_texture = ExtResource("1_8pif6")
-roughness = 0.85
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-uv1_triplanar = true
-uv1_triplanar_sharpness = 10.0
+render_priority = 0
+shader = ExtResource("1_bldg")
+shader_parameter/scratch_strength = 0.0
+shader_parameter/smudge_strength = 0.0
+shader_parameter/pit_strength = 0.0
+shader_parameter/bump_scale = 3.11700014642756
+shader_parameter/palette_black = Color(0, 0, 0, 1)
+shader_parameter/palette_blue = Color(0.2945846, 0.4622985, 0.72498995, 1)
+shader_parameter/triplanar_scale = 0.5350000237825601
+shader_parameter/triplanar_sharpness = 1.8350000396625
+shader_parameter/glass_clarity = 0.62800002983
+shader_parameter/glass_tint_strength = 1.0
+shader_parameter/refraction_strength = 0.1270000060325
+shader_parameter/max_blur_lod = 0.0
+shader_parameter/glass_roughness_min = 0.3870000183825
+shader_parameter/glass_roughness_max = 0.3110000147725
+shader_parameter/base_glow_intensity = 0.32400001539
+shader_parameter/base_glow_falloff = 2.114000076665
+shader_parameter/bottom_face_intensity = 8.0
+shader_parameter/code_row_density = 9.78800041743
+shader_parameter/code_opacity = 0.41200001957
+shader_parameter/code_scroll_speed = 0.8770000416575
+shader_parameter/code_drift_threshold = 0.4090000194275
+shader_parameter/rim_power = 7.214000318915
+shader_parameter/rim_intensity = 0.5810000275975
