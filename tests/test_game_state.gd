@@ -94,7 +94,7 @@ func _ready() -> void:
 	if not GameState.has_item(&"plain_string_id"):
 		failures.append("from_dict should coerce String inventory entries to StringName")
 
-	# ---- Counters (v2 schema, for HUD — per hud.md §7.2.1) ----
+	# ---- Counters (HUD-only, per-run; NOT persisted) ----
 	GameState.reset()
 	if GameState.coin_count != 0:
 		failures.append("reset() should zero coin_count")
@@ -110,21 +110,19 @@ func _ready() -> void:
 	GameState.add_item(&"other_item")
 	if GameState.floppy_count != 1:
 		failures.append("floppy_count should bump only for floppy_disk, got %d" % GameState.floppy_count)
-	# Round-trip counters through dict
+	# Counters are intentionally NOT serialized — they're per-run / per-level.
 	var snap2: Dictionary = GameState.to_dict()
-	if snap2.get("version") != 2:
-		failures.append("SCHEMA_VERSION should be 2 after counter add")
-	if snap2.get("coin_count") != 2 or snap2.get("floppy_count") != 1:
-		failures.append("to_dict should carry counter fields")
-	GameState.reset()
-	GameState.from_dict(snap2)
-	if GameState.coin_count != 2 or GameState.floppy_count != 1:
-		failures.append("from_dict should restore counters")
-	# Old v1 dicts without counter fields → default to 0 (migration safety)
-	var v1_dict: Dictionary = {"version": 1, "inventory": [], "flags": {}, "dialogue_visited": {}}
-	GameState.from_dict(v1_dict)
+	if snap2.has("coin_count") or snap2.has("floppy_count"):
+		failures.append("to_dict should NOT carry counter fields (per-run only)")
+	# Loading from any dict (including one with stale counter fields) must
+	# zero them, so each level starts fresh even after autosave/Continue.
+	var dict_with_stale: Dictionary = {
+		"version": 2, "inventory": [], "flags": {}, "dialogue_visited": {},
+		"coin_count": 99, "floppy_count": 7,
+	}
+	GameState.from_dict(dict_with_stale)
 	if GameState.coin_count != 0 or GameState.floppy_count != 0:
-		failures.append("from_dict should default counters to 0 on v1 saves")
+		failures.append("from_dict must zero counters even when present in saved dict")
 
 	# ---- Events signal emission (live autoload wiring) ----
 	var received_items: Array = []

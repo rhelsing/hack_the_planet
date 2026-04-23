@@ -55,6 +55,11 @@ var _idle_anim_node: AnimationNodeAnimation
 const _IDLE_CLIPS := [&"Idle_A", &"Idle_B"]
 var _idle_cycle_index: int = 0
 
+# Cached Crouch state. Tree authors it as "Crouching" by default; we override
+# the clip once at _ready to "Sneaking" so the crouch read is the lower,
+# weight-forward stalking pose instead of the high resting squat.
+var _crouch_anim_node: AnimationNodeAnimation
+
 # Shared red-tint material overlay applied to all mannequin mesh parts so
 # damage flash reads as a body flush (matches Sophia's single-mesh overlay
 # but distributed across the mannequin's 6 separate pieces).

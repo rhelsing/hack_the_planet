@@ -14,10 +14,12 @@ var flags: Dictionary = {}
 var dialogue_visited: Dictionary = {}
 
 ## HUD counter — bumped on Events.coin_collected (see _ready subscriber).
-## Persisted via to_dict/from_dict. v2 schema.
+## Per-run / per-level: NOT persisted to save slots. Resets on engine boot
+## and on every load/new-game so each play starts at zero.
 var coin_count: int = 0
 
-## HUD counter — bumped when a floppy-disk item enters inventory. Persisted.
+## HUD counter — bumped when a floppy-disk item enters inventory. Per-run /
+## per-level: NOT persisted to save slots.
 var floppy_count: int = 0
 
 const FLOPPY_ITEM_ID: StringName = &"floppy_disk"
@@ -89,22 +91,21 @@ func to_dict() -> Dictionary:
 		"inventory": inventory.duplicate(),
 		"flags": flags.duplicate(true),
 		"dialogue_visited": dialogue_visited.duplicate(true),
-		"coin_count": coin_count,
-		"floppy_count": floppy_count,
 	}
 
 
 func from_dict(d: Dictionary) -> void:
-	# Schema migration lives here. Old v1 save files lack counter fields —
-	# `.get(..., 0)` keeps them at 0 on load, which matches fresh-game state.
 	var loaded_inv: Array = d.get("inventory", [])
 	inventory.clear()
 	for entry: Variant in loaded_inv:
 		inventory.append(StringName(entry))
 	flags = d.get("flags", {}).duplicate(true)
 	dialogue_visited = d.get("dialogue_visited", {}).duplicate(true)
-	coin_count = int(d.get("coin_count", 0))
-	floppy_count = int(d.get("floppy_count", 0))
+	# coin_count / floppy_count are intentionally NOT loaded — they're per-run
+	# counters that start fresh every level. Old v2 save files may include
+	# them; we ignore.
+	coin_count = 0
+	floppy_count = 0
 
 
 ## Full reset — used by "New Game" and by tests.
