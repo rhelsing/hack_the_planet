@@ -169,6 +169,7 @@ node_connections = [&"output", 0, &"StateMachine"]
 script = ExtResource("1_script")
 lean_pivot_height = 1.5
 body_center_y = 0.85
+uniform_scale = 2.0
 lean_multiplier = 0.5
 
 [node name="Model" parent="." unique_id=926276319 instance=ExtResource("2_model")]

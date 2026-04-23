@@ -604,14 +604,6 @@ func _physics_process(delta: float) -> void:
 
 	# Attack: edge-triggered from intent (formerly handled in _input).
 	if intent.attack_pressed:
-		# Diagnostic for mouse-vs-J click-delay investigation — strip after.
-		# Compare this timestamp to the one printed by game.gd._log_attack_input
-		# for the same event. Gap between them == pipeline latency per input
-		# type. Also log whether a prior attack was still gating us.
-		if OS.is_debug_build():
-			print("[attack-debug] %d ms  intent.attack_pressed  _attack_timer=%.3f  is_attacking=%s" % [
-				Time.get_ticks_msec(), _attack_timer, is_attacking(),
-			])
 		_start_attack_jostle()
 
 	var profile := _current_profile
@@ -714,9 +706,15 @@ func _physics_process(delta: float) -> void:
 	var pivot: Vector3 = Vector3(0, _skin.lean_pivot_height, 0)
 	var tilt_basis: Basis = Basis(Vector3.RIGHT, final_pitch) * Basis(Vector3.BACK, final_roll)
 	var full_basis: Basis = Basis(Vector3.UP, new_yaw) * tilt_basis
+	# Pivot-compensation offset uses the UNSCALED rotation basis, otherwise
+	# scale gets multiplied into the pivot and drops the skin below the floor.
 	var origin_offset: Vector3 = pivot - full_basis * pivot
 	var tilt_magnitude: float = sqrt(final_pitch * final_pitch + final_roll * final_roll)
 	origin_offset.y -= tilt_magnitude * profile.tilt_height_drop
+	# Scale is applied AFTER the offset is fixed — visuals only, no translation.
+	var skin_scale: float = _skin.uniform_scale if _skin != null else 1.0
+	if not is_equal_approx(skin_scale, 1.0):
+		full_basis = full_basis.scaled(Vector3.ONE * skin_scale)
 	_skin.transform = Transform3D(full_basis, origin_offset)
 
 	# Double-jump front flip: spin 360° around a horizontal axis snapshotted
@@ -883,6 +881,9 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 	var banked: Basis = Basis(rail_forward, _current_lean_roll) * rail_frame
 	var body_up: Vector3 = banked * Vector3.UP
 	var full_basis: Basis = Basis(body_up, deg_to_rad(profile.grind_yaw_offset_deg)) * banked
+	var grind_scale: float = _skin.uniform_scale if _skin != null else 1.0
+	if not is_equal_approx(grind_scale, 1.0):
+		full_basis = full_basis.scaled(Vector3.ONE * grind_scale)
 	# Feet pivot so the body rotates like someone actually balancing on the rail.
 	_skin.transform = Transform3D(full_basis, Vector3.ZERO)
 	# Drive move_and_slide so render interpolation smooths visuals between ticks.

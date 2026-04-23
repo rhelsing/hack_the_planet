@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://bg37fk8m56q64"]
 
+[ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="1_a087g"]
 [ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://interactable/interaction_sensor.tscn" id="2_sensor"]
 [ext_resource type="PackedScene" path="res://interactable/prompt_ui/prompt_ui.tscn" id="3_prompt"]
@@ -16,10 +17,13 @@
 [ext_resource type="PackedScene" path="res://hud/hud.tscn" id="14_hud"]
 [ext_resource type="PackedScene" uid="uid://bfv0jmrds0iy7" path="res://menu/pause_menu.tscn" id="15_pause"]
 [ext_resource type="PackedScene" path="res://level/interactable/coin/floppy.tscn" id="16_floppy"]
+[ext_resource type="PackedScene" uid="uid://do5ecpqaaqlki" path="res://enemy/enemy_cop_riot.tscn" id="19_griq5"]
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_abweg"]
+[ext_resource type="PackedScene" uid="uid://do5ucpf8uwlki" path="res://enemy/enemy_sophia.tscn" id="21_7liwe"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
-sky_top_color = Color(0.15, 0.1, 0.3, 1)
-sky_horizon_color = Color(0.35, 0.15, 0.45, 1)
+sky_top_color = Color(0, 0, 0, 1)
+sky_horizon_color = Color(0, 0, 0, 1)
 ground_bottom_color = Color(0.05, 0.03, 0.1, 1)
 ground_horizon_color = Color(0.1, 0.05, 0.15, 1)
 
@@ -62,6 +66,18 @@ shadow_enabled = true
 shape = SubResource("floor_shape")
 
 [node name="FloorMesh" type="CSGBox3D" parent="Floor" unique_id=1224497068]
+material_override = ExtResource("1_a087g")
+size = Vector3(40, 0.5, 40)
+material = SubResource("mat_floor")
+
+[node name="Floor2" type="StaticBody3D" parent="." unique_id=594443617]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.38303, -8.439178, 0)
+
+[node name="FloorShape" type="CollisionShape3D" parent="Floor2" unique_id=1891733254]
+shape = SubResource("floor_shape")
+
+[node name="FloorMesh" type="CSGBox3D" parent="Floor2" unique_id=1328519412]
+material_override = ExtResource("1_a087g")
 size = Vector3(40, 0.5, 40)
 material = SubResource("mat_floor")
 
@@ -118,3 +134,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -5)
 [node name="HUD" parent="." unique_id=2097535250 instance=ExtResource("14_hud")]
 
 [node name="PauseMenu" parent="." unique_id=1212478794 instance=ExtResource("15_pause")]
+
+[node name="EnemyCopRiot" parent="." unique_id=438990487 instance=ExtResource("19_griq5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.073368, -8.160313, 9.943961)
+
+[node name="EnemyKayKit" parent="." unique_id=1945624183 instance=ExtResource("20_abweg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.342373, -8.160313, 9.839924)
+
+[node name="EnemySophia" parent="." unique_id=1834550185 instance=ExtResource("21_7liwe")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.874922, -8.160313, 12.885764)

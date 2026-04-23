@@ -20,6 +20,11 @@ extends Node3D
 @export var lean_pivot_height: float = 1.6
 ## Height of the body center for the double-jump flip pivot.
 @export var body_center_y: float = 0.9
+## Uniform visual scale for this skin. Lives here (not on the skin root's
+## transform) because PlayerBody overwrites _skin.transform every tick from
+## yaw/pitch/roll only — scale on the tscn root gets wiped. The body reads
+## this and bakes it into the per-frame basis. 1.0 = authored size.
+@export_range(0.1, 10.0) var uniform_scale: float = 1.0
 
 ## Red damage flash intensity (0 = none, 1 = full). Skins with a mesh that
 ## can show the flash override set_damage_tint() to apply a material overlay;
