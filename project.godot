@@ -28,16 +28,18 @@ GameState="*res://autoload/game_state.gd"
 Audio="*res://autoload/audio.gd"
 Dialogue="*res://autoload/dialogue.gd"
 Puzzles="*res://autoload/puzzles.gd"
+Skills="*res://autoload/skills.gd"
 Settings="*res://autoload/settings.gd"
 SceneLoader="*res://autoload/scene_loader.gd"
 SaveService="*res://autoload/save_service.gd"
 PauseController="*res://autoload/pause_controller.gd"
+AttackDebug="*res://autoload/attack_debug.gd"
 DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 [dialogue_manager]
 
 general/wrap_lines=true
-general/states=["GameState", "Events", "Audio"]
+general/states=["GameState", "Events", "Audio", "Skills"]
 ; v3.x of the plugin moved balloon_path from `general/` to `runtime/`. Left
 ; the old key commented out as a tombstone so future-you doesn't reintroduce it.
 ;general/balloon_path="..."  ; DO NOT USE — v2.x path, silently ignored by v3.x

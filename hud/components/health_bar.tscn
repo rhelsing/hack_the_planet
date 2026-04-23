@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://ncf1hkkr80vs"]
+
+[ext_resource type="Script" path="res://hud/components/health_bar.gd" id="1_health"]
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
+
+[node name="HealthBar" type="HBoxContainer"]
+theme = ExtResource("2_theme")
+theme_override_constants/separation = 8
+script = ExtResource("1_health")
+
+[node name="Prefix" type="Label" parent="."]
+unique_name_in_owner = true
+text = "HP"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 20
+
+[node name="Bar" type="Label" parent="."]
+unique_name_in_owner = true
+text = "[░░░░░░░░░░░░]"
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 20

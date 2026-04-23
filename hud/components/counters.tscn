@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://bp7a0yu1g52iq"]
+
+[ext_resource type="Script" path="res://hud/components/counters.gd" id="1_counters"]
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
+
+[node name="Counters" type="VBoxContainer"]
+custom_minimum_size = Vector2(140, 0)
+alignment = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_counters")
+
+[node name="CoinRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+alignment = 2
+
+[node name="CoinIcon" type="Label" parent="CoinRow"]
+custom_minimum_size = Vector2(32, 0)
+text = "🪙"
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="CoinLabel" type="Label" parent="CoinRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+text = "0"
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 2
+
+[node name="FloppyRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+alignment = 2
+
+[node name="FloppyIcon" type="Label" parent="FloppyRow"]
+custom_minimum_size = Vector2(32, 0)
+text = "💾"
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="FloppyLabel" type="Label" parent="FloppyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+text = "0"
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 2
+
+[node name="KeysRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+alignment = 2
+theme_override_constants/separation = 2

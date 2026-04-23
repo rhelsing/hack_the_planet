@@ -26,7 +26,7 @@ func _init() -> void:
 		_failures.append("lean_pivot_height should be > 0, got %s" % _cs.lean_pivot_height)
 	if _cs.body_center_y <= 0.0:
 		_failures.append("body_center_y should be > 0, got %s" % _cs.body_center_y)
-	for m: String in ["idle", "move", "fall", "jump", "edge_grab", "wall_slide", "attack", "dash", "crouch"]:
+	for m: String in ["idle", "move", "fall", "jump", "edge_grab", "wall_slide", "attack", "dash", "crouch", "die", "land", "on_hit"]:
 		if not _cs.has_method(m):
 			_failures.append("kaykit missing contract method: %s" % m)
 	_cs.damage_tint = 5.0
@@ -46,13 +46,19 @@ func _on_skin_ready() -> void:
 	else:
 		var expected := [
 			"Idle_A",                           # base
+			"Idle_B",                           # base (cycled variant)
 			"Running_A",                        # MovementBasic
 			"Running_Strafe_Left",              # MovementAdvanced (tilt blend)
 			"Running_Strafe_Right",             # MovementAdvanced
 			"Melee_Unarmed_Attack_Punch_A",     # CombatMelee (attack)
+			"Melee_Unarmed_Attack_Kick",        # CombatMelee (attack variant)
 			"Jump_Start",                       # MovementBasic
 			"Jump_Idle",                        # MovementBasic
-			"Crouching",                        # MovementAdvanced (wall slide fallback)
+			"Jump_Land",                        # MovementBasic (landing)
+			"Crouching",                        # MovementAdvanced
+			"Death_A",                          # General (die)
+			"Hit_A",                            # General (on_hit)
+			"Hit_B",                            # General (on_hit variant)
 		]
 		for clip: String in expected:
 			if not anim.has_animation(clip):

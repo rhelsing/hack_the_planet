@@ -15,6 +15,21 @@ extends CharacterSkin
 ## primary's default library, and the source is freed.
 @export var extra_animation_sources: Array[PackedScene] = []
 
+## Y-offset applied to the Model node in skate mode so the heel rests on
+## the wheels. Walk mode drops it to 0 so bare feet touch the ground.
+## Tune per skin — different rigs have different foot-origin heights.
+@export var skate_root_y: float = 0.134
+
+## Rollerblade wheels live as inspector-tunable Node3D children in the scene
+## (WheelsLeft / WheelsRight, sibling to Model). At _ready they're reparented
+## under runtime BoneAttachment3Ds bound to the foot bones, keeping global
+## transform so the user's scene-editor position is preserved. Visibility
+## tracks skate mode.
+const _FOOT_L_BONE := &"foot.l"
+const _FOOT_R_BONE := &"foot.r"
+@onready var _wheels_left: Node3D = $WheelsLeft
+@onready var _wheels_right: Node3D = $WheelsRight
+
 @onready var animation_tree: AnimationTree = %AnimationTree
 @onready var state_machine: AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
 @onready var move_tilt_path: String = "parameters/StateMachine/Move/tilt/add_amount"
@@ -23,6 +38,21 @@ extends CharacterSkin
 # swap its clip (Dodge_Forward / Backward / Left / Right) per call before
 # starting the state.
 var _dash_anim_node: AnimationNodeAnimation
+
+# Cached reference to the EdgeGrab state's AnimationNodeAnimation so attack()
+# can randomize between punch / kick clips each swing.
+var _edge_anim_node: AnimationNodeAnimation
+const _ATTACK_CLIPS := [&"Melee_Unarmed_Attack_Punch_A", &"Melee_Unarmed_Attack_Kick"]
+
+# Cached Hit state for take_hit randomization between Hit_A and Hit_B.
+var _hit_anim_node: AnimationNodeAnimation
+const _HIT_CLIPS := [&"Hit_A", &"Hit_B"]
+
+# Cached Idle state + cycling state so the idle pose alternates between
+# Idle_A and Idle_B when the player pauses between moves (adds life).
+var _idle_anim_node: AnimationNodeAnimation
+const _IDLE_CLIPS := [&"Idle_A", &"Idle_B"]
+var _idle_cycle_index: int = 0
 
 # Shared red-tint material overlay applied to all mannequin mesh parts so
 # damage flash reads as a body flush (matches Sophia's single-mesh overlay
@@ -43,12 +73,29 @@ func _ready() -> void:
 			continue
 		_merge_animations_from(primary, src_scene)
 
-	# Cache the Dash AnimationNodeAnimation for runtime clip swapping.
+	# GLB imports default clips to LOOP_NONE — patch the ones that should
+	# loop so Run / Idle / Crouching don't freeze after one play.
+	_force_loop_linear(primary, [
+		"Idle_A", "Idle_B",
+		"Running_A", "Running_B",
+		"Running_Strafe_Left", "Running_Strafe_Right",
+		"Walking_A", "Walking_B", "Walking_C",
+		"Walking_Backwards",
+		"Crouching", "Sneaking", "Crawling",
+		"Jump_Idle",
+		"Melee_Unarmed_Idle", "Melee_2H_Idle", "Melee_Blocking",
+	])
+
+	# Cache animation-node refs for runtime clip swapping — dash picks a
+	# direction, attack + hit randomize variants, idle alternates for life.
 	var outer := animation_tree.tree_root as AnimationNodeBlendTree
 	if outer != null:
 		var sm := outer.get_node(&"StateMachine") as AnimationNodeStateMachine
 		if sm != null:
 			_dash_anim_node = sm.get_node(&"Dash") as AnimationNodeAnimation
+			_edge_anim_node = sm.get_node(&"EdgeGrab") as AnimationNodeAnimation
+			_hit_anim_node = sm.get_node(&"Hit") as AnimationNodeAnimation
+			_idle_anim_node = sm.get_node(&"Idle") as AnimationNodeAnimation
 
 	# Set up damage overlay. The mannequin has 6 separate mesh parts under
 	# Model/Rig_Medium/Skeleton3D; we share one StandardMaterial3D across
@@ -61,12 +108,57 @@ func _ready() -> void:
 	for m: MeshInstance3D in _body_meshes:
 		m.material_overlay = _damage_overlay
 
+	# Reparent the inspector-placed wheel nodes under runtime BoneAttachment3Ds
+	# so they track the foot bones. keep_global_transform=true means the user's
+	# tuned scene-editor position is preserved at bind pose.
+	_reparent_under_bone(_wheels_left, _FOOT_L_BONE)
+	_reparent_under_bone(_wheels_right, _FOOT_R_BONE)
+	if _wheels_left != null: _wheels_left.visible = false
+	if _wheels_right != null: _wheels_right.visible = false
+
 
 func _collect_mannequin_meshes(n: Node) -> void:
 	if n is MeshInstance3D and str(n.name).begins_with("Mannequin_"):
 		_body_meshes.append(n as MeshInstance3D)
 	for c: Node in n.get_children():
 		_collect_mannequin_meshes(c)
+
+
+## Create a BoneAttachment3D under the skin's skeleton bound to `bone_name`
+## and reparent `wheels` under it, preserving global transform so the user's
+## editor-tuned position still reads correctly once the bone moves.
+func _reparent_under_bone(wheels: Node3D, bone_name: StringName) -> void:
+	if wheels == null:
+		return
+	var skeleton := _find_skeleton(self)
+	if skeleton == null:
+		return
+	var idx := skeleton.find_bone(bone_name)
+	if idx == -1:
+		return
+	var ba := BoneAttachment3D.new()
+	ba.bone_name = bone_name
+	ba.bone_idx = idx
+	skeleton.add_child(ba)
+	wheels.reparent(ba, true)
+
+
+func _find_skeleton(n: Node) -> Skeleton3D:
+	if n is Skeleton3D:
+		return n
+	for c: Node in n.get_children():
+		var r := _find_skeleton(c)
+		if r != null:
+			return r
+	return null
+
+
+## Force loop_mode = LOOP_LINEAR on named clips in the player's library.
+## Called once at _ready after the merge; no-op for clips that don't exist.
+func _force_loop_linear(primary: AnimationPlayer, clip_names: Array) -> void:
+	for n: String in clip_names:
+		if primary.has_animation(n):
+			primary.get_animation(n).loop_mode = Animation.LOOP_LINEAR
 
 
 func _find_anim_player(n: Node) -> AnimationPlayer:
@@ -100,15 +192,47 @@ func _merge_animations_from(primary: AnimationPlayer, scene: PackedScene) -> voi
 
 
 # --- CharacterSkin contract ---
-func idle() -> void: state_machine.travel("Idle")
+func idle() -> void:
+	# Cycle the Idle clip variant only when entering Idle from another state
+	# (avoids flicker between A/B on every frame while standing still).
+	if state_machine.get_current_node() != &"Idle" and _idle_anim_node != null:
+		_idle_cycle_index = (_idle_cycle_index + 1) % _IDLE_CLIPS.size()
+		_idle_anim_node.animation = _IDLE_CLIPS[_idle_cycle_index]
+	state_machine.travel("Idle")
 func move() -> void: state_machine.travel("Move")
 func fall() -> void: state_machine.travel("Fall")
 func jump() -> void: state_machine.travel("Jump")
 func edge_grab() -> void: state_machine.travel("EdgeGrab")
 func wall_slide() -> void: state_machine.travel("WallSlide")
-# attack re-uses the EdgeGrab state's Punch clip via the body's existing
-# one-shot pattern (mirror of how Sophia re-uses EdgeGrab for attack).
-func attack() -> void: state_machine.start("EdgeGrab")
+# attack randomizes between punch + kick by swapping the EdgeGrab state's
+# clip reference before starting — cop's hands are empty so these are the
+# two fitting unarmed strikes. Add more clips to _ATTACK_CLIPS for variety.
+func attack() -> void:
+	if _edge_anim_node != null:
+		_edge_anim_node.animation = _ATTACK_CLIPS[randi() % _ATTACK_CLIPS.size()]
+	state_machine.start("EdgeGrab")
+
+
+func die() -> void:
+	# Death_A plays once. No transitions out of Die — body freezes the pawn
+	# via _dying_timer and either queue_frees or respawns (respawn resets
+	# the state machine back to Idle via travel on the next _ready cycle).
+	state_machine.start("Die")
+
+
+func land() -> void:
+	# Jump_Land is a short one-shot. Skip if we're not airborne-to-ground
+	# (state_machine already tracks this — start() forces, travel() would
+	# be nicer for smoothness but Land has no transitions IN yet).
+	state_machine.start("Land")
+
+
+func on_hit() -> void:
+	# Alternate between Hit_A / Hit_B per damage event so repeated hits
+	# don't look identical.
+	if _hit_anim_node != null:
+		_hit_anim_node.animation = _HIT_CLIPS[randi() % _HIT_CLIPS.size()]
+	state_machine.start("Hit")
 
 
 func dash(direction: Vector3 = Vector3.ZERO) -> void:
@@ -135,6 +259,16 @@ func set_damage_tint(value: float) -> void:
 		var c: Color = _damage_overlay.albedo_color
 		c.a = damage_tint
 		_damage_overlay.albedo_color = c
+
+
+func set_skate_mode(active: bool) -> void:
+	var model: Node3D = get_node_or_null("Model") as Node3D
+	if model != null:
+		model.position.y = skate_root_y if active else 0.0
+	if _wheels_left != null:
+		_wheels_left.visible = active
+	if _wheels_right != null:
+		_wheels_right.visible = active
 
 
 # Project `world_dir` onto the skin's own facing to pick one of the four

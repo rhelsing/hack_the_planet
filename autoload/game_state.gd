@@ -7,14 +7,30 @@ extends Node
 ## Schema version 1 — change to_dict/from_dict together when incrementing.
 ## See docs/interactables.md §7.
 
-const SCHEMA_VERSION: int = 1
+const SCHEMA_VERSION: int = 2  # v2 added coin_count + floppy_count
 
 var inventory: Array[StringName] = []
 var flags: Dictionary = {}
 var dialogue_visited: Dictionary = {}
 
+## HUD counter — bumped on Events.coin_collected (see _ready subscriber).
+## Persisted via to_dict/from_dict. v2 schema.
+var coin_count: int = 0
+
+## HUD counter — bumped when a floppy-disk item enters inventory. Persisted.
+var floppy_count: int = 0
+
+const FLOPPY_ITEM_ID: StringName = &"floppy_disk"
+
 
 # ---- Inventory -----------------------------------------------------------
+
+func _ready() -> void:
+	# HUD counter: coin pickups bump via existing Events.coin_collected.
+	# The emit site (level/interactable/coin/coin.gd) is a legacy auto-trigger
+	# interactable, per docs/interactables.md §18.1.
+	Events.coin_collected.connect(_on_coin_collected)
+
 
 func has_item(id: StringName) -> bool:
 	return inventory.has(id)
@@ -23,7 +39,14 @@ func has_item(id: StringName) -> bool:
 func add_item(id: StringName) -> void:
 	if inventory.has(id): return
 	inventory.append(id)
+	# Per-id counter bumps keep the HUD in sync without a second subscriber.
+	if id == FLOPPY_ITEM_ID:
+		floppy_count += 1
 	Events.item_added.emit(id)
+
+
+func _on_coin_collected(_coin: Node) -> void:
+	coin_count += 1
 
 
 func remove_item(id: StringName) -> void:
@@ -66,18 +89,22 @@ func to_dict() -> Dictionary:
 		"inventory": inventory.duplicate(),
 		"flags": flags.duplicate(true),
 		"dialogue_visited": dialogue_visited.duplicate(true),
+		"coin_count": coin_count,
+		"floppy_count": floppy_count,
 	}
 
 
 func from_dict(d: Dictionary) -> void:
-	# Schema migration lives here. v1 is the only version right now; future
-	# versions branch on d.get("version", 1) and translate before assigning.
+	# Schema migration lives here. Old v1 save files lack counter fields —
+	# `.get(..., 0)` keeps them at 0 on load, which matches fresh-game state.
 	var loaded_inv: Array = d.get("inventory", [])
 	inventory.clear()
 	for entry: Variant in loaded_inv:
 		inventory.append(StringName(entry))
 	flags = d.get("flags", {}).duplicate(true)
 	dialogue_visited = d.get("dialogue_visited", {}).duplicate(true)
+	coin_count = int(d.get("coin_count", 0))
+	floppy_count = int(d.get("floppy_count", 0))
 
 
 ## Full reset — used by "New Game" and by tests.
@@ -85,3 +112,5 @@ func reset() -> void:
 	inventory.clear()
 	flags.clear()
 	dialogue_visited.clear()
+	coin_count = 0
+	floppy_count = 0

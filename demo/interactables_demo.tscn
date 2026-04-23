@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene format=3 uid="uid://bg37fk8m56q64"]
 
 [ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://interactable/interaction_sensor.tscn" id="2_sensor"]
@@ -8,21 +8,20 @@
 [ext_resource type="PackedScene" path="res://library/interactables/pickup_key.tscn" id="6_pickup_key"]
 [ext_resource type="PackedScene" path="res://library/interactables/hacking_terminal.tscn" id="7_terminal"]
 [ext_resource type="PackedScene" path="res://library/interactables/door_locked_hack.tscn" id="8_door_hack"]
-[ext_resource type="PackedScene" path="res://library/interactables/dialogue_npc.tscn" id="9_npc"]
+[ext_resource type="PackedScene" uid="uid://brghwvx8x8x3h" path="res://library/interactables/dialogue_npc.tscn" id="9_npc"]
 [ext_resource type="PackedScene" path="res://library/interactables/spike_trap.tscn" id="10_trap"]
-[ext_resource type="Script" path="res://demo/demo_ambience_starter.gd" id="11_ambience"]
-[ext_resource type="Resource" path="res://dialogue/demo.dialogue" id="12_dialogue"]
+[ext_resource type="Script" uid="uid://cymqrv6pumasn" path="res://demo/demo_ambience_starter.gd" id="11_ambience"]
+[ext_resource type="Resource" uid="uid://djulciantk5y7" path="res://dialogue/demo.dialogue" id="12_dialogue"]
 [ext_resource type="PackedScene" path="res://library/interactables/door_locked_troll.tscn" id="13_troll_door"]
-
-[sub_resource type="StandardMaterial3D" id="mat_floor"]
-albedo_color = Color(0.2, 0.22, 0.28, 1)
-roughness = 0.8
+[ext_resource type="PackedScene" path="res://hud/hud.tscn" id="14_hud"]
+[ext_resource type="PackedScene" uid="uid://bfv0jmrds0iy7" path="res://menu/pause_menu.tscn" id="15_pause"]
+[ext_resource type="PackedScene" path="res://level/interactable/coin/floppy.tscn" id="16_floppy"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.15, 0.1, 0.3, 1)
 sky_horizon_color = Color(0.35, 0.15, 0.45, 1)
-ground_horizon_color = Color(0.1, 0.05, 0.15, 1)
 ground_bottom_color = Color(0.05, 0.03, 0.1, 1)
+ground_horizon_color = Color(0.1, 0.05, 0.15, 1)
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_mat")
@@ -38,75 +37,84 @@ glow_intensity = 1.5
 [sub_resource type="BoxShape3D" id="floor_shape"]
 size = Vector3(40, 0.5, 40)
 
+[sub_resource type="StandardMaterial3D" id="mat_floor"]
+albedo_color = Color(0.2, 0.22, 0.28, 1)
+roughness = 0.8
+
 [sub_resource type="StandardMaterial3D" id="mat_sign"]
 albedo_color = Color(0.9, 0.9, 0.95, 1)
 emission_enabled = true
 emission = Color(1, 1, 1, 1)
 emission_energy_multiplier = 0.2
 
-[node name="InteractablesDemo" type="Node3D"]
+[node name="InteractablesDemo" type="Node3D" unique_id=1936487388]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1006107926]
 environment = SubResource("env")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=573788113]
 transform = Transform3D(0.7, -0.5, 0.5, 0, 0.7, 0.7, -0.7, -0.5, 0.5, 0, 8, 0)
-light_energy = 1.0
 shadow_enabled = true
 
-[node name="Floor" type="StaticBody3D" parent="."]
-collision_layer = 1
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1996101786]
 
-[node name="FloorShape" type="CollisionShape3D" parent="Floor"]
+[node name="FloorShape" type="CollisionShape3D" parent="Floor" unique_id=256889065]
 shape = SubResource("floor_shape")
 
-[node name="FloorMesh" type="CSGBox3D" parent="Floor"]
-use_collision = false
+[node name="FloorMesh" type="CSGBox3D" parent="Floor" unique_id=1224497068]
 size = Vector3(40, 0.5, 40)
 material = SubResource("mat_floor")
 
-[node name="Player" parent="." instance=ExtResource("1_player")]
+[node name="Player" parent="." unique_id=1357229236 instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
-[node name="InteractionSensor" parent="." instance=ExtResource("2_sensor")]
+[node name="InteractionSensor" parent="." unique_id=1927332119 instance=ExtResource("2_sensor")]
 
-[node name="PromptUI" parent="." instance=ExtResource("3_prompt")]
+[node name="PromptUI" parent="." unique_id=710835277 instance=ExtResource("3_prompt")]
 
-[node name="DemoAmbience" type="Node" parent="."]
+[node name="DemoAmbience" type="Node" parent="." unique_id=1855397522]
 script = ExtResource("11_ambience")
 
-; -- Interactables, laid out in a rough "tour" arc around the player spawn --
-
-[node name="DoorUnlocked" parent="." instance=ExtResource("4_door_unlocked")]
+[node name="DoorUnlocked" parent="." unique_id=1936682230 instance=ExtResource("4_door_unlocked")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.5, -4)
 
-[node name="SignUnlocked" type="CSGBox3D" parent="."]
+[node name="SignUnlocked" type="CSGBox3D" parent="." unique_id=80685798]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 3.2, -4)
-use_collision = false
 size = Vector3(1.5, 0.3, 0.05)
 material = SubResource("mat_sign")
 
-[node name="PickupKey" parent="." instance=ExtResource("6_pickup_key")]
+[node name="PickupKey" parent="." unique_id=1895880550 instance=ExtResource("6_pickup_key")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.5, -3)
 
-[node name="DoorLockedKey" parent="." instance=ExtResource("5_door_key")]
+[node name="DoorLockedKey" parent="." unique_id=180347307 instance=ExtResource("5_door_key")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 1.5, -6)
 
-[node name="HackingTerminal" parent="." instance=ExtResource("7_terminal")]
+[node name="HackingTerminal" parent="." unique_id=2011613408 instance=ExtResource("7_terminal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.75, 5)
 
-[node name="DoorLockedHack" parent="." instance=ExtResource("8_door_hack")]
+[node name="DoorLockedHack" parent="." unique_id=2057521447 instance=ExtResource("8_door_hack")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.5, 5)
 
-[node name="DialogueNPC" parent="." instance=ExtResource("9_npc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.9, 5)
+[node name="DialogueNPC" parent="." unique_id=1808543082 instance=ExtResource("9_npc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.9, 11.807574)
 dialogue_resource = ExtResource("12_dialogue")
+detection_range_override = 0.0
 
-[node name="SpikeTrap" parent="." instance=ExtResource("10_trap")]
+[node name="SpikeTrap" parent="." unique_id=1067087326 instance=ExtResource("10_trap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 7)
 
-; Troll's backdoor — unlocks only after the player gets troll_key from
-; the "hack the planet" password branch in demo.dialogue. Demonstrates
-; the dialogue-as-gate pattern. Placed 3m behind the NPC.
-[node name="DoorLockedTroll" parent="." instance=ExtResource("13_troll_door")]
+[node name="DoorLockedTroll" parent="." unique_id=1120583728 instance=ExtResource("13_troll_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1.5, 8)
+
+[node name="Floppy1" parent="." unique_id=1257748528 instance=ExtResource("16_floppy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.6, 3)
+
+[node name="Floppy2" parent="." unique_id=838364467 instance=ExtResource("16_floppy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, -3)
+
+[node name="Floppy3" parent="." unique_id=363671151 instance=ExtResource("16_floppy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -5)
+
+[node name="HUD" parent="." unique_id=2097535250 instance=ExtResource("14_hud")]
+
+[node name="PauseMenu" parent="." unique_id=1212478794 instance=ExtResource("15_pause")]

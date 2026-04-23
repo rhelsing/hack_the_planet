@@ -283,6 +283,35 @@ Full-feature walkthrough, checked off one by one:
 
 ---
 
+## Phase 4.5 — Skill grant sources (shipped architecture; content is per-game)
+
+`Skills.grant(skill, delta=1)` is the single mutation entry point for raising
+a skill. Every grant path routes through it, and `Events.skill_granted(skill,
+new_level)` fires for HUD/SFX/animation hooks.
+
+Ways to grant levels in content (all use the same API — no new systems):
+
+| Source | Pattern |
+|---|---|
+| **Dialogue mutator** | `do Skills.grant("composure")` inside any dialogue branch |
+| **Pickup** | `Pickup` with `@export var grants_skill: StringName` (stub — wire in P7) |
+| **Puzzle solve** | Subscribe PuzzleTerminal to `Events.puzzle_solved`, call `grant()` on id match |
+| **Book / file / terminal** | Any `Interactable.interact()` can call `Skills.grant()` directly |
+| **Cybermod / gear** | `grant(+1)` on equip, `grant(-1)` on unequip, paired with GameState flag |
+| **Chargen** | Batch grants at new-game start from a chargen UI |
+
+**Demo example (shipped in `dialogue/demo.dialogue`):**
+```
+- Got any tips for dealing with authority? [if Skills.get_level("composure") == 0 /]
+    Troll: Breathe through your nose. Hands still.
+    do Skills.grant("composure")
+```
+
+One-shot availability gated via `[if Skills.get_level("composure") == 0 /]`
+so the tip only shows when the player is still untrained.
+
+---
+
 ## Phase 7 — Deferred (explicitly out of scope for this shipment)
 
 - **Dialogue resumable across scene save/load.** Architecture hooks in place (modal lifecycle signals); implementation deferred.

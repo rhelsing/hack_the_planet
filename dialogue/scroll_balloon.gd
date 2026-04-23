@@ -14,7 +14,7 @@ const EXIT_TEXT: String = "End the conversation"
 ## Per-character speaker colors used for the log entries and the current
 ## CharacterLabel. Add entries as new speakers enter the game.
 const SPEAKER_COLORS := {
-	"Troll": "#E4C57A",
+	"Grit": "#E4C57A",
 	"Me": "#6AD9FF",
 	"Narrator": "#888888",
 	"NARRATOR": "#888888",
@@ -109,6 +109,12 @@ var mutation_cooldown: Timer = Timer.new()
 ## logged the previous line. Prevents double-logging.
 var _skip_next_snapshot: bool = false
 
+## Countdown (physics frames) of remaining auto-scroll snaps after a log
+## append. Each frame we re-pin v_scrollbar.value to its current max so the
+## snap survives the cascade of layout updates triggered by RichTextLabel
+## fit_content + ResponsesMenu population.
+var _auto_scroll_frames: int = 0
+
 
 func _ready() -> void:
 	balloon.hide()
@@ -121,7 +127,10 @@ func _ready() -> void:
 	# HIDE failed `[if ... /]` responses entirely instead of showing them
 	# disabled/greyed. Also set in .tscn (belt-and-suspenders).
 	responses_menu.hide_failed_responses = true
-	print("[balloon] _ready: hide_failed_responses=%s" % responses_menu.hide_failed_responses)
+
+	# P4.5 — skill check outcome banners in the scroll log.
+	if not Events.skill_check_rolled.is_connected(_on_skill_check_rolled):
+		Events.skill_check_rolled.connect(_on_skill_check_rolled)
 
 	# Hook response-menu focus change → UI move sound. The plugin's menu
 	# emits `response_focused(control)` on focus change; we play ui_move.
@@ -143,12 +152,56 @@ func _on_response_focused(_control: Control) -> void:
 	Audio.play_sfx(&"ui_move")
 
 
+## P4.5 — render a colored banner in the scroll log when a skill check resolves.
+## Green = pass, red = fail. The percent shown is the EFFECTIVE chance the
+## player had at the moment of the roll (after level bonuses).
+func _on_skill_check_rolled(skill: StringName, chance_pct: int, succeeded: bool) -> void:
+	var label := String(skill).capitalize()  # "Composure" etc.
+	var banner: String
+	if succeeded:
+		banner = "[color=#5AE85A][b]✓ %s CHECK PASSED (%d%%)[/b][/color]" % [label.to_upper(), chance_pct]
+	else:
+		banner = "[color=#E85A5A][b]✗ %s CHECK FAILED (%d%%)[/b][/color]" % [label.to_upper(), chance_pct]
+	_append_to_log(banner)
+
+
 func _process(_delta: float) -> void:
 	if is_instance_valid(dialogue_line):
 		progress.visible = not dialogue_label.is_typing and dialogue_line.responses.size() == 0 and not dialogue_line.has_tag("voice")
+	# Re-pin scroll to bottom for a short window after any log append. We can't
+	# do this in a single-shot await because the ScrollContainer's v_scrollbar
+	# max_value updates in a cascade (RichTextLabel fit_content → LogContainer
+	# minimum_size → ScrollContainer range → ResponsesMenu resize), and hitting
+	# the scrollbar once races the cascade. Driving the scrollbar directly
+	# every frame for ~20 frames is cheap and always wins.
+	if _auto_scroll_frames > 0 and _scroll != null:
+		_auto_scroll_frames -= 1
+		var bar := _scroll.get_v_scroll_bar()
+		bar.value = bar.max_value
 
 
-func _unhandled_input(_event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
+	# Up arrow past the FIRST response → scroll log up one chunk, so reader
+	# can review history without leaving the conversation.
+	if event.is_action_pressed(&"ui_up"):
+		var focused := get_viewport().gui_get_focus_owner() as Control
+		if focused != null:
+			var buttons := _response_buttons()
+			if buttons.size() > 0 and focused == buttons[0]:
+				_scroll_log_by(-80)
+				get_viewport().set_input_as_handled()
+				return
+	# Down arrow past the LAST response → scroll log down.
+	elif event.is_action_pressed(&"ui_down"):
+		var focused := get_viewport().gui_get_focus_owner() as Control
+		if focused != null:
+			var buttons := _response_buttons()
+			if buttons.size() > 0 and focused == buttons[-1]:
+				_scroll_log_by(80)
+				get_viewport().set_input_as_handled()
+				return
+	# Mouse wheel on the ScrollContainer is already default-handled by Godot
+	# so the user can scroll freely with the wheel without our intervention.
 	# Only the balloon is allowed to handle input while it's showing
 	if will_block_other_input:
 		get_viewport().set_input_as_handled()
@@ -194,17 +247,18 @@ func apply_dialogue_line() -> void:
 			tr(dialogue_line.character, "dialogue").to_upper(),
 		]
 
+	# P3: convert *asterisk* spans to BBCode italic so the live label shows
+	# narration in italics. Safe to mutate dialogue_line.text — it's a fresh
+	# object per line; the TTS side reads the raw text directly from the
+	# plugin's got_dialogue signal, not from this object.
+	dialogue_line.text = _format_italics_for_display(dialogue_line.text)
+
 	dialogue_label.hide()
 	dialogue_label.dialogue_line = dialogue_line
 
 	responses_menu.hide()
 	responses_menu.responses = dialogue_line.responses
-	# Log the gate state per response so we can diagnose the "should be hidden
-	# but shows grayed" confusion. is_allowed=false + hide_failed_responses=true
-	# == option hidden (no button). is_allowed=true + visited == button with
-	# modulate=grey. is_allowed=true + unvisited == bright button.
-	for r: DialogueResponse in dialogue_line.responses:
-		print("[balloon] response '%s' is_allowed=%s" % [r.text, r.is_allowed])
+	_style_skill_check_buttons()  # P4 — amber tint for [SKILL PCT%] prefixed responses
 	_dim_visited_responses()  # ported from 3dPFormer
 
 	# Show our balloon
@@ -304,10 +358,15 @@ func _append_line_to_log(line: DialogueLine) -> void:
 	var speaker: String = str(line.character) if line.character else ""
 	var text: String = str(line.text) if line.text else ""
 	if text.is_empty(): return
+	# Apply the same italic conversion used by the live label so log and live
+	# are visually consistent. Already-converted text is idempotent (no bare
+	# asterisks remain to match).
+	text = _format_italics_for_display(text)
 	var color := _speaker_color(speaker)
 	var bbcode: String
-	if speaker.is_empty():
-		bbcode = "[color=%s]%s[/color]" % [color, text]
+	if speaker.is_empty() or speaker.to_upper() == "NARRATOR":
+		# Pure narrator line — italicize the whole thing regardless of asterisks.
+		bbcode = "[color=%s][i]%s[/i][/color]" % [color, text]
 	else:
 		bbcode = "[color=%s][b]%s:[/b][/color] %s" % [color, speaker.to_upper(), text]
 	_append_to_log(bbcode)
@@ -317,11 +376,15 @@ func _append_choice_to_log(choice_text: String) -> void:
 	_append_to_log("[color=%s][i]YOU: \"%s\"[/i][/color]" % [YOU_CHOICE_COLOR, choice_text])
 
 
-## Appends a BBCode RichTextLabel to the LogContainer. If the user was already
-## at the bottom (or close), auto-scrolls to reveal the new entry. If they had
-## scrolled up to review, leaves their view alone.
+## Appends a BBCode RichTextLabel to the LogContainer and ALWAYS auto-scrolls
+## to the bottom after. DE-style — the newest line is what the player cares
+## about. If they want to re-read history, up-arrow at top of responses
+## scrolls the log (see _unhandled_input), OR mouse wheel.
+##
+## Auto-scroll is driven by _process re-pinning v_scrollbar.value to max_value
+## for the frame window — see `_auto_scroll_frames`. A single-shot snap loses
+## the race because fit_content / container layout cascades over many frames.
 func _append_to_log(rich_text: String) -> void:
-	var was_at_bottom := _is_at_bottom()
 	var label := RichTextLabel.new()
 	label.bbcode_enabled = true
 	label.fit_content = true
@@ -329,24 +392,79 @@ func _append_to_log(rich_text: String) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.text = rich_text
 	_log.add_child(label)
-	if was_at_bottom:
-		# Two frames — first lets fit_content compute height, second lets the
-		# scroll container recompute its max_value. Then we jump.
-		await get_tree().process_frame
-		await get_tree().process_frame
-		var bar := _scroll.get_v_scroll_bar()
-		_scroll.scroll_vertical = int(bar.max_value)
+	_auto_scroll_frames = 20
 
 
-func _is_at_bottom() -> bool:
-	if _scroll == null: return true
-	var bar := _scroll.get_v_scroll_bar()
-	# 8px slack — reader is "at bottom" if they're close to the edge.
-	return bar.value >= bar.max_value - 8.0
+## Scroll the log by a pixel delta, clamped to valid range.
+func _scroll_log_by(delta: int) -> void:
+	if _scroll == null: return
+	var max_v: int = int(_scroll.get_v_scroll_bar().max_value)
+	_scroll.scroll_vertical = clampi(_scroll.scroll_vertical + delta, 0, max_v)
+
+
+## Returns the response buttons currently in the responses menu (skips the
+## template row). Order matches visual top→bottom.
+func _response_buttons() -> Array:
+	var out: Array = []
+	for child in responses_menu.get_children():
+		if child is Button and child.has_meta("response"):
+			out.append(child)
+	return out
 
 
 func _speaker_color(name: String) -> String:
 	return SPEAKER_COLORS.get(name, DEFAULT_SPEAKER_COLOR)
+
+
+## Converts `*text*` spans to BBCode `[i]text[/i]`. The TTS pipeline strips
+## the same spans so italic narration is displayed but not voiced — see
+## autoload/dialogue.gd._strip_italic_spans.
+static func _format_italics_for_display(raw: String) -> String:
+	var re := RegEx.create_from_string("\\*([^*]+)\\*")
+	return re.sub(raw, "[i]$1[/i]", true)
+
+
+# P4 — skill-check visual styling -----------------------------------------
+
+## Response text matching `[SKILL PCT%]` gets its button tinted amber AND
+## the displayed percent is replaced with the EFFECTIVE chance (base + the
+## player's level bonus, clamped). So "[COMPOSURE 30%]" at skill level 2
+## renders on-screen as "[COMPOSURE 60%] …".
+##
+## Button labels don't parse BBCode, so the whole button is colored via
+## theme override. Condition-gated options that fail (is_allowed=false) are
+## already hidden via hide_failed_responses — we only style visible buttons.
+const SKILL_CHECK_COLOR: Color = Color(0.91, 0.78, 0.48, 1.0)  # amber, ~#E8C77A
+const SKILL_CHECK_HOVER: Color = Color(1.0, 0.9, 0.55, 1.0)
+const _SKILL_PREFIX_RE := "^\\[([A-Z][A-Z _]*) (\\d+)%\\]"
+
+var _skill_prefix_regex: RegEx
+
+func _style_skill_check_buttons() -> void:
+	if _skill_prefix_regex == null:
+		_skill_prefix_regex = RegEx.create_from_string(_SKILL_PREFIX_RE)
+	for child: Node in responses_menu.get_children():
+		if not (child is Button): continue
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		var btn := child as Button
+		var match: RegExMatch = _skill_prefix_regex.search(response.text)
+		if match == null: continue
+		# Extract skill name + base percent, compute effective chance.
+		var skill_display: String = match.get_string(1)  # "COMPOSURE"
+		var base_pct := match.get_string(2).to_int()
+		var skill_id := StringName(skill_display.to_lower().replace(" ", "_"))
+		var effective := Skills.effective_chance(skill_id, base_pct)
+		# Rewrite the button text to show effective chance (and flag gain if lvl>0).
+		var level := Skills.get_level(skill_id)
+		var level_marker: String = "" if level == 0 else " ★%d" % level
+		var new_prefix := "[%s %d%%%s]" % [skill_display, effective, level_marker]
+		btn.text = new_prefix + response.text.substr(match.get_end())
+		# Amber tint for all skill-check buttons regardless of level.
+		btn.add_theme_color_override("font_color", SKILL_CHECK_COLOR)
+		btn.add_theme_color_override("font_hover_color", SKILL_CHECK_HOVER)
+		btn.add_theme_color_override("font_focus_color", SKILL_CHECK_HOVER)
 
 
 ## Dims response buttons for choices the player has already taken with this

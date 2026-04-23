@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://k2rataog3kqh"]
+
+[ext_resource type="Script" path="res://level/interactable/coin/floppy.gd" id="1_floppy"]
+[ext_resource type="PackedScene" uid="uid://b4wtspvq7hyjf" path="res://level/interactable/coin/floppy.glb" id="2_model"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_floppy"]
+radius = 0.55
+
+[node name="Floppy" type="Area3D"]
+script = ExtResource("1_floppy")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_floppy")
+
+[node name="Sketchfab_Scene" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(1.9106854e-16, -4.371139e-09, 0.1, -0.1, -4.371139e-09, 0, 4.371139e-09, -0.1, -4.371139e-09, -0.024732828, 0.03159505, -0.006462157)

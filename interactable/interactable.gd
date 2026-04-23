@@ -33,6 +33,19 @@ extends Area3D
 ## (used for audio reverb ordering).
 @export var focus_priority: float = 1.0
 
+## If true, the InteractionSensor auto-fires try_activate() the moment this
+## interactable becomes focused — no press-E required. Enables walk-in NPCs
+## and proximity-triggered cutscenes. One-shot per focus: re-arms when the
+## player walks out of range (focus drops) and re-enters.
+@export var auto_interact_on_focus: bool = false
+
+## Per-interactable detection range override, meters. 0 = use the sensor's
+## default (2.5m). Set higher when this interactable wants a bigger "prompt
+## radius" than default — e.g. an NPC you should notice from across the room.
+## The sensor's own Area3D must already overlap this interactable's Area3D
+## for this value to matter (size the interactable's shape accordingly).
+@export var detection_range_override: float = 0.0
+
 
 func _ready() -> void:
 	add_to_group(&"interactable")

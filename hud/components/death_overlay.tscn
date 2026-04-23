@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://4jneu0ue6e8i"]
+
+[ext_resource type="Script" path="res://hud/components/death_overlay.gd" id="1_death"]
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
+
+[node name="DeathOverlay" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_death")
+
+[node name="Blackout" type="ColorRect" parent="."]
+unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Column" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(720, 0)
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="TitleLabel" type="RichTextLabel" parent="Center/Column"]
+unique_name_in_owner = true
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+custom_minimum_size = Vector2(720, 0)
+theme_override_font_sizes/normal_font_size = 48
+
+[node name="SublineLabel" type="RichTextLabel" parent="Center/Column"]
+unique_name_in_owner = true
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+custom_minimum_size = Vector2(720, 0)
+theme_override_font_sizes/normal_font_size = 20

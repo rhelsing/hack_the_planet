@@ -26,6 +26,12 @@ extends Node3D
 ## others inherit the no-op setter.
 var damage_tint: float = 0.0 : set = set_damage_tint
 
+## Scales the body's runtime lean (forward pitch on acceleration + side roll
+## on turns) for THIS skin. Lives on the skin because different rigs look
+## right at different lean amounts — Sophia is dramatic, cops + mannequins
+## should be subtler. 1.0 = stock. 0.5 = half. Body reads this each frame.
+@export_range(0.0, 3.0) var lean_multiplier: float = 1.0
+
 
 func set_damage_tint(value: float) -> void:
 	damage_tint = clampf(value, 0.0, 1.0)
@@ -58,3 +64,22 @@ func crouch(_active: bool) -> void: pass
 ## the skin root Y offset (skates lift her heel off the ground slightly).
 ## Other skins without wheel gear inherit the no-op.
 func set_skate_mode(_active: bool) -> void: pass
+
+## Called once by the body at the start of the death sequence. Skins with a
+## real death animation override to travel their Die state; others inherit
+## the no-op and the body's velocity pop + confetti carry the visual.
+func die() -> void: pass
+
+## Called once on the frame the pawn transitions from airborne to grounded.
+## Lets skins play a landing impact clip. No-op default.
+func land() -> void: pass
+
+## Called once per incoming take_hit (damage application). Skins with a
+## flinch / hit-react clip override and travel their Hit state. No-op default.
+func on_hit() -> void: pass
+
+## Called every physics tick by the body to toggle the skin's ground-dust
+## emitter. Skins with a `DustParticles` GPUParticles3D override to pipe the
+## bool through to that node. Skins without feet or dust (cutscene props,
+## future NPCs) inherit the no-op and the body doesn't branch on has_method.
+func set_dust_emitting(_enabled: bool) -> void: pass

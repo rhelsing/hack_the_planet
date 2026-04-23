@@ -10,6 +10,9 @@
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="12_l5lfc"]
 [ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="13_l5lfc"]
 [ext_resource type="PackedScene" uid="uid://do5ecpqaaqlki" path="res://enemy/enemy_cop_riot.tscn" id="14b_newenemy"]
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="14c_enemykaykit"]
+[ext_resource type="PackedScene" uid="uid://do5ucpf8uwlki" path="res://enemy/enemy_sophia.tscn" id="14d_enemysophia"]
+[ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="14e_enemyprofile"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="15_fm1jd"]
 
 [sub_resource type="Curve" id="Curve_k4wis"]
@@ -268,17 +271,19 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.85294, 9.009345, -20.172
 [node name="Enemy3" parent="." unique_id=110217350 instance=ExtResource("14b_newenemy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.010475, 9.009345, -20.17276)
 
-[node name="Enemy5" parent="." unique_id=829737949 instance=ExtResource("14b_newenemy")]
+[node name="Enemy5" parent="." unique_id=829737949 instance=ExtResource("14c_enemykaykit")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -125.40017, 11.161891, -26.03293)
 
-[node name="Enemy6" parent="." unique_id=255345555 instance=ExtResource("14b_newenemy")]
+[node name="Enemy6" parent="." unique_id=255345555 instance=ExtResource("14c_enemykaykit")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.64326, 9.009345, -11.20569)
 
-[node name="Enemy7" parent="." unique_id=1450016228 instance=ExtResource("14b_newenemy")]
+[node name="Enemy7" parent="." unique_id=1450016228 instance=ExtResource("14d_enemysophia")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.8008, 9.009345, -11.20569)
 
-[node name="Enemy4" parent="." unique_id=2111817553 instance=ExtResource("14b_newenemy")]
+[node name="Enemy4" parent="." unique_id=2111817553 instance=ExtResource("14d_enemysophia")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.7546806, 9.009345, -20.17276)
+skate_profile = ExtResource("14e_enemyprofile")
+start_in_walk_mode = false
 
 [node name="Coin" parent="." unique_id=949706647 instance=ExtResource("15_fm1jd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.53114, 8.4, -35.205612)

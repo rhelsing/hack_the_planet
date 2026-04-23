@@ -283,26 +283,75 @@ Each archetype is a Brain subclass (or a parameterized EnemyAIBrain preset). Pro
 
 ---
 
-## 5. Patch plan — order of delivery
+## 5. What's done, what's next — phase-based punch list
 
-Each patch is independently shippable + smoke-testable. No patch depends on another dev's work unless marked.
+Updated 2026-04-22 after Patches A, D, K1, K2, K3, E.2 + the per-skin tuning pass landed.
 
-| Patch | Scope | Blocks / Blocked by |
-|---|---|---|
-| **B** | Save dict (`PlayerBody.get_save_dict` / `load_save_dict`) | Blocks `ui_dev`'s SaveService end-to-end. |
-| **C** | HUD signals (`health_changed`, `profile_changed`, `died`, `respawned`) | Unblocks `ui_dev`'s HUD wiring. |
-| **D** | Dash + Crouch (standard movements) | Self-contained. |
-| **E** | Universal Base Male skin variant — first new character | Proves the import pipeline. Self-contained. |
-| **F** | `PawnAbility` base + Abilities container + `PlayerBody.grant_ability()` + `Events.powerup_acquired` | Infra for power-ups. Blocks G+. Needs `PowerUpPickup` (interactables_dev) for in-world pickup, but F ships independently and can be tested via direct `grant_ability()` calls. |
-| **G** | `SkateAbility` — wrap existing `toggle_skate` + optional wheeled-feet visual mod | Blocked by F. |
-| **H** | `GrappleAbility` — Intent `grapple_pressed`, hook mesh + rope visual, physics pull | Blocked by F. |
-| **I** | `FlareAbility` — Intent `fire_pressed`, projectile system, enemy damage hook | Blocked by F. Partially blocks Ranged Cop archetype. |
-| **J** | `HackModeAbility` — toggle shader/state; needs interactables_dev for hidden-interactable reveal | Blocked by F + some interactables_dev hooks. |
-| **K** | Universal Base Female + Mannequin skin variants | Blocked by E. |
-| **L** | Ranged / Ambusher enemy archetypes | Blocked by F, I. |
-| **M** | Vision cone debug gizmo | Self-contained. |
+### ✅ Shipped
 
-**Recommended order for immediate next sessions**: B → C → D → E → F → G. Then power-up iteration H/I/J in parallel with new character variants K.
+- **Architecture**: Intent → PlayerBrain → PlayerBody → CharacterSkin. Brain/Body/Skin fully separated. EnemyBrain unified under the same Brain base.
+- **Contract**: `idle/move/fall/jump/edge_grab/wall_slide/attack/dash/crouch/set_skate_mode/set_damage_tint` — every skin conforms.
+- **Standard movements**: walk, jump + double-jump (front-flip anim), attack, dash (Q / RB), crouch (Shift / L3 — walk-mode only), R toggles walk/skate profiles.
+- **Three working skins**: Sophia, cop_riot, KayKit. Each has a full Sophia-derived AnimationTree with tilt blend inside Move, state machine xfades, and state → clip mappings appropriate to the rig.
+- **Per-pawn tuning knobs** on PlayerBody: `skin_scene`, `brain_scene`, `pawn_group`, `attack_target_group`, `max_health`, `dies_permanently`, `walk_profile`, `skate_profile`, `start_in_walk_mode`, `dash_*`, `crouch_speed_multiplier`, `respawn_invuln_duration`.
+- **Per-skin tuning knobs** on CharacterSkin: `lean_pivot_height`, `body_center_y`, `lean_multiplier`.
+- **Rollerblade wheels auto-attached** at runtime on foot bones — Sophia, KayKit, cop_riot all toggle visibility via `set_skate_mode`.
+- **KayKit polish**: directional 4-way Dodge_* on dash, real Crouching + Sneaking poses, red-overlay damage flash across 6 mannequin meshes, attack randomizes Punch / Kick.
+- **Enemy variants**: `enemy_cop_riot.tscn`, `enemy_kaykit.tscn`, `enemy_sophia.tscn` — drop-in level scenes, one line to swap in inspector.
+- **Animation looping fix**: `loop_mode = LOOP_LINEAR` forced on idle/run/strafe/walking/crouching/sneaking clips at `_ready`, since GLB imports default to LOOP_NONE.
+- **Signal filtering**: kill_plane / flag / phone_booth / coin all gate on `pawn_group == "player"` so enemies don't fire end-of-level.
+- **HUD unblock (C.1 + C.2)**: PlayerBody exposes `signal health_changed(new, old)` / `signal died()` / `signal respawned()` + public getters `get_health()` / `get_max_health()` / `is_dying()`. Added to group `"player"` via `pawn_group` default so `get_tree().get_first_node_in_group("player")` resolves.
+- **Extended skin contract (beyond original plan)**: `die()`, `land()`, `on_hit()` virtual hooks on CharacterSkin. Body calls them at `_start_death`, airborne→ground transition, and inside `take_hit` respectively. No-op on Sophia / cop_riot; KayKit overrides with Death_A / Jump_Land / Hit_A-B.
+- **KayKit animation depth**: Idle_A/B cycling, directional 4-way Dodge_*, real Crouching pose, Death_A, Jump_Land landing, Hit_A/B reaction variants, attack randomizes Punch/Kick.
+- **Dust trail follows facing**: emitter repositions each physics tick via `-_last_input_direction * dust_back_distance` so it's always behind the character's heading. Tunable via `dust_back_distance` (0.45m default) + `dust_height` exports on PlayerBody.
+
+### 🎯 Next up — grouped by phase
+
+**Phase 1 — Unblock sibling devs (ui_dev HUD)**
+- ~~**C.1** Ship `health_changed(new, old)`, `died()`, `respawned()` local signals on PlayerBody.~~ ✅ shipped 2026-04-23
+- ~~**C.2** Ship public getters: `get_health()`, `get_max_health()`, `is_dying()`.~~ ✅ shipped 2026-04-23
+- **TUNE.1** Single cheatsheet doc `docs/character_tuning.md` — every knob, its range, per-skin recommended values. One-page designer reference.
+
+**Phase 2 — Animation polish (existing skins only)**
+- **ANIM.1** Audit root motion on KayKit + cop_riot clips. If any have forward translation baked in, strip or redirect via `root_motion_track`. Possible cause of "character faces weird" when playing as KayKit.
+- ~~**ANIM.2** Idle variants (Idle_A / Idle_B cycling) on KayKit — minor life/breath.~~ ✅ shipped 2026-04-23
+- ~~**ANIM.3** Death animation on KayKit (Death_A / Death_B) instead of fallback to Jump-rise. Add a `die()` hook to CharacterSkin, body calls it from `_start_death`.~~ ✅ shipped 2026-04-23
+
+**Phase 3 — Power-up system (Patch F from §2)**
+- **PU.1** `PawnAbility` base + `Abilities` container + `PlayerBody.grant_ability(id)` + restore from `GameState.flags` at `_ready`. Unblocks hud_dev's PowerupRow and interactables_dev's PowerUpPickup interactable.
+- **PU.2** `SkateAbility` — wraps the existing R-toggle so it's gated on `GameState.flags.powerup_skate_owned`. First concrete ability, proves the pattern.
+- **PU.3+** `GrappleAbility`, `FlareAbility`, `HackModeAbility` — ship each independently once PU.1 is in place. Each adds an Intent field + InputMap + Node subclass. No body changes.
+
+**Phase 4 — Bring in Universal pack characters**
+- **E.3.1** Extract Universal Base Male + UAL1 + UAL2 into project. Index. Inspect animation names.
+- **E.3.2** Save-As Sophia template → universal_male_skin.tscn. Swap model ref to Superhero_Male_FullBody.gltf. Retarget AnimationTree clip refs to UAL1/UAL2 names. Wire extra_animation_sources.
+- **E.3.3** Verify in-game as player (swap `game.tscn` Player skin_scene).
+- **E.4** Universal Base Female — save-as from Universal Male, swap mesh only (same skeleton + UAL library). ~20 min once E.3 lands.
+- **E.5** Mannequin_F from UAL2 — same pattern.
+- **E.6** Quaternius (stretch) — different skeleton, separate template, own animation mapping. Defer unless needed for enemy variety.
+
+**Phase 5 — Designer pipeline for swapping skins via Blender**
+- **BLENDER.1** Documented workflow: designer opens a source .blend with the Rig_Medium or Universal skeleton, swaps the mesh + materials + textures, re-exports .gltf, drops into `player/skins/<name>/model/`, runs Godot. Covers bone-name preservation, material overrides, animation library compatibility. Outcome: ~30 min to add a new character skin on a shared rig without code changes.
+
+**Phase 6 — Enemy AI & combat feel**
+- **F.1** Port wind-up / slam / recover attack phases from legacy `enemy/enemy.gd` into `EnemyAIBrain` state machine so new enemies feel as dangerous as the old drones.
+- **F.2** Ranged enemy archetype (uses FlareAbility once PU.3+ lands).
+- **F.3** Patroller with fixed path.
+- **F.4** Vision-cone debug gizmo on EnemyAIBrain (editor-only `@tool` mesh).
+
+---
+
+### Immediate blockers / asks
+
+- ~~**hud_dev** waiting on C.1 + C.2~~ ✅ unblocked 2026-04-23. HealthBar + DeathOverlay live. PowerupRow still blocked on **PU.1**.
+- **interactables_dev** needs **PU.1** before they can write `PowerUpPickup`.
+- **ui_dev** still waiting on **B** (save_dict) — still deferred pending profile-serialization decision (`_current_profile` → resource_path string is my lean).
+
+### Recommended order for the next session
+
+C.1 + C.2 + TUNE.1 (unblock HUD, document tuning) → PU.1 (infrastructure) → PU.2 (Skate, first ability) → E.3.x Universal pack (new character) → BLENDER.1 (designer pipeline).
+
+Rough estimate: one session each for C+TUNE, PU.1+PU.2, E.3 full pass, BLENDER.1. Four focused sessions.
 
 ---
 

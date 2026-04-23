@@ -108,10 +108,32 @@ func play_ambience(stream: AudioStream, fade_in: float = 1.5) -> void:
 ## Called by the Dialogue autoload for TTS lines. Routes through the
 ## Dialogue bus so the sidechain compressors on Music + Ambience duck
 ## against it. See §8.1.
+##
+## Dialogue plays SERIALLY — each call enqueues, plays when previous finishes.
+## Enables character+narrator interleaving within one line (P4.5).
+var _dialogue_queue: Array[AudioStream] = []
+
 func play_dialogue(stream: AudioStream) -> void:
 	if stream == null: return
-	_dialogue_player.stream = stream
+	_dialogue_queue.append(stream)
+	_play_next_dialogue_if_idle()
+
+
+func stop_dialogue() -> void:
+	_dialogue_queue.clear()
+	_dialogue_player.stop()
+
+
+func _play_next_dialogue_if_idle() -> void:
+	if _dialogue_player.playing: return
+	if _dialogue_queue.is_empty(): return
+	var next_stream: AudioStream = _dialogue_queue.pop_front()
+	_dialogue_player.stream = next_stream
 	_dialogue_player.play()
+
+
+func _on_dialogue_finished() -> void:
+	_play_next_dialogue_if_idle()
 
 
 # ---- Internals ----------------------------------------------------------
@@ -129,6 +151,8 @@ func _create_players() -> void:
 	_music_player = _make_player(BUS_MUSIC)
 	_ambience_player = _make_player(BUS_AMBIENCE)
 	_dialogue_player = _make_player(BUS_DIALOGUE)
+	# Serial dialogue playback — `finished` advances the queue.
+	_dialogue_player.finished.connect(_on_dialogue_finished)
 	# SFX pool: 6 players round-robin handles overlapping short sounds without
 	# cutting each other off. Overflow silently reuses oldest.
 	for i in range(6):

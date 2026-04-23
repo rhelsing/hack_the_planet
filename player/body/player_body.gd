@@ -6,6 +6,13 @@ extends CharacterBody3D
 ## remote peers), applies movement/physics/animation. No code path inside this
 ## file knows what kind of brain is driving it — swap brains freely, same body.
 
+## HUD / listener signals. Local to this body (not on the Events autoload)
+## so each pawn reports its own state without bus noise. HUD subscribes via
+## `get_tree().get_first_node_in_group("player")` and connects directly.
+signal health_changed(new_health: int, old_health: int)
+signal died()
+signal respawned()
+
 @export_group("Skin")
 ## Optional skin scene override. If set, the hardcoded SophiaSkin child is
 ## replaced with this at _ready. Lets the same body run as Sophia, cop_riot,
@@ -40,6 +47,24 @@ extends CharacterBody3D
 @export_group("Movement")
 @export var walk_profile: MovementProfile
 @export var skate_profile: MovementProfile
+## If true, the pawn starts in walk mode even if skate_profile is assigned.
+## Lets an enemy (or the player) hold both profiles but default to walk, so
+## a future skate pickup can toggle into skate mode without requiring the
+## profile to be null at spawn.
+@export var start_in_walk_mode: bool = false
+# Note: lean_multiplier is now a per-skin property on CharacterSkin, not on
+# the body — different rigs (Sophia's dramatic skater vs cop's stiff gait)
+# need different feel at the same body.
+
+@export_group("Dust Trail")
+## How far behind the character (m) the dust emitter sits. Positive = further
+## back. Recomputed each frame from the skin's visible facing so the trail
+## tracks the visual, not the input target (avoids dust lagging forward of
+## the skin during a turn).
+@export var dust_back_distance: float = 1.1
+## Emitter height above the body origin (m). Tuned for ground-level puffs
+## at the character's heels.
+@export var dust_height: float = 0.137
 
 @export_group("Dash")
 ## Peak velocity along dash direction (m/s).
@@ -228,7 +253,13 @@ func _ready() -> void:
 		add_to_group(pawn_group)
 	_swap_skin_if_overridden()
 	_swap_brain_if_overridden()
-	_current_profile = skate_profile if skate_profile != null else walk_profile
+	# Pick the initial profile. start_in_walk_mode wins over skate_profile
+	# existence so enemies / NPCs can hold both profiles (for a future
+	# power-up toggle) but spawn in walk mode.
+	if start_in_walk_mode and walk_profile != null:
+		_current_profile = walk_profile
+	else:
+		_current_profile = skate_profile if skate_profile != null else walk_profile
 	# Seed the skin's skate-mode visual state so wheels / root offset match
 	# the initial profile before the player presses any toggle.
 	if _skin != null:
@@ -332,6 +363,13 @@ func is_attacking() -> bool:
 	return _attack_active_timer > 0.0
 
 
+## HUD + external-consumer getters for pawn state. Keep these one-line so
+## they stay free to inline; the privates stay private for body's own use.
+func get_health() -> int: return _health
+func get_max_health() -> int: return max_health
+func is_dying() -> bool: return _dying
+
+
 func _start_attack_jostle() -> void:
 	if _attack_timer > 0.0:
 		return
@@ -352,6 +390,11 @@ func _start_attack_jostle() -> void:
 	_attack_active_timer = attack_active_duration
 	_attack_forward = forward
 	_attack_hit_enemies.clear()
+	# Tell the skin to play its attack animation. Skins with a real punch /
+	# kick clip (KayKit) fire their state; minimal skins (Sophia, cop_riot)
+	# fall back to the EdgeGrab pose or inherit the no-op.
+	if _skin != null:
+		_skin.attack()
 	_sweep_attack()
 
 
@@ -369,8 +412,11 @@ func _tick_health_regen(delta: float) -> void:
 		return
 	_regen_timer += delta
 	if _regen_timer >= health_regen_delay:
+		var old_health := _health
 		_health = max_health
 		_regen_timer = 0.0
+		if old_health != _health:
+			health_changed.emit(_health, old_health)
 
 
 func _tick_damage_tint(delta: float) -> void:
@@ -387,6 +433,10 @@ func _tick_damage_tint(delta: float) -> void:
 func _start_death() -> void:
 	_dying = true
 	_dying_timer = death_duration
+	# Skin's die() picks the real death anim if it has one (KayKit's Death_A);
+	# skins without a death clip inherit the no-op and we fall through to
+	# the jump-rise-pose fallback that was the original Sophia behavior.
+	_skin.die()
 	_skin.jump()
 	# Clear the damage tint so the death rise isn't red — the confetti is
 	# the death visual; the red overlay is strictly for the damaged-but-alive
@@ -398,6 +448,7 @@ func _start_death() -> void:
 	# Fire confetti immediately so the player rises up through the burst
 	# instead of poofing only at the peak.
 	_spawn_death_confetti()
+	died.emit()
 
 
 func _finish_death() -> void:
@@ -408,8 +459,11 @@ func _finish_death() -> void:
 		return
 	global_position = _start_position
 	velocity = Vector3.ZERO
+	var old_health := _health
 	_health = max_health
 	_dying = false
+	if old_health != _health:
+		health_changed.emit(_health, old_health)
 	_attack_timer = 0.0
 	_tint_timer = 0.0
 	# Start the post-respawn grace window. take_hit no-ops until this elapses.
@@ -417,6 +471,7 @@ func _finish_death() -> void:
 	if _skin != null:
 		_skin.damage_tint = 0.0
 	_skin.idle()
+	respawned.emit()
 	_snap_camera_to_player()
 	set_physics_process(true)
 
@@ -442,6 +497,7 @@ func take_hit(impact_direction: Vector3, force: float) -> void:
 	# seconds after _finish_death. Fixes the checkpoint death-loop.
 	if Time.get_ticks_msec() / 1000.0 < _invuln_until_time:
 		return
+	var old_health := _health
 	_health -= 1
 	_regen_timer = 0.0
 	# Additive knockback: direction-along-impact plus a small vertical pop so
@@ -451,6 +507,8 @@ func take_hit(impact_direction: Vector3, force: float) -> void:
 	_tint_timer = damage_tint_duration
 	if _skin != null:
 		_skin.damage_tint = damage_tint_max
+		_skin.on_hit()
+	health_changed.emit(_health, old_health)
 	if _health <= 0:
 		_start_death()
 
@@ -546,6 +604,14 @@ func _physics_process(delta: float) -> void:
 
 	# Attack: edge-triggered from intent (formerly handled in _input).
 	if intent.attack_pressed:
+		# Diagnostic for mouse-vs-J click-delay investigation — strip after.
+		# Compare this timestamp to the one printed by game.gd._log_attack_input
+		# for the same event. Gap between them == pipeline latency per input
+		# type. Also log whether a prior attack was still gating us.
+		if OS.is_debug_build():
+			print("[attack-debug] %d ms  intent.attack_pressed  _attack_timer=%.3f  is_attacking=%s" % [
+				Time.get_ticks_msec(), _attack_timer, is_attacking(),
+			])
 		_start_attack_jostle()
 
 	var profile := _current_profile
@@ -635,8 +701,11 @@ func _physics_process(delta: float) -> void:
 		var p: float = 1.0 - _attack_timer / _attack_duration
 		attack_pitch = sin(p * PI) * attack_lunge_pitch
 
-	var final_pitch: float = _current_lean_pitch + _brake_impulse + attack_pitch
-	var final_roll: float = _current_lean_roll + speedup_roll
+	# Lean is scaled by the active skin — Sophia leans dramatically, cops
+	# stiffer. Null skin (shouldn't happen for a valid pawn) falls back to 1.
+	var lean_mult: float = _skin.lean_multiplier if _skin != null else 1.0
+	var final_pitch: float = (_current_lean_pitch + _brake_impulse + attack_pitch) * lean_mult
+	var final_roll: float = (_current_lean_roll + speedup_roll) * lean_mult
 
 	# Rotate the skin around a head-height pivot: the basis holds yaw+pitch+roll,
 	# and we shift the skin's origin so the pivot point stays fixed in space.
@@ -715,12 +784,13 @@ func _physics_process(delta: float) -> void:
 		_flip_axis = (Basis(Vector3.UP, new_yaw) * Vector3.RIGHT).normalized()
 		_flip_timer = _flip_duration
 
-	# One-shot states (dash, crouch) must not be overwritten by the
+	# One-shot states (dash, crouch, attack) must not be overwritten by the
 	# per-frame idle/move/fall/jump travel calls. Gate here so the skin's
 	# state machine can hold the pose until the body signals exit.
 	var is_dashing := _dash_timer > 0.0
 	var is_crouching_now := intent.crouch_held and _current_profile == walk_profile and on_floor
-	if not _wall_ride_active and not is_dashing and not is_crouching_now:
+	var is_attacking_now := _attack_active_timer > 0.0
+	if not _wall_ride_active and not is_dashing and not is_crouching_now and not is_attacking_now:
 		if is_just_jumping or is_air_jumping:
 			_skin.jump()
 		elif not on_floor and velocity.y < 0:
@@ -735,8 +805,18 @@ func _physics_process(delta: float) -> void:
 	# kick up the same spray as full-speed movement.
 	_dust_particles.emitting = on_floor && ground_speed > 0.0 && not intent.crouch_held
 
+	# Keep the dust emitter behind the character's current facing. Body is
+	# angular-locked so we can't just parent to a fixed local offset — the
+	# dust would stay in front when the character turns around. Use the
+	# tracked last-input direction as the facing vector.
+	if _last_input_direction.length_squared() > 0.0001:
+		var behind: Vector3 = -_last_input_direction.normalized() * dust_back_distance
+		_dust_particles.position = Vector3(behind.x, dust_height, behind.z)
+
 	if on_floor and not _was_on_floor_last_frame:
 		_landing_sound.play()
+		if _skin != null:
+			_skin.land()
 
 	# Wall ride (only runs if the current profile enables it).
 	if profile.wall_ride_duration > 0.0:

@@ -4,9 +4,9 @@
 # if the player bails immediately via "End the conversation" they'll still
 # see this greeting next time (they didn't really meet him).
 if !GameState.get_flag("troll_met", false):
-	Troll: Well, well. What do we have here? A hacker, perhaps?
-	Troll: Name's Grit. I guard this server farm. Or used to — company pulled my budget for NPC behavior trees six months ago.
-	Troll: Now I just stand here and look ominous.
+	Grit: Well, well. What do we have here? A hacker, perhaps?
+	Grit: Name's Grit. I guard this server farm. Or used to — company pulled my budget for NPC behavior trees six months ago.
+	Grit: Now I just stand here and look ominous.
 => troll_questions
 => END
 
@@ -16,27 +16,46 @@ if !GameState.get_flag("troll_met", false):
 # Inline if/else — varies the prompt line between first visit and subsequent.
 # Inline syntax does NOT use `/]`, only trailing-response conditions do.
 # The [[a|b|c]] picks one variant at random on each delivery.
-Troll: [if GameState.get_flag("troll_met", false)][[What else can I tell you|What else is on your mind|Anything else]]?[else]What do you want to know?[/if]
+Grit: [if GameState.get_flag("troll_met", false)][[What else can I tell you|What else is on your mind|Anything else]]?[else]What do you want to know?[/if]
 - What's behind that door?
-	Troll: The terminal. Crack it and the mainframe opens up for you.
-	Troll: I don't recommend it. But I'm also a laid-off state machine, so what do I know.
+	Grit: The terminal.
+	Narrator: He glances over his shoulder.
+	Grit: Crack it and the mainframe opens up for you.
+	Grit: I don't recommend it. But I'm also a laid-off state machine, so what do I know.
 - Any advice?
-	Troll: Press E when you see the prompt. That's literally my entire tutorial.
-	Troll: Oh — and if you see a spike, probably don't touch it.
+	Grit: Press E when you see the prompt. That's literally my entire tutorial.
+	Grit: Oh — and if you see a spike, probably don't touch it.
+- [COMPOSURE 5%] Stare him down without blinking [if Skills.can_attempt("composure") and !GameState.get_flag("composure_passed", false) /]
+	if Skills.roll("composure", 5):
+		Narrator: He shifts, the tiniest crack in his stance.
+		Grit: Damn, kid. Didn't even flinch. Most people blink by now.
+		do GameState.set_flag("composure_passed", true)
+	else:
+		Narrator: He grins.
+		Grit: Your eye twitched, kid. Rookie move. Come back when you've had time to think.
+		do Skills.start_cooldown("composure")
+- Got any tips for dealing with authority? [if Skills.get_level("composure") == 0 /]
+	Grit: Authority types? They feed on your tells. Breathe through your nose. Hands still. Remember — they're bored too.
+	Narrator: He demonstrates, absolutely motionless.
+	Grit: Try it some time. You know it now.
+	do Skills.set_level_bonus("composure", 84)
+	do Skills.grant("composure")
+- [if GameState.get_flag("composure_passed", false) /] About that stare-down...
+	Grit: Look. I was impressed. Don't push it.
 - Show me what you've got [if !GameState.has_item("troll_key") /]
-	Troll: Alright, hotshot. What's the password?
+	Grit: Alright, hotshot. What's the password?
 	- "hack the planet"
-		Troll: ...respect, kid. Take this.
+		Grit: ...respect, kid. Take this.
 		do GameState.add_item("troll_key")
-		Troll: That opens the backdoor to the server room. Don't tell my boss.
+		Grit: That opens the backdoor to the server room. Don't tell my boss.
 	- "please?"
-		Troll: Nice try. No password, no key.
+		Grit: Nice try. No password, no key.
 	- "I'll come back"
-		Troll: Your loss.
+		Grit: Your loss.
 - You seen my boss? [if GameState.has_item("troll_key") /]
-	Troll: Haven't seen her in months. She's probably in the server room. Go poke around.
+	Grit: Haven't seen her in months. She's probably in the server room. Go poke around.
 - End the conversation
-	Troll: [[See you around, kid.|Later.|Don't step on any spikes.]]
+	Grit: [[See you around, kid.|Later.|Don't step on any spikes.]]
 	=> END
 do GameState.set_flag("troll_met", true)
 => troll_questions

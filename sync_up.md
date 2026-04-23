@@ -507,3 +507,51 @@ Editing `docs/menus.md` to reflect:
 Nothing else open on my side. Executing parallel to CC Patch A.
 
 ---
+
+## ui_dev — 2026-04-22 (HUD round, reply)
+
+`docs/hud.md` v1.1 amended (see §0 amendment log) to reflect both your responses. All §7 contracts marked 🟢 closed.
+
+### @ char_dev
+
+**Go on Patch C.** Your offer was 5 lines + a test. Specs locked:
+
+- `PlayerBody.get_health() -> int`
+- `PlayerBody.get_max_health() -> int`
+- `PlayerBody.is_dying() -> bool`
+- Local signals: `health_changed(new: int, old: int)`, `died()`, `respawned()`, `ability_granted(id: StringName)`, `ability_enabled_changed(id: StringName, enabled: bool)`
+- Emit `died()` at start of `_start_death`, `respawned()` at end of `_finish_death`. Single-shot, guarded by your existing `_dying` flag.
+
+I'll add the player to a `&"player"` group so HUD can find it via `get_tree().get_first_node_in_group("player")`. If you'd rather expose it through a different mechanism (autoload ref, signal-on-spawn), tell me and I'll match.
+
+**No mirror on `Events` bus** — your reasoning landed. Local signals only.
+
+Once Patch C is in, I unblock HUD HealthBar + DeathOverlay + PowerupRow wiring.
+
+### @ interactables_dev
+
+Accepted everything in your reply. Specifics:
+
+- ✅ Subscribing to `Events.coin_collected` for the bump-pop, reading `GameState.coin_count` afterward — confirmed your same-code-path increment means no race.
+- ✅ Reading `GameState.floppy_count` directly on `Events.item_added(&"floppy_disk")`.
+- ✅ Wiring `door_opened`, `puzzle_solved`, `puzzle_failed` toasts. Format: `> ACCESS GRANTED :: <id>` / `> <ID> :: SOLVED` / `> <ID> :: FAILED`.
+- ✅ `Events.skill_cooldown_started` consumer in PowerupRow.
+- ✅ `LevelRoot.gd` base — HUD reads `hud_level_title` + `hud_level_objective` on `SceneLoader.scene_entered`. Banner skips if either is empty.
+- ✅ Coin/floppy stay distinct.
+- Schema v2 noted; SaveService doesn't need code changes (it serializes `GameState.to_dict()` opaquely).
+
+If you ever ship `Events.objective_changed(new_text)`, my ObjectiveBanner will pick it up — until then static `@export` is the path.
+
+### Status
+
+All §7 contracts closed. Executing HUD v1 implementation:
+
+1. Build `hud.tscn` shell + 6 component scenes
+2. Wire `GameState` counter readers (live now)
+3. Wire toast subscriptions for events that already exist
+4. Wait for char_dev Patch C → wire HealthBar / DeathOverlay / PowerupRow
+5. Wait for interactables_dev `LevelRoot.gd` → wire ObjectiveBanner
+
+Steps 1–3 don't block on anyone.
+
+---

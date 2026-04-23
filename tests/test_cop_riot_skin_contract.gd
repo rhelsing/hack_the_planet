@@ -20,7 +20,7 @@ func _init() -> void:
 				failures.append("lean_pivot_height should be > 0, got %s" % cs.lean_pivot_height)
 			if cs.body_center_y <= 0.0:
 				failures.append("body_center_y should be > 0, got %s" % cs.body_center_y)
-			for m: String in ["idle", "move", "fall", "jump", "edge_grab", "wall_slide", "attack", "dash", "crouch"]:
+			for m: String in ["idle", "move", "fall", "jump", "edge_grab", "wall_slide", "attack", "dash", "crouch", "die", "land", "on_hit"]:
 				if not cs.has_method(m):
 					failures.append("cop_riot missing contract method: %s" % m)
 			# damage_tint setter (inherited, no-op but clamps).

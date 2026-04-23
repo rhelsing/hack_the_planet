@@ -50,6 +50,16 @@ signal item_removed(id: StringName)
 @warning_ignore("unused_signal")
 signal flag_set(id: StringName, value: Variant)
 
+# Skill-check lifecycle (emitted by Skills autoload). For animation/SFX hooks
+# and HUD stat readouts later. succeeded: true/false; chance_pct: 0-100.
+# chance_pct carries the EFFECTIVE chance (base + level bonus, post-clamp).
+@warning_ignore("unused_signal")
+signal skill_check_rolled(skill: StringName, chance_pct: int, succeeded: bool)
+@warning_ignore("unused_signal")
+signal skill_cooldown_started(skill: StringName, seconds: float)
+@warning_ignore("unused_signal")
+signal skill_granted(skill: StringName, new_level: int)
+
 # ── ui_dev / menus.md additions ──────────────────────────────────────────
 # Modal stack: anyone (Dialogue, Puzzles, PauseMenu, SettingsMenu, etc.) that
 # wants consumers to know "a modal is up" emits modal_opened(&"id") on show

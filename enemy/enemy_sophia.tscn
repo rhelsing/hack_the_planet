@@ -13,7 +13,7 @@ attack_target_group = "player"
 dies_permanently = true
 max_health = 1
 walk_profile = ExtResource("4_profile")
-skate_profile = ExtResource("4_profile")
+start_in_walk_mode = true
 
 [node name="Camera3D" parent="CameraPivot/SpringArm3D" index="0"]
 current = false

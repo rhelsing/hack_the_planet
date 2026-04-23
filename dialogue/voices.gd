@@ -14,7 +14,7 @@ extends Resource
 ## the current live roster and update this map accordingly.
 ##
 ## Category labels mapped to our characters (use_case from the API):
-##   - Troll      → Callum  (characters_animation, husky trickster)
+##   - Grit       → Callum  (characters_animation, husky trickster)
 ##   - Me         → Sarah   (entertainment_tv, young female professional)
 ##   - Narrator   → George  (narrative_story, British warm storyteller)
 ##   - Sophia     → Bella   (informative_educational, bright warm female)
@@ -23,7 +23,7 @@ extends Resource
 ##   - Apple Tree → Jessica (conversational, playful warm female)
 ##   - Snail      → Lily    (informative_educational, British velvety female)
 @export var voices: Dictionary = {
-	"Troll": "N2lVS1w4EtoT3dr4eOWO",         # Callum
+	"Grit": "N2lVS1w4EtoT3dr4eOWO",          # Callum (formerly "Troll")
 	"Me": "EXAVITQu4vr4xnSDxMaL",            # Sarah
 	"Narrator": "JBFqnCBsd6RMkjVDRZzb",      # George
 	"Sophia": "hpp4J3VqNfWAUOO0d1Us",        # Bella

@@ -77,9 +77,10 @@ func _ready() -> void:
 	if snapshot.flags.has(&"post_load_mutation"):
 		failures.append("from_dict should deep-copy flags (snapshot leaked into live)")
 
-	# ---- Schema version stamped ----
-	if snapshot.get("version") != 1:
-		failures.append("to_dict should stamp version=1, got %s" % str(snapshot.get("version")))
+	# ---- Schema version stamped (v2 since counters were added) ----
+	if snapshot.get("version") != GameState.SCHEMA_VERSION:
+		failures.append("to_dict should stamp SCHEMA_VERSION (%d), got %s" %
+			[GameState.SCHEMA_VERSION, str(snapshot.get("version"))])
 
 	# ---- Typed inventory reload (StringName coercion from JSON-loaded strings) ----
 	var raw_dict: Dictionary = {
@@ -92,6 +93,38 @@ func _ready() -> void:
 	GameState.from_dict(raw_dict)
 	if not GameState.has_item(&"plain_string_id"):
 		failures.append("from_dict should coerce String inventory entries to StringName")
+
+	# ---- Counters (v2 schema, for HUD — per hud.md §7.2.1) ----
+	GameState.reset()
+	if GameState.coin_count != 0:
+		failures.append("reset() should zero coin_count")
+	if GameState.floppy_count != 0:
+		failures.append("reset() should zero floppy_count")
+	# coin_collected bumps coin_count (legacy signal from auto-trigger pickups)
+	Events.coin_collected.emit(null)
+	Events.coin_collected.emit(null)
+	if GameState.coin_count != 2:
+		failures.append("coin_count should bump on Events.coin_collected, got %d" % GameState.coin_count)
+	# Floppy added via add_item bumps floppy_count
+	GameState.add_item(&"floppy_disk")
+	GameState.add_item(&"other_item")
+	if GameState.floppy_count != 1:
+		failures.append("floppy_count should bump only for floppy_disk, got %d" % GameState.floppy_count)
+	# Round-trip counters through dict
+	var snap2: Dictionary = GameState.to_dict()
+	if snap2.get("version") != 2:
+		failures.append("SCHEMA_VERSION should be 2 after counter add")
+	if snap2.get("coin_count") != 2 or snap2.get("floppy_count") != 1:
+		failures.append("to_dict should carry counter fields")
+	GameState.reset()
+	GameState.from_dict(snap2)
+	if GameState.coin_count != 2 or GameState.floppy_count != 1:
+		failures.append("from_dict should restore counters")
+	# Old v1 dicts without counter fields → default to 0 (migration safety)
+	var v1_dict: Dictionary = {"version": 1, "inventory": [], "flags": {}, "dialogue_visited": {}}
+	GameState.from_dict(v1_dict)
+	if GameState.coin_count != 0 or GameState.floppy_count != 0:
+		failures.append("from_dict should default counters to 0 on v1 saves")
 
 	# ---- Events signal emission (live autoload wiring) ----
 	var received_items: Array = []

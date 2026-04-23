@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://ncgcrysyr0vs"]
+
+[ext_resource type="Script" path="res://hud/hud.gd" id="1_root"]
+[ext_resource type="PackedScene" uid="uid://b3hudhealth001" path="res://hud/components/health_bar.tscn" id="2_health"]
+[ext_resource type="PackedScene" uid="uid://b3hudcounters01" path="res://hud/components/counters.tscn" id="3_counters"]
+[ext_resource type="PackedScene" uid="uid://b3objbanner001" path="res://hud/components/objective_banner.tscn" id="4_banner"]
+[ext_resource type="PackedScene" uid="uid://b3toaststack01" path="res://hud/components/toast_stack.tscn" id="5_toasts"]
+[ext_resource type="PackedScene" uid="uid://b3hudpowerup01" path="res://hud/components/powerup_row.tscn" id="6_powerup"]
+[ext_resource type="PackedScene" uid="uid://b3deathoverlay1" path="res://hud/components/death_overlay.tscn" id="7_death"]
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="8_theme"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_root")
+
+[node name="TopLeft" type="MarginContainer" parent="."]
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 340.0
+offset_bottom = 56.0
+mouse_filter = 2
+theme = ExtResource("8_theme")
+
+[node name="HealthBar" parent="TopLeft" instance=ExtResource("2_health")]
+
+[node name="TopRight" type="MarginContainer" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -180.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 120.0
+mouse_filter = 2
+theme = ExtResource("8_theme")
+
+[node name="Counters" parent="TopRight" instance=ExtResource("3_counters")]
+
+[node name="TopCenter" type="CenterContainer" parent="."]
+anchor_left = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_top = 72.0
+offset_bottom = 180.0
+mouse_filter = 2
+theme = ExtResource("8_theme")
+
+[node name="ObjectiveBanner" parent="TopCenter" instance=ExtResource("4_banner")]
+
+[node name="BottomCenter" type="VBoxContainer" parent="."]
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -160.0
+offset_bottom = -32.0
+alignment = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+theme = ExtResource("8_theme")
+
+[node name="ToastStack" parent="BottomCenter" instance=ExtResource("5_toasts")]
+
+[node name="PowerupRow" parent="BottomCenter" instance=ExtResource("6_powerup")]
+
+[node name="Fullscreen" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="DeathOverlay" parent="Fullscreen" instance=ExtResource("7_death")]

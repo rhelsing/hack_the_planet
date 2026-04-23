@@ -128,12 +128,13 @@ func _score(it: Interactable) -> float:
 		if cam != null:
 			cam_forward = -cam.global_basis.z
 
+	var effective_range: float = it.detection_range_override if it.detection_range_override > 0.0 else detection_range
 	return InteractionScoring.score(
 		body.global_position,
 		body_forward,
 		it.global_position,
 		it.focus_priority,
-		detection_range,
+		effective_range,
 		weight_proximity,
 		weight_body_facing,
 		weight_camera_facing,
@@ -150,3 +151,8 @@ func _set_focused(next: Interactable) -> void:
 	if focused != null:
 		focused.set_highlighted(true)
 	focus_changed.emit(focused)
+	# Walk-in auto-trigger: if the newly focused interactable opts in, fire
+	# try_activate immediately. One-shot per focus cycle — drops when the
+	# player walks out of range and re-arms on re-entry.
+	if focused != null and focused.auto_interact_on_focus and body != null:
+		try_activate(body)

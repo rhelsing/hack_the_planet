@@ -7,12 +7,15 @@
 [ext_resource type="Script" path="res://controls_hint.gd" id="20_hint"]
 [ext_resource type="PackedScene" uid="uid://b3pausemenu0001" path="res://menu/pause_menu.tscn" id="21_pause"]
 [ext_resource type="PackedScene" path="res://interactable/prompt_ui/prompt_ui.tscn" id="22_prompt"]
+[ext_resource type="PackedScene" uid="uid://b3hudroot00001" path="res://hud/hud.tscn" id="23_hud"]
+[ext_resource type="PackedScene" uid="uid://kaykitskin00001" path="res://player/skins/kaykit/kaykit_skin.tscn" id="99_playerskin"]
 
 [node name="Game" type="Node" unique_id=687174872]
 script = ExtResource("1_1il7v")
 
 [node name="Player" parent="." unique_id=604819286 instance=ExtResource("1_w0p8v")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.43638, 0, -7.8513)
+skin_scene = ExtResource("99_playerskin")
 
 [node name="FlagReachedScreen" parent="." unique_id=735049013 instance=ExtResource("19_cpgj4")]
 
@@ -23,5 +26,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 31.4)
 script = ExtResource("20_hint")
 
 [node name="PromptUI" parent="." instance=ExtResource("22_prompt")]
+
+[node name="HUD" parent="." instance=ExtResource("23_hud")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("21_pause")]

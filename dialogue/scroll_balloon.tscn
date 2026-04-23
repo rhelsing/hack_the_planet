@@ -24,7 +24,7 @@ content_margin_bottom = 4.0
 
 [sub_resource type="Theme" id="panel_theme"]
 default_font = SubResource("mono_font")
-default_font_size = 15
+default_font_size = 30
 Button/colors/font_color = Color(0.85, 0.95, 0.85, 1)
 Button/colors/font_hover_color = Color(0.6, 1, 0.6, 1)
 Button/colors/font_focus_color = Color(0.6, 1, 0.6, 1)
@@ -97,9 +97,15 @@ horizontal_scroll_mode = 0
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 14
 
-[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/Padding/VBox"]
+[node name="BottomGroup" type="VBoxContainer" parent="Balloon/Padding/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/Padding/VBox/BottomGroup"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
@@ -108,7 +114,7 @@ fit_content = true
 scroll_active = false
 text = "[color=#E4C57A][b]SPEAKER[/b][/color]"
 
-[node name="DialogueLabel" parent="Balloon/Padding/VBox" instance=ExtResource("2_label")]
+[node name="DialogueLabel" parent="Balloon/Padding/VBox/BottomGroup" instance=ExtResource("2_label")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -116,16 +122,16 @@ size_flags_vertical = 0
 theme_override_colors/default_color = Color(0.95, 0.97, 0.95, 1)
 text = "Dialogue..."
 
-[node name="Progress" type="Label" parent="Balloon/Padding/VBox"]
+[node name="Progress" type="Label" parent="Balloon/Padding/VBox/BottomGroup"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "▼"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(0.6, 1, 0.6, 0.8)
 
-[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/Padding/VBox" node_paths=PackedStringArray("response_template")]
+[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/Padding/VBox/BottomGroup" node_paths=PackedStringArray("response_template")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -134,8 +140,11 @@ script = ExtResource("3_responses")
 response_template = NodePath("ResponseExample")
 hide_failed_responses = true
 
-[node name="ResponseExample" type="Button" parent="Balloon/Padding/VBox/ResponsesMenu"]
+[node name="ResponseExample" type="Button" parent="Balloon/Padding/VBox/BottomGroup/ResponsesMenu"]
 layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+clip_text = false
 text = "Response example"
 alignment = 0
 
@@ -143,4 +152,4 @@ alignment = 0
 unique_name_in_owner = true
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
-[connection signal="response_selected" from="Balloon/Padding/VBox/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
+[connection signal="response_selected" from="Balloon/Padding/VBox/BottomGroup/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]

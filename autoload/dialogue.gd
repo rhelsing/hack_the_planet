@@ -101,6 +101,7 @@ func _on_line_shown(line: Object) -> void:
 	# Object so we don't pin the plugin's class_name at parse time.
 	if line == null:
 		_log("_on_line_shown: line=null (dialogue ended)")
+		Audio.stop_dialogue()  # drop queued audio so it doesn't play after end
 		return
 	var character: String = ""
 	var text: String = ""
@@ -108,8 +109,62 @@ func _on_line_shown(line: Object) -> void:
 	if "text" in line: text = str(line.text)
 	_log('_on_line_shown: character="%s" text="%s"' % [character, text])
 	Events.dialogue_line_shown.emit(StringName(character), text)
-	if not character.is_empty() and not text.is_empty():
-		speak_line(character, text)
+
+	# CRITICAL (2026-04-22 fix): stop any in-flight / queued dialogue audio
+	# before queueing the new line's segments. Without this, clicking past a
+	# line while it's still speaking leaves the old audio playing over the
+	# new one — you hear line A's tail mixed with line B.
+	Audio.stop_dialogue()
+
+	# P4.5: segment the line into alternating character/narrator chunks
+	# based on `*asterisk*` spans. Non-italic = character voice, italic =
+	# Narrator voice.
+	var is_pure_narrator := character.is_empty() or character.to_upper() == "NARRATOR"
+	if is_pure_narrator:
+		var narrator_text := _strip_italic_spans(text) if text.contains("*") else text
+		if narrator_text.strip_edges().is_empty(): return
+		_log("  segments: [NARRATOR whole-line] %s" % narrator_text)
+		speak_line("Narrator", narrator_text)
+		return
+
+	var segments := _segment_line(text, character)
+	_log("  segments built (%d):" % segments.size())
+	for seg: Dictionary in segments:
+		_log("    [%s] %s" % [seg.speaker, seg.text])
+		speak_line(seg.speaker, seg.text)
+
+
+## Splits a line into alternating segments:
+##   "Hello. *scratches.* World."  →
+##     [{speaker=character, text="Hello."},
+##      {speaker="Narrator",  text="scratches."},
+##      {speaker=character, text="World."}]
+##
+## Empty/whitespace-only segments dropped.
+static func _segment_line(text: String, character: String) -> Array:
+	var out: Array = []
+	var re := RegEx.create_from_string("\\*([^*]+)\\*")
+	var pos: int = 0
+	for m: RegExMatch in re.search_all(text):
+		var before: String = text.substr(pos, m.get_start() - pos).strip_edges()
+		if not before.is_empty():
+			out.append({"speaker": character, "text": before})
+		var italic: String = m.get_string(1).strip_edges()
+		if not italic.is_empty():
+			out.append({"speaker": "Narrator", "text": italic})
+		pos = m.get_end()
+	var tail: String = text.substr(pos).strip_edges()
+	if not tail.is_empty():
+		out.append({"speaker": character, "text": tail})
+	return out
+
+
+## Removes `*italic*` spans from text. Kept as public helper for callers that
+## want plain text without narration beats. Not used by TTS anymore — we now
+## segment the line and voice italics via the Narrator.
+static func _strip_italic_spans(text: String) -> String:
+	var re := RegEx.create_from_string("\\*[^*]+\\*")
+	return re.sub(text, "", true).strip_edges()
 
 
 # ---- Public API ---------------------------------------------------------
