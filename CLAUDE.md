@@ -125,7 +125,9 @@ The user iterates by tweaking numbers. Design for that.
 ## When starting a new session
 
 1. Read this file.
-2. Read `docs/interactables.md` if touching interactables.
-3. Check `git status` and recent commits — the user may have made edits between sessions.
-4. If the user describes a bug, apply the debugging protocol from the global CLAUDE.md: logs before code.
-5. Before non-trivial code changes: state the one-sentence design decision and wait for confirmation.
+2. Read `docs/character_next.md` — character controller roadmap + power-up progression + new skin plans.
+3. Read `sync_up.md` for the latest cross-dev decisions (boundaries, open asks, unresolved questions).
+4. Read `docs/interactables.md` if touching interactables, `docs/menus.md` if touching UI/save/pause.
+5. Check `git status` and recent commits — the user may have made edits between sessions.
+6. If the user describes a bug, apply the debugging protocol from the global CLAUDE.md: logs before code.
+7. Before non-trivial code changes: state the one-sentence design decision and wait for confirmation.

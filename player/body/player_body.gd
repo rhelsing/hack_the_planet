@@ -32,9 +32,31 @@ extends CharacterBody3D
 ## they respawn on death.
 @export var dies_permanently: bool = false
 
+## Seconds of damage immunity after respawning at a checkpoint. Prevents
+## "die, respawn near an enemy cluster, take a hit the same frame, die again"
+## loops. Ignored for dies_permanently pawns (they don't respawn).
+@export var respawn_invuln_duration: float = 2.0
+
 @export_group("Movement")
 @export var walk_profile: MovementProfile
 @export var skate_profile: MovementProfile
+
+@export_group("Dash")
+## Peak velocity along dash direction (m/s).
+@export var dash_speed: float = 18.0
+## Seconds the dash impulse stays active.
+@export var dash_duration: float = 0.2
+## Seconds after a dash before another can fire.
+@export var dash_cooldown: float = 0.8
+## Seconds of damage immunity when a dash starts. Reuses _invuln_until_time.
+@export var dash_iframes_duration: float = 0.15
+## If true, Y velocity (jump / fall) is preserved during dash; dash only
+## overrides horizontal. If false, dash zeroes vertical too.
+@export var dash_preserves_y: bool = true
+
+@export_group("Crouch")
+## max_speed multiplier while crouch_held is true. Only applied in walk mode.
+@export_range(0.0, 1.0) var crouch_speed_multiplier: float = 0.45
 
 @export_group("Follow Camera")
 enum FollowMode { PARENTED, DETACHED }
@@ -166,6 +188,18 @@ var _dying := false
 var _dying_timer := 0.0
 var _regen_timer := 0.0
 var _tint_timer := 0.0
+## Absolute time (seconds) until which take_hit no-ops. -INF = never invuln.
+## Set on respawn to give the player a grace window against enemies near the
+## checkpoint.
+var _invuln_until_time: float = -INF
+
+# Dash state
+var _dash_timer: float = 0.0
+var _dash_cooldown_timer: float = 0.0
+var _dash_direction: Vector3 = Vector3.ZERO
+# Crouch state — tracked for edge detection so skin.crouch(active) only fires
+# on press/release, not every tick.
+var _was_crouched: bool = false
 
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
@@ -195,6 +229,10 @@ func _ready() -> void:
 	_swap_skin_if_overridden()
 	_swap_brain_if_overridden()
 	_current_profile = skate_profile if skate_profile != null else walk_profile
+	# Seed the skin's skate-mode visual state so wheels / root offset match
+	# the initial profile before the player presses any toggle.
+	if _skin != null:
+		_skin.set_skate_mode(_current_profile == skate_profile)
 	_apply_follow_mode()
 	_target_yaw = _camera_pivot.global_rotation.y
 	_spring = _camera_pivot.get_node("SpringArm3D")
@@ -272,17 +310,26 @@ func _swap_skin_if_overridden() -> void:
 
 
 ## Public hook called by PlayerBrain when the skate/walk toggle is pressed.
+## Notifies the active skin so it can switch gear visuals (Sophia's wheels).
 func toggle_profile() -> void:
 	if _current_profile == skate_profile and walk_profile != null:
 		_current_profile = walk_profile
 	elif skate_profile != null:
 		_current_profile = skate_profile
+	if _skin != null:
+		_skin.set_skate_mode(_current_profile == skate_profile)
 
 
 ## Public hook called by PlayerBrain when follow-mode toggle is pressed.
 func toggle_follow_mode() -> void:
 	follow_mode = FollowMode.DETACHED if follow_mode == FollowMode.PARENTED else FollowMode.PARENTED
 	_apply_follow_mode()
+
+
+## True during the active-swing window after _start_attack_jostle. Read by
+## InteractionSensor to suppress door activations mid-attack.
+func is_attacking() -> bool:
+	return _attack_active_timer > 0.0
 
 
 func _start_attack_jostle() -> void:
@@ -365,6 +412,8 @@ func _finish_death() -> void:
 	_dying = false
 	_attack_timer = 0.0
 	_tint_timer = 0.0
+	# Start the post-respawn grace window. take_hit no-ops until this elapses.
+	_invuln_until_time = Time.get_ticks_msec() / 1000.0 + respawn_invuln_duration
 	if _skin != null:
 		_skin.damage_tint = 0.0
 	_skin.idle()
@@ -388,6 +437,10 @@ func _spawn_death_confetti() -> void:
 ## faction gating needed inside the method.
 func take_hit(impact_direction: Vector3, force: float) -> void:
 	if _dying:
+		return
+	# Post-respawn grace window: ignore damage for respawn_invuln_duration
+	# seconds after _finish_death. Fixes the checkpoint death-loop.
+	if Time.get_ticks_msec() / 1000.0 < _invuln_until_time:
 		return
 	_health -= 1
 	_regen_timer = 0.0
@@ -496,6 +549,17 @@ func _physics_process(delta: float) -> void:
 		_start_attack_jostle()
 
 	var profile := _current_profile
+
+	# Dash: edge-triggered, blocked while grinding/wall-riding. Picks a
+	# direction from current intent or last-faced direction.
+	_update_dash(delta, intent)
+
+	# Crouch: skin callback fires only on press/release (edge dedupe). Walk-
+	# only gate is enforced when applying the speed multiplier below.
+	if intent.crouch_held != _was_crouched:
+		if _skin != null:
+			_skin.crouch(intent.crouch_held)
+		_was_crouched = intent.crouch_held
 
 	if _grinding:
 		_update_grind(delta, profile, intent)
@@ -609,7 +673,12 @@ func _physics_process(delta: float) -> void:
 	if move_direction.length() > 0.01:
 		var h_dir := h_vel.normalized() if h_vel.length() > 0.1 else move_direction
 		var steered := h_dir.slerp(move_direction, clamp(profile.turn_rate * delta, 0.0, 1.0))
-		var target_vel := steered * profile.max_speed * move_magnitude
+		# Crouch applies ONLY in walk mode ("crouch is slow walk for sophia").
+		# Skaters don't crouch. Silently ignored if held on skate.
+		var crouch_mult := 1.0
+		if intent.crouch_held and profile == walk_profile and is_on_floor():
+			crouch_mult = crouch_speed_multiplier
+		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
 	else:
 		h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)
@@ -646,7 +715,12 @@ func _physics_process(delta: float) -> void:
 		_flip_axis = (Basis(Vector3.UP, new_yaw) * Vector3.RIGHT).normalized()
 		_flip_timer = _flip_duration
 
-	if not _wall_ride_active:
+	# One-shot states (dash, crouch) must not be overwritten by the
+	# per-frame idle/move/fall/jump travel calls. Gate here so the skin's
+	# state machine can hold the pose until the body signals exit.
+	var is_dashing := _dash_timer > 0.0
+	var is_crouching_now := intent.crouch_held and _current_profile == walk_profile and on_floor
+	if not _wall_ride_active and not is_dashing and not is_crouching_now:
 		if is_just_jumping or is_air_jumping:
 			_skin.jump()
 		elif not on_floor and velocity.y < 0:
@@ -657,7 +731,9 @@ func _physics_process(delta: float) -> void:
 			else:
 				_skin.idle()
 
-	_dust_particles.emitting = on_floor && ground_speed > 0.0
+	# Suppress the skate-dust trail while crouching — slow-walk shouldn't
+	# kick up the same spray as full-speed movement.
+	_dust_particles.emitting = on_floor && ground_speed > 0.0 && not intent.crouch_held
 
 	if on_floor and not _was_on_floor_last_frame:
 		_landing_sound.play()
@@ -740,6 +816,36 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 			velocity += Vector3.UP * (profile.jump_impulse + profile.grind_exit_boost)
 		_grinding = false
 		_grind_rail = null
+
+
+## Dash: velocity impulse along move_direction. Edge-triggered off the
+## dash_pressed intent; cooldown-gated; blocked during grind / wall-ride.
+## Grants a brief i-frame window via the shared _invuln_until_time timer.
+func _update_dash(delta: float, intent: Intent) -> void:
+	_dash_cooldown_timer = maxf(0.0, _dash_cooldown_timer - delta)
+	_dash_timer = maxf(0.0, _dash_timer - delta)
+	# Fire on edge if cooldown elapsed and not currently in a locked state.
+	if intent.dash_pressed and _dash_cooldown_timer <= 0.0 and _dash_timer <= 0.0 and not _grinding and not _wall_ride_active and not _dying:
+		var dir := intent.move_direction if intent.move_direction.length() > 0.2 else _last_input_direction
+		if dir.length_squared() > 0.0001:
+			_dash_direction = dir.normalized()
+		else:
+			_dash_direction = -global_basis.z
+		_dash_direction.y = 0.0
+		_dash_timer = dash_duration
+		_dash_cooldown_timer = dash_cooldown
+		# Grant i-frames via the shared invuln window.
+		var now: float = Time.get_ticks_msec() / 1000.0
+		_invuln_until_time = maxf(_invuln_until_time, now + dash_iframes_duration)
+		if _skin != null:
+			_skin.dash(_dash_direction)
+	# While active, override horizontal velocity to the dash vector.
+	# dash_preserves_y keeps jump / fall momentum intact.
+	if _dash_timer > 0.0:
+		velocity.x = _dash_direction.x * dash_speed
+		velocity.z = _dash_direction.z * dash_speed
+		if not dash_preserves_y:
+			velocity.y = 0.0
 
 
 func _update_wall_ride(delta: float, profile: MovementProfile, intent: Intent) -> void:

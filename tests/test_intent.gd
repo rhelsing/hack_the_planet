@@ -15,18 +15,33 @@ func _init() -> void:
 		failures.append("default jump_pressed should be false")
 	if a.attack_pressed != false:
 		failures.append("default attack_pressed should be false")
+	if a.interact_pressed != false:
+		failures.append("default interact_pressed should be false")
+	if a.dash_pressed != false:
+		failures.append("default dash_pressed should be false")
+	if a.crouch_held != false:
+		failures.append("default crouch_held should be false")
 
 	# Field writes and reads round-trip.
 	var b := Intent.new()
 	b.move_direction = Vector3(1, 0, 0)
 	b.jump_pressed = true
 	b.attack_pressed = true
+	b.interact_pressed = true
+	b.dash_pressed = true
+	b.crouch_held = true
 	if b.move_direction != Vector3(1, 0, 0):
 		failures.append("move_direction write/read failed")
 	if not b.jump_pressed:
 		failures.append("jump_pressed write/read failed")
 	if not b.attack_pressed:
 		failures.append("attack_pressed write/read failed")
+	if not b.interact_pressed:
+		failures.append("interact_pressed write/read failed")
+	if not b.dash_pressed:
+		failures.append("dash_pressed write/read failed")
+	if not b.crouch_held:
+		failures.append("crouch_held write/read failed")
 
 	# Two instances are independent (RefCounted, not autoload).
 	var c := Intent.new()

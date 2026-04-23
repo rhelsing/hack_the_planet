@@ -4,7 +4,38 @@ Frontend umbrella: main menu, pause menu, settings menu, save/load slots, scene 
 
 > **Sync rule:** This doc owns its domain (§0). Where it depends on siblings, it cites them by section — see §13 for the full contract surface and §13.3 for open contracts (yes/no questions the sibling devs need to resolve before implementation).
 >
-> **Amendment log:** v1 (fresh). When a sibling dev hits a conflict, they bring it back to the designer, who amends the affected doc's header. This doc never edits sibling docs unilaterally.
+> **Amendment log:**
+> - **v1** — initial spec.
+> - **v1.1 amendments (2026-04-22)** — from `sync_up.md`:
+>   1. Open contract (a) resolved: char_dev ships `PlayerBody.get_save_dict()` / `load_save_dict(d)` (not `apply_player_state`).
+>   2. Open contract (b) resolved: `current_level` + `playtime_s` owned by `SaveService`, not `GameState`.
+>   3. Open contract (c) resolved: pause menu swallows Esc during dialogue/puzzle (`PauseController.user_pause_allowed` flips off).
+>   4. Single-writer pattern: `interactables_dev`'s `Audio` autoload owns **all** `AudioServer.set_bus_volume_db` writes. Settings just persists `audio.*_volume_db` keys.
+>   5. Gamepad `interact` → **X (button_index 2)**, not B (avoids `ui_cancel` collision).
+>   6. `camera.invert_y` default = **true** (char_dev's authored default).
+>   7. `Events.modal_count_reset()` added as dev escape hatch.
+>
+> **v1 shipped state (ui_dev, 2026-04-22):**
+> - All 4 autoloads (`Settings`, `SceneLoader`, `SaveService`, `PauseController`) shipped + wired in `project.godot` (autoload order matters — `SceneLoader` before `SaveService`).
+> - All 8 menu scenes shipped (`main_menu`, `menu_world`, `pause_menu`, `settings_menu`, `save_slots`, `credits`, `scene_loader`, `menu_button`).
+> - Transition system (`instant`, `glitch` + shader) shipped AND wired into `SceneLoader.goto()` — scene changes fade through the user-selected style.
+> - `Events` extended additively with 7 signals; no removals.
+> - `project.godot`: main scene is `res://menu/main_menu.tscn`; `pause` InputMap action added.
+> - `game.tscn`: `PauseMenu` child instance added.
+> - Tests: `res://tests/test_events_signals.gd` (`--script` mode) + `res://tests/test_runner.tscn` (scene mode: 4 suites — `menus_smoke`, `pause_controller`, `settings`, `save_service`).
+> - Verified: full-boot headless (`godot --headless --path . --quit-after 60`) emits zero errors from ui_dev-owned files.
+>
+> **Known v1 limitations (deferred per §17):**
+> - SFX cues (`ui_move` / `ui_confirm` / `ui_back` / `ui_type`) referenced but `.tres` files not authored — waits on `interactables_dev`'s `AudioCue` class shipping.
+> - JetBrains Mono bundled font skipped; `SystemFont` with fallback chain instead.
+> - End-to-end pause/resume and save/load round-trip not exercised by automated tests — covered via full-boot smoke only.
+> - CRT overlay shader deferred to v1.1.
+>
+> **How to run the tests** (from the project root):
+> ```
+> godot --headless --path . --script res://tests/test_events_signals.gd --quit
+> godot --headless --path . res://tests/test_runner.tscn
+> ```
 
 ---
 
@@ -154,7 +185,7 @@ func set_value(section: String, key: String, value) -> void:
     apply()
 ```
 
-- **Audio apply:** `AudioServer.set_bus_volume_db(bus_idx, linear_to_db(value))` for each of Master / Music / SFX. (Buses named in `interactables.md §8.1`.)
+- **Audio apply:** `Settings` persists the `audio.*_volume_db` keys but does *not* write to `AudioServer`. Per sync_up 2026-04-22, `interactables_dev`'s `Audio` autoload is the single writer to `AudioServer.set_bus_volume_db` for all 5 buses. `Audio._ready` subscribes to `Events.settings_applied` and re-reads the 5 audio keys.
 - **Graphics apply:** maps `data.graphics.quality` to the preset tables in `materials.md §2.5` — toggles `ssr_enabled`, `ssil_enabled`, `volumetric_fog_density`, `msaa_3d`, `use_taa` on the active `WorldEnvironment`; writes shader uniform overrides to `platforms.tres` / `buildings.tres` via `ShaderMaterial.set_shader_parameter(...)`. See §7.2 for the preset→property mapping.
 
 ### 3.2 `SaveService` — the deferred service from interactables.md §17, owned here
@@ -652,7 +683,7 @@ Minimally invasive. Files touched:
 | File | Change (additive only) |
 |---|---|
 | `project.godot` | Set `application/run/main_scene = "res://menu/main_menu.tscn"` (was `game.tscn`). Add autoloads: `Settings`, `SaveService`, `SceneLoader`, `PauseController`. Add `pause` InputMap action. |
-| `autoload/events.gd` | Add signals: `menu_opened(id: StringName)`, `menu_closed(id: StringName)`, `settings_applied`, `game_saved(slot: StringName)`, `game_loaded(slot: StringName)`. All `@warning_ignore("unused_signal")`. |
+| `autoload/events.gd` | Add signals: `menu_opened(id: StringName)`, `menu_closed(id: StringName)`, `modal_opened(id: StringName)`, `modal_closed(id: StringName)`, `modal_count_reset()` (dev escape hatch from debug panel), `settings_applied`, `game_saved(slot: StringName)`, `game_loaded(slot: StringName)`. All `@warning_ignore("unused_signal")`. |
 | `game.gd` | Add a `PauseMenu` child instance-ref + a `_ready()` hookup to `PauseController.paused_changed` → show/hide the pause menu. No changes to existing fullscreen toggle. |
 | `game.tscn` | Add a `PauseMenu` child (instance of `res://menu/pause_menu.tscn`), `visible=false` by default. No existing nodes changed. |
 | `GameState` | **Open contract (b)**: if adopted, adds `current_level: StringName` (set by scene on its `_ready`) and `playtime_s: float` (accumulated in `_process`). Modified in `interactables.md §7`, not here. |

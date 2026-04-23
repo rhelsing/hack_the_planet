@@ -1,0 +1,37 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://interactable/door/door.gd" id="1"]
+
+[sub_resource type="BoxShape3D" id="sensor_shape"]
+size = Vector3(1.5, 2.5, 0.3)
+
+[sub_resource type="BoxShape3D" id="blocker_shape"]
+size = Vector3(1.5, 2.5, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="mat"]
+albedo_color = Color(0.6, 0.45, 0.15, 1)
+emission_enabled = true
+emission = Color(0.5, 0.35, 0.1, 1)
+emission_energy_multiplier = 0.35
+
+[node name="DoorLockedTroll" type="Area3D"]
+collision_layer = 512
+collision_mask = 0
+script = ExtResource("1")
+prompt_verb = "open"
+interactable_id = &"door_locked_troll"
+requires_key = &"troll_key"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("sensor_shape")
+
+[node name="Mesh" type="CSGBox3D" parent="."]
+use_collision = false
+size = Vector3(1.5, 2.5, 0.3)
+material = SubResource("mat")
+
+[node name="Blocker" type="StaticBody3D" parent="."]
+collision_layer = 1
+
+[node name="BlockerShape" type="CollisionShape3D" parent="Blocker"]
+shape = SubResource("blocker_shape")

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://d2m47xhlpcqhk"]
+
+[ext_resource type="Script" path="res://player/brains/player_brain.gd" id="1_brain"]
+
+[node name="PlayerBrain" type="Node"]
+script = ExtResource("1_brain")

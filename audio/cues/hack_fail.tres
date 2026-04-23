@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AudioCue" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
+[ext_resource type="AudioStream" path="res://audio/sfx/miss.wav" id="2"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2")])
+volume_db_min = -4.0
+volume_db_max = -1.0
+pitch_min = 0.85
+pitch_max = 1.0
+bus = &"SFX"

@@ -5,6 +5,15 @@ extends CharacterSkin
 @onready var state_machine : AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
 @onready var move_tilt_path : String = "parameters/StateMachine/Move/tilt/add_amount"
 
+## Skin root lift when skates are on — matches the original sophia.tscn
+## default translation (y=0.13390523). Walk mode drops this to 0 so bare
+## feet sit flush on the ground.
+const SKATE_ROOT_Y := 0.13390523
+
+@onready var _sophia_root: Node3D = $sophia
+@onready var _wheels_left: Node3D = $sophia/rig/Skeleton3D/WheelsLeft
+@onready var _wheels_right: Node3D = $sophia/rig/Skeleton3D/WheelsRight
+
 var run_tilt = 0.0 : set = _set_run_tilt
 
 @export var blink = true : set = set_blink
@@ -51,6 +60,19 @@ func set_damage_tint(value: float) -> void:
 		var c: Color = _damage_overlay.albedo_color
 		c.a = damage_tint
 		_damage_overlay.albedo_color = c
+
+
+func set_skate_mode(active: bool) -> void:
+	# Skate on: wheels show, skin root lifts by SKATE_ROOT_Y so the heel rests
+	# on the blade edge. Walk: wheels hide, root drops to 0 so bare feet touch
+	# the ground. Called by PlayerBody.toggle_profile() and once at _ready
+	# to seed the starting state.
+	if _sophia_root != null:
+		_sophia_root.position.y = SKATE_ROOT_Y if active else 0.0
+	if _wheels_left != null:
+		_wheels_left.visible = active
+	if _wheels_right != null:
+		_wheels_right.visible = active
 
 func _set_run_tilt(value : float):
 	run_tilt = clamp(value, -1.0, 1.0)

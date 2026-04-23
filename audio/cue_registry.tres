@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CueRegistry" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://audio/cue_registry.gd" id="1"]
+[ext_resource type="Resource" path="res://audio/cues/door_open.tres" id="2"]
+[ext_resource type="Resource" path="res://audio/cues/pickup_ding.tres" id="3"]
+[ext_resource type="Resource" path="res://audio/cues/hack_success.tres" id="4"]
+[ext_resource type="Resource" path="res://audio/cues/hack_fail.tres" id="5"]
+[ext_resource type="Resource" path="res://audio/cues/ui_move.tres" id="6"]
+[ext_resource type="Resource" path="res://audio/cues/ui_confirm.tres" id="7"]
+[ext_resource type="Resource" path="res://audio/cues/ui_back.tres" id="8"]
+[ext_resource type="Resource" path="res://audio/cues/ui_type.tres" id="9"]
+
+[resource]
+script = ExtResource("1")
+cues = {
+&"door_open": ExtResource("2"),
+&"pickup_ding": ExtResource("3"),
+&"hack_success": ExtResource("4"),
+&"hack_fail": ExtResource("5"),
+&"ui_move": ExtResource("6"),
+&"ui_confirm": ExtResource("7"),
+&"ui_back": ExtResource("8"),
+&"ui_type": ExtResource("9"),
+}

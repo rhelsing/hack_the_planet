@@ -22,7 +22,7 @@ func _init() -> void:
 			if cs.body_center_y <= 0.0:
 				failures.append("body_center_y should be > 0, got %s" % cs.body_center_y)
 			# Contract methods exist and can be called without args.
-			for m: String in ["idle", "move", "fall", "jump", "edge_grab", "wall_slide", "attack"]:
+			for m: String in ["idle", "move", "fall", "jump", "edge_grab", "wall_slide", "attack", "dash", "crouch"]:
 				if not cs.has_method(m):
 					failures.append("sophia missing contract method: %s" % m)
 			# damage_tint setter clamps input.

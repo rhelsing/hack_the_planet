@@ -5,6 +5,8 @@
 [ext_resource type="PackedScene" uid="uid://cnedxfn2pxh2t" path="res://level/level.tscn" id="7_2frud"]
 [ext_resource type="PackedScene" uid="uid://bxg6oejpaitdt" path="res://level/interactable/flag/flag_reached_screen.tscn" id="19_cpgj4"]
 [ext_resource type="Script" path="res://controls_hint.gd" id="20_hint"]
+[ext_resource type="PackedScene" uid="uid://b3pausemenu0001" path="res://menu/pause_menu.tscn" id="21_pause"]
+[ext_resource type="PackedScene" path="res://interactable/prompt_ui/prompt_ui.tscn" id="22_prompt"]
 
 [node name="Game" type="Node" unique_id=687174872]
 script = ExtResource("1_1il7v")
@@ -19,3 +21,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 31.4)
 
 [node name="ControlsHint" type="CanvasLayer" parent="."]
 script = ExtResource("20_hint")
+
+[node name="PromptUI" parent="." instance=ExtResource("22_prompt")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("21_pause")]

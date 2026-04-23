@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AudioCue" load_steps=5 format=3 uid="uid://b3uiback000001"]
+
+[ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
+[ext_resource type="AudioStream" path="res://audio/sfx/pageturn0.mp3" id="2"]
+[ext_resource type="AudioStream" path="res://audio/sfx/pageturn1.mp3" id="3"]
+[ext_resource type="AudioStream" path="res://audio/sfx/pageturn2.mp3" id="4"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2"), ExtResource("3"), ExtResource("4")])
+volume_db_min = -6.0
+volume_db_max = -2.0
+pitch_min = 0.88
+pitch_max = 1.02
+bus = &"UI"

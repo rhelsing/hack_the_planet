@@ -1,0 +1,73 @@
+[gd_scene load_steps=4 format=3 uid="uid://b3pausemenu0001"]
+
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="1_theme"]
+[ext_resource type="PackedScene" uid="uid://b3menubtn0001" path="res://menu/menu_button.tscn" id="2_btn"]
+[ext_resource type="Script" path="res://menu/pause_menu.gd" id="3_script"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 100
+process_mode = 3
+script = ExtResource("3_script")
+
+[node name="Root" type="Control" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("1_theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1
+
+[node name="Column" type="VBoxContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(420, 0)
+
+[node name="Title" type="Label" parent="Root/Center/Column"]
+text = "-- PAUSED --"
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="Gap" type="Control" parent="Root/Center/Column"]
+custom_minimum_size = Vector2(0, 20)
+
+[node name="ButtonsRoot" type="VBoxContainer" parent="Root/Center/Column"]
+unique_name_in_owner = true
+
+[node name="ResumeBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Resume"
+
+[node name="SaveBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Save"
+
+[node name="LoadBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Load"
+
+[node name="SettingsBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Settings"
+
+[node name="ToMainBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Quit to Main Menu"
+
+[node name="QuitBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Quit to Desktop"
+
+[node name="MenuStack" type="Control" parent="Root"]
+unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 1

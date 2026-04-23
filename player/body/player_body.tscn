@@ -6,7 +6,7 @@
 [ext_resource type="AudioStream" uid="uid://b4x0f4pgfifoo" path="res://player/sounds/robot_jump.wav" id="4_1v0dq"]
 [ext_resource type="Resource" path="res://player/walk_profile.tres" id="5_walk"]
 [ext_resource type="Resource" path="res://player/skate_profile.tres" id="6_skate"]
-[ext_resource type="Script" path="res://player/brains/player_brain.gd" id="7_brain"]
+[ext_resource type="PackedScene" uid="uid://plybraindef001" path="res://player/brains/player_brain.tscn" id="7_brain"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e8pdu"]
 radius = 0.4
@@ -101,5 +101,4 @@ transform = Transform3D(1, 3.19744e-14, 2.13163e-14, 0, 1, 0, 0, 0, 1, -2.4869e-
 current = true
 fov = 50.0
 
-[node name="PlayerBrain" type="Node" parent="."]
-script = ExtResource("7_brain")
+[node name="PlayerBrain" parent="." instance=ExtResource("7_brain")]

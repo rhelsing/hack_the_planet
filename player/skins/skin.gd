@@ -42,3 +42,19 @@ func jump() -> void: pass
 func edge_grab() -> void: pass
 func wall_slide() -> void: pass
 func attack() -> void: pass
+
+## Called once on the frame a dash fires. `direction` is the world-space
+## dash vector (horizontal, y=0). Skins with directional dodge clips use it
+## to pick forward/back/left/right. No-op default.
+func dash(_direction: Vector3 = Vector3.ZERO) -> void: pass
+
+## Called when the crouch-held state changes (on press and on release). No-op
+## default — skins with a crouch pose override to travel Crouch state on
+## active=true, return to prior state on active=false.
+func crouch(_active: bool) -> void: pass
+
+## Called when the body switches between walk_profile and skate_profile.
+## No-op default. Sophia overrides to toggle her rollerblade wheels and
+## the skin root Y offset (skates lift her heel off the ground slightly).
+## Other skins without wheel gear inherit the no-op.
+func set_skate_mode(_active: bool) -> void: pass

@@ -1,0 +1,41 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://interactable/puzzle_terminal/puzzle_terminal.gd" id="1"]
+[ext_resource type="PackedScene" path="res://puzzle/hacking/hacking_puzzle.tscn" id="2"]
+
+[sub_resource type="BoxShape3D" id="1"]
+size = Vector3(1.0, 1.2, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+metallic = 0.4
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.1, 0.8, 0.3, 1)
+emission_enabled = true
+emission = Color(0.2, 1.0, 0.4, 1)
+emission_energy_multiplier = 0.8
+
+[node name="HackingTerminal" type="Area3D"]
+collision_layer = 512
+collision_mask = 0
+script = ExtResource("1")
+prompt_verb = "hack"
+interactable_id = &"terminal_lobby"
+puzzle_scene = ExtResource("2")
+one_shot = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("1")
+
+[node name="Chassis" type="CSGBox3D" parent="."]
+use_collision = false
+size = Vector3(1.0, 1.2, 0.8)
+material = SubResource("2")
+
+[node name="Screen" type="CSGBox3D" parent="."]
+use_collision = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0.41)
+size = Vector3(0.7, 0.5, 0.02)
+material = SubResource("3")

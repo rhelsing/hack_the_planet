@@ -38,6 +38,12 @@ var _intent := Intent.new()
 ## camera control. Exposed so the body's camera follow logic can query it.
 var time_since_mouse_input := 999.0
 
+## Which input device the player used most recently. Consumers (PromptUI,
+## HUD, rebind menus) read this for glyph switching — mouse counts as
+## "keyboard" since the two are typically used together on desktop. Updated
+## in _input on change only (dedupe) to avoid signal spam on held inputs.
+var last_device: String = "keyboard"
+
 
 func _ready() -> void:
 	# Resolve camera rig paths relative to the parent (body). Paths are
@@ -66,6 +72,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	_update_last_device(event)
 	var body := get_parent()
 	if body == null:
 		return
@@ -73,6 +80,24 @@ func _input(event: InputEvent) -> void:
 		body.toggle_profile()
 	elif event.is_action_pressed("toggle_follow_mode") and body.has_method("toggle_follow_mode"):
 		body.toggle_follow_mode()
+
+
+## Single-owner mouse-mode toggle. Pause menus, dialogue, and puzzle UI all
+## call this instead of touching Input.mouse_mode directly so the state stays
+## consistent across modal transitions.
+func capture_mouse(on: bool) -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
+
+
+func _update_last_device(event: InputEvent) -> void:
+	var kind: String = last_device
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		kind = "gamepad"
+	elif event is InputEventKey or event is InputEventMouseButton or event is InputEventMouseMotion:
+		kind = "keyboard"
+	# Dedupe: write only on change so observers can subscribe without noise.
+	if kind != last_device:
+		last_device = kind
 
 
 func tick(_body: Node3D, delta: float) -> Intent:
@@ -100,4 +125,7 @@ func tick(_body: Node3D, delta: float) -> Intent:
 	_intent.move_direction = world_dir
 	_intent.jump_pressed = Input.is_action_just_pressed("jump")
 	_intent.attack_pressed = Input.is_action_just_pressed("attack")
+	_intent.interact_pressed = Input.is_action_just_pressed("interact")
+	_intent.dash_pressed = Input.is_action_just_pressed("dash")
+	_intent.crouch_held = Input.is_action_pressed("crouch")
 	return _intent

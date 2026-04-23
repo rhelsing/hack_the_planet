@@ -17,3 +17,19 @@ var jump_pressed: bool = false
 
 ## Edge-triggered: true for exactly one physics tick when an attack starts.
 var attack_pressed: bool = false
+
+## Edge-triggered: true for exactly one physics tick when the interact action
+## starts (open doors, trigger dialogue, activate puzzle terminals). Consumed
+## by the InteractionSensor on PlayerBrain.
+var interact_pressed: bool = false
+
+## Edge-triggered: true for exactly one physics tick when dash is initiated.
+## Body applies a velocity impulse along move_direction (or the last faced
+## direction if no movement input) with a cooldown + brief i-frame window.
+var dash_pressed: bool = false
+
+## Held: true whenever the crouch key is down. Not edge-triggered. Body only
+## honors crouch when the active MovementProfile is the walk profile — skating
+## doesn't crouch. Effect is a slow-walk speed multiplier; skins with a real
+## crouch pose can override crouch(active) to show it.
+var crouch_held: bool = false

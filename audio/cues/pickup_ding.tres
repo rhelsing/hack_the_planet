@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AudioCue" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
+[ext_resource type="AudioStream" path="res://audio/sfx/click1.mp3" id="2"]
+[ext_resource type="AudioStream" path="res://audio/sfx/click2.mp3" id="3"]
+[ext_resource type="AudioStream" path="res://audio/sfx/click3.mp3" id="4"]
+[ext_resource type="AudioStream" path="res://audio/sfx/click5.mp3" id="5"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5")])
+volume_db_min = -3.0
+volume_db_max = 0.0
+pitch_min = 0.92
+pitch_max = 1.12
+bus = &"SFX"

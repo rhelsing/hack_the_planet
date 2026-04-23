@@ -1,6 +1,52 @@
-# Interactables, Dialogue & Audio Engine Spec (v1.1, Godot 4.6.2)
+# Interactables, Dialogue & Audio Engine Spec (v1.2, Godot 4.6.2)
 
 Implementation spec for the interaction system, the dialogue engine port, and the AAA audio layer that supports sidechain ducking. Every technical claim is tied to a Godot 4.6 doc page, an in-project reference file, or a file in the reference project at `/Users/ryanhelsing/GodotProjects/3dPFormer` — see **§ Sources** at the end.
+
+> **v1.2 — implementation landed.** All interactables_dev-owned files from §14 exist, boot clean, and have passing smoke tests. **Status of the world:**
+>
+> **Shipped & tested (4 green smoke tests):**
+> - `autoload/layers.gd` — 4-layer bitmask constants.
+> - `autoload/events.gd` — all new signals added (§6 + ui_dev's modal/settings/save).
+> - `autoload/game_state.gd` — inventory, flags, dialogue_visited, to_dict/from_dict (tested: `tests/test_game_state.tscn`).
+> - `autoload/audio.gd` — 5-bus management, AudioCue registry, Events subscription, Settings integration.
+> - `autoload/dialogue.gd` — Nathan Hoad wrapper, TTS queue, lifecycle, modal coordination.
+> - `autoload/puzzles.gd` — lifecycle + pause + modal coordination (tested: `tests/test_puzzles_lifecycle.tscn`).
+> - `interactable/interactable.gd` — base class.
+> - `interactable/interaction_sensor.gd` + `interactable/scoring.gd` — hybrid scoring (tested: `tests/test_interaction_sensor.gd`).
+> - `interactable/{door,dialogue_trigger,pickup,trap,puzzle_terminal}/` — all 5 concrete interactables + scenes.
+> - `interactable/prompt_ui/` — CanvasLayer, integrated into `game.tscn`.
+> - `audio/audio_cue.gd` + `audio/cue_registry.gd` + `audio/cue_registry.tres` + 4 initial cue files.
+> - `default_bus_layout.tres` — 5-bus layout with sidechain compressors on Music + Ambience (sidechain = "Dialogue").
+> - `puzzle/puzzle.gd` — base class.
+> - `puzzle/hacking/hacking_puzzle.gd` + `.tscn` — timing-tap puzzle.
+> - `addons/dialogue_manager/` — Nathan Hoad plugin vendored, enabled in project.godot.
+> - `dialogue/voices.gd` + `dialogue/voices.tres` — character → ElevenLabs voice_id map (seeded from 3dPFormer).
+> - project.godot: layer names, 5 autoloads, dialogue_manager plugin + section.
+>
+> **Deviations from v1.1 spec (recorded for future contributors):**
+> - `Interactable.priority` renamed to `focus_priority` — `priority` shadows Area3D's built-in audio-reverb property.
+> - `InteractionSensor.score_candidate` extracted to `interactable/scoring.gd` as `InteractionScoring.score` (dependency-free pure math) — enables clean `--script`-mode unit tests.
+> - Static types on several autoloads loosened to `Resource` (instead of `AudioCue`/`CueRegistry`/`DialogueResource`) because plugin/class_name registration isn't guaranteed at autoload parse time. Runtime behavior unchanged.
+> - `HackingPuzzle` uses `extends "res://puzzle/puzzle.gd"` (path-based) instead of `extends Puzzle` (class_name) for the same reason.
+> - `Puzzles.start` duck-checks for the `finished` signal instead of `is Puzzle` — decoupled from class_name timing.
+> - **Balloon source:** v1.2 ships with the plugin's `example_balloon.tscn`. Custom 3dPFormer-style balloon port (with `GameState.visit_dialogue` dimming of visited responses) deferred to a follow-up.
+>
+> **Blocked on CC Patch A (not on me):**
+> - Wiring `InteractionSensor` as a child of `player_brain.tscn` (CC creates the scene).
+> - Removing the `has_method("is_attacking")` safety net in `interaction_sensor.gd` after `PlayerBody.is_attacking()` accessor lands.
+> - `Dialogue.start` / `Puzzles.start` consuming `PlayerBrain.capture_mouse(on)` (helper ships with Patch A; I call through `has_method` safety meanwhile).
+>
+> **Blocked on ui_dev:**
+> - `PromptUI` glyph-swap reading from `PlayerBrain.last_device` — depends on CC Patch A.
+> - Pre-existing menu code parse errors (unrelated to my changes; ui_dev's domain).
+>
+> **Smoke tests — 4 passing:**
+> ```
+> tests/test_intent.gd                   (existing, CC-owned)
+> tests/test_game_state.tscn             (NEW, interactables_dev)
+> tests/test_interaction_sensor.gd       (NEW, interactables_dev)
+> tests/test_puzzles_lifecycle.tscn      (NEW, interactables_dev)
+> ```
 
 > **v1.1 amendments** — character-controller dev sync resolved five structural decisions that v1 had open:
 > 1. **Sensor lives on `PlayerBrain`, not `PlayerBody`** (drivers own the senses they need). `PlayerBody` is the universal pawn — enemies are `PlayerBody` with `EnemyAIBrain`; putting a sensor there would spam `get_overlapping_areas()` on every NPC. Body dispatches via `brain.try_activate(self)`; base `Brain` has a no-op default.
