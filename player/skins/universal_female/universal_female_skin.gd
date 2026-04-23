@@ -57,9 +57,10 @@ func _ready() -> void:
 		model.add_child(primary)
 		# AnimationTree caches its anim_player reference at enter_tree. That's
 		# already fired by the time this script's _ready runs, so the tree's
-		# cache is null. Re-assigning the property forces a re-resolve so the
-		# tree picks up the AnimationPlayer we just created.
-		animation_tree.anim_player = animation_tree.anim_player
+		# cache is null. Toggling active off/on forces the tree to re-resolve
+		# the anim_player path once the AnimationPlayer we just created exists.
+		animation_tree.active = false
+		animation_tree.active = true
 	for src_scene: PackedScene in extra_animation_sources:
 		if src_scene == null:
 			continue
