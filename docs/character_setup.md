@@ -45,9 +45,23 @@ Optional, if the skin has rollerblade wheels:
 └── AnimationTree
 ```
 
+Required for any skin that should leave a dust trail:
+
+```
+<SkinRoot>
+├── ...
+└── DustParticles       ← GPUParticles3D, unique_name_in_owner = true
+    (process_material = library/fx/dust_particles.tres)
+    (draw_pass_1      = library/fx/dust_sphere.tres)
+    (transform: position ~(0, 0.137, 1.0) — roughly one unit behind the heels
+     in skin-local +Z. Drag in the viewport to fine-tune per rig.)
+```
+
 Why `Model` specifically: `set_skate_mode(active)` calls `get_node_or_null("Model")` to toggle the skate Y lift (`kaykit_skin.gd:265`, `cop_riot_skin.gd:107`).
 
 Why `WheelsLeft` / `WheelsRight` specifically: the `@onready var _wheels_left: Node3D = $WheelsLeft` lookup in each skin script. At `_ready`, the script reparents them under runtime-created `BoneAttachment3D`s bound to the foot bones, keeping global transform — so whatever you drag to in the viewport is preserved.
+
+Why `DustParticles` specifically and at the skin root: the skin's yaw is rewritten by `PlayerBody` each tick to face the movement direction, so a dust emitter at skin-local `+Z` automatically trails behind as the character turns — no per-frame repositioning needed. `PlayerBody` computes the emit boolean (ground + speed + not-crouching) and calls `_skin.set_dust_emitting(enabled)`; each skin pipes the bool through to `%DustParticles.emitting`. Skins without dust inherit the `CharacterSkin.set_dust_emitting` no-op.
 
 ---
 
@@ -92,6 +106,8 @@ Methods defined in `player/skins/skin.gd`. All have no-op defaults — override 
 
 - `skate_root_y: float` — Y lift applied to the `Model` node in skate mode. KayKit and cop_riot have this. Default 0.134.
 - `extra_animation_sources: Array[PackedScene]` — extra GLBs whose AnimationPlayer clips get merged into the primary library at `_ready`. KayKit uses this to pull in `movement_basic.glb`, `combat_melee.glb`, `movementadvanced.glb`. cop_riot doesn't (it uses a single multi-anim GLB).
+
+**Dust position:** tuned by dragging the `DustParticles` node in the 3D viewport (no script export — it's a per-skin scene node). Good starting values: `y ≈ 0.137` (heel height), `z ≈ 1.0` (one unit behind the character in skin-local +Z). Shared visuals live at `library/fx/dust_particles.tres` and `library/fx/dust_sphere.tres` — change those and every skin's dust updates.
 
 ---
 
@@ -265,6 +281,8 @@ Must return nothing. Also boot the game manually, press `R` to toggle skate, pre
 6. **Referencing clip names that don't exist in the merged library.** AnimationTree will silently skip the transition and the character freezes on the previous pose. After merging, assert the expected clips exist (kaykit's contract test is the template).
 7. **Forgetting `LOOP_LINEAR` on the idle / run clips.** Character twitches for one beat then freezes. Patch in `_ready` like cop_riot and KayKit do.
 8. **Class-name collision with Godot natives.** `class_name Skin` collides with Godot's native `Skin` (skeleton skinning). Use `CharacterSkin` / `<Name>Skin`.
+9. **DustParticles missing `unique_name_in_owner = true`** or **not named exactly `DustParticles`**. `%DustParticles` in the skin script returns null → `set_dust_emitting` no-ops → dust never spawns. Either fix the node or delete the `@onready var _dust_particles = %DustParticles` line and the override (CharacterSkin's base no-op is fine for dustless skins).
+10. **Putting `DustParticles` as a child of `Model` or `Skeleton3D`.** The emitter must be a direct child of the skin root so it inherits the skin's yaw rewrite and naturally trails. Nested in the Model, it rotates with bone transforms and looks wrong.
 
 ---
 

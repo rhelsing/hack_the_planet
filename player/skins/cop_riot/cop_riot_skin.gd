@@ -30,6 +30,7 @@ const _FOOT_L_BONE := &"mixamorig_LeftFoot_026"
 const _FOOT_R_BONE := &"mixamorig_RightFoot_030"
 @onready var _wheels_left: Node3D = $WheelsLeft
 @onready var _wheels_right: Node3D = $WheelsRight
+@onready var _dust_particles: GPUParticles3D = %DustParticles
 
 
 func _ready() -> void:
@@ -111,3 +112,8 @@ func set_skate_mode(active: bool) -> void:
 		_wheels_left.visible = active
 	if _wheels_right != null:
 		_wheels_right.visible = active
+
+
+func set_dust_emitting(enabled: bool) -> void:
+	if _dust_particles != null:
+		_dust_particles.emitting = enabled

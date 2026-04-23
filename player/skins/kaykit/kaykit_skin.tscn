@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://ccp1o5jv47qql" path="res://player/skins/kaykit/model/combat_melee.glb" id="4_combat_melee"]
 [ext_resource type="PackedScene" uid="uid://clxbjb8yuch8y" path="res://player/skins/kaykit/model/movementadvanced.glb" id="5_movement_advanced"]
 [ext_resource type="PackedScene" uid="uid://dn8pfguwvq58a" path="res://player/rollerblade_wheels.tscn" id="6_wheels"]
+[ext_resource type="Material" uid="uid://bl2nmgwa4wpni" path="res://library/fx/dust_particles.tres" id="7_dustproc"]
+[ext_resource type="SphereMesh" uid="uid://jcvev0gdjevs" path="res://library/fx/dust_sphere.tres" id="8_dustmesh"]
 
 [sub_resource type="AnimationNodeAnimation" id="ANA_Crouch"]
 animation = &"Crouching"
@@ -222,3 +224,14 @@ root_node = NodePath("%AnimationTree/../Model")
 tree_root = SubResource("ABT_root")
 anim_player = NodePath("../Model/AnimationPlayer")
 parameters/StateMachine/Move/tilt/add_amount = 0.0
+
+[node name="DustParticles" type="GPUParticles3D" parent="." unique_id=172297066]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.137, -0.32326055)
+cast_shadow = 0
+gi_mode = 0
+amount = 10
+lifetime = 0.7
+explosiveness = 0.05
+process_material = ExtResource("7_dustproc")
+draw_pass_1 = ExtResource("8_dustmesh")

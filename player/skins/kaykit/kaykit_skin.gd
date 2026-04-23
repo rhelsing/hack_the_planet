@@ -29,6 +29,7 @@ const _FOOT_L_BONE := &"foot.l"
 const _FOOT_R_BONE := &"foot.r"
 @onready var _wheels_left: Node3D = $WheelsLeft
 @onready var _wheels_right: Node3D = $WheelsRight
+@onready var _dust_particles: GPUParticles3D = %DustParticles
 
 @onready var animation_tree: AnimationTree = %AnimationTree
 @onready var state_machine: AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
@@ -269,6 +270,11 @@ func set_skate_mode(active: bool) -> void:
 		_wheels_left.visible = active
 	if _wheels_right != null:
 		_wheels_right.visible = active
+
+
+func set_dust_emitting(enabled: bool) -> void:
+	if _dust_particles != null:
+		_dust_particles.emitting = enabled
 
 
 # Project `world_dir` onto the skin's own facing to pick one of the four

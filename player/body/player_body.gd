@@ -56,16 +56,6 @@ signal respawned()
 # the body — different rigs (Sophia's dramatic skater vs cop's stiff gait)
 # need different feel at the same body.
 
-@export_group("Dust Trail")
-## How far behind the character (m) the dust emitter sits. Positive = further
-## back. Recomputed each frame from the skin's visible facing so the trail
-## tracks the visual, not the input target (avoids dust lagging forward of
-## the skin during a turn).
-@export var dust_back_distance: float = 1.1
-## Emitter height above the body origin (m). Tuned for ground-level puffs
-## at the character's heels.
-@export var dust_height: float = 0.137
-
 @export_group("Dash")
 ## Peak velocity along dash direction (m/s).
 @export var dash_speed: float = 18.0
@@ -234,7 +224,6 @@ var _was_crouched: bool = false
 @onready var _skin: CharacterSkin = %SophiaSkin
 @onready var _landing_sound: AudioStreamPlayer3D = %LandingSound
 @onready var _jump_sound: AudioStreamPlayer3D = %JumpSound
-@onready var _dust_particles: GPUParticles3D = %DustParticles
 ## Brain found by type, not by name — lets AI pawns drop in EnemyAIBrain,
 ## NetworkBrain, etc., without the body caring which one.
 @onready var _brain: Brain = _find_first_brain()
@@ -297,7 +286,7 @@ func _ready() -> void:
 		Events.flag_reached.connect(func on_flag_reached() -> void:
 			set_physics_process(false)
 			_skin.idle()
-			_dust_particles.emitting = false
+			_skin.set_dust_emitting(false)
 		)
 
 
@@ -799,17 +788,10 @@ func _physics_process(delta: float) -> void:
 			else:
 				_skin.idle()
 
-	# Suppress the skate-dust trail while crouching — slow-walk shouldn't
-	# kick up the same spray as full-speed movement.
-	_dust_particles.emitting = on_floor && ground_speed > 0.0 && not intent.crouch_held
-
-	# Keep the dust emitter behind the character's current facing. Body is
-	# angular-locked so we can't just parent to a fixed local offset — the
-	# dust would stay in front when the character turns around. Use the
-	# tracked last-input direction as the facing vector.
-	if _last_input_direction.length_squared() > 0.0001:
-		var behind: Vector3 = -_last_input_direction.normalized() * dust_back_distance
-		_dust_particles.position = Vector3(behind.x, dust_height, behind.z)
+	# Ground dust — body decides "should it emit" (needs ground/speed/crouch
+	# state), skin decides "from where" (emitter lives in skin-local space
+	# so the offset auto-tracks yaw without extra math).
+	_skin.set_dust_emitting(on_floor && ground_speed > 0.0 && not intent.crouch_held)
 
 	if on_floor and not _was_on_floor_last_frame:
 		_landing_sound.play()

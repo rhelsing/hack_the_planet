@@ -1,4 +1,4 @@
-[gd_resource type="SphereMesh" load_steps=2 format=3 uid="uid://b3dustsphere01"]
+[gd_resource type="SphereMesh" format=3 uid="uid://jcvev0gdjevs"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dust"]
 shading_mode = 2

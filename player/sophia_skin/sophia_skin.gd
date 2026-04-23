@@ -13,6 +13,7 @@ const SKATE_ROOT_Y := 0.13390523
 @onready var _sophia_root: Node3D = $sophia
 @onready var _wheels_left: Node3D = $sophia/rig/Skeleton3D/WheelsLeft
 @onready var _wheels_right: Node3D = $sophia/rig/Skeleton3D/WheelsRight
+@onready var _dust_particles: GPUParticles3D = %DustParticles
 
 var run_tilt = 0.0 : set = _set_run_tilt
 
@@ -98,3 +99,8 @@ func wall_slide():
 
 func attack():
 	state_machine.start("EdgeGrab")
+
+
+func set_dust_emitting(enabled: bool) -> void:
+	if _dust_particles != null:
+		_dust_particles.emitting = enabled
