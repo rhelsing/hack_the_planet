@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bumlxkr8tn3qy"]
 
-[ext_resource type="Script" path="res://player/skins/universal_male/universal_male_skin.gd" id="1_script"]
-[ext_resource type="PackedScene" path="res://player/skins/universal_male/model/UAL1_Standard.glb" id="2_model"]
-[ext_resource type="PackedScene" path="res://player/skins/universal_male/model/UAL2_Standard.glb" id="3_ual2"]
+[ext_resource type="Script" uid="uid://b6vojc0th7bja" path="res://player/skins/universal_male/universal_male_skin.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://b61oytwbs3ryq" path="res://player/skins/universal_male/model/UAL1_Standard.glb" id="2_model"]
+[ext_resource type="PackedScene" uid="uid://cwvwqwk1keebg" path="res://player/skins/universal_male/model/UAL2_Standard.glb" id="3_ual2"]
 [ext_resource type="PackedScene" uid="uid://dn8pfguwvq58a" path="res://player/rollerblade_wheels.tscn" id="6_wheels"]
 [ext_resource type="Material" uid="uid://bl2nmgwa4wpni" path="res://library/fx/dust_particles.tres" id="7_dustproc"]
 [ext_resource type="SphereMesh" uid="uid://jcvev0gdjevs" path="res://library/fx/dust_sphere.tres" id="8_dustmesh"]
@@ -195,35 +195,35 @@ nodes/StateMachine/node = SubResource("ANSM_root")
 nodes/StateMachine/position = Vector2(0, 0)
 node_connections = [&"output", 0, &"StateMachine"]
 
-[node name="UniversalMaleSkin" type="Node3D"]
+[node name="UniversalMaleSkin" type="Node3D" unique_id=110543062]
 script = ExtResource("1_script")
 extra_animation_sources = Array[PackedScene]([ExtResource("3_ual2")])
 lean_pivot_height = 1.65
-body_center_y = 0.9
+uniform_scale = 2.0
 lean_multiplier = 0.5
 
-[node name="Model" parent="." instance=ExtResource("2_model")]
+[node name="Model" parent="." unique_id=1232763587 instance=ExtResource("2_model")]
 
-[node name="WheelsLeft" type="Node3D" parent="."]
+[node name="WheelsLeft" type="Node3D" parent="." unique_id=1218656879]
 transform = Transform3D(1, 0, 0, 0, 0.08958967, 0.9959788, 0, -0.9959788, 0.08958967, 0.2724059, -0.04765877, 0.062123)
 
-[node name="RollerbladeWheels" parent="WheelsLeft" instance=ExtResource("6_wheels")]
+[node name="RollerbladeWheels" parent="WheelsLeft" unique_id=1672540645 instance=ExtResource("6_wheels")]
 transform = Transform3D(0.99913156, -0.041498847, 0.0037328787, 0.041498847, 0.9991386, 7.748604e-05, -0.0037328785, 7.749349e-05, 0.99999297, -0.04363823, 0, 0)
 
-[node name="WheelsRight" type="Node3D" parent="."]
+[node name="WheelsRight" type="Node3D" parent="." unique_id=1583795299]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.08, 0)
 
-[node name="RollerbladeWheels" parent="WheelsRight" instance=ExtResource("6_wheels")]
+[node name="RollerbladeWheels" parent="WheelsRight" unique_id=1902390460 instance=ExtResource("6_wheels")]
 transform = Transform3D(0.9970941, 0.07611072, -0.003237889, 0, 0.04250338, 0.99909633, 0.076179564, -0.99619305, 0.042379867, -0.11120867, -0.13859314, 0.048666745)
 
-[node name="AnimationTree" type="AnimationTree" parent="."]
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=1360454123]
 unique_name_in_owner = true
 root_node = NodePath("%AnimationTree/../Model")
 tree_root = SubResource("ABT_root")
 anim_player = NodePath("../Model/AnimationPlayer")
 parameters/StateMachine/Move/tilt/add_amount = 0.0
 
-[node name="DustParticles" type="GPUParticles3D" parent="."]
+[node name="DustParticles" type="GPUParticles3D" parent="." unique_id=595530339]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.137, -0.32326055)
 cast_shadow = 0
