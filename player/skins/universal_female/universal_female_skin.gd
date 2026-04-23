@@ -57,24 +57,13 @@ func _ready() -> void:
 		model.add_child(primary)
 		# AnimationTree caches its anim_player reference at enter_tree. That's
 		# already fired by the time this script's _ready runs, so the tree's
-		# cache is null. Toggling active off/on forces the tree to re-resolve
-		# the anim_player path once the AnimationPlayer we just created exists.
-		animation_tree.active = false
-		animation_tree.active = true
+		# cache is null. Re-assigning the property forces a re-resolve so the
+		# tree picks up the AnimationPlayer we just created.
+		animation_tree.anim_player = animation_tree.anim_player
 	for src_scene: PackedScene in extra_animation_sources:
 		if src_scene == null:
 			continue
 		_merge_animations_from(primary, src_scene)
-	# --- TEMP verification log: pelvis delta under AT ---
-	var skel_verify := _find_skeleton(self)
-	if skel_verify != null:
-		var p := skel_verify.find_bone("pelvis")
-		var b: Vector3 = skel_verify.get_bone_pose(p).origin
-		state_machine.travel("Idle")
-		animation_tree.advance(0.5)
-		var a: Vector3 = skel_verify.get_bone_pose(p).origin
-		print("[female_skin VERIFY] pelvis delta via AT after fix: %s" % (a - b))
-	# --- end TEMP ---
 
 	# GLB imports default clips to LOOP_NONE — patch the ones that should loop.
 	_force_loop_linear(primary, [
