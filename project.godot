@@ -39,9 +39,6 @@ DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 general/wrap_lines=true
 general/states=["GameState", "Events", "Audio", "Skills"]
-; v3.x of the plugin moved balloon_path from `general/` to `runtime/`. Left
-; the old key commented out as a tombstone so future-you doesn't reintroduce it.
-;general/balloon_path="..."  ; DO NOT USE — v2.x path, silently ignored by v3.x
 runtime/balloon_path="res://dialogue/scroll_balloon.tscn"
 
 [display]

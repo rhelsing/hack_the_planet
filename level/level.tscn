@@ -12,8 +12,11 @@
 [ext_resource type="PackedScene" uid="uid://do5ecpqaaqlki" path="res://enemy/enemy_cop_riot.tscn" id="14b_newenemy"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="14c_enemykaykit"]
 [ext_resource type="PackedScene" uid="uid://do5ucpf8uwlki" path="res://enemy/enemy_sophia.tscn" id="14d_enemysophia"]
-[ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="14e_enemyprofile"]
+[ext_resource type="Resource" path="res://enemy/enemy_profile.tres" id="14e_enemyprofile"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="15_fm1jd"]
+[ext_resource type="PackedScene" uid="uid://bk6y4el5vw0fa" path="res://enemy/enemy_quaternius.tscn" id="15_m5ivw"]
+[ext_resource type="PackedScene" uid="uid://chehpis3gkqa4" path="res://enemy/enemy_universal_female.tscn" id="16_sui6v"]
+[ext_resource type="PackedScene" uid="uid://cn1hpis3gkqa3" path="res://enemy/enemy_universal_male.tscn" id="17_tv7ir"]
 
 [sub_resource type="Curve" id="Curve_k4wis"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -312,3 +315,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.096862, 4.4, -23.481585)
 [node name="Rail2" parent="." unique_id=901050832 instance=ExtResource("13_l5lfc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -154.57605, 8.962051, -26.209732)
 curve = SubResource("Curve3D_fm1jd")
+
+[node name="EnemyQuaternius" parent="." unique_id=971225218 instance=ExtResource("15_m5ivw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -96.72542, 8.020947, -9.169363)
+
+[node name="EnemyUniversalFemale" parent="." unique_id=376929938 instance=ExtResource("16_sui6v")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88.9477, 8.020947, -15.840105)
+
+[node name="EnemyUniversalMale" parent="." unique_id=242460846 instance=ExtResource("17_tv7ir")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -106.38605, 8.020947, -26.156437)

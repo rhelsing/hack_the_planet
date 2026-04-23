@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://dqfmle7enemy02"]
+
+[ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_body"]
+[ext_resource type="PackedScene" uid="uid://dfx9k2m4vq7n8" path="res://player/skins/universal_female/universal_female_skin.tscn" id="2_skin"]
+[ext_resource type="PackedScene" uid="uid://de1fabohd4f0k" path="res://enemy/brains/default_enemy_ai.tscn" id="3_brain"]
+[ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="4_profile"]
+
+[node name="EnemyUniversalFemale" instance=ExtResource("1_body")]
+skin_scene = ExtResource("2_skin")
+brain_scene = ExtResource("3_brain")
+pawn_group = "enemies"
+attack_target_group = "player"
+dies_permanently = true
+max_health = 1
+walk_profile = ExtResource("4_profile")
+start_in_walk_mode = true
+
+[node name="Camera3D" parent="CameraPivot/SpringArm3D" index="0"]
+current = false
