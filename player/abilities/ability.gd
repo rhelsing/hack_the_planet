@@ -19,6 +19,12 @@ var enabled: bool = true
 
 
 func _ready() -> void:
+	# Abilities are only granted to the player pawn. Enemies share the same
+	# PlayerBody scene (Abilities subtree included), but global powerup flags
+	# must not spill into them. Gate sync + subscription on pawn_group.
+	var body: Node = _find_body()
+	if body != null and body.get("pawn_group") != "player":
+		return
 	_sync_from_flag()
 	Events.flag_set.connect(_on_flag_set)
 

@@ -175,7 +175,7 @@ use_collision = true
 size = Vector3(15.080139, 1, 45.345917)
 
 [node name="PlayerSpawn" type="Marker3D" parent="." unique_id=953613540]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 12.61075, -50.687424)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 11.87849, -52.001877)
 
 [node name="Ground" type="CSGBox3D" parent="." unique_id=1819932891]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 10.61075, -59.62894)

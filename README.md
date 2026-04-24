@@ -51,3 +51,5 @@
 - [ ] UI, begin menu, loading.. stages, pause menu
 
 - [ ] post processing effects / color grading
+
+- [ ] **Player handle picker** — early NPC (Glitch?) prompts the player to choose their hacker name during the tutorial. Persisted on `GameState` and surfaced in HUD/dialogue (`{player_name}` substitution in `.dialogue` files). Pick from a curated stereotype list (Crash Override / Acid Burn / Cipher / Phantom / Cereal Killer / etc.) or enter a custom one.
