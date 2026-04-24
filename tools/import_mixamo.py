@@ -76,6 +76,60 @@ def shade_smooth_all_meshes() -> None:
             poly.use_smooth = True
 
 
+def get_armature_hips_prefix(arm: bpy.types.Object) -> str | None:
+    """Return the prefix of the armature's `Hips` bone — e.g. `mixamorig:`,
+    `mixamorig_`, `mixamorig1_`, or `""` for an unprefixed rig. Mixamo
+    namespaces vary between character variants; we detect per-rig instead
+    of hard-coding."""
+    if arm is None or arm.data is None:
+        return None
+    for b in arm.data.bones:
+        if b.name.endswith("Hips"):
+            return b.name[: -len("Hips")]
+    return None
+
+
+def get_action_hips_prefix(action: bpy.types.Action) -> str | None:
+    """Same idea, but read off the action's FCurves. Looks for the first
+    FCurve whose data_path mentions a Hips bone and pulls the prefix out."""
+    if action is None:
+        return None
+    needle = '"'
+    for _cb, fc in _iter_action_fcurves(action):
+        path = fc.data_path
+        # Format: pose.bones["<prefix>Hips"].rotation_quaternion (etc.)
+        anchor = path.find('pose.bones["')
+        if anchor == -1:
+            continue
+        start = anchor + len('pose.bones["')
+        end = path.find('"]', start)
+        if end == -1:
+            continue
+        bone_name = path[start:end]
+        if bone_name.endswith("Hips"):
+            return bone_name[: -len("Hips")]
+    return None
+
+
+def remap_action_bone_prefix(action: bpy.types.Action, from_prefix: str, to_prefix: str) -> int:
+    """Rewrite every FCurve's `data_path` so `pose.bones["<from_prefix>X"]`
+    becomes `pose.bones["<to_prefix>X"]`. Used when an imported anim's bone
+    namespace doesn't match the character's armature (e.g. action uses
+    `mixamorig_Hips` but character has `mixamorig1_Hips`); without this the
+    NLA strip plays but drives no bones, and the exported GLB ends up with
+    keyframe-less T-pose clips. Returns the number of FCurves rewritten."""
+    if from_prefix == to_prefix:
+        return 0
+    target = f'pose.bones["{from_prefix}'
+    replacement = f'pose.bones["{to_prefix}'
+    count = 0
+    for _cb, fc in _iter_action_fcurves(action):
+        if target in fc.data_path:
+            fc.data_path = fc.data_path.replace(target, replacement)
+            count += 1
+    return count
+
+
 def _iter_action_fcurves(action: bpy.types.Action):
     """Yield (channelbag, fcurve) pairs walking Blender 4.4+ Animation 2.0
     layered structure. The legacy `action.fcurves` flat list was removed in
@@ -179,7 +233,8 @@ def process_character(char_path: str, anim_paths: list[str], out_path: str) -> N
         print("  [skip] no armature found in character FBX")
         return
     char_arm = char_arms[0]
-    print(f"  character armature: {char_arm.name}  bones={len(char_arm.data.bones)}")
+    char_prefix = get_armature_hips_prefix(char_arm) or ""
+    print(f"  character armature: {char_arm.name}  bones={len(char_arm.data.bones)}  hips_prefix={char_prefix!r}")
 
     # If the character FBX shipped its own animation, name+keep it.
     if char_arm.animation_data and char_arm.animation_data.action:
@@ -221,6 +276,8 @@ def process_character(char_path: str, anim_paths: list[str], out_path: str) -> N
             final_name = f"{clip_name}.{n:03d}"
             n += 1
         action.name = final_name
+        action_prefix = get_action_hips_prefix(action) or ""
+        remapped = remap_action_bone_prefix(action, action_prefix, char_prefix)
         stripped = strip_hip_translation(action)
         push_action_to_nla(char_arm, action, final_name)
 
@@ -232,7 +289,12 @@ def process_character(char_path: str, anim_paths: list[str], out_path: str) -> N
                 pass
 
         remove_objects_recursive(new_objs)
-        suffix = f"  [stripped {stripped} hip-loc fcurves]" if stripped else ""
+        suffix_parts: list[str] = []
+        if remapped:
+            suffix_parts.append(f"remapped {remapped} fcurves {action_prefix!r}→{char_prefix!r}")
+        if stripped:
+            suffix_parts.append(f"stripped {stripped} hip-loc")
+        suffix = "  [" + " | ".join(suffix_parts) + "]" if suffix_parts else ""
         print(f"  + {final_name}  ({pathlib.Path(anim_path).name}){suffix}")
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
