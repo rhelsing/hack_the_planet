@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://drmsgzone0001"]
+
+[ext_resource type="Script" path="res://level/interactable/respawn_message_zone/respawn_message_zone.gd" id="1_script"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_default"]
+size = Vector3(8, 4, 8)
+
+[node name="RespawnMessageZone" type="Area3D"]
+collision_layer = 0
+monitorable = false
+script = ExtResource("1_script")
+message = ""
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_default")

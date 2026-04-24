@@ -1,0 +1,8 @@
+~ start
+
+Glitch: Hey — you made it across.
+Glitch: Walk to one of the glowing pedestals to start a level. The phone booth saves your progress.
+- Got it.
+	Glitch: Catch you on the other side.
+do GameState.set_flag("glitch1_done", true)
+=> END

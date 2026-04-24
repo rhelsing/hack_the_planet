@@ -208,13 +208,13 @@ lean_multiplier = 0.5
 transform = Transform3D(1, 0, 0, 0, 0.08958967, 0.9959788, 0, -0.9959788, 0.08958967, 0.2724059, -0.04765877, 0.062123)
 
 [node name="RollerbladeWheels" parent="WheelsLeft" unique_id=1672540645 instance=ExtResource("6_wheels")]
-transform = Transform3D(0.99913156, -0.041498847, 0.0037328787, 0.041498847, 0.9991386, 7.748604e-05, -0.0037328785, 7.749349e-05, 0.99999297, -0.04363823, 0, 0)
+transform = Transform3D(0.99913156, -0.041498847, 0.0037328787, 0.041498847, 0.9991387, 7.747114e-05, -0.003732878, 7.749349e-05, 0.99999285, -0.06572321, -0.15587991, 0.014021615)
 
 [node name="WheelsRight" type="Node3D" parent="." unique_id=1583795299]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.08, 0)
 
 [node name="RollerbladeWheels" parent="WheelsRight" unique_id=1902390460 instance=ExtResource("6_wheels")]
-transform = Transform3D(0.9970941, 0.07611072, -0.003237889, 0, 0.04250338, 0.99909633, 0.076179564, -0.99619305, 0.042379867, -0.11120867, -0.13859314, 0.048666745)
+transform = Transform3D(0.9970941, 0.07611072, -0.003237889, 0, 0.04250338, 0.99909633, 0.076179564, -0.99619305, 0.042379867, -0.15649724, -0.13859314, 0.07541376)
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=1360454123]
 unique_name_in_owner = true

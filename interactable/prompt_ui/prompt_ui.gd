@@ -44,6 +44,13 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _sensor == null:
 		_try_connect_sensor()
+		return
+	# If the focused interactable was freed out from under us (e.g., a pickup
+	# that queue_freed itself on interact), the dangling ref won't trip the
+	# normal `_focused != null` check in Godot 4. Refresh so the label clears.
+	if _focused != null and not is_instance_valid(_focused):
+		_focused = null
+		_refresh()
 	elif _focused != null:
 		# Gate state can change (key picked up, flag set) without focus
 		# transitioning. Cheap refresh keeps the "(locked)" suffix accurate.
@@ -102,6 +109,11 @@ func _hide_toast() -> void:
 
 
 func _refresh() -> void:
+	# `_focused != null` returns true for freed objects in GDScript 4 —
+	# defend against the dangling ref with is_instance_valid.
+	var focus_alive: bool = _focused != null and is_instance_valid(_focused)
+	if not focus_alive:
+		_focused = null
 	var should_show := _focused != null and _modal_count == 0
 	_label.visible = should_show
 	if not should_show:

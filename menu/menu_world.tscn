@@ -3,51 +3,51 @@
 [ext_resource type="Shader" uid="uid://cdlt3ujrpad32" path="res://level/sky_with_stars.tres" id="1_sky"]
 [ext_resource type="Texture2D" uid="uid://ca3jtautvrj1u" path="res://level/moon.png" id="2_moon"]
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="3_platforms"]
-[ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="4_buildings"]
+[ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="5_2s704"]
 [ext_resource type="Script" uid="uid://kksm7n3u24i" path="res://menu/menu_camera_driver.gd" id="5_driver"]
 
-[sub_resource type="Curve" id="Curve_gradient"]
-_data = [Vector2(0.33, 0.04), 0.0, 0.0, 0, 0, Vector2(0.7, 1), 0.51, 0.0, 0, 0]
+[sub_resource type="Curve" id="Curve_2s704"]
+_data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="CurveTexture" id="CurveTexture_gradient"]
-curve = SubResource("Curve_gradient")
+[sub_resource type="CurveTexture" id="CurveTexture_moxc7"]
+curve = SubResource("Curve_2s704")
 
-[sub_resource type="Gradient" id="Gradient_moon"]
-offsets = PackedFloat32Array(0.784, 1)
+[sub_resource type="Gradient" id="Gradient_iha4f"]
+offsets = PackedFloat32Array(0.784123, 1)
 colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
 
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_stars"]
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_tscu7"]
 frequency = 0.3589
 fractal_octaves = 4
 cellular_distance_function = 2
 
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_stars"]
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_83fre"]
 width = 1024
 height = 1024
 generate_mipmaps = false
-noise = SubResource("FastNoiseLite_stars")
-color_ramp = SubResource("Gradient_moon")
+noise = SubResource("FastNoiseLite_tscu7")
+color_ramp = SubResource("Gradient_iha4f")
 seamless = true
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rqvei"]
 shader = ExtResource("1_sky")
 shader_parameter/top_color = Color(0, 0, 0, 1)
 shader_parameter/bottom_color = Color(0, 0, 0, 1)
-shader_parameter/gradient_curve = SubResource("CurveTexture_gradient")
-shader_parameter/noise_texture = SubResource("NoiseTexture2D_stars")
+shader_parameter/gradient_curve = SubResource("CurveTexture_moxc7")
+shader_parameter/noise_texture = SubResource("NoiseTexture2D_83fre")
 shader_parameter/moon_texture = ExtResource("2_moon")
 shader_parameter/moon_direction = Vector3(-1.095, 0.68, 1)
 shader_parameter/moon_size = 0.045
 
-[sub_resource type="Sky" id="Sky_menu"]
-sky_material = SubResource("ShaderMaterial_sky")
+[sub_resource type="Sky" id="Sky_0h0bb"]
+sky_material = SubResource("ShaderMaterial_rqvei")
 
-[sub_resource type="Environment" id="Environment_menu"]
+[sub_resource type="Environment" id="Environment_23tni"]
 background_mode = 2
-sky = SubResource("Sky_menu")
+sky = SubResource("Sky_0h0bb")
 ambient_light_source = 3
-ambient_light_color = Color(0.749, 0.743, 0.615, 1)
+ambient_light_color = Color(0.74902, 0.742654, 0.615273, 1)
 ambient_light_sky_contribution = 0.0
 tonemap_mode = 2
 tonemap_exposure = 1.05
@@ -55,133 +55,80 @@ tonemap_white = 0.95
 ssr_enabled = true
 ssr_max_steps = 48
 ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 1.4
 ssil_enabled = true
 glow_enabled = true
-glow_intensity = 4.98
-glow_strength = 0.26
-glow_bloom = 0.08
+glow_intensity = 5.31
+glow_strength = 0.75
+glow_bloom = 0.46
+glow_blend_mode = 0
 glow_hdr_threshold = 0.26
-glow_hdr_luminance_cap = 18.75
-volumetric_fog_density = 0.01
-volumetric_fog_albedo = Color(0.843, 0.737, 0.329, 1)
+glow_hdr_scale = 1.48
+glow_hdr_luminance_cap = 66.26
+glow_map_strength = 1.0
+fog_enabled = true
+fog_light_color = Color(0, 0, 0, 1)
+fog_light_energy = 2.31
+fog_density = 0.0103
+fog_aerial_perspective = 1.0
+fog_sky_affect = 0.242
+fog_height = -10.56
+fog_height_density = -0.0649
+volumetric_fog_density = 0.001
+volumetric_fog_albedo = Color(0.21021625, 0.23571473, 0.46857458, 1)
 volumetric_fog_emission = Color(0.05, 0.05, 0.08, 1)
+volumetric_fog_emission_energy = 11.56
+volumetric_fog_gi_inject = 1.26
+volumetric_fog_anisotropy = 0.9
 
 [sub_resource type="Curve3D" id="Curve3D_menu_path"]
+closed = true
+bake_interval = 189.09
 _data = {
-"points": PackedVector3Array(0, 0, 0, 1, 1, 1, -30, 14, -20, 0, 0, 0, 1, 1, 1, -10, 12, -30, 0, 0, 0, 0, 0, 0, 14, 10, -22, 0, 0, 0, 1, 1, 1, 22, 12, 0, 0, 0, 0, 1, 1, 1, 10, 14, 22, 0, 0, 0, 0, 0, 0, -18, 12, 18, 0, 0, 0, 0, 0, 0, -30, 14, -20),
+"points": PackedVector3Array(0, 0, 0, 1, 1, 1, -100.75638, 14, -20, 0, 0, 0, 1, 1, 1, -81.261635, 12, -89.84744, 0, 0, 0, 0, 0, 0, 14, -28.629059, -106.76759, 0, 0, 0, 1, 1, 1, 272.32813, 12, 0, 0, 0, 0, 1, 1, 1, 202.63074, -29.432365, 159.05414, 0, 0, 0, 0, 0, 0, -96.09155, -7.4571533, 83.668365, 0, 0, 0, 0, 0, 0, -113.233894, 14, 27.834633),
 "tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0)
 }
 point_count = 7
 
 [node name="MenuWorld" type="Node3D" unique_id=1001920543]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=227068276]
-environment = SubResource("Environment_menu")
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=776886759]
+environment = SubResource("Environment_23tni")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1301110954]
-transform = Transform3D(-0.327, 0.942, -0.079, 0.689, 0.295, 0.662, 0.647, 0.162, -0.745, 0, 40, -20)
-light_energy = 0.53
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2143608699]
+transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.2945784, 0.6624412, 0.64704365, 0.16237842, -0.7449616, -47.2295, 26.8832, -28.0205)
+light_color = Color(0.7398003, 0.61807764, 0.91222364, 1)
+light_energy = 3.699
+light_indirect_energy = 5.119
+light_volumetric_fog_energy = 2.505
+light_specular = 0.0
 shadow_enabled = true
-directional_shadow_max_distance = 60.0
-
-[node name="Ground" type="CSGBox3D" parent="." unique_id=685720502]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
-size = Vector3(120, 2, 120)
-material = ExtResource("3_platforms")
-
-[node name="Building_A" type="CSGBox3D" parent="." unique_id=1236217505]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 9.403402, -14)
-size = Vector3(6, 18, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_B" type="CSGBox3D" parent="." unique_id=1309239533]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 11.158585, -12)
-size = Vector3(5, 22, 5)
-material = ExtResource("4_buildings")
-
-[node name="Building_C" type="CSGBox3D" parent="." unique_id=454547751]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 7.219679, 14)
-size = Vector3(7, 14, 7)
-material = ExtResource("4_buildings")
-
-[node name="Building_D" type="CSGBox3D" parent="." unique_id=389430963]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.9772005, 13.057751, 16.799538)
-size = Vector3(6, 26, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_A2" type="CSGBox3D" parent="." unique_id=1520715962]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.353813, 9.403402, -9.54092)
-size = Vector3(6, 18, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_B2" type="CSGBox3D" parent="." unique_id=1032480726]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.353813, 11.158585, -7.5409203)
-size = Vector3(5, 22, 5)
-material = ExtResource("4_buildings")
-
-[node name="Building_C2" type="CSGBox3D" parent="." unique_id=1471594386]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35381317, 7.219679, 18.45908)
-size = Vector3(7, 14, 7)
-material = ExtResource("4_buildings")
-
-[node name="Building_D2" type="CSGBox3D" parent="." unique_id=634722875]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.331013, 13.057751, 21.258617)
-size = Vector3(6, 26, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_A3" type="CSGBox3D" parent="." unique_id=1568522]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.353813, 9.403402, -25.974037)
-size = Vector3(6, 18, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_B3" type="CSGBox3D" parent="." unique_id=87021234]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.353813, 11.158585, -23.974037)
-size = Vector3(5, 22, 5)
-material = ExtResource("4_buildings")
-
-[node name="Building_C3" type="CSGBox3D" parent="." unique_id=616217424]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35381317, 7.219679, 2.0259628)
-size = Vector3(7, 14, 7)
-material = ExtResource("4_buildings")
-
-[node name="Building_D3" type="CSGBox3D" parent="." unique_id=1573227536]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.331013, 13.057751, 4.8255005)
-size = Vector3(6, 26, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_A4" type="CSGBox3D" parent="." unique_id=162262115]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.9670677, 10.695616, -34.344196)
-size = Vector3(6, 18, 6)
-material = ExtResource("4_buildings")
-
-[node name="Building_B4" type="CSGBox3D" parent="." unique_id=414224306]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.967068, 12.450798, -32.344196)
-size = Vector3(5, 22, 5)
-material = ExtResource("4_buildings")
-
-[node name="Building_C4" type="CSGBox3D" parent="." unique_id=2140751330]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34.967068, 8.511892, -6.3441963)
-size = Vector3(7, 14, 7)
-material = ExtResource("4_buildings")
-
-[node name="Building_D4" type="CSGBox3D" parent="." unique_id=249785103]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.989868, 14.349964, -3.5446587)
-size = Vector3(6, 26, 6)
-material = ExtResource("4_buildings")
-
-[node name="Platform_A" type="CSGBox3D" parent="." unique_id=208726142]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
-size = Vector3(8, 0.8, 8)
-material = ExtResource("3_platforms")
+directional_shadow_max_distance = 40.0
 
 [node name="CameraPath" type="Path3D" parent="." unique_id=1639571077]
 curve = SubResource("Curve3D_menu_path")
 
 [node name="PathFollow3D" type="PathFollow3D" parent="CameraPath" unique_id=1535372781]
-transform = Transform3D(-0.7071067, -0.40824828, -0.5773502, -2.9802319e-08, 0.81649655, -0.5773502, 0.7071067, -0.40824822, -0.5773502, -30, 14, -20)
+transform = Transform3D(-0.7071067, -0.40824828, -0.5773502, -2.9802319e-08, 0.81649655, -0.5773502, 0.7071067, -0.40824822, -0.5773502, -100.75638, 14, -20)
 script = ExtResource("5_driver")
+loop_duration_s = 120.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraPath/PathFollow3D" unique_id=1529602286]
 fov = 55.0
 near = 0.1
 far = 400.0
+
+[node name="ground_bg" type="CSGBox3D" parent="." unique_id=738156431]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -33.400177, 75.50018)
+material_override = ExtResource("3_platforms")
+use_collision = true
+size = Vector3(2000, 1, 2000)
+script = ExtResource("5_2s704")
+cell_size = 17.421
+cell_gap = 1.624
+max_width = 8.0
+min_height = 50.0
+max_height = 50.0
+avoid_path = NodePath("../CameraPath")
+path_avoid_radius = 5.149

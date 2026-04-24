@@ -60,6 +60,28 @@ func _wire_cards() -> void:
 	_wire_card_confirm(_card_a, &"a")
 	_wire_card_confirm(_card_b, &"b")
 	_wire_card_confirm(_card_c, &"c")
+	_wire_card_focus_chain()
+
+
+# Godot's geometric auto-resolve picks BackBtn (wide, directly below) as the
+# left/right neighbor for every card's confirm button — so arrow keys from
+# CardB never reach A or C. Wire explicit horizontal neighbors so A↔B↔C
+# cycles correctly, and pin BackBtn's up to CardB.
+func _wire_card_focus_chain() -> void:
+	var btn_a: Button = _card_a.get_node_or_null(^"Col/Confirm") as Button
+	var btn_b: Button = _card_b.get_node_or_null(^"Col/Confirm") as Button
+	var btn_c: Button = _card_c.get_node_or_null(^"Col/Confirm") as Button
+	if btn_a == null or btn_b == null or btn_c == null:
+		return
+	btn_a.focus_neighbor_right = btn_a.get_path_to(btn_b)
+	btn_b.focus_neighbor_left  = btn_b.get_path_to(btn_a)
+	btn_b.focus_neighbor_right = btn_b.get_path_to(btn_c)
+	btn_c.focus_neighbor_left  = btn_c.get_path_to(btn_b)
+	# Down from any card → BackBtn; up from BackBtn → CardB (centered).
+	btn_a.focus_neighbor_bottom = btn_a.get_path_to(_back_btn)
+	btn_b.focus_neighbor_bottom = btn_b.get_path_to(_back_btn)
+	btn_c.focus_neighbor_bottom = btn_c.get_path_to(_back_btn)
+	_back_btn.focus_neighbor_top = _back_btn.get_path_to(btn_b)
 
 
 func _title_for_mode() -> String:

@@ -25,6 +25,22 @@ func _ready() -> void:
 		collision_layer = 0  # sensor stops picking us up
 
 
+## Gate: requires the Hack power-up (powerup_secret) from Level 2. Before
+## the player collects the SECRET floppy, every hack terminal in the world
+## locks with a "not a hacker" message. After collection, terminals behave
+## normally (subject to the usual key/flag gates from the Interactable base).
+func can_interact(actor: Node3D) -> bool:
+	if not bool(GameState.get_flag(&"powerup_secret", false)):
+		return false
+	return super.can_interact(actor)
+
+
+func describe_lock() -> String:
+	if not bool(GameState.get_flag(&"powerup_secret", false)):
+		return "not a hacker"
+	return super.describe_lock()
+
+
 func interact(_actor: Node3D) -> void:
 	if puzzle_scene == null:
 		push_warning("PuzzleTerminal %s has no puzzle_scene" % interactable_id)

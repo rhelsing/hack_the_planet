@@ -1,0 +1,245 @@
+[gd_scene format=3 uid="uid://0rnicaoj4obq"]
+
+[ext_resource type="Script" uid="uid://0yq1lwnomyrv" path="res://level/hub.gd" id="1_script"]
+[ext_resource type="Shader" uid="uid://cdlt3ujrpad32" path="res://level/sky_with_stars.tres" id="2_5yrdd"]
+[ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_c07e2"]
+[ext_resource type="PackedScene" uid="uid://cu7qfptmf3x6k" path="res://interactable/hub_pedestal/hub_pedestal.tscn" id="2_pedestal"]
+[ext_resource type="Texture2D" uid="uid://ca3jtautvrj1u" path="res://level/moon.png" id="3_8pryl"]
+[ext_resource type="PackedScene" path="res://interactable/dialogue_trigger/dialogue_trigger.tscn" id="3_dialogue"]
+[ext_resource type="Resource" uid="uid://dxvm3schu6jsp" path="res://dialogue/hub_love.dialogue" id="4_love"]
+[ext_resource type="Resource" uid="uid://xiu44rpnsxvr" path="res://dialogue/hub_secret.dialogue" id="5_secret"]
+[ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="6_hvg3a"]
+[ext_resource type="Resource" uid="uid://clf6o6ml0u8u4" path="res://dialogue/hub_sex.dialogue" id="6_sex"]
+[ext_resource type="Resource" uid="uid://dnvwqqmte86n5" path="res://dialogue/hub_god.dialogue" id="7_god"]
+[ext_resource type="PackedScene" uid="uid://bij84ol81kcts" path="res://level/interactable/kill_plane/kill_plane_3d.tscn" id="8_killplane"]
+[ext_resource type="PackedScene" uid="uid://drmsg0one0001" path="res://level/interactable/respawn_message_zone/respawn_message_zone.tscn" id="9_respawnmsg"]
+[ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="11_eicw1"]
+[ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="12_city"]
+[ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="13_companion"]
+[ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
+[ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
+
+[sub_resource type="Curve" id="Curve_i18fy"]
+_data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_moxc7"]
+curve = SubResource("Curve_i18fy")
+
+[sub_resource type="Gradient" id="Gradient_jfiid"]
+offsets = PackedFloat32Array(0.784123, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_hafxc"]
+frequency = 0.3589
+fractal_octaves = 4
+cellular_distance_function = 2
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_83fre"]
+width = 1024
+height = 1024
+generate_mipmaps = false
+noise = SubResource("FastNoiseLite_hafxc")
+color_ramp = SubResource("Gradient_jfiid")
+seamless = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bcw7j"]
+shader = ExtResource("2_5yrdd")
+shader_parameter/top_color = Color(0, 0, 0, 1)
+shader_parameter/bottom_color = Color(0, 0, 0, 1)
+shader_parameter/gradient_curve = SubResource("CurveTexture_moxc7")
+shader_parameter/noise_texture = SubResource("NoiseTexture2D_83fre")
+shader_parameter/moon_texture = ExtResource("3_8pryl")
+shader_parameter/moon_direction = Vector3(-1.095, 0.68, 1)
+shader_parameter/moon_size = 0.045
+
+[sub_resource type="Sky" id="Sky_0h0bb"]
+sky_material = SubResource("ShaderMaterial_bcw7j")
+
+[sub_resource type="Environment" id="Environment_xmeay"]
+background_mode = 2
+sky = SubResource("Sky_0h0bb")
+ambient_light_source = 3
+ambient_light_color = Color(0.74902, 0.742654, 0.615273, 1)
+ambient_light_sky_contribution = 0.0
+tonemap_mode = 2
+tonemap_exposure = 1.05
+tonemap_white = 0.95
+ssr_enabled = true
+ssr_max_steps = 48
+ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 1.4
+ssil_enabled = true
+glow_enabled = true
+glow_intensity = 4.73
+glow_strength = 0.54
+glow_bloom = 0.41
+glow_blend_mode = 0
+glow_hdr_threshold = 0.26
+glow_hdr_scale = 1.48
+glow_hdr_luminance_cap = 66.26
+glow_map_strength = 1.0
+fog_enabled = true
+fog_light_color = Color(0, 0, 0, 1)
+fog_light_energy = 2.31
+fog_density = 0.0309
+fog_aerial_perspective = 1.0
+fog_sky_affect = 0.242
+fog_height = -10.56
+fog_height_density = -0.0649
+volumetric_fog_density = 0.001
+volumetric_fog_albedo = Color(0.21021625, 0.23571473, 0.46857458, 1)
+volumetric_fog_emission = Color(0.05, 0.05, 0.08, 1)
+volumetric_fog_emission_energy = 11.56
+volumetric_fog_gi_inject = 1.26
+volumetric_fog_anisotropy = 0.9
+
+[node name="Hub" type="Node3D" unique_id=1033929937]
+script = ExtResource("1_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2008778833]
+environment = SubResource("Environment_xmeay")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1214981173]
+transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.29457843, 0.66244125, 0.64704365, 0.16237843, -0.7449617, -47.2295, 26.8832, -28.0205)
+light_color = Color(0.7398003, 0.61807764, 0.91222364, 1)
+light_energy = 3.699
+light_indirect_energy = 5.119
+light_volumetric_fog_energy = 2.505
+light_specular = 0.0
+shadow_enabled = true
+directional_shadow_max_distance = 40.0
+
+[node name="Ground" type="CSGBox3D" parent="." unique_id=1819932891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(30, 1, 30)
+
+[node name="platform" type="CSGBox3D" parent="." unique_id=574944003]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -12.359004, 98.59065)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(15.080139, 1, 19.78363)
+
+[node name="platform2" type="CSGBox3D" parent="." unique_id=1976298521]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -12.359004, 75.50018)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(15.080139, 1, 19.78363)
+
+[node name="RespawnHintZone1" parent="." unique_id=939626571 instance=ExtResource("9_respawnmsg")]
+transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, 3.1557379, -17.32798, 88.252975)
+message = "Press space/a to jump!"
+
+[node name="RespawnHintZone2" parent="." unique_id=1479663897 instance=ExtResource("9_respawnmsg")]
+transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, 3.1557379, -17.32798, 57.504807)
+message = "Press space/a twice to double jump. Your timing matters!"
+
+[node name="RespawnHintZone3" parent="." unique_id=1368947165 instance=ExtResource("9_respawnmsg")]
+transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, -14.532114, -17.32798, 45.390038)
+message = "Press Q to dash at the end of your double jump to clear large distances!"
+
+[node name="platform3" type="CSGBox3D" parent="." unique_id=851854735]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -12.359004, 46.120483)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(15.080139, 1, 19.78363)
+
+[node name="platform4" type="CSGBox3D" parent="." unique_id=835277673]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, 42.416115)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(15.080139, 1, 19.78363)
+
+[node name="PlayerSpawn" type="Marker3D" parent="." unique_id=953613540]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 10)
+
+[node name="tutorial_spawn" type="Marker3D" parent="." unique_id=1231384171]
+transform = Transform3D(-0.997185, 0, -0.07497881, 0, 1, 0, 0.07497881, 0, -0.997185, 0, -11.541762, 105.038956)
+
+[node name="KillPlane" parent="." unique_id=873445851 instance=ExtResource("8_killplane")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -30, 0)
+
+[node name="PedestalLove" parent="." unique_id=1153728140 instance=ExtResource("2_pedestal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.04008341, -4)
+interactable_id = &"pedestal_1"
+
+[node name="PedestalSecret" parent="." unique_id=582857367 instance=ExtResource("2_pedestal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.04008341, -4)
+level_num = 2
+interactable_id = &"pedestal_2"
+
+[node name="PedestalSex" parent="." unique_id=502467274 instance=ExtResource("2_pedestal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.04008341, -4)
+level_num = 3
+interactable_id = &"pedestal_3"
+
+[node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.04008341, -4)
+level_num = 4
+interactable_id = &"pedestal_4"
+
+[node name="NPCLove" parent="." unique_id=1327182062 instance=ExtResource("3_dialogue")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.0306458, 4)
+dialogue_resource = ExtResource("4_love")
+interactable_id = &"npc_love"
+
+[node name="NPCMesh" type="CSGCylinder3D" parent="NPCLove" unique_id=1167691079]
+material_override = ExtResource("6_hvg3a")
+radius = 0.4
+
+[node name="NPCSecret" parent="." unique_id=1944969461 instance=ExtResource("3_dialogue")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.0306458, 4)
+dialogue_resource = ExtResource("5_secret")
+interactable_id = &"npc_secret"
+
+[node name="NPCMesh" type="CSGCylinder3D" parent="NPCSecret" unique_id=1899185800]
+material_override = ExtResource("6_hvg3a")
+radius = 0.4
+
+[node name="NPCSex" parent="." unique_id=1250803405 instance=ExtResource("3_dialogue")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.0306458, 4)
+dialogue_resource = ExtResource("6_sex")
+interactable_id = &"npc_sex"
+
+[node name="NPCMesh" type="CSGCylinder3D" parent="NPCSex" unique_id=54541533]
+material_override = ExtResource("6_hvg3a")
+radius = 0.4
+
+[node name="NPCGod" parent="." unique_id=334877984 instance=ExtResource("3_dialogue")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.0306458, 4)
+dialogue_resource = ExtResource("7_god")
+interactable_id = &"npc_god"
+
+[node name="NPCMesh" type="CSGCylinder3D" parent="NPCGod" unique_id=904294149]
+material_override = ExtResource("6_hvg3a")
+radius = 0.4
+
+[node name="PhoneBooth" parent="." unique_id=547259237 instance=ExtResource("11_eicw1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.0369034, -11.84578, 48.861378)
+
+[node name="PhoneBooth3" parent="." unique_id=670919561 instance=ExtResource("11_eicw1")]
+transform = Transform3D(0.007033604, 0, 0.99997526, 0, 1, 0, -0.99997526, 0, 0.007033604, 4.6073036, -11.84578, 68.6589)
+
+[node name="PhoneBooth2" parent="." unique_id=1937439936 instance=ExtResource("11_eicw1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.238405, -11.84578, 38.95927)
+
+[node name="ground_bg" type="CSGBox3D" parent="." unique_id=592239465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -33.400177, 75.50018)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(2000, 1, 2000)
+script = ExtResource("12_city")
+
+[node name="Glitch" parent="." unique_id=1359934998 instance=ExtResource("13_companion")]
+transform = Transform3D(0.9999957, 0, -0.0029321313, 0, 1, 0, 0.0029321313, 0, 0.9999957, 3.5963764, -11.85, 76.42345)
+dialogue_resource = ExtResource("14_compdlg")
+hide_when_flag = &"glitch1_done"
+
+[node name="Glitch2" parent="." unique_id=688292530 instance=ExtResource("13_companion")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -11.85, 42.416115)
+dialogue_resource = ExtResource("15_glitch2dlg")
+interactable_id = &"npc_glitch_2"
+visible_when_flag = &"glitch1_done"

@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://djo8tmq4weohs"
+path="res://.godot/imported/glitch_2.dialogue-9eae663c5e13fa75ff7368377b6b5a4d.tres"
+
+[deps]
+
+source_file="res://dialogue/glitch_2.dialogue"
+dest_files=["res://.godot/imported/glitch_2.dialogue-9eae663c5e13fa75ff7368377b6b5a4d.tres"]
+
+[params]
+
+defaults=true

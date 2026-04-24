@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://level/level_mockup.tscn" id="1_base"]
+[ext_resource type="PackedScene" uid="uid://do5ecpqaaqlki" path="res://enemy/enemy_cop_riot.tscn" id="2_enemy"]
+
+[node name="LevelMockup" instance=ExtResource("1_base")]
+level_num = 4
+powerup_flag = &"powerup_god"
+powerup_label = "GOD"
+howto_caption = "PRESS Y TO LOB A FLARE"
+
+[node name="FlareTarget" parent="." instance=ExtResource("2_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -15)

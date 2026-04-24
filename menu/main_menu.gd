@@ -12,8 +12,8 @@ const SAVE_SLOTS    := "res://menu/save_slots.tscn"
 const CREDITS       := "res://menu/credits.tscn"
 const GAME_SCENE    := "res://game.tscn"
 ## Menu background music. Swap for any of the imported tracks under
-## audio/music/ — size_of_life_*.mp3, song1/2, etc. — to taste.
-const MENU_MUSIC_PATH := "res://audio/music/disco_music.mp3"
+## audio/music/ — size_of_life_*.mp3, song1/2, disco_music, etc. — to taste.
+const MENU_MUSIC_PATH := "res://audio/music/hackers_theme.mp3"
 
 @onready var _buttons_root: Control = %ButtonsRoot
 @onready var _continue_btn: Button  = %ContinueBtn

@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://drmsgoverlay01"]
+
+[ext_resource type="Script" path="res://interactable/respawn_message_overlay/respawn_message_overlay.gd" id="1_script"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="2_warp"]
+
+[node name="RespawnMessageOverlay" type="CanvasLayer"]
+script = ExtResource("1_script")
+warp_sfx = ExtResource("2_warp")

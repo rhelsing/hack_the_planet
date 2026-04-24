@@ -1,0 +1,10 @@
+~ start
+
+NPC: You did it! Level cleared.
+NPC: What's next?
+- Continue to the hub
+	do LevelProgression.advance()
+	=> END
+- Keep exploring
+	NPC: Suit yourself. I'll be here.
+	=> END

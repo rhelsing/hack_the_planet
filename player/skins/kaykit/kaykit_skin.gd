@@ -102,6 +102,11 @@ func _ready() -> void:
 			_edge_anim_node = sm.get_node(&"EdgeGrab") as AnimationNodeAnimation
 			_hit_anim_node = sm.get_node(&"Hit") as AnimationNodeAnimation
 			_idle_anim_node = sm.get_node(&"Idle") as AnimationNodeAnimation
+			_crouch_anim_node = sm.get_node(&"Crouch") as AnimationNodeAnimation
+			if _crouch_anim_node != null:
+				_crouch_anim_node.animation = &"Sneaking"
+			if _dash_anim_node != null:
+				_dash_anim_node.animation = &"Dodge_Forward"
 
 	# Set up damage overlay. The mannequin has 6 separate mesh parts under
 	# Model/Rig_Medium/Skeleton3D; we share one StandardMaterial3D across
@@ -241,12 +246,10 @@ func on_hit() -> void:
 	state_machine.start("Hit")
 
 
-func dash(direction: Vector3 = Vector3.ZERO) -> void:
-	# Pick the dodge clip whose directionality best matches the world-space
-	# dash vector, projected onto the skin's current facing. Body passes the
-	# same vector it applied to velocity so animation matches motion.
-	if _dash_anim_node != null:
-		_dash_anim_node.animation = _pick_dodge_clip(direction)
+func dash(_direction: Vector3 = Vector3.ZERO) -> void:
+	# Always Dodge_Forward — the directional pick (left/right/back) read as
+	# stutter-step rather than a committed dash, and the forward roll reads
+	# right regardless of where the player is actually moving.
 	state_machine.start("Dash")
 
 
@@ -280,18 +283,3 @@ func set_skate_mode(active: bool) -> void:
 func set_dust_emitting(enabled: bool) -> void:
 	if _dust_particles != null:
 		_dust_particles.emitting = enabled
-
-
-# Project `world_dir` onto the skin's own facing to pick one of the four
-# KayKit dodge clips. When motion is primarily sideways we pick Left/Right;
-# otherwise Forward/Backward. Ties favour forward.
-func _pick_dodge_clip(world_dir: Vector3) -> StringName:
-	if world_dir.length_squared() < 0.0001:
-		return &"Dodge_Forward"
-	var forward: Vector3 = -global_basis.z
-	var right: Vector3 = global_basis.x
-	var f := world_dir.dot(forward)
-	var r := world_dir.dot(right)
-	if absf(r) > absf(f):
-		return &"Dodge_Right" if r > 0.0 else &"Dodge_Left"
-	return &"Dodge_Forward" if f >= 0.0 else &"Dodge_Backward"

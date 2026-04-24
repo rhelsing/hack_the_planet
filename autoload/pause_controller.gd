@@ -37,6 +37,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _is_dialogue_open() or _is_puzzle_active():
 		return
+	# Don't pause from the main menu / save-slots / credits — those scenes
+	# have no PauseMenu instance to show, so pausing there just freezes the
+	# tree with nothing to un-pause it cleanly.
+	if _is_in_menu_scene():
+		return
 	toggle()
 	get_viewport().set_input_as_handled()
 
@@ -94,3 +99,13 @@ func _is_puzzle_active() -> bool:
 	if not p.has_method(&"is_active"):
 		return false
 	return p.call(&"is_active")
+
+
+## True when the current scene lives under res://menu/ (main menu, save
+## slots, settings, credits, scene loader). Pause is suppressed there.
+func _is_in_menu_scene() -> bool:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return true  # no scene = don't pause
+	var sf: String = scene.scene_file_path
+	return sf.begins_with("res://menu/")

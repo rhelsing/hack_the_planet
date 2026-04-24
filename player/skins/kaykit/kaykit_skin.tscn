@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bcvkveqpeyxw7"]
 
 [ext_resource type="Script" uid="uid://b72mab8s2flj6" path="res://player/skins/kaykit/kaykit_skin.gd" id="1_script"]
+[ext_resource type="Script" path="res://player/skins/kaykit/kaykit_powerup_display.gd" id="9_powerup_display"]
 [ext_resource type="PackedScene" uid="uid://cuj11xk2culfy" path="res://player/skins/kaykit/model/kaykit_general.glb" id="2_model"]
 [ext_resource type="PackedScene" uid="uid://b1km7f7b1vkw3" path="res://player/skins/kaykit/model/movement_basic.glb" id="3_movement_basic"]
 [ext_resource type="PackedScene" uid="uid://ccp1o5jv47qql" path="res://player/skins/kaykit/model/combat_melee.glb" id="4_combat_melee"]
@@ -224,6 +225,16 @@ root_node = NodePath("%AnimationTree/../Model")
 tree_root = SubResource("ABT_root")
 anim_player = NodePath("../Model/AnimationPlayer")
 parameters/StateMachine/Move/tilt/add_amount = 0.0
+
+[node name="PowerupEmojis" type="Label3D" parent="." unique_id=820451122]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+billboard = 1
+no_depth_test = true
+pixel_size = 0.015
+font_size = 72
+outline_size = 12
+text = ""
+script = ExtResource("9_powerup_display")
 
 [node name="DustParticles" type="GPUParticles3D" parent="." unique_id=172297066]
 unique_name_in_owner = true

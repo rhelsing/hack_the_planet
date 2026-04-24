@@ -84,6 +84,12 @@ func _physics_process(_delta: float) -> void:
 	# nearest Node3D ancestor (scene root / origin). Per docs §16 Risk #1.
 	_area.global_position = body.global_position
 
+	# If the focused interactable was freed (e.g., a pickup that queue_freed
+	# itself on interact), normalize to null now so _set_focused's equality
+	# check below fires focus_changed → PromptUI clears.
+	if focused != null and not is_instance_valid(focused):
+		focused = null
+
 	var best: Interactable = null
 	var best_score: float = -INF
 	for a: Node in _area.get_overlapping_areas():
@@ -144,6 +150,13 @@ func _score(it: Interactable) -> float:
 
 
 func _set_focused(next: Interactable) -> void:
+	# Normalize freed-but-dangling refs to null before the equality check —
+	# otherwise Godot 4 can report `null == freed_node` as true and we'd
+	# skip the transition, leaving PromptUI stuck on the old prompt.
+	if focused != null and not is_instance_valid(focused):
+		focused = null
+	if next != null and not is_instance_valid(next):
+		next = null
 	if next == focused: return
 	if focused != null:
 		focused.set_highlighted(false)

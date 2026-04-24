@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://hud/components/powerup_row.gd" id="1_row"]
 [ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
 
-[node name="PowerupRow" type="HBoxContainer"]
-alignment = 1
+[node name="PowerupRow" type="VBoxContainer"]
+alignment = 0
 theme = ExtResource("2_theme")
 script = ExtResource("1_row")

@@ -88,3 +88,12 @@ signal game_loaded(slot: StringName)
 signal menu_opened(id: StringName)
 @warning_ignore("unused_signal")
 signal menu_closed(id: StringName)
+
+# Respawn-message zones. Player walks/falls into a RespawnMessageZone Area3D →
+# zone fires armed(text). PlayerBody stores it; on the next death-respawn it
+# fires show(text). RespawnMessageOverlay (CanvasLayer) listens to show() and
+# fades a centered label. Latest-armed wins; cleared after one show.
+@warning_ignore("unused_signal")
+signal respawn_message_armed(text: String)
+@warning_ignore("unused_signal")
+signal respawn_message_show(text: String)

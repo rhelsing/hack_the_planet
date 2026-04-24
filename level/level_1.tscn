@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://level/level_mockup.tscn" id="1_base"]
+
+[node name="LevelMockup" instance=ExtResource("1_base")]
+level_num = 1
+powerup_flag = &"powerup_love"
+powerup_label = "LOVE"
+howto_caption = "PRESS R TO SKATE"

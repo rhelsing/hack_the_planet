@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://dcompnpc00001"]
+
+[ext_resource type="Script" path="res://level/interactable/companion_npc/companion_npc.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://c7qntr4v3xkq2" path="res://player/skins/quaternius/quaternius_skin.tscn" id="2_skin"]
+
+[sub_resource type="SphereShape3D" id="sensor_shape"]
+radius = 3.0
+
+[sub_resource type="SphereShape3D" id="bump_shape"]
+radius = 0.45
+
+[node name="CompanionNPC" type="Area3D" unique_id=761767451]
+collision_layer = 512
+collision_mask = 0
+script = ExtResource("1_script")
+approach_spot = NodePath("ApproachSpot")
+look_at_target = NodePath(".")
+camera_target = NodePath("CameraTarget")
+prompt_verb = "talk"
+interactable_id = &"npc_glitch"
+detection_range_override = 3.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=713316832]
+shape = SubResource("sensor_shape")
+
+[node name="Skin" parent="." unique_id=951331770 instance=ExtResource("2_skin")]
+
+[node name="Bump" type="StaticBody3D" parent="." unique_id=1951263276]
+
+[node name="BumpShape" type="CollisionShape3D" parent="Bump" unique_id=1691422514]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("bump_shape")
+
+[node name="ApproachSpot" type="Marker3D" parent="." unique_id=1562226859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.8051107)
+
+[node name="CameraTarget" type="Marker3D" parent="." unique_id=1007016921]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2465556, 2.5684776, 4.211429)

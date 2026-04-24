@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://level/level_mockup.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://library/interactables/hacking_terminal.tscn" id="2_terminal"]
+[ext_resource type="PackedScene" path="res://library/interactables/door_locked_hack.tscn" id="3_door"]
+
+[node name="LevelMockup" instance=ExtResource("1_base")]
+level_num = 2
+powerup_flag = &"powerup_secret"
+powerup_label = "SECRET"
+howto_caption = "FIND A HACK TERMINAL AND PRESS E"
+
+[node name="HackTerminal" parent="." instance=ExtResource("2_terminal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0.6, -15)
+interactable_id = &"l2_hack_terminal"
+
+[node name="HackDoor" parent="." instance=ExtResource("3_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -20)
+interactable_id = &"l2_hack_door"
+requires_flag = &"l2_hack_terminal"

@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://cu7qfptmf3x6k"]
+
+[ext_resource type="Script" uid="uid://ckp536aby0k0s" path="res://interactable/hub_pedestal/hub_pedestal.gd" id="1_script"]
+[ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="2_qgytd"]
+
+[sub_resource type="BoxShape3D" id="Shape_trigger"]
+size = Vector3(2.5, 3, 2.5)
+
+[sub_resource type="BoxMesh" id="Mesh_pedestal"]
+size = Vector3(1.2, 1.8, 1.2)
+
+[node name="HubPedestal" type="Area3D" unique_id=1849078242]
+collision_layer = 512
+collision_mask = 0
+script = ExtResource("1_script")
+prompt_verb = "enter"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=807979850]
+shape = SubResource("Shape_trigger")
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1532976731]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+material_override = ExtResource("2_qgytd")
+mesh = SubResource("Mesh_pedestal")
+
+[node name="Label" type="Label3D" parent="." unique_id=463436358]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
+pixel_size = 0.015
+billboard = 1
+text = "LEVEL"
+font_size = 48
+outline_size = 10

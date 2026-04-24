@@ -12,6 +12,12 @@ extends CharacterBody3D
 signal health_changed(new_health: int, old_health: int)
 signal died()
 signal respawned()
+## Emitted when an ability is first owned (flag flipped true). HUD powerup_row
+## adds a slot for it. Source: child Ability node calls notify_ability_granted.
+signal ability_granted(ability_id: StringName)
+## Emitted when an ability's `enabled` state flips (e.g. hack mode toggled on).
+## HUD powerup_row tints the icon accordingly.
+signal ability_enabled_changed(ability_id: StringName, enabled: bool)
 
 @export_group("Skin")
 ## Optional skin scene override. If set, the hardcoded SophiaSkin child is
@@ -219,6 +225,12 @@ var _was_crouched: bool = false
 @onready var _last_input_direction := global_basis.z
 @onready var _start_position := global_position
 
+# Ordered list of RespawnMessageZone texts the player has crossed since the
+# last respawn. Drained on the next respawn — overlay chains them with warp
+# transitions. Adjacent duplicates are deduped so re-entering the same zone
+# doesn't queue the same hint twice.
+var _pending_respawn_messages: Array[String] = []
+
 @onready var _camera_pivot: Node3D = %CameraPivot
 @onready var _camera: Camera3D = %Camera3D
 @onready var _skin: CharacterSkin = %SophiaSkin
@@ -242,10 +254,22 @@ func _ready() -> void:
 		add_to_group(pawn_group)
 	_swap_skin_if_overridden()
 	_swap_brain_if_overridden()
+	# Abilities are player-only. If we're running as an enemy / companion,
+	# strip the Abilities node so their _unhandled_input handlers don't
+	# hijack the player's inputs (e.g. enemies firing flares when the
+	# player presses Y).
+	if pawn_group != "player":
+		var abilities_node := get_node_or_null(^"Abilities")
+		if abilities_node != null:
+			abilities_node.queue_free()
 	# Pick the initial profile. start_in_walk_mode wins over skate_profile
 	# existence so enemies / NPCs can hold both profiles (for a future
 	# power-up toggle) but spawn in walk mode.
-	if start_in_walk_mode and walk_profile != null:
+	# Player pawn: also gated by powerup_love — spawn in walk until the
+	# L1 pickup is collected. Enemies/NPCs bypass the flag.
+	var player_has_skate: bool = bool(GameState.get_flag(&"powerup_love", false))
+	var force_walk: bool = pawn_group == "player" and not player_has_skate
+	if (start_in_walk_mode or force_walk) and walk_profile != null:
 		_current_profile = walk_profile
 	else:
 		_current_profile = skate_profile if skate_profile != null else walk_profile
@@ -268,6 +292,10 @@ func _ready() -> void:
 	_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
+	# Player-only: hold the most recent RespawnMessageZone text. Enemies don't
+	# subscribe (they don't respawn into hint UI).
+	if pawn_group == "player":
+		Events.respawn_message_armed.connect(_on_respawn_message_armed)
 	_health = max_health
 	Events.kill_plane_touched.connect(func on_kill_plane_touched(body: PhysicsBody3D) -> void:
 		# Global signal — filter to self so one pawn falling off doesn't kill
@@ -329,15 +357,44 @@ func _swap_skin_if_overridden() -> void:
 	_skin = new_skin
 
 
+## Idempotent: force skate profile on. Called by SkateAbility the moment the
+## powerup_love flag flips true so the player starts rolling without needing
+## to manually press R.
+func set_profile_skate() -> void:
+	if pawn_group == "player" and not GameState.get_flag(&"powerup_love", false):
+		return
+	if skate_profile == null or _current_profile == skate_profile:
+		return
+	_current_profile = skate_profile
+	if _skin != null:
+		_skin.set_skate_mode(true)
+
+
 ## Public hook called by PlayerBrain when the skate/walk toggle is pressed.
 ## Notifies the active skin so it can switch gear visuals (Sophia's wheels).
+## Gated by powerup_love — no-op until the L1 pickup is collected.
 func toggle_profile() -> void:
+	if pawn_group == "player" and not GameState.get_flag(&"powerup_love", false):
+		return
 	if _current_profile == skate_profile and walk_profile != null:
 		_current_profile = walk_profile
 	elif skate_profile != null:
 		_current_profile = skate_profile
 	if _skin != null:
 		_skin.set_skate_mode(_current_profile == skate_profile)
+
+
+## Called by child Ability nodes when their owned-flag flips true. Re-emits
+## on the body so the HUD powerup_row can add a slot.
+func notify_ability_granted(id: StringName) -> void:
+	print("[pw] PlayerBody.ability_granted.emit(%s)" % id)
+	ability_granted.emit(id)
+
+
+## Called by child Ability nodes when their enabled state flips (e.g. hack
+## mode toggled on/off). HUD powerup_row tints accordingly.
+func notify_ability_enabled_changed(id: StringName, enabled: bool) -> void:
+	ability_enabled_changed.emit(id, enabled)
 
 
 ## Public hook called by PlayerBrain when follow-mode toggle is pressed.
@@ -461,6 +518,9 @@ func _finish_death() -> void:
 		_skin.damage_tint = 0.0
 	_skin.idle()
 	respawned.emit()
+	for msg: String in _pending_respawn_messages:
+		Events.respawn_message_show.emit(msg)
+	_pending_respawn_messages.clear()
 	_snap_camera_to_player()
 	set_physics_process(true)
 
@@ -572,6 +632,93 @@ func _on_rail_touched(rail: Node, body: Node) -> void:
 
 func _on_checkpoint_reached(pos: Vector3) -> void:
 	_start_position = pos
+
+
+func _on_respawn_message_armed(text: String) -> void:
+	# Skip if it matches the most recent — re-entering the same zone shouldn't
+	# stack the same hint, but distinct zones in sequence should chain.
+	if not _pending_respawn_messages.is_empty() and _pending_respawn_messages.back() == text:
+		return
+	_pending_respawn_messages.append(text)
+
+
+## Public hook used when the player is teleported into a new level. Resets
+## the respawn point so dying before hitting a phone-booth checkpoint drops
+## the player at the new level's PlayerSpawn instead of the old level's
+## coordinates. Also zeroes velocity so mid-air state doesn't leak across
+## a level swap.
+func set_respawn_point(pos: Vector3) -> void:
+	_start_position = pos
+	velocity = Vector3.ZERO
+
+
+## Initialize spawn facing from the marker's basis. The body itself stays at
+## identity yaw — body rotation is treated as not-meaningful in this codebase
+## (skin handles visual facing, camera handles logical facing). Baking the
+## marker's basis into body.global_transform causes a double-rotation: the
+## skin's per-tick yaw is computed in world space and then applied as a
+## LOCAL transform under the body, so a non-identity body yaw flips the skin
+## opposite the movement direction (looks like running backward).
+##
+## Forward is `-marker.basis.z` (Godot convention). We seed _last_input_direction
+## (so frame-0 skin yaw faces the marker), _yaw_state + _target_yaw (so the
+## camera and skin don't lerp out of an old cache), and snap the camera pivot.
+func snap_to_spawn(spawn_xform: Transform3D) -> void:
+	# Convention: the marker's BLUE Z arrow points where the player faces.
+	# (Godot's standard "forward = -Z" convention is for cameras; for spawn
+	# markers it's more intuitive to rotate the gizmo to point where the
+	# character should look.)
+	var fwd: Vector3 = spawn_xform.basis.z
+	fwd.y = 0.0
+	if fwd.length_squared() > 0.0001:
+		fwd = fwd.normalized()
+		_last_input_direction = fwd
+	var yaw: float = Vector3.BACK.signed_angle_to(fwd, Vector3.UP)
+	_yaw_state = yaw
+	_target_yaw = yaw
+	# Body rotation is reset to identity so skin world-yaw == skin local-yaw.
+	global_rotation = Vector3.ZERO
+	if _camera_pivot != null:
+		if _camera_pivot.top_level:
+			_camera_pivot.global_rotation = Vector3(0.0, yaw, 0.0)
+		else:
+			_camera_pivot.rotation = Vector3.ZERO
+	velocity = Vector3.ZERO
+	_snap_camera_to_player()
+
+
+# ---- Save/load (called by SaveService on save / scene_entered) ----------
+
+## Serializes the per-pawn state that can't be reconstructed from flags alone:
+## current position (for mid-level saves), last-touched checkpoint (so dying
+## on Continue drops you at the phone booth, not the level's default spawn),
+## and current health.
+func get_save_dict() -> Dictionary:
+	return {
+		"position": [global_position.x, global_position.y, global_position.z],
+		"checkpoint": [_start_position.x, _start_position.y, _start_position.z],
+		"health": _health,
+	}
+
+
+## Applied by SaveService on scene_entered after a Continue. Overrides the
+## Game._spawn_player teleport so the player resumes exactly where the save
+## was triggered (checkpoint / flag) with the right checkpoint banked.
+func load_save_dict(d: Dictionary) -> void:
+	var pos: Variant = d.get("position")
+	if pos is Array and (pos as Array).size() == 3:
+		global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+	var cp: Variant = d.get("checkpoint")
+	if cp is Array and (cp as Array).size() == 3:
+		_start_position = Vector3(float(cp[0]), float(cp[1]), float(cp[2]))
+	var h: Variant = d.get("health")
+	if h != null:
+		var new_health := int(h)
+		if new_health != _health:
+			var old := _health
+			_health = new_health
+			health_changed.emit(_health, old)
+	velocity = Vector3.ZERO
 
 
 func _physics_process(delta: float) -> void:

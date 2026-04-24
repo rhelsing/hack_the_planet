@@ -3,15 +3,18 @@
 [ext_resource type="Script" uid="uid://b1p1lnectvs25" path="res://game.gd" id="1_1il7v"]
 [ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_w0p8v"]
 [ext_resource type="PackedScene" uid="uid://cnedxfn2pxh2t" path="res://level/level.tscn" id="7_2frud"]
+[ext_resource type="PackedScene" path="res://level/hub.tscn" id="8_hub"]
 [ext_resource type="PackedScene" uid="uid://bxg6oejpaitdt" path="res://level/interactable/flag/flag_reached_screen.tscn" id="19_cpgj4"]
-[ext_resource type="Script" path="res://controls_hint.gd" id="20_hint"]
 [ext_resource type="PackedScene" uid="uid://b3pausemenu0001" path="res://menu/pause_menu.tscn" id="21_pause"]
 [ext_resource type="PackedScene" path="res://interactable/prompt_ui/prompt_ui.tscn" id="22_prompt"]
+[ext_resource type="PackedScene" path="res://interactable/interaction_sensor.tscn" id="24_sensor"]
 [ext_resource type="PackedScene" uid="uid://b3hudroot00001" path="res://hud/hud.tscn" id="23_hud"]
-[ext_resource type="PackedScene" uid="uid://kaykitskin00001" path="res://player/skins/kaykit/kaykit_skin.tscn" id="99_playerskin"]
+[ext_resource type="PackedScene" uid="uid://drmsgoverlay01" path="res://interactable/respawn_message_overlay/respawn_message_overlay.tscn" id="25_msgoverlay"]
+[ext_resource type="PackedScene" uid="uid://prh35jb6tjtd" path="res://player/sophia_skin/sophia_skin.tscn" id="99_playerskin"]
 
 [node name="Game" type="Node" unique_id=687174872]
 script = ExtResource("1_1il7v")
+default_level_scene = ExtResource("8_hub")
 
 [node name="Player" parent="." unique_id=604819286 instance=ExtResource("1_w0p8v")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.43638, 0, -7.8513)
@@ -22,11 +25,12 @@ skin_scene = ExtResource("99_playerskin")
 [node name="Level" parent="." unique_id=138582475 instance=ExtResource("7_2frud")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 31.4)
 
-[node name="ControlsHint" type="CanvasLayer" parent="."]
-script = ExtResource("20_hint")
-
 [node name="PromptUI" parent="." instance=ExtResource("22_prompt")]
 
+[node name="InteractionSensor" parent="." instance=ExtResource("24_sensor")]
+
 [node name="HUD" parent="." instance=ExtResource("23_hud")]
+
+[node name="RespawnMessageOverlay" parent="." instance=ExtResource("25_msgoverlay")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("21_pause")]

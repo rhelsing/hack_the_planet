@@ -18,6 +18,11 @@ var _cam_base_rot: Vector3
 func _ready() -> void:
 	loop = true
 	cubic_interp = true
+	# Keep the camera upright along the path. ROTATION_Y rotates only around
+	# world-up so the camera still faces along the travel direction but never
+	# pitches or rolls with the curve's tilt/twist. Use ROTATION_NONE if you
+	# want the camera to keep a fixed orientation regardless of travel dir.
+	rotation_mode = PathFollow3D.ROTATION_Y
 	_noise = FastNoiseLite.new()
 	_noise.seed = randi()
 	_noise.frequency = wiggle_frequency

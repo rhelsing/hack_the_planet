@@ -62,6 +62,8 @@ func remove_item(id: StringName) -> void:
 func set_flag(id: StringName, value: Variant = true) -> void:
 	flags[id] = value
 	Events.flag_set.emit(id, value)
+	if String(id).begins_with("powerup_"):
+		print("[pw] GameState.set_flag(%s=%s)" % [id, value])
 
 
 func get_flag(id: StringName, default_value: Variant = null) -> Variant:

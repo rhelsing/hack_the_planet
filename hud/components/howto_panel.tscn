@@ -1,0 +1,60 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://hud/components/howto_panel.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+content_margin_left = 32.0
+content_margin_top = 24.0
+content_margin_right = 32.0
+content_margin_bottom = 24.0
+bg_color = Color(0, 0.05, 0.02, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.84, 0.3, 0.95)
+
+[node name="HowtoPanel" type="CanvasLayer"]
+layer = 60
+script = ExtResource("1_script")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.4)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -220.0
+offset_right = 280.0
+offset_bottom = 140.0
+theme = ExtResource("2_theme")
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+theme_override_constants/separation = 16
+
+[node name="Image" type="TextureRect" parent="Panel/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 240)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Caption" type="Label" parent="Panel/VBox"]
+unique_name_in_owner = true
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+theme = ExtResource("2_theme")
+
+[node name="Hint" type="Label" parent="Panel/VBox"]
+text = "[any key to continue]"
+horizontal_alignment = 1
+modulate = Color(0.7, 0.7, 0.7, 1)
+theme = ExtResource("2_theme")

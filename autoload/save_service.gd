@@ -75,6 +75,11 @@ func begin_new_game(slot: StringName) -> void:
 		gs.call(&"reset")
 	active_slot = slot
 	playtime_s = 0.0
+	# Fresh games start in the hub. Write that into the save immediately so
+	# Continue works even if the player quits without ever clicking a
+	# pedestal. (The string is duplicated from LevelProgression.HUB_LEVEL_ID
+	# rather than imported to avoid autoload init-order coupling.)
+	current_level = &"hub"
 	save_to_slot(slot)
 
 
@@ -181,7 +186,11 @@ func _on_flag_reached() -> void:
 
 
 func _on_scene_entered(scene: Node) -> void:
-	if scene != null:
+	# game.tscn is the persistent gameplay shell — its own "level id" is not
+	# meaningful to save. Game.load_level handles set_current_level for the
+	# actual level mounted underneath. Only stamp current_level for scenes
+	# that ARE the level (legacy boot-to-level.tscn path).
+	if scene != null and scene.scene_file_path != "res://game.tscn":
 		current_level = _scene_id_for(scene)
 	if _pending_player_state.is_empty() or scene == null:
 		return
@@ -275,21 +284,17 @@ func _scene_id_for(scene: Node) -> StringName:
 
 
 func _request_scene_load(level_id: String) -> void:
-	if level_id.is_empty():
-		return
-	# Convention: level_id is the file basename minus .tscn. Gameplay levels
-	# live at res://<level_id>.tscn or res://<level_id>/... — we try common
-	# paths, otherwise assume a `game.tscn`-style root and punt.
-	var candidates := [
-		"res://%s.tscn" % level_id,
-		"res://level/%s.tscn" % level_id,
-		"res://game.tscn",
-	]
+	# Gameplay is a single shell (game.tscn) that dynamically mounts the
+	# actual level under its "Level" child — hub.tscn and level_N.tscn are
+	# level-content-only and not playable standalone. Always route through
+	# the shell; game.gd reads current_level and mounts the right level.
+	# An empty level_id (pre-refactor save) is fine — game.gd falls back to
+	# its default_level_scene (hub).
+	var target := "res://game.tscn"
 	var sl := get_tree().root.get_node_or_null(^"SceneLoader")
-	for c in candidates:
-		if ResourceLoader.exists(c):
-			if sl != null and sl.has_method(&"goto"):
-				sl.call(&"goto", c)
-			else:
-				get_tree().change_scene_to_file(c)
-			return
+	if sl != null and sl.has_method(&"goto"):
+		sl.call(&"goto", target)
+	else:
+		get_tree().change_scene_to_file(target)
+	# Preserve level_id for Game._ready to consume.
+	current_level = StringName(level_id)
