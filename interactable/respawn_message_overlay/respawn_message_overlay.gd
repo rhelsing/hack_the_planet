@@ -5,11 +5,11 @@ extends CanvasLayer
 ## time with a warp-in / hold / warp-out cycle and a brief gap between.
 ##
 ## Per-message lifecycle:
-##   show_delay (first in chain only) → warp-in (scale 0→1 + sfx) → hold →
-##   warp-out (scale 1→0 + sfx) → gap → next
+##   show_delay (first in chain only) → warp-in (scale 0→1) → hold →
+##   warp-out (scale 1→0) → gap → next
 ##
-## PlayerBody fires one signal per queued zone text on respawn — the overlay
-## is what owns the chain timing.
+## VISUAL ONLY — no audio. Companion NPCs play their own SFX on disappear;
+## this overlay stays silent so the two systems don't compete.
 
 ## Delay before the FIRST message in a chain appears (lets the player land
 ## + orient post-respawn). Subsequent messages in the same chain skip this.
@@ -20,27 +20,18 @@ extends CanvasLayer
 ## Pause between one message scaling out and the next warping in.
 @export var gap_between_messages: float = 0.45
 @export var font_size: int = 36
-## Optional warp SFX. Played on every warp-in and warp-out. Drop any short
-## stinger here in the inspector — null = silent.
-@export var warp_sfx: AudioStream
 
 var _label: Label
-var _sfx: AudioStreamPlayer
 var _queue: Array[String] = []
 var _playing: bool = false
-# Explicit chain-state flag. True from the first enqueue of a fresh chain
-# until the queue fully drains. Used to decide if `show_delay` applies (only
-# on the first message in a chain). Inferring this from label.scale/text
-# was racy — when the warp-out tween hadn't fully settled, the next
-# message was treated as non-first and skipped the 3s lead-in.
+# True from the first enqueue of a fresh chain until the queue fully drains.
+# Decides if `show_delay` applies (only on the first message in a chain).
 var _chain_active: bool = false
 
 
 func _ready() -> void:
-	# Without this, dialogue (which pauses the tree) freezes the warp chain —
-	# tweens + AudioStreamPlayer.play() calls queue up silently and then all
-	# fire on a single frame when the tree unpauses. PROCESS_MODE_ALWAYS lets
-	# the chain keep ticking through pause modals so the audio stays in sync.
+	# Without ALWAYS, dialogue (which pauses the tree) freezes the chain —
+	# tween callbacks queue up silently and fire in one frame on resume.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	_label = Label.new()
@@ -62,15 +53,7 @@ func _ready() -> void:
 	_label.pivot_offset = _label.size * 0.5
 	add_child(_label)
 
-	_sfx = AudioStreamPlayer.new()
-	_sfx.bus = &"SFX" if AudioServer.get_bus_index(&"SFX") != -1 else &"Master"
-	_sfx.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(_sfx)
-	if warp_sfx != null:
-		_sfx.stream = warp_sfx  # set once so .play() uses it without re-assign
-
 	Events.respawn_message_show.connect(_enqueue)
-	print("[respawn_overlay] ready. warp_sfx=%s bus=%s" % [warp_sfx, _sfx.bus])
 
 
 func _enqueue(text: String) -> void:
@@ -84,24 +67,20 @@ func _try_play_next() -> void:
 	if _playing or _queue.is_empty():
 		return
 	_playing = true
-	var is_first: bool = (_label.scale == Vector2.ZERO and _label.text.is_empty())
-	# After a message ends we clear text so the next chain starts as "first"
-	# again. During a chain (text still set), is_first is false.
+	var is_first: bool = not _chain_active
+	_chain_active = true
 	var lead_in: float = show_delay if is_first else 0.0
 	var text: String = _queue.pop_front()
 	_label.text = text
 	_label.scale = Vector2.ZERO
-	# Recompute pivot now that text width may have changed.
 	_label.pivot_offset = _label.size * 0.5
 
 	var tw := create_tween()
 	if lead_in > 0.0:
 		tw.tween_interval(lead_in)
-	tw.tween_callback(_play_warp_sfx)
 	tw.tween_property(_label, "scale", Vector2.ONE, warp_in_duration) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(hold_duration)
-	tw.tween_callback(_play_warp_sfx)
 	tw.tween_property(_label, "scale", Vector2.ZERO, warp_out_duration) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tw.tween_callback(_finish_one)
@@ -110,17 +89,8 @@ func _try_play_next() -> void:
 func _finish_one() -> void:
 	_playing = false
 	if _queue.is_empty():
-		# Chain exhausted — clear text so the NEXT signal starts as "first".
 		_label.text = ""
+		_chain_active = false
 	else:
-		# Brief gap before the next one warps in.
 		await get_tree().create_timer(gap_between_messages).timeout
 		_try_play_next()
-
-
-func _play_warp_sfx() -> void:
-	if _sfx.stream == null:
-		print("[respawn_overlay] warp sfx skipped — no stream set (warp_sfx export is null)")
-		return
-	_sfx.play()
-	print("[respawn_overlay] warp sfx PLAY (bus=%s vol=%.1fdB)" % [_sfx.bus, _sfx.volume_db])

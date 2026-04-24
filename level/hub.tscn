@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="13_companion"]
 [ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="16_warp"]
 
 [sub_resource type="Curve" id="Curve_i18fy"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -235,11 +236,13 @@ script = ExtResource("12_city")
 
 [node name="Glitch" parent="." unique_id=1359934998 instance=ExtResource("13_companion")]
 transform = Transform3D(0.9999957, 0, -0.0029321313, 0, 1, 0, 0.0029321313, 0, 0.9999957, 3.5963764, -11.85, 76.42345)
-dialogue_resource = ExtResource("14_compdlg")
 hide_when_flag = &"glitch1_done"
+warp_sfx = ExtResource("16_warp")
+dialogue_resource = ExtResource("14_compdlg")
 
 [node name="Glitch2" parent="." unique_id=688292530 instance=ExtResource("13_companion")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -11.85, 42.416115)
+visible_when_flag = &"glitch1_done"
+arrive_delay = 0.6
 dialogue_resource = ExtResource("15_glitch2dlg")
 interactable_id = &"npc_glitch_2"
-visible_when_flag = &"glitch1_done"
