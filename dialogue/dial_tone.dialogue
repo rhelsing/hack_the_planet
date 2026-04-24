@@ -1,0 +1,87 @@
+~ start
+
+if GameState.get_flag("level_4_completed", false)
+	=> stage_post_4
+elif GameState.get_flag("level_3_completed", false)
+	=> stage_post_3
+elif GameState.get_flag("level_2_completed", false)
+	=> stage_post_2
+elif GameState.get_flag("level_1_completed", false)
+	=> stage_post_1
+elif GameState.get_flag("dialtone_greeted", false)
+	=> stage_nudge
+
+=> stage_intro
+
+~ stage_intro
+
+DialTone: Hey — over here. Name's DialTone.
+DialTone: Before we get into it — what do they call you on the grid?
+do HandlePicker.roll_options(4)
+- {{HandlePicker.option(0)}}
+	do HandlePicker.pick(0)
+- {{HandlePicker.option(1)}}
+	do HandlePicker.pick(1)
+- {{HandlePicker.option(2)}}
+	do HandlePicker.pick(2)
+- {{HandlePicker.option(3)}}
+	do HandlePicker.pick(3)
+DialTone: {{HandlePicker.chosen_name()}}, huh? {{HandlePicker.reaction()}}.
+DialTone: Anyway — listen. My friend Nyx — the Gibson locked her out mid-jack.
+DialTone: She's stuck between sectors. Can't pull out, can't push through. Just drifting in the static.
+DialTone: You gotta jack in and break her loose. Portal behind me drops you into sector one.
+- Who is she?
+	DialTone: Nyx. Sharpest hacker on this grid. Usually. Not her day.
+	=> stage_intro_tail
+- What am I looking for down there?
+	DialTone: Her signal. It'll be flickering between sectors — you'll know it when you see it.
+	=> stage_intro_tail
+- Why can't you go yourself?
+	DialTone: Local node's flagged to my address. I jack in from here, the whole mainframe goes dark. You're a clean IP — you can slip through.
+	=> stage_intro_tail
+
+~ stage_intro_tail
+
+DialTone: Take this — walkie's on my channel. I'll be in your ear the whole run.
+DialTone: Portal's right behind me. Step on, press enter, you're in.
+DialTone: Go bring her back.
+do GameState.set_flag("walkie_talkie_owned", true)
+do GameState.set_flag("dialtone_greeted", true)
+=> END
+
+~ stage_nudge
+
+DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
+=> END
+
+~ stage_post_1
+
+DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
+DialTone: So. She tell you? She was never stuck. Never been stuck. Sharpest node on the grid — the Gibson doesn't lock *her* out.
+DialTone: I just wanted to watch her lose it. She HATES getting rescued. And you... well, you got to ride a good story in. Call it even.
+- You owe me.
+	DialTone: Yeah, yeah. I owe you. Real thing next time, runner's promise.
+	=> post_1_tail
+- She said you're a dead man.
+	DialTone: She always says that. I'm statistically immortal at this point.
+	=> post_1_tail
+
+~ post_1_tail
+
+DialTone: Secret pedestal's lit. Next one's a real job — I swear on my uptime.
+=> END
+
+~ stage_post_2
+
+DialTone: [stub — post-level-2 reaction / next hook]
+=> END
+
+~ stage_post_3
+
+DialTone: [stub — post-level-3 reaction / next hook]
+=> END
+
+~ stage_post_4
+
+DialTone: [stub — post-level-4 / end-game reaction]
+=> END

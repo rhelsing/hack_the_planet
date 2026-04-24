@@ -1,0 +1,233 @@
+[gd_scene format=3 uid="uid://dajskin0001"]
+
+[ext_resource type="Script" path="res://player/skins/aj/aj_skin.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://player/skins/aj/model/aj.glb" id="2_model"]
+[ext_resource type="PackedScene" uid="uid://dn8pfguwvq58a" path="res://player/rollerblade_wheels.tscn" id="6_wheels"]
+[ext_resource type="Material" uid="uid://bl2nmgwa4wpni" path="res://library/fx/dust_particles.tres" id="7_dustproc"]
+[ext_resource type="SphereMesh" uid="uid://jcvev0gdjevs" path="res://library/fx/dust_sphere.tres" id="8_dustmesh"]
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Crouch"]
+animation = &"Crouching Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Dash"]
+animation = &"Sprinting Forward Roll"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Die"]
+animation = &"Yelling"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_EdgeGrab"]
+animation = &"Punching"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Fall"]
+animation = &"Jump"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Hit"]
+animation = &"Yelling"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Idle"]
+animation = &"Breathing Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Jump"]
+animation = &"Jumping"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Land"]
+animation = &"Jumping"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_RunTiltL"]
+animation = &"Running"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_RunTiltR"]
+animation = &"Running"
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_Run"]
+animation = &"Running"
+
+[sub_resource type="AnimationNodeAdd3" id="ANA3_tilt"]
+
+[sub_resource type="AnimationNodeBlendTree" id="ABT_move"]
+graph_offset = Vector2(-362, 27)
+nodes/L/node = SubResource("ANA_RunTiltL")
+nodes/L/position = Vector2(-100, 320)
+nodes/R/node = SubResource("ANA_RunTiltR")
+nodes/R/position = Vector2(-240, 240)
+nodes/Run/node = SubResource("ANA_Run")
+nodes/Run/position = Vector2(-120, 120)
+nodes/tilt/node = SubResource("ANA3_tilt")
+nodes/tilt/position = Vector2(80, 160)
+node_connections = [&"output", 0, &"tilt", &"tilt", 0, &"L", &"tilt", 1, &"Run", &"tilt", 2, &"R"]
+
+[sub_resource type="AnimationNodeAnimation" id="ANA_WallSlide"]
+animation = &"Breathing Idle"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_start"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_idle_jump"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_jump_idle"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_jump_fall"]
+xfade_time = 0.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_fall_jump"]
+xfade_time = 0.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_fall_idle"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_idle_fall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_idle_move"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_move_idle"]
+xfade_time = 0.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_fall_move"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_move_fall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_move_jump"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_jump_move"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_jump_edge"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_wall_fall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_jump_wall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_edge_fall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_edge_wall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_fall_edge"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_wall_jump"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_edge_jump"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_fall_wall"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_dash_idle"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_dash_move"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_dash_fall"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_dash_jump"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_crouch_idle"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_crouch_move"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_edge_idle"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_edge_move"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_land_idle"]
+xfade_time = 0.12
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_land_move"]
+xfade_time = 0.12
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_hit_idle"]
+xfade_time = 0.12
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_hit_move"]
+xfade_time = 0.12
+
+[sub_resource type="AnimationNodeStateMachine" id="ANSM_root"]
+states/Crouch/node = SubResource("ANA_Crouch")
+states/Crouch/position = Vector2(180, 290)
+states/Dash/node = SubResource("ANA_Dash")
+states/Dash/position = Vector2(627, 44)
+states/Die/node = SubResource("ANA_Die")
+states/Die/position = Vector2(180, 122)
+states/EdgeGrab/node = SubResource("ANA_EdgeGrab")
+states/EdgeGrab/position = Vector2(327, 290)
+states/End/position = Vector2(627, 166)
+states/Fall/node = SubResource("ANA_Fall")
+states/Fall/position = Vector2(474, 205)
+states/Hit/node = SubResource("ANA_Hit")
+states/Hit/position = Vector2(180, 205)
+states/Idle/node = SubResource("ANA_Idle")
+states/Idle/position = Vector2(327, 122)
+states/Jump/node = SubResource("ANA_Jump")
+states/Jump/position = Vector2(327, 205)
+states/Land/node = SubResource("ANA_Land")
+states/Land/position = Vector2(627, 205)
+states/Move/node = SubResource("ABT_move")
+states/Move/position = Vector2(474, 122)
+states/Start/position = Vector2(327, 44)
+states/WallSlide/node = SubResource("ANA_WallSlide")
+states/WallSlide/position = Vector2(474, 290)
+transitions = ["Start", "Idle", SubResource("T_start"), "Idle", "Jump", SubResource("T_idle_jump"), "Jump", "Idle", SubResource("T_jump_idle"), "Jump", "Fall", SubResource("T_jump_fall"), "Fall", "Jump", SubResource("T_fall_jump"), "Fall", "Idle", SubResource("T_fall_idle"), "Idle", "Fall", SubResource("T_idle_fall"), "Idle", "Move", SubResource("T_idle_move"), "Move", "Idle", SubResource("T_move_idle"), "Fall", "Move", SubResource("T_fall_move"), "Move", "Fall", SubResource("T_move_fall"), "Move", "Jump", SubResource("T_move_jump"), "Jump", "Move", SubResource("T_jump_move"), "Jump", "EdgeGrab", SubResource("T_jump_edge"), "WallSlide", "Fall", SubResource("T_wall_fall"), "Jump", "WallSlide", SubResource("T_jump_wall"), "EdgeGrab", "Fall", SubResource("T_edge_fall"), "EdgeGrab", "WallSlide", SubResource("T_edge_wall"), "Fall", "EdgeGrab", SubResource("T_fall_edge"), "WallSlide", "Jump", SubResource("T_wall_jump"), "EdgeGrab", "Jump", SubResource("T_edge_jump"), "Fall", "WallSlide", SubResource("T_fall_wall"), "Dash", "Idle", SubResource("T_dash_idle"), "Dash", "Move", SubResource("T_dash_move"), "Dash", "Fall", SubResource("T_dash_fall"), "Dash", "Jump", SubResource("T_dash_jump"), "Crouch", "Idle", SubResource("T_crouch_idle"), "Crouch", "Move", SubResource("T_crouch_move"), "EdgeGrab", "Idle", SubResource("T_edge_idle"), "EdgeGrab", "Move", SubResource("T_edge_move"), "Land", "Idle", SubResource("T_land_idle"), "Land", "Move", SubResource("T_land_move"), "Hit", "Idle", SubResource("T_hit_idle"), "Hit", "Move", SubResource("T_hit_move")]
+graph_offset = Vector2(-264, 106)
+
+[sub_resource type="AnimationNodeBlendTree" id="ABT_root"]
+nodes/output/position = Vector2(200, 0)
+nodes/StateMachine/node = SubResource("ANSM_root")
+nodes/StateMachine/position = Vector2(0, 0)
+node_connections = [&"output", 0, &"StateMachine"]
+
+[node name="AjSkin" type="Node3D"]
+script = ExtResource("1_script")
+uniform_scale = 1.3
+lean_pivot_height = 1.6
+lean_multiplier = 0.5
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+
+[node name="WheelsLeft" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.08958967, 0.9959788, 0, -0.9959788, 0.08958967, 0.13, -0.02, 0.03)
+
+[node name="RollerbladeWheels" parent="WheelsLeft" instance=ExtResource("6_wheels")]
+transform = Transform3D(0.99913156, -0.041498847, 0.0037328787, 0.041498847, 0.9991387, 7.747114e-05, -0.003732878, 7.749349e-05, 0.99999285, -0.06572321, -0.15587991, 0.014021615)
+
+[node name="WheelsRight" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, 0.04, 0)
+
+[node name="RollerbladeWheels" parent="WheelsRight" instance=ExtResource("6_wheels")]
+transform = Transform3D(0.9970941, 0.07611072, -0.003237889, 0, 0.04250338, 0.99909633, 0.076179564, -0.99619305, 0.042379867, -0.15649724, -0.13859314, 0.07541376)
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+unique_name_in_owner = true
+root_node = NodePath("%AnimationTree/../Model")
+tree_root = SubResource("ABT_root")
+anim_player = NodePath("../Model/AnimationPlayer")
+parameters/StateMachine/Move/tilt/add_amount = 0.0
+
+[node name="DustParticles" type="GPUParticles3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.137, -0.32326055)
+cast_shadow = 0
+gi_mode = 0
+amount = 10
+lifetime = 0.7
+explosiveness = 0.05
+process_material = ExtResource("7_dustproc")
+draw_pass_1 = ExtResource("8_dustmesh")

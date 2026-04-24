@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://j2u10rpgelfl"
+path="res://.godot/imported/level_1_nyx.dialogue-d85f6f7ca34ab500753a084027cbcf85.tres"
+
+[deps]
+
+source_file="res://dialogue/level_1_nyx.dialogue"
+dest_files=["res://.godot/imported/level_1_nyx.dialogue-d85f6f7ca34ab500753a084027cbcf85.tres"]
+
+[params]
+
+defaults=true

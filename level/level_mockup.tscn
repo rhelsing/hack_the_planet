@@ -15,7 +15,7 @@
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="CurveTexture" id="CurveTexture_moxc7"]
+[sub_resource type="CurveTexture" id="CurveTexture_b7jw0"]
 curve = SubResource("Curve_kyl5q")
 
 [sub_resource type="Gradient" id="Gradient_inho1"]
@@ -27,7 +27,7 @@ frequency = 0.3589
 fractal_octaves = 4
 cellular_distance_function = 2
 
-[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_83fre"]
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_rk00k"]
 width = 1024
 height = 1024
 generate_mipmaps = false
@@ -39,18 +39,18 @@ seamless = true
 shader = ExtResource("2_bi0xq")
 shader_parameter/top_color = Color(0, 0, 0, 1)
 shader_parameter/bottom_color = Color(0, 0, 0, 1)
-shader_parameter/gradient_curve = SubResource("CurveTexture_moxc7")
-shader_parameter/noise_texture = SubResource("NoiseTexture2D_83fre")
+shader_parameter/gradient_curve = SubResource("CurveTexture_b7jw0")
+shader_parameter/noise_texture = SubResource("NoiseTexture2D_rk00k")
 shader_parameter/moon_texture = ExtResource("3_b7jw0")
 shader_parameter/moon_direction = Vector3(-1.095, 0.68, 1)
 shader_parameter/moon_size = 0.045
 
-[sub_resource type="Sky" id="Sky_0h0bb"]
+[sub_resource type="Sky" id="Sky_kyl5q"]
 sky_material = SubResource("ShaderMaterial_x8m41")
 
 [sub_resource type="Environment" id="Environment_4v15s"]
 background_mode = 2
-sky = SubResource("Sky_0h0bb")
+sky = SubResource("Sky_kyl5q")
 ambient_light_source = 3
 ambient_light_color = Color(0.74902, 0.742654, 0.615273, 1)
 ambient_light_sky_contribution = 0.0
@@ -104,28 +104,52 @@ shadow_enabled = true
 directional_shadow_max_distance = 40.0
 
 [node name="Ground" type="CSGBox3D" parent="." unique_id=310043039]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 25.485413)
 material_override = ExtResource("4_rk00k")
 use_collision = true
-size = Vector3(8, 1, 60)
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground2" type="CSGBox3D" parent="." unique_id=1550871969]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 11.9811325)
+material_override = ExtResource("4_rk00k")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground3" type="CSGBox3D" parent="." unique_id=548036433]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0.65408325)
+material_override = ExtResource("4_rk00k")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground4" type="CSGBox3D" parent="." unique_id=1459023526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -11.948381)
+material_override = ExtResource("4_rk00k")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground5" type="CSGBox3D" parent="." unique_id=122823214]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -24.477402)
+material_override = ExtResource("4_rk00k")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
 
 [node name="KillPlane" parent="." unique_id=1073834918 instance=ExtResource("5_kill")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -20, 0)
 
 [node name="PlayerSpawn" type="Marker3D" parent="." unique_id=139234302]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 25)
+transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, 0, 1.5, 25)
 
 [node name="Checkpoint1" parent="." unique_id=679718777 instance=ExtResource("2_phone_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 12)
 
 [node name="Checkpoint2" parent="." unique_id=57134153 instance=ExtResource("2_phone_booth")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -10.335255)
 
 [node name="PowerupPickup" parent="." unique_id=221835442 instance=ExtResource("3_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 
 [node name="LevelEndDialogue" parent="." unique_id=187308304 instance=ExtResource("4_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.34367, 1.2, -26.925331)
 dialogue_resource = ExtResource("6_clear")
 interactable_id = &"level_end_npc"
 

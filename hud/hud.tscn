@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://b3objbanner001" path="res://hud/components/objective_banner.tscn" id="4_banner"]
 [ext_resource type="PackedScene" uid="uid://b3toaststack01" path="res://hud/components/toast_stack.tscn" id="5_toasts"]
 [ext_resource type="PackedScene" uid="uid://b3hudpowerup01" path="res://hud/components/powerup_row.tscn" id="6_powerup"]
+[ext_resource type="PackedScene" uid="uid://dwalkiechip001" path="res://hud/components/walkie_chip.tscn" id="9_walkiechip"]
 [ext_resource type="PackedScene" uid="uid://b3deathoverlay1" path="res://hud/components/death_overlay.tscn" id="7_death"]
 [ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="8_theme"]
 
@@ -73,6 +74,17 @@ mouse_filter = 2
 theme = ExtResource("8_theme")
 
 [node name="PowerupRow" parent="TopLeftBelowHealth" instance=ExtResource("6_powerup")]
+
+[node name="WalkieChipSlot" type="MarginContainer" parent="."]
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 16.0
+offset_top = 108.0
+offset_right = 56.0
+offset_bottom = 148.0
+mouse_filter = 2
+
+[node name="WalkieChip" parent="WalkieChipSlot" instance=ExtResource("9_walkiechip")]
 
 [node name="Fullscreen" type="Control" parent="."]
 anchor_right = 1.0

@@ -9,8 +9,8 @@ extends "res://puzzle/puzzle.gd"
 ## See docs/interactables.md §11.2.
 
 @export var required_hits: int = 5
-@export var zone_width_px: float = 80.0
-@export var base_speed_px_s: float = 420.0
+@export var zone_width_px: float = 140.0
+@export var base_speed_px_s: float = 240.0
 @export var speed_increase_per_hit: float = 90.0
 @export var speed_decrease_per_miss: float = 60.0
 @export var max_speed_px_s: float = 1200.0

@@ -1,0 +1,21 @@
+~ start
+
+Nyx: ... let me guess. DialTone sent you.
+- He said you were stuck between sectors.
+	Nyx: Of *course* he did.
+	=> tail
+- Are you okay?
+	Nyx: I'm fine. I've always been fine.
+	=> tail
+
+~ tail
+
+Nyx: I'm going to kill him.
+Nyx: He does this — tells people I need rescuing, then sits back and watches me lose it. You're the third runner this month.
+Nyx: Go on back and tell him his joke landed. Tell him Nyx says he's a dead man.
+- Head back to the hub.
+	do LevelProgression.advance()
+	=> END
+- I'll hang out here a sec.
+	Nyx: Suit yourself.
+	=> END

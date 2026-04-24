@@ -16,7 +16,13 @@ extends Node
 ##   5. Playback routed through Audio.play_dialogue so Dialogue bus sidechains
 
 const MODAL_ID: StringName = &"dialogue"
-const CACHE_DIR: String = "user://tts_cache/"
+## Shipped cache. Checked first at read time. Populated before export by
+## tools/sync_voice_cache.gd (copies from DEV_CACHE_DIR). Exports include
+## everything under res://, so shipped builds hit the API zero times.
+const SHIPPED_CACHE_DIR: String = "res://audio/voice_cache/"
+## Dev cache. Writes always go here (res:// is read-only in exported builds).
+## During authoring this is where fresh synths land.
+const DEV_CACHE_DIR: String = "user://tts_cache/"
 const CONFIG_PATH: String = "user://tts_config.tres"
 const VOICES_PATH: String = "res://dialogue/voices.tres"
 const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
@@ -51,13 +57,14 @@ func _ready() -> void:
 	# our HTTPRequest child's response handler needs to fire under pause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
-	DirAccess.make_dir_recursive_absolute("user://tts_cache")
+	DirAccess.make_dir_recursive_absolute(DEV_CACHE_DIR)
 	_voices = load(VOICES_PATH)
 	_api_key = _load_api_key()
-	_log("ready. voices=%s api_key=%s cache_dir=%s" % [
+	_log("ready. voices=%s api_key=%s shipped_cache=%s dev_cache=%s" % [
 		"loaded" if _voices != null else "<MISSING>",
 		"present (%d chars)" % _api_key.length() if not _api_key.is_empty() else "<NOT SET — TTS will be silent>",
-		ProjectSettings.globalize_path(CACHE_DIR),
+		ProjectSettings.globalize_path(SHIPPED_CACHE_DIR),
+		ProjectSettings.globalize_path(DEV_CACHE_DIR),
 	])
 	_http = HTTPRequest.new()
 	_http.request_completed.connect(_on_http_completed)
@@ -232,7 +239,8 @@ func start(resource: Resource, title: String = "start", id: StringName = &"") ->
 
 
 ## Called by the dialogue balloon (or its replacement) for each TTS line.
-## Hashes character+text to a stable filename; caches to user://tts_cache/.
+## Hashes character+text to a stable filename. Reads through two-tier lookup:
+## shipped res:// cache wins, then user:// dev cache, else API.
 ## Plays through Audio.play_dialogue so the Dialogue bus drives sidechain.
 func speak_line(character: String, text: String) -> void:
 	if _voices == null:
@@ -242,21 +250,20 @@ func speak_line(character: String, text: String) -> void:
 		_log('speak_line: no voice configured for character="%s" — silent' % character)
 		return
 	var voice_id: String = _voices.get_voice_id(character)
-	var path: String = _cache_path_for(character, text, voice_id)
-	_log('speak_line: character="%s" voice_id=%s cache_path=%s' % [character, voice_id, path])
-
-	if FileAccess.file_exists(path):
-		_log("speak_line: CACHE HIT → _play_cached")
-		_play_cached(path)
+	var read_path: String = _cache_path_read(character, text, voice_id)
+	if not read_path.is_empty():
+		_log('speak_line: CACHE HIT (%s) → _play_cached' % read_path)
+		_play_cached(read_path)
 		return
 
 	_log("speak_line: cache MISS — enqueue ElevenLabs request")
+	var write_path: String = _cache_path_write(character, text, voice_id)
 	# Not cached — enqueue a TTS request. Silent until response arrives.
 	_tts_queue.append({
 		"character": character,
 		"text": text,
 		"voice_id": voice_id,
-		"path": path,
+		"path": write_path,
 	})
 	_maybe_dispatch_next_tts()
 
@@ -300,11 +307,29 @@ func _capture_player_mouse(on: bool) -> void:
 		brain.capture_mouse(on)
 
 
-func _cache_path_for(character: String, text: String, voice_id: String) -> String:
+## Stable filename derived from character + text + voice_id. Machine-independent.
+func _cache_filename(character: String, text: String, voice_id: String) -> String:
 	var hash_input: String = "%s__%s__%s" % [character, text, voice_id]
 	var hashed: String = hash_input.md5_text().left(15)
 	var safe_char: String = character.to_lower().replace(" ", "_")
-	return CACHE_DIR + "%s_%s.mp3" % [safe_char, hashed]
+	return "%s_%s.mp3" % [safe_char, hashed]
+
+
+## Read path. Shipped cache wins so exports play from res://. Returns "" if no
+## cache hit on either tier — caller falls back to API.
+func _cache_path_read(character: String, text: String, voice_id: String) -> String:
+	var fname: String = _cache_filename(character, text, voice_id)
+	var shipped: String = SHIPPED_CACHE_DIR + fname
+	if FileAccess.file_exists(shipped): return shipped
+	var dev: String = DEV_CACHE_DIR + fname
+	if FileAccess.file_exists(dev): return dev
+	return ""
+
+
+## Write path. Always user:// — res:// is read-only in exported builds.
+## tools/sync_voice_cache.gd copies from user:// → res:// before ship.
+func _cache_path_write(character: String, text: String, voice_id: String) -> String:
+	return DEV_CACHE_DIR + _cache_filename(character, text, voice_id)
 
 
 func _load_api_key() -> String:

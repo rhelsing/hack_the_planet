@@ -37,6 +37,11 @@ extends DialogueTrigger
 @export var wave_intervals_sec: Array[float] = [5.0, 7.0, 13.0]
 @export var wave_clip_name: StringName = &"Wave"
 
+## Optional skin override — if set, the default Skin child is freed at _ready
+## and replaced with an instance of this scene. Lets companion variants (Glitch,
+## DialTone, ...) share the base scene while wearing different skins.
+@export var skin_scene: PackedScene
+
 # Skins built on the body system natively face +basis.z, so a yaw of
 # atan2(dir.x, dir.z) points the basis.z axis at the target.
 const _MODEL_FORWARD_OFFSET: float = 0.0
@@ -53,6 +58,7 @@ var _waving: bool = false
 
 func _ready() -> void:
 	super()
+	_maybe_swap_skin()
 	_swivel = get_node_or_null(swivel_target_path) as Node3D
 	_sfx = AudioStreamPlayer.new()
 	_sfx.bus = &"SFX" if AudioServer.get_bus_index(&"SFX") != -1 else &"Master"
@@ -69,6 +75,10 @@ func _ready() -> void:
 		_wave_anim_tree = _swivel.get_node_or_null(^"%AnimationTree") as AnimationTree
 		_wave_anim_player = _find_anim_player(_swivel)
 	_pick_next_wave_interval()
+	# Companions never move — kill the skin's dust emitter so we don't get a
+	# permanent skate-dust trail under an idle NPC.
+	if _swivel != null and _swivel.has_method(&"set_dust_emitting"):
+		_swivel.call(&"set_dust_emitting", false)
 
 
 # Snap to the right state at scene load — no animation. Animation only fires
@@ -87,6 +97,7 @@ func _set_present_snap(present: bool) -> void:
 	visible = present
 	monitoring = present
 	monitorable = present
+	_set_bump_enabled(present)
 	if _swivel != null:
 		_swivel.scale = Vector3.ONE if present else Vector3.ZERO
 
@@ -108,6 +119,7 @@ func _animate_arrive() -> void:
 	_swivel.scale = Vector3.ZERO
 	visible = true
 	monitoring = true
+	_set_bump_enabled(true)
 	monitorable = true
 	var tw := create_tween()
 	if arrive_delay > 0.0:
@@ -119,14 +131,25 @@ func _animate_arrive() -> void:
 func _animate_leave() -> void:
 	if _swivel == null:
 		return
+	# Disable everything the player could still hit: the interaction sensor
+	# (Area3D monitor), the physical Bump collider that would otherwise still
+	# block pathing, and finally visibility. Without the Bump disable the
+	# player walks into an invisible wall after the NPC "leaves".
 	monitoring = false
 	monitorable = false
+	_set_bump_enabled(false)
 	if _sfx != null and _sfx.stream != null:
 		_sfx.play()
 	var tw := create_tween()
 	tw.tween_property(_swivel, "scale", Vector3.ZERO, presence_anim_duration) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void: visible = false)
+
+
+func _set_bump_enabled(on: bool) -> void:
+	var bump_shape: CollisionShape3D = get_node_or_null(^"Bump/BumpShape") as CollisionShape3D
+	if bump_shape != null:
+		bump_shape.disabled = not on
 
 
 func _process(delta: float) -> void:
@@ -192,6 +215,18 @@ func _on_wave_finished(_clip: StringName) -> void:
 	if _wave_anim_tree != null:
 		_wave_anim_tree.active = true
 	_waving = false
+
+
+func _maybe_swap_skin() -> void:
+	if skin_scene == null:
+		return
+	var existing: Node = get_node_or_null(swivel_target_path)
+	if existing != null:
+		existing.name = "_SkinOld"
+		existing.queue_free()
+	var new_skin: Node = skin_scene.instantiate()
+	new_skin.name = "Skin"
+	add_child(new_skin)
 
 
 func _find_anim_player(n: Node) -> AnimationPlayer:

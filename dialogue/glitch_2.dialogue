@@ -17,7 +17,7 @@ do GameState.set_flag("glitch2_done", true)
 ~ enemies_ahead
 
 Glitch: Enemies are no match for your little punches dude.
-Glitch: Press J to strike them down.
+Glitch: Press T to strike them down.
 Glitch: See you around dude.
 Glitch: Remember you can look up controls in the settings menu.
 Glitch: Until the next time!

@@ -225,6 +225,21 @@ A skin does nothing on its own — it lives inside a `PlayerBody`. Two ways to i
 
 Open `game.tscn`, select the PlayerBody node, set `Skin Scene` to your new `<name>_skin.tscn`. That's the whole change. The body also needs `walk_profile` and optionally `skate_profile` set.
 
+**The active player skin is wired in exactly two lines of `game.tscn`:**
+
+- The ext_resource near the top of the file (points at the skin tscn):
+  ```
+  [ext_resource type="PackedScene" uid="uid://..." path="res://player/skins/<name>/<name>_skin.tscn" id="99_playerskin"]
+  ```
+- The override on the Player node:
+  ```
+  [node name="Player" parent="." unique_id=604819286 instance=ExtResource("1_w0p8v")]
+  ...
+  skin_scene = ExtResource("99_playerskin")
+  ```
+
+`PlayerBody` defines `@export var skin_scene: PackedScene`; this override is the single source of truth for the player's look. To swap skins by hand-editing, change the ext_resource `path=` + `uid=` to another `*_skin.tscn` — no other code changes needed. (Same `skin_scene` export is what enemy variants override to get their own skins; see §6.2.)
+
 ### 6.2 As an enemy variant
 
 Duplicate `enemy/enemy_kaykit.tscn` → `enemy/enemy_<name>.tscn`. Open it. Update the inspector overrides on the root PlayerBody:

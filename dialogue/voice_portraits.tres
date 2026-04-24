@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="VoicePortraits" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://dialogue/voice_portraits.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://35p38nikvfc8" path="res://dialogue/portraits/dialtone.png" id="2_dialtone"]
+
+[resource]
+script = ExtResource("1")
+portraits = {
+"DialTone": ExtResource("2_dialtone")
+}

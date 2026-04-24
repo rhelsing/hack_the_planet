@@ -1,0 +1,102 @@
+[gd_scene load_steps=6 format=3 uid="uid://dwalkieui0001"]
+
+[ext_resource type="Script" path="res://hud/walkie_ui/walkie_ui.gd" id="1_script"]
+
+[sub_resource type="SystemFont" id="mono_font"]
+font_names = PackedStringArray("JetBrainsMono-Regular", "JetBrains Mono", "Menlo", "Consolas", "monospace")
+
+[sub_resource type="StyleBoxFlat" id="panel_style"]
+bg_color = Color(0.05, 0.07, 0.09, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.85, 0.55, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="initial_style"]
+bg_color = Color(0.3, 0.3, 0.3, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="Theme" id="theme_root"]
+default_font = SubResource("mono_font")
+
+[node name="WalkieUI" type="CanvasLayer"]
+layer = 50
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="." unique_name_in_owner=true]
+theme = SubResource("theme_root")
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 28.0
+offset_bottom = 28.0
+mouse_filter = 2
+
+[node name="CenterBox" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 100.0
+
+[node name="Panel" type="PanelContainer" parent="Root/CenterBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("panel_style")
+custom_minimum_size = Vector2(520, 0)
+
+[node name="HBox" type="HBoxContainer" parent="Root/CenterBox/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PortraitSlot" type="Control" parent="Root/CenterBox/Panel/HBox"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+
+[node name="Portrait" type="TextureRect" parent="Root/CenterBox/Panel/HBox/PortraitSlot" unique_name_in_owner=true]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PortraitInitial" type="Label" parent="Root/CenterBox/Panel/HBox/PortraitSlot" unique_name_in_owner=true]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("initial_style")
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBox" type="VBoxContainer" parent="Root/CenterBox/Panel/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="Root/CenterBox/Panel/HBox/VBox" unique_name_in_owner=true]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 1, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "DIALTONE"
+
+[node name="TextLabel" type="RichTextLabel" parent="Root/CenterBox/Panel/HBox/VBox" unique_name_in_owner=true]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 40)
+bbcode_enabled = true
+theme_override_font_sizes/normal_font_size = 16
+fit_content = true
+text = ""

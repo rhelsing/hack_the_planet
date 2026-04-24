@@ -13,6 +13,14 @@ extends Interactable
 ## the terminal stays hackable (useful for retry / practice).
 @export var one_shot: bool = true
 
+## GameState flag that must be truthy for the terminal to be usable. Defaults
+## to the hacker power-up for legacy hacking terminals; set empty ("") to
+## remove the gate so non-hack puzzles (flow, password) don't require it.
+@export var required_flag: StringName = &"powerup_secret"
+## Message shown in the locked prompt when `required_flag` isn't set. Empty
+## uses the default "not a hacker" text from legacy hacking terminals.
+@export var locked_message: String = "not a hacker"
+
 
 func _ready() -> void:
 	super._ready()
@@ -25,19 +33,17 @@ func _ready() -> void:
 		collision_layer = 0  # sensor stops picking us up
 
 
-## Gate: requires the Hack power-up (powerup_secret) from Level 2. Before
-## the player collects the SECRET floppy, every hack terminal in the world
-## locks with a "not a hacker" message. After collection, terminals behave
-## normally (subject to the usual key/flag gates from the Interactable base).
+## Gate: if `required_flag` is set and unsatisfied, terminal locks. Set
+## `required_flag = &""` to remove the gate (for non-hack puzzles).
 func can_interact(actor: Node3D) -> bool:
-	if not bool(GameState.get_flag(&"powerup_secret", false)):
+	if required_flag != &"" and not bool(GameState.get_flag(required_flag, false)):
 		return false
 	return super.can_interact(actor)
 
 
 func describe_lock() -> String:
-	if not bool(GameState.get_flag(&"powerup_secret", false)):
-		return "not a hacker"
+	if required_flag != &"" and not bool(GameState.get_flag(required_flag, false)):
+		return locked_message
 	return super.describe_lock()
 
 

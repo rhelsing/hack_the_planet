@@ -4,29 +4,31 @@
 [ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="2_qgytd"]
 
 [sub_resource type="BoxShape3D" id="Shape_trigger"]
-size = Vector3(2.5, 3, 2.5)
+size = Vector3(4.8566437, 3, 7.8291016)
 
 [sub_resource type="BoxMesh" id="Mesh_pedestal"]
 size = Vector3(1.2, 1.8, 1.2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_qgytd"]
+data = PackedVector3Array(-0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, 0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, -0.59999996, 0.9, -0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, 0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, 0.9, 0.59999996, -0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, 0.9, -0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, 0.59999996, -0.9, -0.59999996, -0.59999996, -0.9, -0.59999996)
 
 [node name="HubPedestal" type="Area3D" unique_id=1849078242]
 collision_layer = 512
 collision_mask = 0
 script = ExtResource("1_script")
+ready_tint = Color(0.9691492, 0.8521716, 0.33967677, 1)
 prompt_verb = "enter"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=807979850]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0054855347, 0, 0.32177734)
 shape = SubResource("Shape_trigger")
 
 [node name="Mesh" type="MeshInstance3D" parent="." unique_id=1532976731]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1.8, 0)
 material_override = ExtResource("2_qgytd")
 mesh = SubResource("Mesh_pedestal")
 
-[node name="Label" type="Label3D" parent="." unique_id=463436358]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
-pixel_size = 0.015
-billboard = 1
-text = "LEVEL"
-font_size = 48
-outline_size = 10
+[node name="StaticBody3D" type="StaticBody3D" parent="Mesh" unique_id=674013706]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Mesh/StaticBody3D" unique_id=328021542]
+shape = SubResource("ConcavePolygonShape3D_qgytd")

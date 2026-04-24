@@ -58,6 +58,8 @@ extends Resource
 	"Apple Tree": "cgSgspJ2msm6clMCkdW9",    # Jessica
 	"Snail": "pFZP5JQG7iQjIQuC4Bku",         # Lily
 	"Glitch": "bIHbv24MWmeRgasZH58o",        # Will — relaxed optimist, young chill
+	"DialTone": "TX3LPaxmHKxFdv7VOQHJ",      # Liam — energetic, social media creator
+	"Nyx": "cgSgspJ2msm6clMCkdW9",           # Jessica — playful, bright, warm
 }
 
 

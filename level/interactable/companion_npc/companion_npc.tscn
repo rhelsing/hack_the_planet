@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dcompnpc00001"]
 
-[ext_resource type="Script" path="res://level/interactable/companion_npc/companion_npc.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://b0o3ek8sc08po" path="res://level/interactable/companion_npc/companion_npc.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://c7qntr4v3xkq2" path="res://player/skins/quaternius/quaternius_skin.tscn" id="2_skin"]
 
 [sub_resource type="SphereShape3D" id="sensor_shape"]
@@ -35,4 +35,4 @@ shape = SubResource("bump_shape")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.8051107)
 
 [node name="CameraTarget" type="Marker3D" parent="." unique_id=1007016921]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2465556, 2.5684776, 4.211429)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5690002, 3.9899933, 3.1231399)

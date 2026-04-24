@@ -5,12 +5,6 @@
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_c07e2"]
 [ext_resource type="PackedScene" uid="uid://cu7qfptmf3x6k" path="res://interactable/hub_pedestal/hub_pedestal.tscn" id="2_pedestal"]
 [ext_resource type="Texture2D" uid="uid://ca3jtautvrj1u" path="res://level/moon.png" id="3_8pryl"]
-[ext_resource type="PackedScene" path="res://interactable/dialogue_trigger/dialogue_trigger.tscn" id="3_dialogue"]
-[ext_resource type="Resource" uid="uid://dxvm3schu6jsp" path="res://dialogue/hub_love.dialogue" id="4_love"]
-[ext_resource type="Resource" uid="uid://xiu44rpnsxvr" path="res://dialogue/hub_secret.dialogue" id="5_secret"]
-[ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="6_hvg3a"]
-[ext_resource type="Resource" uid="uid://clf6o6ml0u8u4" path="res://dialogue/hub_sex.dialogue" id="6_sex"]
-[ext_resource type="Resource" uid="uid://dnvwqqmte86n5" path="res://dialogue/hub_god.dialogue" id="7_god"]
 [ext_resource type="PackedScene" uid="uid://bij84ol81kcts" path="res://level/interactable/kill_plane/kill_plane_3d.tscn" id="8_killplane"]
 [ext_resource type="PackedScene" uid="uid://drmsg0one0001" path="res://level/interactable/respawn_message_zone/respawn_message_zone.tscn" id="9_respawnmsg"]
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="11_eicw1"]
@@ -20,20 +14,22 @@
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="16_warp"]
 [ext_resource type="Script" uid="uid://dji2iovkb8six" path="res://level/elevator.gd" id="17_elevator"]
+[ext_resource type="Resource" uid="uid://cnclpp0hu1d8b" path="res://dialogue/dial_tone.dialogue" id="18_dialtonedlg"]
+[ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="19_animeskin"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
 
-[sub_resource type="Curve" id="Curve_i18fy"]
+[sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="CurveTexture" id="CurveTexture_moxc7"]
-curve = SubResource("Curve_i18fy")
+curve = SubResource("Curve_hafxc")
 
-[sub_resource type="Gradient" id="Gradient_jfiid"]
+[sub_resource type="Gradient" id="Gradient_bcw7j"]
 offsets = PackedFloat32Array(0.784123, 1)
 colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
 
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_hafxc"]
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_xmeay"]
 frequency = 0.3589
 fractal_octaves = 4
 cellular_distance_function = 2
@@ -42,11 +38,11 @@ cellular_distance_function = 2
 width = 1024
 height = 1024
 generate_mipmaps = false
-noise = SubResource("FastNoiseLite_hafxc")
-color_ramp = SubResource("Gradient_jfiid")
+noise = SubResource("FastNoiseLite_xmeay")
+color_ramp = SubResource("Gradient_bcw7j")
 seamless = true
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_bcw7j"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_62dii"]
 shader = ExtResource("2_5yrdd")
 shader_parameter/top_color = Color(0, 0, 0, 1)
 shader_parameter/bottom_color = Color(0, 0, 0, 1)
@@ -57,9 +53,9 @@ shader_parameter/moon_direction = Vector3(-1.095, 0.68, 1)
 shader_parameter/moon_size = 0.045
 
 [sub_resource type="Sky" id="Sky_0h0bb"]
-sky_material = SubResource("ShaderMaterial_bcw7j")
+sky_material = SubResource("ShaderMaterial_62dii")
 
-[sub_resource type="Environment" id="Environment_xmeay"]
+[sub_resource type="Environment" id="Environment_kie8i"]
 background_mode = 2
 sky = SubResource("Sky_0h0bb")
 ambient_light_source = 3
@@ -101,11 +97,11 @@ volumetric_fog_anisotropy = 0.9
 [node name="Hub" type="Node3D" unique_id=1033929937]
 script = ExtResource("1_script")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2008778833]
-environment = SubResource("Environment_xmeay")
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=619190011]
+environment = SubResource("Environment_kie8i")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1214981173]
-transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.29457843, 0.66244125, 0.64704365, 0.16237843, -0.7449617, -47.2295, 26.8832, -28.0205)
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1170556833]
+transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.29457843, 0.6624412, 0.64704365, 0.16237843, -0.7449616, -47.2295, 26.8832, -28.0205)
 light_color = Color(0.7398003, 0.61807764, 0.91222364, 1)
 light_energy = 3.699
 light_indirect_energy = 5.119
@@ -175,7 +171,7 @@ use_collision = true
 size = Vector3(15.080139, 1, 45.345917)
 
 [node name="PlayerSpawn" type="Marker3D" parent="." unique_id=953613540]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 11.87849, -52.001877)
+transform = Transform3D(-0.9885677, 0, 0.15077773, 0, 1, 0, -0.15077773, 0, -0.9885677, -23.069511, 11.87849, -49.47721)
 
 [node name="Ground" type="CSGBox3D" parent="." unique_id=1819932891]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 10.61075, -59.62894)
@@ -183,60 +179,39 @@ material_override = ExtResource("2_c07e2")
 use_collision = true
 size = Vector3(30, 1, 30)
 
+[node name="DialTone" parent="Ground" unique_id=903001001 instance=ExtResource("13_companion")]
+transform = Transform3D(1.9, 0, 0, 0, 1.9, 0, 0, 0, 1.9, 0, 0.53999996, 3.026703)
+wave_clip_name = &"Greeting"
+skin_scene = ExtResource("19_animeskin")
+dialogue_resource = ExtResource("18_dialtonedlg")
+interactable_id = &"npc_dialtone"
+
 [node name="PedestalLove" parent="." unique_id=1153728140 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 11.150833, -63.62894)
+ready_tint = Color(0.24355009, 0.69582105, 0.5367658, 1)
+require_flag = &"dialtone_greeted"
 interactable_id = &"pedestal_1"
 
 [node name="PedestalSecret" parent="." unique_id=582857367 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 11.150833, -63.62894)
 level_num = 2
+ready_tint = Color(0.22080001, 0.50415987, 0.96, 1)
+require_flag = &"dialtone_greeted"
 interactable_id = &"pedestal_2"
 
 [node name="PedestalSex" parent="." unique_id=502467274 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 11.150833, -63.62894)
 level_num = 3
+ready_tint = Color(0.7495762, 0.22929168, 0.9761173, 1)
+require_flag = &"dialtone_greeted"
 interactable_id = &"pedestal_3"
 
 [node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -63.62894)
 level_num = 4
+ready_tint = Color(1, 0.84, 0.3, 1)
+require_flag = &"dialtone_greeted"
 interactable_id = &"pedestal_4"
-
-[node name="NPCLove" parent="." unique_id=1327182062 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 12.141396, -55.62894)
-dialogue_resource = ExtResource("4_love")
-interactable_id = &"npc_love"
-
-[node name="NPCMesh" type="CSGCylinder3D" parent="NPCLove" unique_id=1167691079]
-material_override = ExtResource("6_hvg3a")
-radius = 0.4
-
-[node name="NPCSecret" parent="." unique_id=1944969461 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 12.141396, -55.62894)
-dialogue_resource = ExtResource("5_secret")
-interactable_id = &"npc_secret"
-
-[node name="NPCMesh" type="CSGCylinder3D" parent="NPCSecret" unique_id=1899185800]
-material_override = ExtResource("6_hvg3a")
-radius = 0.4
-
-[node name="NPCSex" parent="." unique_id=1250803405 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 12.141396, -55.62894)
-dialogue_resource = ExtResource("6_sex")
-interactable_id = &"npc_sex"
-
-[node name="NPCMesh" type="CSGCylinder3D" parent="NPCSex" unique_id=54541533]
-material_override = ExtResource("6_hvg3a")
-radius = 0.4
-
-[node name="NPCGod" parent="." unique_id=334877984 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 12.141396, -55.62894)
-dialogue_resource = ExtResource("7_god")
-interactable_id = &"npc_god"
-
-[node name="NPCMesh" type="CSGCylinder3D" parent="NPCGod" unique_id=904294149]
-material_override = ExtResource("6_hvg3a")
-radius = 0.4
 
 [node name="PhoneBooth" parent="." unique_id=547259237 instance=ExtResource("11_eicw1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.0369034, -11.84578, 48.861378)
@@ -277,4 +252,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.71944, -11.872521, -16.72
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.46186, -11.87252, -8.9443655)
 
 [node name="PhoneBooth4" parent="." unique_id=1418926793 instance=ExtResource("11_eicw1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.65403, 11.123972, -52.04639)
+transform = Transform3D(0.069808714, 0, -0.9975604, 0, 1, 0, 0.9975604, 0, 0.069808714, -33.44011, 11.123972, -52.04639)

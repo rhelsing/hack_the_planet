@@ -85,6 +85,9 @@ var _saved_camera: Camera3D = null
 var _cinematic_cam: Camera3D = null
 var _saved_player_physics: bool = true
 var _saved_dust_emitting: bool = false
+## Held during cinematic so _exit_tree can thaw the player even if we're
+## detached before the normal `dialogue_ended` path reaches _exit_cinematic.
+var _saved_actor: Node3D = null
 # Skin rotation before cinematic. We tween the SKIN visually (not the body)
 # because PlayerBody._physics_process sets _skin.transform every tick based
 # on _yaw_state — tweening the body does nothing visible. We freeze body's
@@ -98,6 +101,32 @@ func _ready() -> void:
 	super._ready()
 	if prompt_verb == "interact":
 		prompt_verb = "talk"
+
+
+## Safety net. If this trigger is removed from the tree while a cinematic is
+## active (common case: dialogue's `do LevelProgression.advance()` swaps the
+## scene), the queued `dialogue_ended` handler can't tween from a detached
+## node. Restore everything synchronously — camera, player physics, dust —
+## so the player doesn't end up in the hub frozen with an orphaned camera.
+func _exit_tree() -> void:
+	if not _cinematic_active:
+		return
+	# Camera — snap back, no tween (we're detached, tween wouldn't progress).
+	if _cinematic_cam != null and is_instance_valid(_cinematic_cam):
+		_cinematic_cam.queue_free()
+	_cinematic_cam = null
+	if _saved_camera != null and is_instance_valid(_saved_camera):
+		_saved_camera.make_current()
+	_saved_camera = null
+	# Player — thaw physics + restore dust. Actor survives scene swaps (it
+	# lives in game.tscn, not the level scene) so these calls are safe.
+	if _saved_actor != null and is_instance_valid(_saved_actor):
+		var dust: GPUParticles3D = _saved_actor.get_node_or_null(^"%DustParticles") as GPUParticles3D
+		if dust != null:
+			dust.emitting = _saved_dust_emitting
+		_saved_actor.set_physics_process(_saved_player_physics)
+	_saved_actor = null
+	_cinematic_active = false
 
 
 func interact(actor: Node3D) -> void:
@@ -137,6 +166,7 @@ func interact(actor: Node3D) -> void:
 func _enter_cinematic(actor: Node3D) -> void:
 	if _cinematic_active: return
 	_cinematic_active = true
+	_saved_actor = actor
 
 	var approach_node := get_node_or_null(approach_spot) as Node3D
 	var look_at_node := get_node_or_null(look_at_target) as Node3D
@@ -278,10 +308,15 @@ func _freeze_player_for_cinematic(actor: Node3D, skin: Node3D) -> void:
 		_saved_dust_emitting = dust.emitting
 		dust.emitting = false
 
-	# 4. Reset the skin. Transform3D() is identity → strips lean, tilt, offset.
+	# 4. Reset the skin. Identity basis strips lean/tilt/offset; we preserve
+	#    the skin's uniform_scale so a non-1.0 scale (e.g. AJ at 1.3) doesn't
+	#    get clobbered back to 1.0 for the duration of the cinematic/dialogue.
 	#    idle() / set_skate_mode(false) drop run+skate anims to idle pose.
 	if reset_skin_pose and skin != null:
-		skin.transform = Transform3D()
+		var skin_scale: float = 1.0
+		if "uniform_scale" in skin:
+			skin_scale = float(skin.uniform_scale)
+		skin.transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * skin_scale), Vector3.ZERO)
 		if skin.has_method(&"set_skate_mode"):
 			skin.call(&"set_skate_mode", false)
 		if skin.has_method(&"idle"):
@@ -313,13 +348,18 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 	_saved_skin_rotation_y = _SAVED_YAW_UNSET
 
 	# Tween the cinematic camera back to the player camera's current pose,
-	# then hand control back.
+	# then hand control back. If we've been detached from the tree (e.g. the
+	# dialogue ended via a `do LevelProgression.advance()` that swapped the
+	# scene out from under us), skip the tween and restore instantly — a
+	# detached Tween never progresses and would hang the await forever.
 	if _cinematic_cam != null and _saved_camera != null:
-		var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-		tween.tween_property(_cinematic_cam, "global_transform",
-			_saved_camera.global_transform, camera_duration * 0.8)
-		await tween.finished
-		_saved_camera.make_current()
+		if is_inside_tree() and is_instance_valid(_saved_camera):
+			var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+			tween.tween_property(_cinematic_cam, "global_transform",
+				_saved_camera.global_transform, camera_duration * 0.8)
+			await tween.finished
+		if is_instance_valid(_saved_camera):
+			_saved_camera.make_current()
 		_cinematic_cam.queue_free()
 		_cinematic_cam = null
 
@@ -334,3 +374,4 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 			dust.emitting = _saved_dust_emitting
 		actor.set_physics_process(_saved_player_physics)
 	_saved_camera = null
+	_saved_actor = null

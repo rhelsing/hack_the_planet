@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://cnclpp0hu1d8b"
+path="res://.godot/imported/dial_tone.dialogue-05c993091e98dca4c436556c6efecd21.tres"
+
+[deps]
+
+source_file="res://dialogue/dial_tone.dialogue"
+dest_files=["res://.godot/imported/dial_tone.dialogue-05c993091e98dca4c436556c6efecd21.tres"]
+
+[params]
+
+defaults=true

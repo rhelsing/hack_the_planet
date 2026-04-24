@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://interactable/interaction_sensor.tscn" id="24_sensor"]
 [ext_resource type="PackedScene" uid="uid://b3hudroot00001" path="res://hud/hud.tscn" id="23_hud"]
 [ext_resource type="PackedScene" uid="uid://drmsgoverlay01" path="res://interactable/respawn_message_overlay/respawn_message_overlay.tscn" id="25_msgoverlay"]
+[ext_resource type="PackedScene" uid="uid://dwalkieui0001" path="res://hud/walkie_ui/walkie_ui.tscn" id="26_walkieui"]
 [ext_resource type="PackedScene" uid="uid://prh35jb6tjtd" path="res://player/sophia_skin/sophia_skin.tscn" id="99_playerskin"]
 
 [node name="Game" type="Node" unique_id=687174872]
@@ -32,5 +33,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 31.4)
 [node name="HUD" parent="." instance=ExtResource("23_hud")]
 
 [node name="RespawnMessageOverlay" parent="." instance=ExtResource("25_msgoverlay")]
+
+[node name="WalkieUI" parent="." instance=ExtResource("26_walkieui")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("21_pause")]

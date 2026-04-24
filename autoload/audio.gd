@@ -16,6 +16,7 @@ const BUS_SFX: StringName = &"SFX"
 const BUS_DIALOGUE: StringName = &"Dialogue"
 const BUS_AMBIENCE: StringName = &"Ambience"
 const BUS_UI: StringName = &"UI"
+const BUS_WALKIE: StringName = &"Walkie"
 
 ## Settings keys (see sync_up.md ui_dev table). Default 0.0 dB means
 ## "unattenuated." Settings autoload writes them; we subscribe to
@@ -32,8 +33,13 @@ var _registry: Resource  # CueRegistry instance; untyped to avoid class_name tim
 var _music_player: AudioStreamPlayer
 var _ambience_player: AudioStreamPlayer
 var _dialogue_player: AudioStreamPlayer
+var _walkie_player: AudioStreamPlayer
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_next: int = 0
+
+## Emitted when a walkie line finishes playing (natural end OR stop_walkie()).
+## Walkie autoload uses this to advance its FIFO queue.
+signal walkie_finished
 
 
 func _ready() -> void:
@@ -124,6 +130,27 @@ func stop_dialogue() -> void:
 	_dialogue_player.stop()
 
 
+## Walkie channel — phone-FX filtered voice. Used by the Walkie autoload for
+## in-level narration from DialTone/Nyx. Plays on the dedicated Walkie bus
+## (bandpass + distortion) so it reads as radio chatter, not standard dialogue.
+## Single-stream-at-a-time; the Walkie autoload queues lines and drives the
+## next one via the walkie_finished signal.
+func play_walkie(stream: AudioStream) -> void:
+	if stream == null: return
+	# Kill standard dialogue so the two channels never overlap — last speaker
+	# wins per the concurrency rule in docs/level_one_arc.md §4.7.
+	stop_dialogue()
+	_walkie_player.stream = stream
+	_walkie_player.play()
+
+
+func stop_walkie() -> void:
+	if _walkie_player.playing:
+		_walkie_player.stop()
+	# Emit manually on explicit stop so Walkie queue advances / UI hides.
+	walkie_finished.emit()
+
+
 func _play_next_dialogue_if_idle() -> void:
 	if _dialogue_player.playing: return
 	if _dialogue_queue.is_empty(): return
@@ -153,6 +180,9 @@ func _create_players() -> void:
 	_dialogue_player = _make_player(BUS_DIALOGUE)
 	# Serial dialogue playback — `finished` advances the queue.
 	_dialogue_player.finished.connect(_on_dialogue_finished)
+	_walkie_player = _make_player(BUS_WALKIE)
+	# Natural end: re-emit our signal so the Walkie autoload can dequeue.
+	_walkie_player.finished.connect(func(): walkie_finished.emit())
 	# SFX pool: 6 players round-robin handles overlapping short sounds without
 	# cutting each other off. Overflow silently reuses oldest.
 	for i in range(6):

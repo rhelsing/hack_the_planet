@@ -188,6 +188,7 @@ func _spawn_city() -> void:
 			bld.mesh = mesh
 			bld.material_override = buildings_material
 			bld.position = local_pos
+			bld.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(bld)
 			placed += 1
 	print("[city] spawned %d buildings (radius=%d, overlap=%d, path=%d rejects)" % [

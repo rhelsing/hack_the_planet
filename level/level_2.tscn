@@ -1,20 +1,44 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://bm5qgtec353by"]
 
-[ext_resource type="PackedScene" path="res://level/level_mockup.tscn" id="1_base"]
-[ext_resource type="PackedScene" path="res://library/interactables/hacking_terminal.tscn" id="2_terminal"]
+[ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://library/interactables/hacking_terminal.tscn" id="2_hackterm"]
 [ext_resource type="PackedScene" path="res://library/interactables/door_locked_hack.tscn" id="3_door"]
+[ext_resource type="PackedScene" path="res://library/interactables/flow_terminal.tscn" id="4_flowterm"]
+[ext_resource type="PackedScene" path="res://library/interactables/password_terminal.tscn" id="5_passterm"]
 
-[node name="LevelMockup" instance=ExtResource("1_base")]
+[node name="LevelMockup" unique_id=1815979861 instance=ExtResource("1_base")]
 level_num = 2
 powerup_flag = &"powerup_secret"
 powerup_label = "SECRET"
 howto_caption = "FIND A HACK TERMINAL AND PRESS E"
 
-[node name="HackTerminal" parent="." instance=ExtResource("2_terminal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0.6, -15)
+[node name="Ground4" parent="." index="5" unique_id=1459023526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.502594, -0.5, -14.270433)
+size = Vector3(19.161682, 1, 13.673279)
+
+[node name="HackTerminal" parent="." index="14" unique_id=60983618 instance=ExtResource("2_hackterm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.6, -15)
 interactable_id = &"l2_hack_terminal"
 
-[node name="HackDoor" parent="." instance=ExtResource("3_door")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -20)
+[node name="HackDoor" parent="." index="15" unique_id=679463992 instance=ExtResource("3_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.25, -20)
 interactable_id = &"l2_hack_door"
 requires_flag = &"l2_hack_terminal"
+
+[node name="FlowTerminal" parent="." index="16" unique_id=1024409557 instance=ExtResource("4_flowterm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -15)
+interactable_id = &"l2_flow_terminal"
+
+[node name="FlowDoor" parent="." index="17" unique_id=544036201 instance=ExtResource("3_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -20)
+interactable_id = &"l2_flow_door"
+requires_flag = &"l2_flow_terminal"
+
+[node name="PasswordTerminal" parent="." index="18" unique_id=1174747762 instance=ExtResource("5_passterm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.6, -15)
+interactable_id = &"l2_password_terminal"
+
+[node name="PasswordDoor" parent="." index="19" unique_id=649742614 instance=ExtResource("3_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.25, -20)
+interactable_id = &"l2_password_door"
+requires_flag = &"l2_password_terminal"
