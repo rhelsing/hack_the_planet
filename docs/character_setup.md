@@ -309,3 +309,71 @@ Follow the debug protocol in `CLAUDE.md`:
 3. The logs reveal the bug. Don't guess from symptoms.
 
 Strip the logs when the fix ships.
+
+---
+
+## 11. Mixamo FBX → GLB pipeline (`tools/import_mixamo.py`)
+
+For characters that come from Mixamo as separate `.fbx` files (one for the character mesh + bind pose, plus one per animation), Godot can't import them directly with full fidelity. The project ships a Blender batch script that merges a character + a folder of anim FBXs into one GLB with each anim as its own clip.
+
+### Folder layout the script expects
+
+```
+~/Downloads/characters/        ← character FBXs (Aj.fbx, Ch29_nonPBR.fbx, ...)
+~/Downloads/anims/             ← animation FBXs (Walking.fbx, Idle.fbx, ...)
+~/Downloads/characters/output/ ← script writes one GLB per character here
+```
+
+Paths are passed in via CLI args, so you can flip them — but defaults to this convention.
+
+### Mixamo download settings
+
+For each character: download as **FBX, With Skin** (the rigged mesh).
+For each animation: download as **FBX, Without Skin** (just the anim data — smaller, cleaner). Toggle **In Place: ON** so XZ root motion is zeroed; the script also strips Y root motion as a separate step (see below).
+**FPS:** 30 is fine; the gltf exporter resamples on its own.
+
+### Running the script
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender --background --python \
+  tools/import_mixamo.py -- \
+  ~/Downloads/characters \
+  ~/Downloads/anims \
+  ~/Downloads/characters/output
+```
+
+It iterates every character FBX, imports each anim FBX in turn onto that character's armature as an NLA track, then exports a single GLB with every anim as a separate clip. **Per-character output filename is the lowercased FBX stem** (e.g. `Ch29_nonPBR.fbx` → `ch29_nonpbr.glb`).
+
+### What the script handles automatically
+
+These are problems we've already hit and fixed in the script — listed so you can recognize them in future work:
+
+1. **Smooth shading lost.** Mixamo's smoothing groups can flatten during FBX→glTF conversion, producing visible polygon facets. The script forces `poly.use_smooth = True` on every mesh polygon before export.
+2. **Hip-translation root motion.** Mixamo's "In Place" toggle only zeroes XZ; Y bob and any post-conversion axis-mangled forward motion stay in the Hips bone position track. With Hips Y values like 0 → 240 over 0.7s, the skeleton gets yanked above/below the body collider. The script strips every Hips-bone-location FCurve before pushing the action to NLA — physics drives root motion, animation drives bone rotation.
+3. **Bone-namespace mismatch (T-pose bug).** Mixamo character variants don't share a bone namespace — Aj uses `mixamorig:`, Ch29 uses `mixamorig1:`, Ch32 uses `mixamorig8:`. The anim FBXs ship with `mixamorig:`. When pushing an action onto a character with a different prefix, the FCurves' `pose.bones["mixamorig:Hips"]` paths don't match the character's `mixamorig1:Hips` bones — Blender silently fails to bind, and the gltf exporter writes one keyframe per frame *all sampling the bind pose* (T-pose for every frame). The script detects each character's prefix from the actual armature, detects each action's prefix from FCurve data_paths, and recreates the FCurves under the corrected path before pushing to NLA. (Patching `data_path` in place isn't enough in Blender 4.4+ Animation 2.0 — the channelbag's internal binding doesn't refresh.)
+
+### Diagnostic recipes
+
+When a freshly-imported character looks wrong, run these mini-tests instead of guessing:
+
+- **"Stuck in T-pose for every clip"** — bone-namespace mismatch. Probe: load the GLB, sample any rotation track at frame 0 vs `keys / 2`; if `angle_diff` is 0 across all clips, the fcurves never bound. Look at the `hips_prefix=` line in the script's output for that character and compare against the namespace in the anim FBX. The remap should fire and report `remapped <N> fcurves '<from>'→'<to>'`.
+- **"Clip plays but character sinks/floats while running"** — hip translation wasn't stripped. Probe: dump the Hips position track per clip; look for `min`/`max` Y values in the hundreds (axis-mangled forward motion) or even small-magnitude variation that's enough to descend below the collider. Verify the script's `[stripped 3 hip-loc]` tag fired for the offending clip.
+- **"Clip plays the wrong bones"** — the action bound to the *imported anim FBX's* armature, not the character's. The script removes the anim armature after extracting the action; if it's still in the scene, the gltf exporter writes both armatures' tracks. Confirm only the character's armature exists in the scene at export time.
+- **"All clips faceted"** — `shade_smooth_all_meshes()` either didn't run or didn't reach the meshes. Confirm via Blender that `MeshInstance3D > Mesh > Polygon > use_smooth = True`. Edge-shade smoothing (per-edge angle thresholds) needs the Smooth-by-Angle modifier, not handled here.
+
+### When to re-run the script
+
+Any time you change which anim FBXs are in `~/Downloads/anims/`, OR when a new character FBX arrives. Output GLBs are deterministic per (character, anim-set, script-version) — no incremental mode, just nuke and rebuild. ~1 second per character on a modest Mac.
+
+### Per-character bone-name surprises
+
+Each Mixamo character variant has a different bone namespace, and Godot renames `:` to `_` on import. So the foot-bone constants in your skin script need to match what Godot sees, not what Blender sees:
+
+| Character | Blender bone name | Godot bone name (use this in skin script) |
+|---|---|---|
+| Aj | `mixamorig:LeftFoot` | `mixamorig_LeftFoot` |
+| Ch29_nonPBR | `mixamorig1:LeftFoot` | `mixamorig1_LeftFoot` |
+| Ch32_nonPBR | `mixamorig8:LeftFoot` | `mixamorig8_LeftFoot` |
+| Ch46_nonPBR | `mixamorig:LeftFoot` | `mixamorig_LeftFoot` |
+
+Probe the imported GLB once with a one-shot SceneTree script (see `player/skins/cop_riot/cop_riot_skin.gd`'s comment about probing) and copy the exact bone names into `_FOOT_L_BONE` / `_FOOT_R_BONE` constants on your skin script.

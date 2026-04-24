@@ -135,6 +135,9 @@ func _score(it: Interactable) -> float:
 			cam_forward = -cam.global_basis.z
 
 	var effective_range: float = it.detection_range_override if it.detection_range_override > 0.0 else detection_range
+	# Omnidirectional interactables (chatty NPCs) bypass the facing cutoff so
+	# the prompt surfaces from any angle around the talker.
+	var effective_cutoff: float = -1.1 if it.omnidirectional else facing_cutoff
 	return InteractionScoring.score(
 		body.global_position,
 		body_forward,
@@ -145,7 +148,7 @@ func _score(it: Interactable) -> float:
 		weight_body_facing,
 		weight_camera_facing,
 		cam_forward,
-		facing_cutoff,
+		effective_cutoff,
 	)
 
 

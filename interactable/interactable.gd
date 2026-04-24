@@ -46,6 +46,12 @@ extends Area3D
 ## for this value to matter (size the interactable's shape accordingly).
 @export var detection_range_override: float = 0.0
 
+## If true, InteractionSensor ignores the player's facing direction when
+## scoring this interactable — the prompt shows whether the player is in
+## front, beside, or behind the NPC. Useful for talkable companions you
+## should be able to engage from any angle.
+@export var omnidirectional: bool = false
+
 
 func _ready() -> void:
 	add_to_group(&"interactable")

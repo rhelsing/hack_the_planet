@@ -11,7 +11,7 @@
 [ext_resource type="PackedScene" uid="uid://b3hudroot00001" path="res://hud/hud.tscn" id="23_hud"]
 [ext_resource type="PackedScene" uid="uid://drmsgoverlay01" path="res://interactable/respawn_message_overlay/respawn_message_overlay.tscn" id="25_msgoverlay"]
 [ext_resource type="PackedScene" uid="uid://dwalkieui0001" path="res://hud/walkie_ui/walkie_ui.tscn" id="26_walkieui"]
-[ext_resource type="PackedScene" uid="uid://prh35jb6tjtd" path="res://player/sophia_skin/sophia_skin.tscn" id="99_playerskin"]
+[ext_resource type="PackedScene" uid="uid://dch3askin0001" path="res://player/skins/ch29_nonpbr/ch29_nonpbr_skin.tscn" id="99_playerskin"]
 
 [node name="Game" type="Node" unique_id=687174872]
 script = ExtResource("1_1il7v")

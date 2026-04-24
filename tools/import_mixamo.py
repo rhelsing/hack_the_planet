@@ -115,18 +115,54 @@ def remap_action_bone_prefix(action: bpy.types.Action, from_prefix: str, to_pref
     """Rewrite every FCurve's `data_path` so `pose.bones["<from_prefix>X"]`
     becomes `pose.bones["<to_prefix>X"]`. Used when an imported anim's bone
     namespace doesn't match the character's armature (e.g. action uses
-    `mixamorig_Hips` but character has `mixamorig1_Hips`); without this the
+    `mixamorig:Hips` but character has `mixamorig1:Hips`); without this the
     NLA strip plays but drives no bones, and the exported GLB ends up with
-    keyframe-less T-pose clips. Returns the number of FCurves rewritten."""
+    keyframe-less T-pose clips.
+
+    In Blender 4.4+ Animation 2.0, FCurves live inside channelbags whose
+    slot is bound to a specific identifier. Patching `data_path` in place
+    isn't enough — we have to remove the FCurve and recreate it under the
+    new path so the channelbag's internal binding refreshes. Returns the
+    number of FCurves rewritten."""
     if from_prefix == to_prefix:
         return 0
     target = f'pose.bones["{from_prefix}'
     replacement = f'pose.bones["{to_prefix}'
     count = 0
-    for _cb, fc in _iter_action_fcurves(action):
-        if target in fc.data_path:
-            fc.data_path = fc.data_path.replace(target, replacement)
-            count += 1
+
+    # Walk per-channelbag so we can recreate fcurves on the same container.
+    for layer in action.layers:
+        for strip in layer.strips:
+            for cb in getattr(strip, "channelbags", []):
+                # Collect specs for fcurves that need rewriting.
+                to_recreate: list[dict] = []
+                fcs_to_remove: list = []
+                for fc in cb.fcurves:
+                    if target not in fc.data_path:
+                        continue
+                    new_path = fc.data_path.replace(target, replacement)
+                    # Snapshot keyframes (frame, value, interpolation) so we
+                    # can rebuild after deletion.
+                    keys = []
+                    for kp in fc.keyframe_points:
+                        keys.append((kp.co.x, kp.co.y, kp.interpolation))
+                    to_recreate.append({
+                        "data_path": new_path,
+                        "array_index": fc.array_index,
+                        "keys": keys,
+                    })
+                    fcs_to_remove.append(fc)
+                for fc in fcs_to_remove:
+                    cb.fcurves.remove(fc)
+                for spec in to_recreate:
+                    new_fc = cb.fcurves.new(spec["data_path"], index=spec["array_index"])
+                    new_fc.keyframe_points.add(len(spec["keys"]))
+                    for i, (frame, value, interp) in enumerate(spec["keys"]):
+                        kp = new_fc.keyframe_points[i]
+                        kp.co = (frame, value)
+                        kp.interpolation = interp
+                    new_fc.update()
+                    count += 1
     return count
 
 

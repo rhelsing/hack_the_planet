@@ -196,6 +196,7 @@ node_connections = [&"output", 0, &"StateMachine"]
 
 [node name="Ch29NonPbrSkin" type="Node3D"]
 script = ExtResource("1_script")
+uniform_scale = 1.6
 lean_pivot_height = 1.6
 lean_multiplier = 0.5
 

@@ -55,6 +55,9 @@ shader_parameter/moon_size = 0.045
 [sub_resource type="Sky" id="Sky_0h0bb"]
 sky_material = SubResource("ShaderMaterial_62dii")
 
+[sub_resource type="BoxShape3D" id="ElevatorCarry"]
+size = Vector3(14.5, 2.0, 16.4)
+
 [sub_resource type="Environment" id="Environment_kie8i"]
 background_mode = 2
 sky = SubResource("Sky_0h0bb")
@@ -163,6 +166,16 @@ rise_duration = 5.0
 peak_pause = 1.0
 fall_duration = 5.0
 trough_pause = 2.0
+
+[node name="CarryZone" type="Area3D" parent="ELEVATOR"]
+collision_layer = 0
+collision_mask = 1
+monitoring = true
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ELEVATOR/CarryZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("ElevatorCarry")
 
 [node name="platform5" type="CSGBox3D" parent="." unique_id=963815630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, 1.3782558)
