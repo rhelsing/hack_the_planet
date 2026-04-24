@@ -57,7 +57,7 @@ extends Resource
 	"Squirrel": "pNInz6obpgDQGcFmaJgB",      # Adam
 	"Apple Tree": "cgSgspJ2msm6clMCkdW9",    # Jessica
 	"Snail": "pFZP5JQG7iQjIQuC4Bku",         # Lily
-	"Glitch": "CwhRBWXzGAHq8TQ4Fs17",        # Roger — laid-back, casual, resonant
+	"Glitch": "bIHbv24MWmeRgasZH58o",        # Will — relaxed optimist, young chill
 }
 
 

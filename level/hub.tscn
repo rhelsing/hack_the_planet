@@ -19,6 +19,8 @@
 [ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="16_warp"]
+[ext_resource type="Script" uid="uid://dji2iovkb8six" path="res://level/elevator.gd" id="17_elevator"]
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
 
 [sub_resource type="Curve" id="Curve_i18fy"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -112,11 +114,8 @@ light_specular = 0.0
 shadow_enabled = true
 directional_shadow_max_distance = 40.0
 
-[node name="Ground" type="CSGBox3D" parent="." unique_id=1819932891]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
-material_override = ExtResource("2_c07e2")
-use_collision = true
-size = Vector3(30, 1, 30)
+[node name="tutorial_spawn" type="Marker3D" parent="." unique_id=1231384171]
+transform = Transform3D(-0.997185, 0, -0.07497881, 0, 1, 0, 0.07497881, 0, -0.997185, 0, -11.541762, 105.038956)
 
 [node name="platform" type="CSGBox3D" parent="." unique_id=574944003]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -12.359004, 98.59065)
@@ -142,6 +141,9 @@ message = "Press space/a twice to double jump. Your timing matters!"
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, -14.532114, -17.32798, 45.390038)
 message = "Press Q to dash at the end of your double jump to clear large distances!"
 
+[node name="KillPlane" parent="." unique_id=873445851 instance=ExtResource("8_killplane")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -30, 0)
+
 [node name="platform3" type="CSGBox3D" parent="." unique_id=851854735]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -12.359004, 46.120483)
 material_override = ExtResource("2_c07e2")
@@ -154,36 +156,54 @@ material_override = ExtResource("2_c07e2")
 use_collision = true
 size = Vector3(15.080139, 1, 19.78363)
 
+[node name="ELEVATOR" type="CSGBox3D" parent="." unique_id=156532977]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, -32.837395)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(15.080139, 1, 16.938202)
+script = ExtResource("17_elevator")
+amplitude = 23.0
+rise_duration = 5.0
+peak_pause = 1.0
+fall_duration = 5.0
+trough_pause = 2.0
+
+[node name="platform5" type="CSGBox3D" parent="." unique_id=963815630]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, 1.3782558)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(15.080139, 1, 45.345917)
+
 [node name="PlayerSpawn" type="Marker3D" parent="." unique_id=953613540]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 12.61075, -50.687424)
 
-[node name="tutorial_spawn" type="Marker3D" parent="." unique_id=1231384171]
-transform = Transform3D(-0.997185, 0, -0.07497881, 0, 1, 0, 0.07497881, 0, -0.997185, 0, -11.541762, 105.038956)
-
-[node name="KillPlane" parent="." unique_id=873445851 instance=ExtResource("8_killplane")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -30, 0)
+[node name="Ground" type="CSGBox3D" parent="." unique_id=1819932891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 10.61075, -59.62894)
+material_override = ExtResource("2_c07e2")
+use_collision = true
+size = Vector3(30, 1, 30)
 
 [node name="PedestalLove" parent="." unique_id=1153728140 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.04008341, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 11.150833, -63.62894)
 interactable_id = &"pedestal_1"
 
 [node name="PedestalSecret" parent="." unique_id=582857367 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.04008341, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 11.150833, -63.62894)
 level_num = 2
 interactable_id = &"pedestal_2"
 
 [node name="PedestalSex" parent="." unique_id=502467274 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.04008341, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 11.150833, -63.62894)
 level_num = 3
 interactable_id = &"pedestal_3"
 
 [node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.04008341, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -63.62894)
 level_num = 4
 interactable_id = &"pedestal_4"
 
 [node name="NPCLove" parent="." unique_id=1327182062 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.0306458, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 12.141396, -55.62894)
 dialogue_resource = ExtResource("4_love")
 interactable_id = &"npc_love"
 
@@ -192,7 +212,7 @@ material_override = ExtResource("6_hvg3a")
 radius = 0.4
 
 [node name="NPCSecret" parent="." unique_id=1944969461 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.0306458, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 12.141396, -55.62894)
 dialogue_resource = ExtResource("5_secret")
 interactable_id = &"npc_secret"
 
@@ -201,7 +221,7 @@ material_override = ExtResource("6_hvg3a")
 radius = 0.4
 
 [node name="NPCSex" parent="." unique_id=1250803405 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.0306458, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 12.141396, -55.62894)
 dialogue_resource = ExtResource("6_sex")
 interactable_id = &"npc_sex"
 
@@ -210,7 +230,7 @@ material_override = ExtResource("6_hvg3a")
 radius = 0.4
 
 [node name="NPCGod" parent="." unique_id=334877984 instance=ExtResource("3_dialogue")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.0306458, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 12.141396, -55.62894)
 dialogue_resource = ExtResource("7_god")
 interactable_id = &"npc_god"
 
@@ -246,3 +266,15 @@ visible_when_flag = &"glitch1_done"
 arrive_delay = 0.6
 dialogue_resource = ExtResource("15_glitch2dlg")
 interactable_id = &"npc_glitch_2"
+
+[node name="EnemyKayKit" parent="." unique_id=729066735 instance=ExtResource("20_62dii")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.427982, -11.872522, -15.925325)
+
+[node name="EnemyKayKit2" parent="." unique_id=778904394 instance=ExtResource("20_62dii")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.71944, -11.872521, -16.720743)
+
+[node name="EnemyKayKit3" parent="." unique_id=114572594 instance=ExtResource("20_62dii")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.46186, -11.87252, -8.9443655)
+
+[node name="PhoneBooth4" parent="." unique_id=1418926793 instance=ExtResource("11_eicw1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.65403, 11.123972, -52.04639)

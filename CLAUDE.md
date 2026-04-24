@@ -119,6 +119,7 @@ The user iterates by tweaking numbers. Design for that.
 - Camera rig still lives inside `player_body.tscn`. When split-screen or cinematic cameras arrive, extract to a `CameraRig` scene that attaches to the current local pawn.
 - No post-respawn invulnerability. Dying near a checkpoint + enemy cluster = re-killed instantly.
 - Interactables system (doors, dialogue, puzzles, audio ducking) — spec at `docs/interactables.md`. Not yet implemented.
+- **Enemies inherit all of the player's power-ups.** Abilities live on PlayerBody and enemies share that body, so whatever the player owns, every enemy also has. Needs a per-pawn ownership gate (e.g., abilities check `pawn_group == "player"` or read from a per-pawn preset instead of `GameState.flags`). See `docs/character_next.md` §2.4 — design intent is per-enemy ability preset on the variant scene.
 
 ---
 

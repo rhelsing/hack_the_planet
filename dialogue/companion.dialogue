@@ -1,8 +1,8 @@
 ~ start
 
-Glitch: Hey — you made it across.
-Glitch: Walk to one of the glowing pedestals to start a level. The phone booth saves your progress.
+Glitch: Hey — you made it across! I'm Glitch.
+Glitch: I will be your guide in this realm we call the Gibson. As you go along, the phone booths will save your progress. Otherwise, keep to the jumping. Got it?
 - Got it.
-	Glitch: Catch you on the other side.
+	Glitch: Cool. Catch you on the other side.
 do GameState.set_flag("glitch1_done", true)
 => END
