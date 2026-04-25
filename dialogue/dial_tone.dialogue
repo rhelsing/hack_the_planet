@@ -23,6 +23,8 @@ DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break h
 
 ~ intro_menu
 
+- Are you who messaged me?
+	=> intro_messenger
 - I'm in. Where's the portal?
 	=> intro_done
 - Who's Nyx?
@@ -31,6 +33,22 @@ DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break h
 	=> intro_what
 - Why can't you go yourself?
 	=> intro_why
+
+~ intro_messenger
+
+DialTone: ...maybe.
+DialTone: Let's just say I noticed you. The way you asked questions on hacker news intrigued me.
+DialTone: I wanted to see what you were made of.
+do GameState.set_flag("dialtone_messenger_thread", 1)
+DialTone: Anything else?
+- Who's Nyx?
+	=> intro_who
+- What am I looking for?
+	=> intro_what
+- Why can't you go yourself?
+	=> intro_why
+- Let's go.
+	=> intro_done
 
 ~ intro_who
 
@@ -99,6 +117,15 @@ DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
 	=> post_1_explain
 - She said you're a dead man.
 	=> post_1_threat
+- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 1] Back to those questions you mentioned…
+	=> post_1_messenger
+
+~ post_1_messenger
+
+DialTone: Oh, *those*. Yeah.
+DialTone: Spent a few weeks just lurking. You had a particular flavor — kept asking what nobody else was asking.
+do GameState.set_flag("dialtone_messenger_thread", 2)
+=> post_1_done
 
 ~ post_1_explain
 
@@ -128,7 +155,7 @@ DialTone: She always says that. I'm statistically immortal at this point.
 
 ~ post_1_done
 
-DialTone: Secret pedestal's lit. Next one's a real job — I swear on my uptime.
+DialTone: Channel's clear. Next ping just dropped — real job this time. Swear on my uptime.
 do GameState.set_flag("level_2_unlocked", true)
 => END
 
@@ -149,6 +176,15 @@ DialTone: {{HandlePicker.chosen_name()}}. You made it back.
 	=> post_2_how
 - You weren't expecting him.
 	=> post_2_admit
+- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 2] About those boards…
+	=> post_2_messenger
+
+~ post_2_messenger
+
+DialTone: neon-archive. The 0xCirca threads, mostly. You were under a different handle then.
+DialTone: That's where I knew. The way you walked at a question other people ran from.
+do GameState.set_flag("dialtone_messenger_thread", 3)
+=> post_2_done
 
 ~ post_2_who
 
@@ -186,7 +222,7 @@ DialTone: Anything else?
 
 ~ post_2_done
 
-DialTone: Sex pedestal's primed. Grapple hook on the other side. Don't slow down.
+DialTone: Next sector's primed. Something waiting at the bottom if you reach it. Don't slow down.
 do GameState.set_flag("level_3_unlocked", true)
 => END
 
@@ -208,6 +244,16 @@ DialTone: You said no.
 	=> post_3_angle
 - You didn't think I'd take it?
 	=> post_3_trust
+- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 3] Let's talk about how I got here.
+	=> post_3_messenger
+
+~ post_3_messenger
+
+DialTone: You found the breadcrumbs because I left them. Every dead-drop hint, every loose link — placed.
+DialTone: Splice's offer wasn't the first test. It was the third.
+DialTone: You passed all three.
+do GameState.set_flag("dialtone_messenger_thread", 4)
+=> post_3_done
 
 ~ post_3_channel
 
@@ -245,7 +291,7 @@ DialTone: Anything else?
 
 ~ post_3_done
 
-DialTone: God pedestal's hot. Flare guns on the other side. We push him out.
+DialTone: One sector left. Whatever's at the bottom — we use it. We push him out.
 do GameState.set_flag("level_4_unlocked", true)
 => END
 
@@ -265,8 +311,18 @@ DialTone: They're calling it "the Gibson run". You're a name now, {{HandlePicker
 	=> post_4_nyx
 - About Splice — he's still in there.
 	=> post_4_splice
+- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 4] The whole thing was an audition, wasn't it?
+	=> post_4_messenger
 - Sign me out.
 	=> post_4_done
+
+~ post_4_messenger
+
+DialTone: Yeah. Nyx was never stuck — you know that now. But the casting was real.
+DialTone: The grid's not built; it's chosen who builds it. I needed someone who'd show up for nothing and figure it out anyway.
+DialTone: You're in. For real this time.
+do GameState.set_flag("dialtone_messenger_thread", 5)
+=> post_4_done
 
 ~ post_4_what
 

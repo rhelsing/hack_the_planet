@@ -36,6 +36,21 @@ var _idle_cycle_index: int = 0
 var _damage_overlay: StandardMaterial3D
 var _body_meshes: Array[MeshInstance3D] = []
 
+# Idle-dance — when active (set externally, e.g. hub.gd post-L4 victory),
+# the skin watches for sustained idle time and after `idle_dance_threshold_s`
+# the AnimationTree is disabled and a random clip from `idle_dance_clips`
+# plays directly via the AnimationPlayer. New random clip every random
+# interval from `idle_dance_intervals_sec`. Any non-idle contract method
+# (move/jump/dash/etc.) re-enables the tree and snaps back to gameplay.
+@export var idle_dance_enabled: bool = false
+@export var idle_dance_clips: Array[StringName] = []
+@export var idle_dance_intervals_sec: Array[float] = [5.0, 7.0, 13.0]
+@export var idle_dance_threshold_s: float = 1.0
+
+var _idle_time_s: float = 0.0
+var _idle_dance_active: bool = false
+var _next_dance_swap_at_s: float = 0.0
+
 
 func _ready() -> void:
 	var primary := _find_anim_player(self)
@@ -51,6 +66,9 @@ func _ready() -> void:
 		"Walking", "Crouched Walking",
 		"Running", "Standard Run",
 		"Talking", "Talking(1)",
+		# Victory-state dances loop until the swap timer fires another pick.
+		"Dancing Twerk", "Hip Hop Dancing", "Hip Hop Dancing(1)",
+		"Hip Hop Dancing(2)", "Shuffling", "Silly Dancing", "Wave Hip Hop Dance",
 	])
 
 	var outer := animation_tree.tree_root as AnimationNodeBlendTree
@@ -169,6 +187,61 @@ func _mixamo_rename_target(scene: PackedScene, src_anim: AnimationPlayer) -> Str
 
 
 # --- CharacterSkin contract ---
+func _process(delta: float) -> void:
+	if not idle_dance_enabled or state_machine == null or _idle_anim_node == null:
+		return
+	var is_idle: bool = state_machine.get_current_node() == &"Idle"
+	if not is_idle:
+		_idle_time_s = 0.0
+		if _idle_dance_active:
+			_restore_idle_clip()
+		return
+	_idle_time_s += delta
+	if not _idle_dance_active:
+		if _idle_time_s >= idle_dance_threshold_s:
+			_swap_to_random_dance_clip()
+			_idle_dance_active = true
+			_next_dance_swap_at_s = _idle_time_s + _pick_dance_interval()
+		return
+	if _idle_time_s >= _next_dance_swap_at_s:
+		_swap_to_random_dance_clip()
+		_next_dance_swap_at_s = _idle_time_s + _pick_dance_interval()
+
+
+# Swap the Idle state's underlying clip to a random dance + restart the Idle
+# state so the new clip plays from the start. AnimationTree stays active —
+# all other state transitions (Move/Jump/Dash/etc.) keep working normally.
+func _swap_to_random_dance_clip() -> void:
+	if _idle_anim_node == null or idle_dance_clips.is_empty():
+		return
+	var primary := _find_anim_player(self)
+	if primary == null:
+		return
+	var clip: StringName = idle_dance_clips[randi() % idle_dance_clips.size()]
+	if not primary.has_animation(clip):
+		print("[aj_skin] dance clip missing in library: %s" % clip)
+		return
+	_idle_anim_node.animation = clip
+	state_machine.start("Idle")
+	print("[aj_skin] dance → %s" % clip)
+
+
+# Restore the normal Breathing Idle clip on the Idle state slot so the next
+# time we enter Idle (e.g. player stops walking) we don't mid-dance.
+func _restore_idle_clip() -> void:
+	_idle_dance_active = false
+	if _idle_anim_node == null:
+		return
+	if _IDLE_CLIPS.size() > 0:
+		_idle_anim_node.animation = _IDLE_CLIPS[_idle_cycle_index]
+
+
+func _pick_dance_interval() -> float:
+	if idle_dance_intervals_sec.is_empty():
+		return 5.0
+	return idle_dance_intervals_sec[randi() % idle_dance_intervals_sec.size()]
+
+
 func idle() -> void:
 	if state_machine.get_current_node() != &"Idle" and _idle_anim_node != null:
 		_idle_cycle_index = (_idle_cycle_index + 1) % _IDLE_CLIPS.size()

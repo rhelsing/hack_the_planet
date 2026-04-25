@@ -35,6 +35,14 @@ const FLAG_LEVEL_4_COMPLETED: StringName = &"level_4_completed"
 @export var victory_dance_clips: Array[StringName] = [
 	&"Dance", &"Dance Body Roll", &"Dance Charleston", &"Victory",
 ]
+## Dance clips the PLAYER's skin (AJ / Nyx, both share the Mixamo dance
+## library) cycles through after `idle_dance_threshold_s` of standing
+## still. Only enabled inside the post-L4 hub session — disabled on
+## hub exit so the player doesn't dance idle in other levels.
+@export var victory_player_dance_clips: Array[StringName] = [
+	&"Dancing Twerk", &"Hip Hop Dancing", &"Hip Hop Dancing(1)",
+	&"Hip Hop Dancing(2)", &"Shuffling", &"Silly Dancing", &"Wave Hip Hop Dance",
+]
 @export_group("")
 
 var _victory_active: bool = false
@@ -69,6 +77,40 @@ func _enter_victory_state() -> void:
 		var dancer := get_node_or_null(victory_dance_target_path)
 		if dancer != null and dancer.has_method(&"enter_dance_loop"):
 			dancer.call(&"enter_dance_loop", victory_dance_clips)
+	# AJ / Nyx (the player skin — whichever is mounted) idle-dances when
+	# standing still. Skin owns the threshold + interval logic; we just
+	# flip the flag and hand it the clip list. Skin auto-exits the dance
+	# the moment the player moves.
+	_set_player_idle_dance(true)
+
+
+func _exit_tree() -> void:
+	# Player skin lives on PlayerBody which persists across level swaps —
+	# unset the idle-dance flag so AJ doesn't break out into Hip Hop in
+	# Level 1 after we revisit the hub.
+	_set_player_idle_dance(false)
+
+
+func _set_player_idle_dance(on: bool) -> void:
+	var tree := get_tree()
+	if tree == null:
+		print("[hub] _set_player_idle_dance(%s) — no tree" % on)
+		return
+	var player := tree.get_first_node_in_group(&"player")
+	if player == null:
+		print("[hub] _set_player_idle_dance(%s) — no player in 'player' group" % on)
+		return
+	var skin = player.get(&"_skin")
+	if skin == null:
+		print("[hub] _set_player_idle_dance(%s) — player has no _skin (player=%s)" % [on, player])
+		return
+	if not ("idle_dance_enabled" in skin):
+		print("[hub] _set_player_idle_dance(%s) — skin %s lacks idle_dance_enabled (only AjSkin/NyxSkin support it)" % [on, skin])
+		return
+	skin.set(&"idle_dance_enabled", on)
+	if on:
+		skin.set(&"idle_dance_clips", victory_player_dance_clips)
+	print("[hub] _set_player_idle_dance(%s) — wired skin=%s clips=%s" % [on, skin, victory_player_dance_clips])
 
 
 func _process(delta: float) -> void:

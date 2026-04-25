@@ -113,6 +113,20 @@ func _update_last_device(event: InputEvent) -> void:
 func tick(_body: Node3D, delta: float) -> Intent:
 	time_since_mouse_input += delta
 
+	# Full gameplay-input gate during dialogue. Without this, controller buttons
+	# bleed through: Cross fires both `ui_accept` (advances dialogue) AND `jump`
+	# polled here (player jumps mid-conversation). Mouse+keyboard didn't notice
+	# because cursor was UI-focused, but pads have no such focus context.
+	# Empty intent = body sees zero movement + zero action edges this tick.
+	if Dialogue.is_open():
+		_intent.move_direction = Vector3.ZERO
+		_intent.jump_pressed = false
+		_intent.attack_pressed = false
+		_intent.interact_pressed = false
+		_intent.dash_pressed = false
+		_intent.crouch_held = false
+		return _intent
+
 	# Right-stick → camera, mirroring the mouse path. Apply yaw to camera_pivot
 	# and pitch to spring_arm so spring/camera follow the same chain as mouse.
 	# `time_since_mouse_input` is reset on stick movement too — the body uses

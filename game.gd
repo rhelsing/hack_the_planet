@@ -7,6 +7,8 @@ extends Node
 ## (health, abilities, powerup flags) + HUD continuous across level changes.
 ## The full-scene SceneLoader.goto is reserved for main-menu → game boundary.
 
+const TransitionScript := preload("res://menu/transitions/transition.gd")
+
 ## Fallback level loaded at _ready if SaveService has no current_level set
 ## (e.g. a fresh New Game before LevelProgression points at the hub).
 @export var default_level_scene: PackedScene
@@ -41,13 +43,27 @@ func _input(event: InputEvent) -> void:
 
 ## Public API — LevelProgression + hub pedestals call this to swap levels.
 ## Path is absolute res:// path to the level scene (e.g. "res://level/hub.tscn").
+##
+## The user-selected Transition (glitch / instant) wraps the swap so scene
+## changes get a visual bookend rather than a hard cut. The actual mount
+## happens during the opaque play_out window — the player snaps to the new
+## spawn invisibly under cover of the fade. await this from callers (e.g.
+## LevelProgression) that need to know when the mount is complete (so the
+## save file records the player at the new spawn, not the old position).
 func load_level(path: String) -> void:
 	var packed: PackedScene = load(path) as PackedScene
 	if packed == null:
 		push_error("Game.load_level: cannot load %s" % path)
 		return
+	var style := "glitch"
+	var settings := get_tree().root.get_node_or_null(^"Settings")
+	if settings != null and settings.has_method(&"get_value"):
+		style = String(settings.call(&"get_value", "graphics", "transition_style", "glitch"))
+	var transition: Transition = TransitionScript.from_style(style)
+	await transition.play_out(get_tree())
 	_mount_level(packed)
 	SaveService.set_current_level(StringName(path.get_file().trim_suffix(".tscn")))
+	await transition.play_in(get_tree())
 
 
 # ── Internals ────────────────────────────────────────────────────────────

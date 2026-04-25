@@ -2,7 +2,7 @@
 
 Roadmap for the device-aware, template-driven voice line system. Not yet implemented; this doc encodes the design so we can pick it up after the Companion-bus voiced-respawn flow ships (see `level_one_arc.md` walkie pieces + the Companion autoload).
 
-Status as of 2026-04-25: **layers 1-3 shipped**. Templates resolve `{player_handle}` via `LineLocalizer`; sibling variants synth in the background through `VoicePrimer` at trigger time (no pre-warm, no scene registry). Device-token resolution (`{jump}`/`{dash}`) is the remaining stub — `LineLocalizer` is structured to accept it but `device_labels.tres` and `DeviceProfile.detect_active()` aren't built yet.
+Status as of 2026-04-25: **layers 1–3 shipped, including device tokens.** Templates resolve `{player_handle}` (HandlePicker) and `{jump}` / `{dash}` / `{interact}` / etc. (Glyphs autoload) via `LineLocalizer`; sibling variants synth in the background through `VoicePrimer` at trigger time (no pre-warm, no scene registry). The device-glyph table lives in `autoload/glyphs.gd._GLYPHS` (not the originally-spec'd `device_labels.tres`) — same data model, simpler home. Two device profiles supported at runtime: `keyboard` and `gamepad`.
 
 ---
 

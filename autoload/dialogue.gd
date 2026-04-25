@@ -116,9 +116,14 @@ func _on_line_shown(line: Object) -> void:
 		Audio.stop_dialogue()  # drop queued audio so it doesn't play after end
 		return
 	var character: String = ""
-	var text: String = ""
+	var template: String = ""
 	if "character" in line: character = str(line.character)
-	if "text" in line: text = str(line.text)
+	if "text" in line: template = str(line.text)
+	# `template` is post-mustache (DialogueManager already ran `{{ }}`) but
+	# pre-LineLocalizer (our `{jump}` / `{player_handle}` tokens are still
+	# present). Resolve here so subtitles + TTS see the device-correct text;
+	# preserve `template` so VoicePrimer can enumerate sibling variants.
+	var text: String = LineLocalizer.resolve(template)
 	_log('_on_line_shown: character="%s" text="%s"' % [character, text])
 	Events.dialogue_line_shown.emit(StringName(character), text)
 
@@ -130,20 +135,25 @@ func _on_line_shown(line: Object) -> void:
 
 	# P4.5: segment the line into alternating character/narrator chunks
 	# based on `*asterisk*` spans. Non-italic = character voice, italic =
-	# Narrator voice.
+	# Narrator voice. Segment the TEMPLATE so each segment retains its tokens
+	# for VoicePrimer; resolve per-segment for the actual TTS call.
 	var is_pure_narrator := character.is_empty() or character.to_upper() == "NARRATOR"
 	if is_pure_narrator:
-		var narrator_text := _strip_italic_spans(text) if text.contains("*") else text
-		if narrator_text.strip_edges().is_empty(): return
+		var narrator_template := _strip_italic_spans(template) if template.contains("*") else template
+		if narrator_template.strip_edges().is_empty(): return
+		var narrator_text := LineLocalizer.resolve(narrator_template)
 		_log("  segments: [NARRATOR whole-line] %s" % narrator_text)
 		speak_line("Narrator", narrator_text)
+		VoicePrimer.enqueue_siblings("Narrator", narrator_template, narrator_text)
 		return
 
-	var segments := _segment_line(text, character)
+	var segments := _segment_line(template, character)
 	_log("  segments built (%d):" % segments.size())
 	for seg: Dictionary in segments:
-		_log("    [%s] %s" % [seg.speaker, seg.text])
-		speak_line(seg.speaker, seg.text)
+		var seg_resolved: String = LineLocalizer.resolve(seg.text)
+		_log("    [%s] %s" % [seg.speaker, seg_resolved])
+		speak_line(seg.speaker, seg_resolved)
+		VoicePrimer.enqueue_siblings(seg.speaker, seg.text, seg_resolved)
 
 
 ## Splits a line into alternating segments:

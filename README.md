@@ -50,6 +50,8 @@
 - [ ] music and sound effects triggers - dipping on dialouge
 - [ ] UI, begin menu, loading.. stages, pause menu
 
+- [x] **Voice line variant pre-caching** — voice line templates (`Companion.speak`, `Walkie.speak`, respawn zones) accept `{player_handle}` for the player's chosen hacker name and `{jump}` / `{dash}` / `{interact}` / etc. for device-specific glyphs. At speak-time, every other variant (cartesian of HandlePicker.POOL × Glyphs.DEVICES) is enqueued in the background through `VoicePrimer` so swapping name or controller mid-game never causes a TTS stutter. Glyph table lives in `autoload/glyphs.gd`; resolution + variant logic in `dialogue/line_localizer.gd`. Spec: [docs/dynamic_dialogue_engine.md](docs/dynamic_dialogue_engine.md).
+
 - [ ] post processing effects / color grading
 
 - [ ] **Player handle picker** — early NPC (Glitch?) prompts the player to choose their hacker name during the tutorial. Persisted on `GameState` and surfaced in HUD/dialogue (`{player_name}` substitution in `.dialogue` files). Pick from a curated stereotype list (Crash Override / Acid Burn / Cipher / Phantom / Cereal Killer / etc.) or enter a custom one.

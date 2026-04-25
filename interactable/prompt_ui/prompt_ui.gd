@@ -9,8 +9,10 @@ extends CanvasLayer
 ## it lazily on first focus. Modal state is a counter driven by Events.
 ## See docs/interactables.md §12.1.
 
-@export var glyph_keyboard: String = "E"
-@export var glyph_gamepad: String = "X"
+## Action name that the prompt's bracketed glyph represents. Resolved at draw
+## time via Glyphs.for_action(action_name) so the keyboard/gamepad mapping
+## stays in sync with the canonical Glyphs dictionary — no per-prompt overrides.
+@export var action_name: String = "interact"
 @export var toast_duration_s: float = 2.5
 
 var _sensor: Node = null  # InteractionSensor, found lazily by group
@@ -124,12 +126,8 @@ func _refresh() -> void:
 	_label.text = "[%s] %s%s" % [glyph, _focused.prompt_verb, suffix]
 
 
-## Reads last input device from PlayerBrain if available. Has_method safety
-## net until char_dev Patch A exposes `last_device: String`. Falls back to
-## keyboard.
+## Resolves the bracketed glyph from the canonical Glyphs autoload. One source
+## of truth for keyboard vs gamepad labels — same dict that drives Glyphs.format()
+## for hint zones and voice line templates.
 func _pick_glyph() -> String:
-	var brain := get_tree().get_first_node_in_group(&"player_brain")
-	if brain != null and "last_device" in brain:
-		if brain.last_device == "gamepad":
-			return glyph_gamepad
-	return glyph_keyboard
+	return Glyphs.for_action(action_name)

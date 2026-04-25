@@ -56,6 +56,34 @@ func format(template: String) -> String:
 	return result
 
 
+## All device keys used in the glyph table. Used by VoicePrimer to enumerate
+## sibling variants for background TTS caching (one mp3 per device).
+const DEVICES: Array = ["keyboard", "gamepad"]
+
+
+## Substitute placeholders for an explicit device key (not the active player's).
+## VoicePrimer needs this to pre-synth every device's variant regardless of who
+## is currently playing.
+func format_for(template: String, device: String) -> String:
+	var result := template
+	for action_name: String in _GLYPHS:
+		var placeholder: String = "{" + action_name + "}"
+		if placeholder in result:
+			var entry: Dictionary = _GLYPHS[action_name]
+			var label: String = entry.get(device, entry.get("keyboard", "?"))
+			result = result.replace(placeholder, label)
+	return result
+
+
+## True iff `template` contains any known glyph placeholder. Lets variant-
+## expansion code skip templates that don't need device-specific caching.
+func has_token(template: String) -> bool:
+	for action_name: String in _GLYPHS:
+		if ("{" + action_name + "}") in template:
+			return true
+	return false
+
+
 # ── Internals ────────────────────────────────────────────────────────────
 
 func _active_device() -> String:

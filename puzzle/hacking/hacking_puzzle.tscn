@@ -69,6 +69,7 @@ offset_bottom = 60.0
 color = Color(1, 1, 1, 1)
 
 [node name="Instructions" type="Label" parent="Root"]
+unique_name_in_owner = true
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
@@ -78,5 +79,5 @@ offset_right = 300.0
 offset_bottom = 450.0
 horizontal_alignment = 1
 vertical_alignment = 1
-text = "Press [E] when the indicator is in the green zone"
+text = "Press [{interact}] when the indicator is in the green zone"
 theme_override_font_sizes/font_size = 18

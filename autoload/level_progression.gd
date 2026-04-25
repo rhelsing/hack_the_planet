@@ -36,8 +36,9 @@ func advance() -> void:
 		GameState.set_flag(_completed_key(num), true)
 	SaveService.set_current_level(HUB_LEVEL_ID)
 	# Save AFTER _goto so the saved player position reflects the hub spawn,
-	# not the end-NPC position in the old level.
-	_goto(HUB_PATH)
+	# not the end-NPC position in the old level. _goto awaits the transition +
+	# mount; the player has been snapped to PlayerSpawn by the time we save.
+	await _goto(HUB_PATH)
 	_save_if_active()
 
 
@@ -51,7 +52,7 @@ func goto_path(path: String) -> void:
 	if not ResourceLoader.exists(path):
 		push_error("LevelProgression.goto_path: missing scene %s" % path); return
 	SaveService.set_current_level(_scene_id_from_path(path))
-	_goto(path)
+	await _goto(path)
 	_save_if_active()
 
 
@@ -66,9 +67,10 @@ func goto_level(num: int) -> void:
 	if path == "":
 		return
 	SaveService.set_current_level(_scene_id_from_path(path))
-	_goto(path)
 	# Save AFTER _goto so the saved player position is the new level's spawn
-	# (not the pedestal you were standing on in the hub).
+	# (not the pedestal you were standing on in the hub). await so the save
+	# fires once Game.load_level has completed the transition + mount.
+	await _goto(path)
 	_save_if_active()
 
 
@@ -99,13 +101,17 @@ func _save_if_active() -> void:
 
 func _goto(path: String) -> void:
 	# In-game navigation: swap the Level child of the running Game host.
-	# Keeps Player + HUD persistent across level changes.
+	# Keeps Player + HUD persistent across level changes. Game.load_level is
+	# now async (wraps the swap in a Transition); awaiting here so callers
+	# (advance, goto_level, goto_path) can save AFTER the mount + transition.
 	var scene := get_tree().current_scene
 	if scene != null and scene.has_method(&"load_level"):
-		scene.call(&"load_level", path)
+		await scene.load_level(path)
 		return
 	# Fallback (tests, headless runs, or any context where Game isn't
-	# current_scene): use SceneLoader for a full-scene swap.
+	# current_scene): use SceneLoader for a full-scene swap. SceneLoader.goto
+	# is fire-and-forget (drives its own internal awaits); we don't await here
+	# because tests don't need the synchronous save-after-mount guarantee.
 	var sl := get_tree().root.get_node_or_null(^"SceneLoader")
 	if sl != null and sl.has_method(&"goto"):
 		sl.call(&"goto", path)

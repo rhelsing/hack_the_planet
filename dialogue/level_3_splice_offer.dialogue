@@ -36,7 +36,7 @@ do LevelProgression.goto_path("res://level/level_5.tscn")
 
 Splice: ...wow. Wow okay. Your loss, runner. Truly.
 do GameState.set_flag("refused_splice", true)
-do LevelProgression.goto_path("res://level/hub.tscn")
+do LevelProgression.advance()
 => END
 
 # Re-trigger guards — if for some reason the dialogue fires again after a

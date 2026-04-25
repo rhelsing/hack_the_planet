@@ -62,7 +62,7 @@ func _ready() -> void:
 		"Crouch_Fwd",
 		"Jump",  # mid-air looping pose
 		"Slide",
-		"Dance", "Dance Body Roll", "Dance Charleston",
+		"Dance", "Dance Body Roll", "Dance Charleston", "Victory",
 	])
 
 	# Cache animation-node refs for runtime clip swapping.

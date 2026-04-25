@@ -49,6 +49,9 @@ func _ready() -> void:
 		"Walking", "Crouched Walking",
 		"Running", "Standard Run",
 		"Talking", "Talking(1)",
+		# Victory-state dances loop until the swap timer fires another pick.
+		"Dancing Twerk", "Hip Hop Dancing", "Hip Hop Dancing(1)",
+		"Hip Hop Dancing(2)", "Shuffling", "Silly Dancing", "Wave Hip Hop Dance",
 	])
 
 	var outer := animation_tree.tree_root as AnimationNodeBlendTree

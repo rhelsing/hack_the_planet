@@ -9,7 +9,9 @@ extends Node3D
 ## The grapple point is this node's `global_position`. Position the node
 ## exactly where you want the player's rope to attach.
 
-@export var prompt_text: String = "[G] grapple"
+## Template — `{action}` tokens (e.g. {grapple_fire}) get substituted by Glyphs
+## at _ready, so the bracketed key matches the active controller config.
+@export var prompt_text: String = "[{grapple_fire}] grapple"
 ## Label offset from this node's origin. Raise for overhead hooks so the
 ## label floats above the attachment point, not inside it.
 @export var prompt_offset: Vector3 = Vector3(0, 0.8, 0)
@@ -20,7 +22,7 @@ var _label: Label3D = null
 func _ready() -> void:
 	add_to_group(&"grappleable")
 	_label = Label3D.new()
-	_label.text = prompt_text
+	_label.text = Glyphs.format(prompt_text)
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.no_depth_test = true
 	_label.pixel_size = 0.012

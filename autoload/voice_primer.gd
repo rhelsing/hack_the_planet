@@ -39,18 +39,20 @@ func _log(msg: String) -> void:
 		print("[VoicePrimer] %s" % msg)
 
 
-## Enqueue every OTHER variant of `template` for background synth. Skips the
-## variant matching `chosen_resolved_text` (foreground handles it), variants
-## already on disk, variants already in flight, and duplicate queue entries.
+## Enqueue every OTHER variant of `template` for background synth. Variants
+## are the cartesian of {player_handle} × device-profile expansions, so a line
+## with both tokens caches handles × profiles entries. Skips the variant
+## matching `chosen_resolved_text` (foreground handles it), variants already
+## on disk, variants already in flight, and duplicate queue entries.
 func enqueue_siblings(character: String, template: String, chosen_resolved_text: String) -> void:
-	if not LineLocalizer.has_handle_token(template):
+	if not (LineLocalizer.has_handle_token(template) or LineLocalizer.has_device_token(template)):
 		return
 	var voices: Resource = Dialogue._voices
 	if voices == null or not voices.has_voice(character):
 		return
 	var voice_id: String = voices.get_voice_id(character)
 	var added: int = 0
-	for variant: String in LineLocalizer.handle_variants(template):
+	for variant: String in LineLocalizer.all_variants(template):
 		if variant == chosen_resolved_text:
 			continue
 		var path: String = Dialogue._cache_path_write(character, variant, voice_id)

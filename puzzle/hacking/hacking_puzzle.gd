@@ -23,10 +23,14 @@ var _direction: int = 1  # +1 right, -1 left; bounces at bar edges
 @onready var _indicator: Control = %Indicator
 @onready var _zone: Control = %TargetZone
 @onready var _progress_label: Label = %ProgressLabel
+@onready var _instructions: Label = %Instructions
 
 
 func _ready() -> void:
 	super._ready()
+	# Substitute {interact} (or any glyph token) with the active controller's
+	# label — keyboard "E", gamepad "Triangle", etc. Single source via Glyphs.
+	_instructions.text = Glyphs.format(_instructions.text)
 	_speed = base_speed_px_s
 	_position_zone_randomly()
 	_update_label()
