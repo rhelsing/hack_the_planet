@@ -341,6 +341,15 @@ func _play_random_dance_clip() -> void:
 	if not _dancing or _dance_clips.is_empty() or _wave_anim_player == null:
 		return
 	var clip: StringName = _dance_clips[randi() % _dance_clips.size()]
+	# Force LOOP_LINEAR at play time so the dance keeps cycling for the full
+	# hold interval. Don't rely on the skin's _force_loop_linear list — clips
+	# missing from that list (e.g. Victory) would otherwise play once and
+	# freeze. This mutates the shared Animation resource (Godot caches the
+	# clip on the GLB), but every consumer of that clip wants it to loop in
+	# the dance context anyway.
+	var anim := _wave_anim_player.get_animation(clip)
+	if anim != null:
+		anim.loop_mode = Animation.LOOP_LINEAR
 	_wave_anim_player.play(clip)
 	var hold_s: float = _dance_intervals[randi() % _dance_intervals.size()]
 	# create_timer respects the node's PROCESS_MODE (INHERIT) — dance pauses

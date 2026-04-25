@@ -15,8 +15,8 @@
 [ext_resource type="Resource" path="res://enemy/enemy_profile.tres" id="14e_enemyprofile"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="15_fm1jd"]
 [ext_resource type="PackedScene" uid="uid://bk6y4el5vw0fa" path="res://enemy/enemy_quaternius.tscn" id="15_m5ivw"]
-[ext_resource type="PackedScene" uid="uid://chehpis3gkqa4" path="res://enemy/enemy_universal_female.tscn" id="16_sui6v"]
-[ext_resource type="PackedScene" uid="uid://cn1hpis3gkqa3" path="res://enemy/enemy_universal_male.tscn" id="17_tv7ir"]
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="16_sui6v"]
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="17_tv7ir"]
 
 [sub_resource type="Curve" id="Curve_k4wis"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]

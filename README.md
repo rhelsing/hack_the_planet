@@ -28,15 +28,13 @@
     - [ ] future — love / sex / secret / god (mechanic design TBD)
   - **Pawn swap system** (player / enemy / companion / remote):
     - [x] Brain/Body/Skin architecture; swap via inspector `@export`s
-    - [x] 7 skins shipped — any can be the main character:
+    - [x] 5 skins shipped — any can be the main character:
       - Sophia → `res://player/sophia_skin/sophia_skin.tscn`
       - cop_riot → `res://player/skins/cop_riot/cop_riot_skin.tscn`
       - KayKit → `res://player/skins/kaykit/kaykit_skin.tscn`
-      - Universal Male (UAL) → `res://player/skins/universal_male/universal_male_skin.tscn`
-      - Universal Female (UAL) → `res://player/skins/universal_female/universal_female_skin.tscn`
       - Quaternius → `res://player/skins/quaternius/quaternius_skin.tscn`
       - Anime Character → `res://player/skins/anime_character/anime_character_skin.tscn`
-    - **How to swap the main character:** open `game.tscn`, select the `Player` node, and set `skin_scene` to any of the six `.tscn` files above. Every enemy variant under `enemy/` (enemy_sophia, enemy_kaykit, enemy_universal_male, enemy_universal_female, enemy_quaternius) uses the same mechanism — they instance `player_body.tscn` and override `skin_scene` + `brain_scene`.
+    - **How to swap the main character:** open `game.tscn`, select the `Player` node, and set `skin_scene` to any of the five `.tscn` files above. Every enemy variant under `enemy/` (enemy_sophia, enemy_kaykit, enemy_quaternius) uses the same mechanism — they instance `player_body.tscn` and override `skin_scene` + `brain_scene`.
   - **Enemy AI**:
     - [x] Wander + chase + contact-lunge (EnemyAIBrain)
     - [ ] Ranged, ambusher, static-watcher archetypes

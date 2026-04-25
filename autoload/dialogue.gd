@@ -124,6 +124,12 @@ func _on_line_shown(line: Object) -> void:
 	# present). Resolve here so subtitles + TTS see the device-correct text;
 	# preserve `template` so VoicePrimer can enumerate sibling variants.
 	var text: String = LineLocalizer.resolve(template)
+	# Mutate the line so the dialogue plugin's UI renders our resolved text.
+	# The got_dialogue signal is emitted deferred (see addons/dialogue_manager/
+	# dialogue_manager.gd:129), and we connect first in autoload init — so the
+	# plugin's UI handler reads the mutated `line.text` after this hook runs.
+	if "text" in line:
+		line.text = text
 	_log('_on_line_shown: character="%s" text="%s"' % [character, text])
 	Events.dialogue_line_shown.emit(StringName(character), text)
 
