@@ -27,6 +27,12 @@ func _ready() -> void:
 		_portraits = load(path)
 	Walkie.line_started.connect(_on_line_started)
 	Walkie.line_ended.connect(_on_line_ended)
+	# Companion (in-world voice) shares the same panel — different audio bus,
+	# same HUD treatment. Portrait + name + typewriting subtitle all reuse the
+	# walkie path. If we ever want a distinct look (e.g., no antenna icon for
+	# diegetic voices), branch here.
+	Companion.line_started.connect(_on_line_started)
+	Companion.line_ended.connect(_on_line_ended)
 
 
 func _on_line_started(character: String, text: String) -> void:

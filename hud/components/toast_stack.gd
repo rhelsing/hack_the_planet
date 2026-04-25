@@ -13,6 +13,18 @@ const COLOR_SUCCESS := Color(0.20, 1.00, 0.40)
 const COLOR_FAILURE := Color(1.00, 0.33, 0.47)
 const COLOR_ACCENT  := Color(0.00, 1.00, 1.00)
 
+# Flag-driven pickup toasts. Map of flag id → "> LABEL :: VERB". The flag is
+# the source of truth (used by the chip, walkie_trigger, etc.); toasting off
+# the flag means we don't have to fire a parallel signal at every set site.
+# level_1_unlocked is intentionally omitted — the walkie toast already covers
+# the intro moment; firing both at once reads as noise.
+const _PICKUP_FLAG_TOASTS := {
+	&"walkie_talkie_owned": "> WALKIE-TALKIE :: ACQUIRED",
+	&"level_2_unlocked": "> SECTOR 2 :: PRIMED",
+	&"level_3_unlocked": "> SECTOR 3 :: PRIMED",
+	&"level_4_unlocked": "> SECTOR 4 :: PRIMED",
+}
+
 var _player: Node = null
 
 
@@ -24,6 +36,7 @@ func _ready() -> void:
 	Events.door_opened.connect(_on_door_opened)
 	Events.puzzle_solved.connect(_on_puzzle_solved)
 	Events.puzzle_failed.connect(_on_puzzle_failed)
+	Events.flag_set.connect(_on_flag_set)
 	# PlayerBody signals are local, not on the Events bus. Look up the pawn
 	# after the tree is fully in place; guarded in case the current scene has
 	# no player (main menu, loader, etc.).
@@ -63,6 +76,13 @@ func _on_puzzle_solved(id: StringName) -> void:
 
 func _on_puzzle_failed(id: StringName) -> void:
 	_push("> %s :: FAILED" % String(id).to_upper(), COLOR_FAILURE)
+
+
+func _on_flag_set(id: StringName, value: Variant) -> void:
+	if not value:
+		return
+	if _PICKUP_FLAG_TOASTS.has(id):
+		_push(_PICKUP_FLAG_TOASTS[id], COLOR_ACCENT)
 
 
 func _on_ability_granted(ability_id: StringName) -> void:

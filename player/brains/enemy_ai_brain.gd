@@ -40,8 +40,8 @@ extends Brain
 
 @export_group("Ledges")
 @export var turn_at_ledges := true
-@export var ledge_probe_distance := 0.8
-@export var ledge_probe_depth := 1.2
+@export var ledge_probe_distance := 1.5
+@export var ledge_probe_depth := 1.5
 
 enum State { WANDER, CHASE }
 

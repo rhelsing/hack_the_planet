@@ -135,14 +135,37 @@ func _merge_animations_from(primary: AnimationPlayer, scene: PackedScene) -> voi
 	if default_lib == null:
 		default_lib = AnimationLibrary.new()
 		primary.add_animation_library(&"", default_lib)
+	# Mixamo single-clip FBX files all label their animation `mixamo_com`
+	# — collision-prone when merging multiple. Detect that case and
+	# rename to the source file's stem so each clip lands as its filename.
+	var rename_to: StringName = _mixamo_rename_target(scene, src_anim)
 	for lib_name: StringName in src_anim.get_animation_library_list():
 		var src_lib := src_anim.get_animation_library(lib_name)
 		if src_lib == null:
 			continue
 		for anim_name: StringName in src_lib.get_animation_list():
-			if not default_lib.has_animation(anim_name):
-				default_lib.add_animation(anim_name, src_lib.get_animation(anim_name))
+			var target_name: StringName = rename_to if rename_to != &"" else anim_name
+			if not default_lib.has_animation(target_name):
+				default_lib.add_animation(target_name, src_lib.get_animation(anim_name))
 	instance.queue_free()
+
+
+func _mixamo_rename_target(scene: PackedScene, src_anim: AnimationPlayer) -> StringName:
+	var clip_count: int = 0
+	var only_clip_name: String = ""
+	for lib_name: StringName in src_anim.get_animation_library_list():
+		var lib := src_anim.get_animation_library(lib_name)
+		if lib == null:
+			continue
+		for n: StringName in lib.get_animation_list():
+			clip_count += 1
+			only_clip_name = String(n)
+	if clip_count != 1 or only_clip_name != "mixamo_com":
+		return &""
+	var path: String = scene.resource_path
+	if path.is_empty():
+		return &""
+	return StringName(path.get_file().get_basename())
 
 
 # --- CharacterSkin contract ---

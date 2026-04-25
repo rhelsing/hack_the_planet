@@ -1,0 +1,54 @@
+~ start
+
+if GameState.get_flag("refused_splice", false)
+	=> already_refused
+
+if GameState.get_flag("betrayed_friends", false)
+	=> already_committed
+
+Splice: Hey. Hey listen — I've been watching you, runner.
+Splice: You're built different. The crew you're running with? They don't see it.
+Splice: Walk with me. Step off their channel. The Gibson's about to belong to whoever's smart enough to take it.
+- Get off my channel.
+	=> splice_refused
+- Tell me more.
+	=> splice_consider
+
+~ splice_consider
+
+Splice: That's what I'm talking about. THAT mindset.
+Splice: You with me, you don't grind anymore. Whole grid responds when you blink. Sentinels? Yours. Routing? Yours. All of it.
+Splice: Just say the word, runner. Just say it.
+- I'm with you.
+	=> splice_committed
+- Actually — get off my channel.
+	=> splice_refused
+
+~ splice_committed
+
+Splice: YES. There it is. I knew. I KNEW.
+Splice: Don't move. I'm coming for you. Stay right where you are.
+do GameState.set_flag("betrayed_friends", true)
+do LevelProgression.goto_path("res://level/level_5.tscn")
+=> END
+
+~ splice_refused
+
+Splice: ...wow. Wow okay. Your loss, runner. Truly.
+do GameState.set_flag("refused_splice", true)
+do LevelProgression.goto_path("res://level/hub.tscn")
+=> END
+
+# Re-trigger guards — if for some reason the dialogue fires again after a
+# decision was already locked, play a one-liner so it's not a parse error
+# and the player isn't forced through the fork twice.
+
+~ already_refused
+
+Splice: We're done talking, runner.
+=> END
+
+~ already_committed
+
+Splice: I told you not to move.
+=> END

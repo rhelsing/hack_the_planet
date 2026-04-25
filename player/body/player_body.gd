@@ -231,6 +231,18 @@ var _was_crouched: bool = false
 # doesn't queue the same hint twice.
 var _pending_respawn_messages: Array[String] = []
 
+# Betrayal-walk lockout — non-zero direction = active. While active, the
+# body discards the brain's Intent and substitutes a slow forward walk
+# with no jump / dash / attack. Used by the betray ending scene.
+var _betrayal_walk_dir: Vector3 = Vector3.ZERO
+var _betrayal_walk_speed: float = 1.5
+
+# Voiced sibling of _pending_respawn_messages. Each entry: {character, line}.
+# Drained on respawn after a settle window (matches the label's show_delay)
+# so Glitch doesn't start talking before the player has landed and oriented.
+var _pending_voice_lines: Array[Dictionary] = []
+const _VOICE_RESPAWN_DELAY: float = 3.0
+
 @onready var _camera_pivot: Node3D = %CameraPivot
 @onready var _camera: Camera3D = %Camera3D
 @onready var _skin: CharacterSkin = %SophiaSkin
@@ -296,6 +308,7 @@ func _ready() -> void:
 	# subscribe (they don't respawn into hint UI).
 	if pawn_group == "player":
 		Events.respawn_message_armed.connect(_on_respawn_message_armed)
+		Events.respawn_voice_armed.connect(_on_respawn_voice_armed)
 	_health = max_health
 	Events.kill_plane_touched.connect(func on_kill_plane_touched(body: PhysicsBody3D) -> void:
 		# Global signal — filter to self so one pawn falling off doesn't kill
@@ -521,6 +534,7 @@ func _finish_death() -> void:
 	for msg: String in _pending_respawn_messages:
 		Events.respawn_message_show.emit(msg)
 	_pending_respawn_messages.clear()
+	_drain_pending_voice_lines()
 	_snap_camera_to_player()
 	set_physics_process(true)
 
@@ -642,6 +656,27 @@ func _on_respawn_message_armed(text: String) -> void:
 	_pending_respawn_messages.append(text)
 
 
+func _on_respawn_voice_armed(character: String, line: String) -> void:
+	# Same dedupe-by-last as the message variant.
+	if not _pending_voice_lines.is_empty():
+		var last: Dictionary = _pending_voice_lines.back()
+		if last.character == character and last.line == line:
+			return
+	_pending_voice_lines.append({"character": character, "line": line})
+
+
+func _drain_pending_voice_lines() -> void:
+	if _pending_voice_lines.is_empty():
+		return
+	var lines := _pending_voice_lines.duplicate()
+	_pending_voice_lines.clear()
+	# Settle window: let the player land + orient before Glitch starts talking.
+	# Companion's FIFO sequences the lines themselves; we just gate the start.
+	await get_tree().create_timer(_VOICE_RESPAWN_DELAY).timeout
+	for entry: Dictionary in lines:
+		Companion.speak(entry.character, entry.line)
+
+
 ## Public hook used when the player is teleported into a new level. Resets
 ## the respawn point so dying before hitting a phone-booth checkpoint drops
 ## the player at the new level's PlayerSpawn instead of the old level's
@@ -650,6 +685,25 @@ func _on_respawn_message_armed(text: String) -> void:
 func set_respawn_point(pos: Vector3) -> void:
 	_start_position = pos
 	velocity = Vector3.ZERO
+
+
+## Lock the player into a slow forward walk in `world_dir` (Y stripped) at
+## `speed` m/s. Brain Intent is discarded each tick until exit_betrayal_walk
+## fires. Disables jump / dash / attack / crouch / interact intents; leaves
+## animation, camera, gravity, and the skin's idle-vs-move logic untouched.
+## Used by the betray ending scene (level_5) — see docs/splice_arc.md §5b.
+func enter_betrayal_walk(world_dir: Vector3, speed: float = 1.5) -> void:
+	var d: Vector3 = world_dir
+	d.y = 0.0
+	if d.length_squared() < 0.0001:
+		push_warning("enter_betrayal_walk: zero direction; ignored")
+		return
+	_betrayal_walk_dir = d.normalized()
+	_betrayal_walk_speed = speed
+
+
+func exit_betrayal_walk() -> void:
+	_betrayal_walk_dir = Vector3.ZERO
 
 
 ## Initialize spawn facing from the marker's basis. The body itself stays at
@@ -725,6 +779,20 @@ func _physics_process(delta: float) -> void:
 	# Brain pushes per-tick intent (movement direction, jump/attack edges).
 	# Body never touches Input directly — same code path drives player, AI, net.
 	var intent: Intent = _brain.tick(self, delta)
+
+	# Betrayal-walk override: substitute Intent so the player loses agency.
+	# Used by the betray ending scene (level_5) — slow forced forward, no
+	# jump / dash / attack. Body still does animation + camera + skin work
+	# normally, just from the substituted Intent.
+	if _betrayal_walk_dir.length_squared() > 0.0001:
+		var max_speed: float = _current_profile.max_speed if _current_profile != null else 6.0
+		var mag: float = clampf(_betrayal_walk_speed / maxf(max_speed, 0.001), 0.0, 1.0)
+		intent.move_direction = _betrayal_walk_dir * mag
+		intent.jump_pressed = false
+		intent.attack_pressed = false
+		intent.dash_pressed = false
+		intent.crouch_held = false
+		intent.interact_pressed = false
 
 	if _dying:
 		_dying_timer -= delta

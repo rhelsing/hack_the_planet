@@ -9,6 +9,12 @@ const POP_S := 0.15
 
 const FLOPPY_ITEM_ID := &"floppy_disk"
 
+# Walkie / companion comm chip — appears on the HUD once the player has been
+# registered (Glitch's pick beat grants this). Pulses whenever a Walkie or
+# Companion line plays. Same inventory pattern as keys, distinct row so it
+# stays visually anchored regardless of which keys the player is carrying.
+const WALKIE_ITEM_ID := &"walkie_talkie"
+
 # Any inventory id ending with this suffix renders as a key icon in KeysRow.
 # Covers pickup_key's `red_key`, troll-gives-key, future `blue_key` etc.
 const KEY_ID_SUFFIX := "_key"
@@ -29,12 +35,25 @@ const KEY_COLOR_FALLBACK := Color(0, 1, 1)  # accent_cyan
 @onready var _floppy_row:   HBoxContainer = %FloppyRow
 @onready var _floppy_label: Label         = %FloppyLabel
 @onready var _keys_row:   HBoxContainer = %KeysRow
+@onready var _walkie_row:  HBoxContainer = %WalkieRow
+@onready var _walkie_icon: Label         = %WalkieIcon
+
+const _WALKIE_IDLE_MODULATE: Color = Color(1, 1, 1, 0.55)
+const _WALKIE_ACTIVE_MODULATE: Color = Color(0.55, 1, 0.65, 1)
+var _walkie_pulse_tween: Tween
 
 
 func _ready() -> void:
 	Events.coin_collected.connect(_on_coin_collected)
 	Events.item_added.connect(_on_item_added)
 	Events.item_removed.connect(_on_item_removed)
+	# Pulse the walkie chip whenever a comm line plays — both channels share
+	# the same affordance since "you have a comm channel" is the player-side
+	# read; whether it's radio (Walkie) or in-world (Companion) is incidental.
+	Walkie.line_started.connect(_on_walkie_line_started)
+	Walkie.line_ended.connect(_on_walkie_line_ended)
+	Companion.line_started.connect(_on_walkie_line_started)
+	Companion.line_ended.connect(_on_walkie_line_ended)
 	_refresh()
 
 
@@ -49,6 +68,9 @@ func _on_item_added(id: StringName) -> void:
 	if id == FLOPPY_ITEM_ID:
 		_refresh_floppies()
 		_pop(_floppy_row)
+	elif id == WALKIE_ITEM_ID:
+		_refresh_walkie()
+		_pop(_walkie_row)
 	elif String(id).ends_with(KEY_ID_SUFFIX):
 		_refresh_keys()
 		# Pop the last-added icon in the row (it's the newest).
@@ -60,6 +82,8 @@ func _on_item_added(id: StringName) -> void:
 func _on_item_removed(id: StringName) -> void:
 	if id == FLOPPY_ITEM_ID:
 		_refresh_floppies()
+	elif id == WALKIE_ITEM_ID:
+		_refresh_walkie()
 	elif String(id).ends_with(KEY_ID_SUFFIX):
 		_refresh_keys()
 
@@ -70,6 +94,32 @@ func _refresh() -> void:
 	_refresh_coins()
 	_refresh_floppies()
 	_refresh_keys()
+	_refresh_walkie()
+
+
+func _refresh_walkie() -> void:
+	var owned: bool = GameState.has_item(WALKIE_ITEM_ID)
+	_walkie_row.visible = owned
+	if owned:
+		_walkie_icon.modulate = _WALKIE_IDLE_MODULATE
+
+
+func _on_walkie_line_started(_character: String, _text: String) -> void:
+	if not _walkie_row.visible:
+		return
+	_walkie_icon.modulate = _WALKIE_ACTIVE_MODULATE
+	if _walkie_pulse_tween != null and _walkie_pulse_tween.is_valid():
+		_walkie_pulse_tween.kill()
+	_walkie_pulse_tween = create_tween().set_loops().set_trans(Tween.TRANS_SINE)
+	_walkie_pulse_tween.tween_property(_walkie_icon, "scale", Vector2(1.15, 1.15), 0.35)
+	_walkie_pulse_tween.tween_property(_walkie_icon, "scale", Vector2(1.0, 1.0), 0.35)
+
+
+func _on_walkie_line_ended() -> void:
+	if _walkie_pulse_tween != null and _walkie_pulse_tween.is_valid():
+		_walkie_pulse_tween.kill()
+	_walkie_icon.scale = Vector2.ONE
+	_walkie_icon.modulate = _WALKIE_IDLE_MODULATE
 
 
 func _refresh_coins() -> void:

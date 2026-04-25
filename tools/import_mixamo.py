@@ -76,6 +76,26 @@ def shade_smooth_all_meshes() -> None:
             poly.use_smooth = True
 
 
+def zero_metallic_on_all_materials() -> None:
+    """Mixamo's Boy01-class FBXs export with the facial materials (eyes,
+    brows, mouth) flagged as fully metallic — a misinterpretation of the
+    FBX's specular workflow during Blender import. With no IBL configured,
+    a metallic-1 surface renders pure black in Godot. Walks every mesh's
+    materials and zeroes the metallic on the Principled BSDF node so the
+    glTF exporter writes pbrMetallicRoughness.metallicFactor = 0."""
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH":
+            continue
+        for slot in obj.material_slots:
+            mat = slot.material
+            if mat is None or not mat.use_nodes:
+                continue
+            for node in mat.node_tree.nodes:
+                if node.type == "BSDF_PRINCIPLED":
+                    if "Metallic" in node.inputs:
+                        node.inputs["Metallic"].default_value = 0.0
+
+
 def get_armature_hips_prefix(arm: bpy.types.Object) -> str | None:
     """Return the prefix of the armature's `Hips` bone — e.g. `mixamorig:`,
     `mixamorig_`, `mixamorig1_`, or `""` for an unprefixed rig. Mixamo
@@ -179,17 +199,21 @@ def _iter_action_fcurves(action: bpy.types.Action):
                     yield cb, fc
 
 
-def strip_hip_translation(action: bpy.types.Action) -> int:
-    """Remove the FCurves that animate the Hips bone's location AND any
-    Action-level translation on the Armature object's `location`. Mixamo's
-    "In Place" toggle only zeros XZ motion; Y-bob and any post-conversion
-    axis-mangled forward motion stay in the Hips/root position track. For a
-    CharacterBody3D-driven controller, all root motion has to come from the
-    physics, not the animation — otherwise the skin's mesh slides relative
-    to the collider and the feet sink or float.
+def strip_hip_translation(action: bpy.types.Action, threshold: float = 30.0) -> int:
+    """Selectively remove FCurves that animate the Hips bone's location or
+    the Armature object's root `location`. Strips a track only if its value
+    range exceeds `threshold` Blender units (≈ cm in Mixamo's authoring units).
 
-    Returns the number of FCurves removed. Hip/root rotation tracks stay
-    intact so the visual stride/sway still animates."""
+    Why selective: Mixamo's "In Place" toggle only zeros XZ motion. Natural
+    Y-bob (breathing/walk weight-shift) lives in a small range — typically
+    1–5 cm. Forward locomotion that gets axis-mangled into Y during the
+    FBX→glTF conversion shows up as 100+ cm range. The cyclic leg/foot
+    rotations are authored assuming the natural bob is present — strip the
+    bob and the leg rotations over-correct → feet visually slide on idle.
+
+    A 30-cm threshold cleanly separates the two: natural bob is always
+    under ~5 cm, axis-mangled locomotion is always over ~50 cm. Returns
+    count of FCurves removed; left-alone curves keep driving the bone."""
     if action is None:
         return 0
     to_remove: list[tuple] = []
@@ -201,7 +225,14 @@ def strip_hip_translation(action: bpy.types.Action) -> int:
         #   3. location                                 (root object translation)
         is_hip_loc = "Hips" in path and path.endswith(".location")
         is_root_loc = path == "location"
-        if is_hip_loc or is_root_loc:
+        if not (is_hip_loc or is_root_loc):
+            continue
+        if not fcurve.keyframe_points:
+            continue
+        # kp.co = (frame, value); the .y on co is the value channel.
+        values = [kp.co.y for kp in fcurve.keyframe_points]
+        val_range = max(values) - min(values)
+        if val_range > threshold:
             to_remove.append((cb, fcurve))
     for cb, fc in to_remove:
         cb.fcurves.remove(fc)
@@ -338,6 +369,10 @@ def process_character(char_path: str, anim_paths: list[str], out_path: str) -> N
     # Force smooth shading on every polygon of the character mesh before export
     # so Mixamo's smoothing groups don't get baked as flat in the GLB.
     shade_smooth_all_meshes()
+
+    # Mixamo Boy01-class facial materials come in as metallic=1 (Blender misreads
+    # the FBX's specular workflow). Zero them so eyes/brows/mouth aren't black.
+    zero_metallic_on_all_materials()
 
     # Select the character armature + its mesh children so the GLB only
     # exports what we want (no leftover anim-armature ghosts).

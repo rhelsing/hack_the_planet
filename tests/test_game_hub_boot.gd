@@ -40,24 +40,36 @@ func _ready() -> void:
 		failures.append("SaveService.current_level should be 'hub' after boot, got '%s'"
 			% SaveService.current_level)
 
-	# Pedestal 1 (Love) should be interactable (always unlocked).
+	# Pedestal 1 (Love) is gated on level_1_unlocked (set by DialTone's intro).
+	# On a fresh save without dialogue, it should be locked.
 	var ped1 := game.get_node_or_null(^"Level/PedestalLove")
 	if ped1 == null:
 		failures.append("hub is missing PedestalLove")
-	elif ped1.has_method(&"can_interact") and not ped1.call(&"can_interact", null):
-		failures.append("PedestalLove should be unlocked on fresh save")
+	elif ped1.has_method(&"can_interact") and ped1.call(&"can_interact", null):
+		failures.append("PedestalLove should be locked before level_1_unlocked")
 
-	# Pedestal 2 (Secret) should be locked until level_1_completed.
+	# Setting level_1_unlocked (what stage_intro does) opens it.
+	GameState.set_flag(&"level_1_unlocked", true)
+	if ped1 != null and ped1.has_method(&"can_interact") and not ped1.call(&"can_interact", null):
+		failures.append("PedestalLove should unlock after level_1_unlocked")
+
+	# Pedestal 2 (Secret) is gated on BOTH level_1_completed (auto, via level_num>1)
+	# AND level_2_unlocked (set by DialTone's stage_post_1). Locked initially.
 	var ped2 := game.get_node_or_null(^"Level/PedestalSecret")
 	if ped2 == null:
 		failures.append("hub is missing PedestalSecret")
 	elif ped2.has_method(&"can_interact") and ped2.call(&"can_interact", null):
-		failures.append("PedestalSecret should be locked before level_1_completed")
+		failures.append("PedestalSecret should be locked before level_2_unlocked")
 
-	# Unlock L1 and verify PedestalSecret opens up.
+	# level_1_completed alone is not enough — still need level_2_unlocked.
 	GameState.set_flag(&"level_1_completed", true)
+	if ped2 != null and ped2.has_method(&"can_interact") and ped2.call(&"can_interact", null):
+		failures.append("PedestalSecret should still be locked with only level_1_completed")
+
+	# Both flags set — pedestal opens.
+	GameState.set_flag(&"level_2_unlocked", true)
 	if ped2 != null and ped2.has_method(&"can_interact") and not ped2.call(&"can_interact", null):
-		failures.append("PedestalSecret should unlock after level_1_completed")
+		failures.append("PedestalSecret should unlock after level_1_completed + level_2_unlocked")
 
 	# Legacy current_level = "game" should also resolve to hub, not recurse.
 	# (Simulate a stale save from before the level-host refactor.)

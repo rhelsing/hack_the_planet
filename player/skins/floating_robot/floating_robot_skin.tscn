@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://dflbrtskin001"]
+
+[ext_resource type="Script" path="res://player/skins/floating_robot/floating_robot_skin.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://7m5ppntkb6oj" path="res://player/skins/floating_robot/model/floating_robot.glb" id="2_model"]
+
+[node name="FloatingRobotSkin" type="Node3D"]
+script = ExtResource("1_script")
+lean_pivot_height = 1.6
+body_center_y = 0.9
+uniform_scale = 1.0
+lean_multiplier = 1.0
+animation_speed = 1.8
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(0.025, 0, 0, 0, 0.025, 0, 0, 0, 0.025, 0, 1.2, 0)

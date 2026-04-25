@@ -2,23 +2,41 @@
 
 [ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
 [ext_resource type="PackedScene" path="res://interactable/grappleable/grappleable.tscn" id="2_grapple"]
+[ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="3_companion"]
+[ext_resource type="PackedScene" path="res://player/skins/splice/splice_skin.tscn" id="4_splice_skin"]
+[ext_resource type="Resource" uid="uid://d4bg27weqpuq2" path="res://dialogue/level_3_splice_offer.dialogue" id="5_splice_dlg"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_gap_marker"]
 albedo_color = Color(0.4, 0.08, 0.1, 1)
 
-[node name="LevelMockup" unique_id=141931145 instance=ExtResource("1_base") editable_instance=true]
+[node name="LevelMockup" unique_id=141931145 instance=ExtResource("1_base")]
 level_num = 3
 powerup_flag = &"powerup_sex"
 powerup_label = "SEX"
 howto_caption = "AIM AT A HOOK, PRESS G, JUMP TO LET GO"
 
+[node name="Ground4" parent="." index="5" unique_id=1459023526]
+visible = false
+
+[node name="Checkpoint2" parent="." index="10" unique_id=57134153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -3.1251278)
+
 [node name="Grapple1" parent="." index="14" unique_id=476836261 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, -9.799098)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, -7.803675)
 
 [node name="Grapple2" parent="." index="15" unique_id=642734320 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 9, -20)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 9, -17.121552)
 
 [node name="GapMarker" type="CSGBox3D" parent="." index="16" unique_id=1094077262]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1234565, 15.051175, -13.118965)
 material_override = SubResource("Mat_gap_marker")
 size = Vector3(8, 0.2, 3.8727417)
+
+[node name="Splice" parent="." index="17" unique_id=556500260 instance=ExtResource("3_companion")]
+transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 0.08540964, -28.551924)
+hide_when_flag = &"refused_splice"
+skin_scene = ExtResource("4_splice_skin")
+dialogue_resource = ExtResource("5_splice_dlg")
+prompt_verb = "talk"
+interactable_id = &"npc_splice_offer"
+auto_interact_on_focus = false

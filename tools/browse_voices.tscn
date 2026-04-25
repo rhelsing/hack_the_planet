@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://clotli8aeedf5"]
+
+[ext_resource type="Script" path="res://tools/browse_voices.gd" id="1_script"]
+
+[node name="BrowseVoices" type="Node"]
+script = ExtResource("1_script")

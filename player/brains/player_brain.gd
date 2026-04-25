@@ -29,6 +29,16 @@ var spring_arm: SpringArm3D
 @export var pitch_min_deg := -75.0
 @export var pitch_max_deg := 20.0
 
+@export_group("Stick Look")
+## Yaw rate in radians/sec at full right-stick deflection.
+@export var stick_yaw_speed := 3.0
+## Pitch rate in radians/sec at full right-stick deflection. Smaller than yaw
+## by convention — vertical look is less commonly swept than horizontal.
+@export var stick_pitch_speed := 2.0
+## Hub deadzone applied on top of the per-axis deadzone in the InputMap.
+## Keeps the camera completely still at rest.
+@export var stick_look_deadzone := 0.15
+
 ## Deadzone applied to the raw 2D movement axis before converting to world
 ## direction. Small — the body layers its own thresholds on top.
 @export var move_deadzone := 0.1
@@ -102,6 +112,20 @@ func _update_last_device(event: InputEvent) -> void:
 
 func tick(_body: Node3D, delta: float) -> Intent:
 	time_since_mouse_input += delta
+
+	# Right-stick → camera, mirroring the mouse path. Apply yaw to camera_pivot
+	# and pitch to spring_arm so spring/camera follow the same chain as mouse.
+	# `time_since_mouse_input` is reset on stick movement too — the body uses
+	# this signal to know whether manual camera control is currently engaged.
+	var look_axis := Input.get_vector("look_left", "look_right", "look_up", "look_down", stick_look_deadzone)
+	if look_axis.length_squared() > 0.0:
+		time_since_mouse_input = 0.0
+		if camera_pivot != null:
+			camera_pivot.rotation.y -= look_axis.x * stick_yaw_speed * delta
+		if spring_arm != null:
+			var y_sign := -1.0 if invert_y else 1.0
+			var new_pitch: float = spring_arm.rotation.x + look_axis.y * stick_pitch_speed * delta * y_sign
+			spring_arm.rotation.x = clamp(new_pitch, deg_to_rad(pitch_min_deg), deg_to_rad(pitch_max_deg))
 
 	# Raw 2D input — deadzone here is tiny so the body's own thresholds remain
 	# the source of truth for "is the player pressing forward."

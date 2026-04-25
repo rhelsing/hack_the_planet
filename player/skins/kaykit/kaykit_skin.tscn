@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://bcvkveqpeyxw7"]
 
 [ext_resource type="Script" uid="uid://b72mab8s2flj6" path="res://player/skins/kaykit/kaykit_skin.gd" id="1_script"]
-[ext_resource type="Script" path="res://player/skins/kaykit/kaykit_powerup_display.gd" id="9_powerup_display"]
 [ext_resource type="PackedScene" uid="uid://cuj11xk2culfy" path="res://player/skins/kaykit/model/kaykit_general.glb" id="2_model"]
 [ext_resource type="PackedScene" uid="uid://b1km7f7b1vkw3" path="res://player/skins/kaykit/model/movement_basic.glb" id="3_movement_basic"]
 [ext_resource type="PackedScene" uid="uid://ccp1o5jv47qql" path="res://player/skins/kaykit/model/combat_melee.glb" id="4_combat_melee"]
@@ -9,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://dn8pfguwvq58a" path="res://player/rollerblade_wheels.tscn" id="6_wheels"]
 [ext_resource type="Material" uid="uid://bl2nmgwa4wpni" path="res://library/fx/dust_particles.tres" id="7_dustproc"]
 [ext_resource type="SphereMesh" uid="uid://jcvev0gdjevs" path="res://library/fx/dust_sphere.tres" id="8_dustmesh"]
+[ext_resource type="Script" uid="uid://dmbg6hbusxlkh" path="res://player/skins/kaykit/kaykit_powerup_display.gd" id="9_powerup_display"]
 
 [sub_resource type="AnimationNodeAnimation" id="ANA_Crouch"]
 animation = &"Crouching"
@@ -201,6 +201,12 @@ node_connections = [&"output", 0, &"StateMachine"]
 [node name="KayKitSkin" type="Node3D" unique_id=563679146]
 script = ExtResource("1_script")
 extra_animation_sources = Array[PackedScene]([ExtResource("3_movement_basic"), ExtResource("4_combat_melee"), ExtResource("5_movement_advanced")])
+tint_head = Color(0.12239546, 0.72158486, 0.52157694, 1)
+tint_body = Color(0.2972694, 0.8132147, 0.68576187, 1)
+tint_arm_left = Color(0, 0.57339895, 0.42751533, 1)
+tint_arm_right = Color(0, 0.57115, 0.44974977, 1)
+tint_leg_left = Color(1.540184e-06, 0.57747775, 0.38264525, 1)
+tint_leg_right = Color(7.70092e-07, 0.5761696, 0.39777213, 1)
 lean_pivot_height = 1.55
 body_center_y = 0.85
 lean_multiplier = 0.5
@@ -227,13 +233,11 @@ anim_player = NodePath("../Model/AnimationPlayer")
 parameters/StateMachine/Move/tilt/add_amount = 0.0
 
 [node name="PowerupEmojis" type="Label3D" parent="." unique_id=820451122]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+pixel_size = 0.015
 billboard = 1
 no_depth_test = true
-pixel_size = 0.015
 font_size = 72
-outline_size = 12
-text = ""
 script = ExtResource("9_powerup_display")
 
 [node name="DustParticles" type="GPUParticles3D" parent="." unique_id=172297066]

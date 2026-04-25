@@ -1,8 +1,18 @@
 ~ start
 
 Glitch: Hey — you made it across! I'm Glitch.
-Glitch: I will be your guide in this realm we call the Gibson. As you go along, the phone booths will save your progress. Otherwise, keep to the jumping. Got it?
+Glitch: My sole directive is to be helpful to you here in the Gibson.
+Glitch: One more thing — those phone booths around the grid. Step into one and it lights up green. Bank that, and you respawn there if you fall.
 - Got it.
-	Glitch: Cool. Catch you on the other side.
+	=> done
+- What is the Gibson?
+	Glitch: The Gibson is a supercomputer mainframe — Ellingson Mineral Company runs it.
+	Glitch: Sixty-four racks, networked across the city, processing every financial transaction the company touches.
+	Glitch: It was named for William Gibson — the writer who first called cyberspace by its name. We are inside it now.
+	=> done
+
+~ done
+
+Glitch: Cool. Catch you on the other side.
 do GameState.set_flag("glitch1_done", true)
 => END

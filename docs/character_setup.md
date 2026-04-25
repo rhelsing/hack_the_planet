@@ -151,6 +151,22 @@ Known bone names in-tree:
 - cop_riot (Mixamo): `mixamorig_LeftFoot_026`, `mixamorig_RightFoot_030`
 - Sophia (Blender rigify-style): `DEF-foot.L`, `DEF-foot.R`
 
+### 5.2.1 Probe the materials
+
+When you need to know how the rig divides into materials — one shared material across all body parts, or one per part, whether textures are bound, what the source albedo is — use the persistent diagnostic at `tests/probe_model_materials.gd`. Edit the `TARGET` const at the top to point at the GLB you just imported and run:
+
+```
+/Applications/Godot.app/Contents/MacOS/Godot --headless \
+    --script res://tests/probe_model_materials.gd --quit
+```
+
+Output lists each `MeshInstance3D` with surface count, material class + name, albedo color, and bound texture path. This is the fastest way to answer:
+- "Can I tint this rig per-part, or do I need to duplicate the shared material on each MeshInstance3D first?" (KayKit pattern — see `kaykit_skin.gd._apply_part_tints` for the duplication trick.)
+- "Is the model using its texture, or is the albedo flat?"
+- "Does any part have an existing surface override that my code would clobber?"
+
+Unlike the bone probe (one-shot, delete after use), this probe is reusable — leave it alone, just bump the `TARGET` const next time.
+
 ### 5.3 Duplicate the closest existing skin
 
 **If your rig has only a couple clips** → copy `player/skins/cop_riot/`.
@@ -349,17 +365,20 @@ It iterates every character FBX, imports each anim FBX in turn onto that charact
 These are problems we've already hit and fixed in the script — listed so you can recognize them in future work:
 
 1. **Smooth shading lost.** Mixamo's smoothing groups can flatten during FBX→glTF conversion, producing visible polygon facets. The script forces `poly.use_smooth = True` on every mesh polygon before export.
-2. **Hip-translation root motion.** Mixamo's "In Place" toggle only zeroes XZ; Y bob and any post-conversion axis-mangled forward motion stay in the Hips bone position track. With Hips Y values like 0 → 240 over 0.7s, the skeleton gets yanked above/below the body collider. The script strips every Hips-bone-location FCurve before pushing the action to NLA — physics drives root motion, animation drives bone rotation.
+2. **Hip-translation root motion** (selective strip). Mixamo's "In Place" toggle only zeros XZ; natural Y bob (1–5cm range, breathing/walk weight-shift) and any post-conversion axis-mangled forward motion (100+cm range) both stay in the Hips position track. The CharacterBody3D needs the latter gone (otherwise mesh sinks/floats relative to collider) but the former kept (otherwise leg rotations over-correct and feet visibly slide on idle clips, since Mixamo authored the leg keys assuming the bob is present). The script applies a **30-cm threshold per FCurve** — strip if value range > 30cm, keep otherwise. Output log shows `[stripped N hip-loc]` per clip: idle clips usually 0, walks/runs 1, leaps/rolls 2.
 3. **Bone-namespace mismatch (T-pose bug).** Mixamo character variants don't share a bone namespace — Aj uses `mixamorig:`, Ch29 uses `mixamorig1:`, Ch32 uses `mixamorig8:`. The anim FBXs ship with `mixamorig:`. When pushing an action onto a character with a different prefix, the FCurves' `pose.bones["mixamorig:Hips"]` paths don't match the character's `mixamorig1:Hips` bones — Blender silently fails to bind, and the gltf exporter writes one keyframe per frame *all sampling the bind pose* (T-pose for every frame). The script detects each character's prefix from the actual armature, detects each action's prefix from FCurve data_paths, and recreates the FCurves under the corrected path before pushing to NLA. (Patching `data_path` in place isn't enough in Blender 4.4+ Animation 2.0 — the channelbag's internal binding doesn't refresh.)
+4. **Black eyes / brows / mouth (metallic-1 bug).** Mixamo's Boy01-class FBXs (Aj and similar) ship facial materials authored with a specular workflow. Blender's Principled-BSDF importer misreads the FBX `Specular` parameter as `Metallic`, and the resulting mesh exports with `pbrMetallicRoughness.metallicFactor = 1.0`. With no IBL/environment configured in Godot, fully metallic surfaces with no reflection map render as **pure black** — the eyes/brows/mouth turn into floating black geometry while the body (which somehow imports with metallic=0) is fine. Diagnostic: probe the imported GLB's mesh materials; if any `StandardMaterial3D` has `metallic=1.00` AND an albedo texture set, that's the symptom. Fix: `zero_metallic_on_all_materials()` walks every mesh's Principled-BSDF nodes and sets the Metallic input to 0 before glTF export. (This applies to Mixamo-derived rigs with this materials layout — for genuinely metallic characters like a robot, you'd remove this pass or whitelist specific material names.)
 
 ### Diagnostic recipes
 
 When a freshly-imported character looks wrong, run these mini-tests instead of guessing:
 
 - **"Stuck in T-pose for every clip"** — bone-namespace mismatch. Probe: load the GLB, sample any rotation track at frame 0 vs `keys / 2`; if `angle_diff` is 0 across all clips, the fcurves never bound. Look at the `hips_prefix=` line in the script's output for that character and compare against the namespace in the anim FBX. The remap should fire and report `remapped <N> fcurves '<from>'→'<to>'`.
-- **"Clip plays but character sinks/floats while running"** — hip translation wasn't stripped. Probe: dump the Hips position track per clip; look for `min`/`max` Y values in the hundreds (axis-mangled forward motion) or even small-magnitude variation that's enough to descend below the collider. Verify the script's `[stripped 3 hip-loc]` tag fired for the offending clip.
+- **"Clip plays but character sinks/floats while running"** — locomotion-axis hip translation wasn't stripped. Probe: dump the Hips position track per clip; look for `min`/`max` values in the hundreds (axis-mangled forward motion). Verify the script's `[stripped N hip-loc]` tag fired with N≥1 for the offending clip — if N is 0, the threshold (default 30cm) is too high for this rig's units, lower it.
+- **"Feet visibly slide during idle clips"** — *too aggressive* a hip strip. Mixamo's leg/foot rotations are keyframed assuming a small natural Hip-Y bob is present; strip the bob and the legs over-correct, dragging the feet. Probe: confirm the idle clip's `[stripped N hip-loc]` log shows `N=0` (script kept the small-magnitude bob). If N is non-zero on what should be a stationary clip, the threshold is too low.
 - **"Clip plays the wrong bones"** — the action bound to the *imported anim FBX's* armature, not the character's. The script removes the anim armature after extracting the action; if it's still in the scene, the gltf exporter writes both armatures' tracks. Confirm only the character's armature exists in the scene at export time.
 - **"All clips faceted"** — `shade_smooth_all_meshes()` either didn't run or didn't reach the meshes. Confirm via Blender that `MeshInstance3D > Mesh > Polygon > use_smooth = True`. Edge-shade smoothing (per-edge angle thresholds) needs the Smooth-by-Angle modifier, not handled here.
+- **"Eyes / brows / mouth render as solid black"** — metallic-1 bug (#4 above). Probe in a one-shot SceneTree: load the skin's `.tscn`, walk every `MeshInstance3D` to its `surface_material_override(0)` (or `mesh.surface_get_material(0)`), and print `material.metallic`. If facial mats show `1.0`, the `zero_metallic_on_all_materials()` pass either didn't run or was bypassed — re-check `process_character`'s call order in `import_mixamo.py`. Quick in-engine workaround if you can't re-run the script: in the skin's `_ready()`, walk children and set `metallic = 0.0` on each surface's StandardMaterial3D. The right fix is at the Blender stage, not in-engine.
 
 ### When to re-run the script
 

@@ -30,7 +30,7 @@ const DEFAULTS := {
 	},
 	"graphics": {
 		"quality": "medium",
-		"transition_style": "instant",  # "instant" = no effect; "glitch" available
+		"transition_style": "glitch",  # "glitch" = palette-tinted scanline fade; "instant" disables
 	},
 	"camera": {
 		"mouse_x_sensitivity": 1.0,

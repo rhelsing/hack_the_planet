@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cl7vbg0871ke"]
+
+[ext_resource type="Script" path="res://level/interactable/companion_npc/companion_station.gd" id="1_script"]
+
+[node name="CompanionStation" type="Marker3D"]
+script = ExtResource("1_script")

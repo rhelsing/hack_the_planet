@@ -1,9 +1,11 @@
 class_name GlitchTransition
 extends Transition
-## Full-screen terminal-glitch fade. Tweens a shader uniform from 0→1 (out)
-## or 1→0 (in). Scene swap runs between out and in while alpha == 1.
+## Chromatic-aberration scene transition. Tweens a shader uniform from
+## 0→1 (out) or 1→0 (in); the shader samples the live framebuffer and
+## applies an RGB split that scales with alpha. Scene swap runs at the
+## peak — visible through the glitch, not hidden by an overlay.
 
-const DURATION := 0.22
+const DURATION := 0.4
 const SHADER_PATH := "res://menu/transitions/glitch.gdshader"
 
 var _canvas: CanvasLayer = null
@@ -14,7 +16,10 @@ var _mat: ShaderMaterial = null
 func play_out(host: SceneTree) -> Signal:
 	_spawn(host)
 	_mat.set_shader_parameter(&"alpha", 0.0)
+	# SINE+IN_OUT: gradual ramp into the glitch — the world distorts smoothly
+	# rather than slamming in. Symmetric with play_in for a back-and-forth feel.
 	var tw := host.create_tween()
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_method(_set_alpha, 0.0, 1.0, DURATION)
 	tw.finished.connect(func() -> void: finished.emit(), CONNECT_ONE_SHOT)
 	return finished
@@ -28,7 +33,10 @@ func play_in(host: SceneTree) -> Signal:
 		)
 		return finished
 	_mat.set_shader_parameter(&"alpha", 1.0)
+	# SINE+IN_OUT: gradual ramp out — the new scene reassembles smoothly
+	# instead of snapping. Mirror of play_out's curve.
 	var tw := host.create_tween()
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_method(_set_alpha, 1.0, 0.0, DURATION)
 	tw.finished.connect(func() -> void:
 		_free_canvas()

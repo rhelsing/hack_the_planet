@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="11_eicw1"]
 [ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="12_city"]
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="13_companion"]
+[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="13b_station"]
 [ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="16_warp"]
@@ -17,6 +18,7 @@
 [ext_resource type="Resource" uid="uid://cnclpp0hu1d8b" path="res://dialogue/dial_tone.dialogue" id="18_dialtonedlg"]
 [ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="19_animeskin"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
+[ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="21_robot"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -130,15 +132,21 @@ size = Vector3(15.080139, 1, 19.78363)
 
 [node name="RespawnHintZone1" parent="." unique_id=939626571 instance=ExtResource("9_respawnmsg")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, 3.1557379, -17.32798, 88.252975)
-message = "Press space/a to jump!"
+message = ""
+voice_character = &"Glitch"
+voice_line = "Hit {jump} to jump. Try it next time, yeah?"
 
 [node name="RespawnHintZone2" parent="." unique_id=1479663897 instance=ExtResource("9_respawnmsg")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, 3.1557379, -17.32798, 57.504807)
-message = "Press space/a twice to double jump. Your timing matters!"
+message = ""
+voice_character = &"Glitch"
+voice_line = "Two taps. Apex of the first, then the second. Don't rush it."
 
 [node name="RespawnHintZone3" parent="." unique_id=1368947165 instance=ExtResource("9_respawnmsg")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, -14.532114, -17.32798, 45.390038)
-message = "Press Q to dash at the end of your double jump to clear large distances!"
+message = ""
+voice_character = &"Glitch"
+voice_line = "At the top of your double-jump, hit {dash}. Or keep falling. Up to you, really."
 
 [node name="KillPlane" parent="." unique_id=873445851 instance=ExtResource("8_killplane")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -30, 0)
@@ -193,7 +201,7 @@ use_collision = true
 size = Vector3(30, 1, 30)
 
 [node name="DialTone" parent="Ground" unique_id=903001001 instance=ExtResource("13_companion")]
-transform = Transform3D(1.9, 0, 0, 0, 1.9, 0, 0, 0, 1.9, 0, 0.53999996, 3.026703)
+transform = Transform3D(1.52, 0, 0, 0, 1.52, 0, 0, 0, 1.52, 0, 0.53999996, 3.026703)
 wave_clip_name = &"Greeting"
 skin_scene = ExtResource("19_animeskin")
 dialogue_resource = ExtResource("18_dialtonedlg")
@@ -202,28 +210,28 @@ interactable_id = &"npc_dialtone"
 [node name="PedestalLove" parent="." unique_id=1153728140 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 11.150833, -63.62894)
 ready_tint = Color(0.24355009, 0.69582105, 0.5367658, 1)
-require_flag = &"dialtone_greeted"
+require_flag = &"level_1_unlocked"
 interactable_id = &"pedestal_1"
 
 [node name="PedestalSecret" parent="." unique_id=582857367 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 11.150833, -63.62894)
 level_num = 2
 ready_tint = Color(0.22080001, 0.50415987, 0.96, 1)
-require_flag = &"dialtone_greeted"
+require_flag = &"level_2_unlocked"
 interactable_id = &"pedestal_2"
 
 [node name="PedestalSex" parent="." unique_id=502467274 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 11.150833, -63.62894)
 level_num = 3
 ready_tint = Color(0.7495762, 0.22929168, 0.9761173, 1)
-require_flag = &"dialtone_greeted"
+require_flag = &"level_3_unlocked"
 interactable_id = &"pedestal_3"
 
 [node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -63.62894)
 level_num = 4
 ready_tint = Color(1, 0.84, 0.3, 1)
-require_flag = &"dialtone_greeted"
+require_flag = &"level_4_unlocked"
 interactable_id = &"pedestal_4"
 
 [node name="PhoneBooth" parent="." unique_id=547259237 instance=ExtResource("11_eicw1")]
@@ -244,16 +252,16 @@ script = ExtResource("12_city")
 
 [node name="Glitch" parent="." unique_id=1359934998 instance=ExtResource("13_companion")]
 transform = Transform3D(0.9999957, 0, -0.0029321313, 0, 1, 0, 0.0029321313, 0, 0.9999957, 3.5963764, -11.85, 76.42345)
-hide_when_flag = &"glitch1_done"
 warp_sfx = ExtResource("16_warp")
+skin_scene = ExtResource("21_robot")
+stations = [NodePath("../GlitchStation1")]
+advance_flag = &"glitch1_done"
 dialogue_resource = ExtResource("14_compdlg")
 
-[node name="Glitch2" parent="." unique_id=688292530 instance=ExtResource("13_companion")]
+[node name="GlitchStation1" parent="." instance=ExtResource("13b_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -11.85, 42.416115)
-visible_when_flag = &"glitch1_done"
-arrive_delay = 0.6
 dialogue_resource = ExtResource("15_glitch2dlg")
-interactable_id = &"npc_glitch_2"
+advance_flag = &""
 
 [node name="EnemyKayKit" parent="." unique_id=729066735 instance=ExtResource("20_62dii")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.427982, -11.872522, -15.925325)

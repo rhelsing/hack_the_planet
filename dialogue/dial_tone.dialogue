@@ -13,75 +13,296 @@ elif GameState.get_flag("dialtone_greeted", false)
 
 => stage_intro
 
+# ── Intro — first hub talk, before Level 1 ───────────────────────────────
+
 ~ stage_intro
 
 DialTone: Hey — over here. Name's DialTone.
-DialTone: Before we get into it — what do they call you on the grid?
-do HandlePicker.roll_options(4)
-- {{HandlePicker.option(0)}}
-	do HandlePicker.pick(0)
-- {{HandlePicker.option(1)}}
-	do HandlePicker.pick(1)
-- {{HandlePicker.option(2)}}
-	do HandlePicker.pick(2)
-- {{HandlePicker.option(3)}}
-	do HandlePicker.pick(3)
-DialTone: {{HandlePicker.chosen_name()}}, huh? {{HandlePicker.reaction()}}.
-DialTone: Anyway — listen. My friend Nyx — the Gibson locked her out mid-jack.
-DialTone: She's stuck between sectors. Can't pull out, can't push through. Just drifting in the static.
-DialTone: You gotta jack in and break her loose. Portal behind me drops you into sector one.
-- Who is she?
-	DialTone: Nyx. Sharpest hacker on this grid. Usually. Not her day.
-	=> stage_intro_tail
-- What am I looking for down there?
-	DialTone: Her signal. It'll be flickering between sectors — you'll know it when you see it.
-	=> stage_intro_tail
-- Why can't you go yourself?
-	DialTone: Local node's flagged to my address. I jack in from here, the whole mainframe goes dark. You're a clean IP — you can slip through.
-	=> stage_intro_tail
+DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break her loose.
+=> intro_menu
 
-~ stage_intro_tail
+~ intro_menu
+
+- I'm in. Where's the portal?
+	=> intro_done
+- Who's Nyx?
+	=> intro_who
+- What am I looking for down there?
+	=> intro_what
+- Why can't you go yourself?
+	=> intro_why
+
+~ intro_who
+
+DialTone: Nyx. Sharpest hacker on this grid. Usually. Not her day.
+DialTone: Anything else?
+- What am I looking for?
+	=> intro_what
+- Why can't you go yourself?
+	=> intro_why
+- Let's go.
+	=> intro_done
+
+~ intro_what
+
+DialTone: Her signal. Drifting in the static — flickering between sectors. You'll know it when you see it.
+DialTone: Anything else?
+- Who is she?
+	=> intro_who
+- Why can't you go yourself?
+	=> intro_why
+- Let's go.
+	=> intro_done
+
+~ intro_why
+
+DialTone: Local node's flagged to my address. I jack in from here, the whole mainframe goes dark.
+DialTone: You're a clean IP — you can slip through.
+DialTone: Anything else?
+- Who is she?
+	=> intro_who
+- What am I looking for?
+	=> intro_what
+- Let's go.
+	=> intro_done
+
+~ intro_done
 
 DialTone: Take this — walkie's on my channel. I'll be in your ear the whole run.
 DialTone: Portal's right behind me. Step on, press enter, you're in.
 DialTone: Go bring her back.
+do GameState.add_item("walkie_talkie")
 do GameState.set_flag("walkie_talkie_owned", true)
 do GameState.set_flag("dialtone_greeted", true)
+do GameState.set_flag("level_1_unlocked", true)
 => END
+
+# ── Nudge — greeted but Level 1 not yet completed ────────────────────────
 
 ~ stage_nudge
 
 DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
 => END
 
+# ── Post Level 1 — prank reveal ──────────────────────────────────────────
+
 ~ stage_post_1
 
 DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
-DialTone: So. She tell you? She was never stuck. Never been stuck. Sharpest node on the grid — the Gibson doesn't lock *her* out.
-DialTone: I just wanted to watch her lose it. She HATES getting rescued. And you... well, you got to ride a good story in. Call it even.
-- You owe me.
-	DialTone: Yeah, yeah. I owe you. Real thing next time, runner's promise.
-	=> post_1_tail
-- She said you're a dead man.
-	DialTone: She always says that. I'm statistically immortal at this point.
-	=> post_1_tail
+=> post_1_menu
 
-~ post_1_tail
+~ post_1_menu
+
+- Onward.
+	=> post_1_done
+- Want to explain yourself?
+	=> post_1_explain
+- She said you're a dead man.
+	=> post_1_threat
+
+~ post_1_explain
+
+DialTone: She tell you? She was never stuck. Never been stuck. Sharpest node on the grid — the Gibson doesn't lock *her* out.
+DialTone: I just wanted to watch her lose it. She HATES getting rescued.
+DialTone: And you got to ride a good story in. Call it even.
+- Ha. You owe me.
+	=> post_1_owe
+- She said you're a dead man.
+	=> post_1_threat
+- Whatever. Onward.
+	=> post_1_done
+
+~ post_1_owe
+
+DialTone: Yeah, yeah. I owe you. Real thing next time — runner's promise.
+- Tell me she's coming for you.
+	=> post_1_threat
+- Got it.
+	=> post_1_done
+
+~ post_1_threat
+
+DialTone: She always says that. I'm statistically immortal at this point.
+- Got it.
+	=> post_1_done
+
+~ post_1_done
 
 DialTone: Secret pedestal's lit. Next one's a real job — I swear on my uptime.
+do GameState.set_flag("level_2_unlocked", true)
 => END
+
+# ── Post Level 2 — Splice surfaces, near miss ────────────────────────────
 
 ~ stage_post_2
 
-DialTone: [stub — post-level-2 reaction / next hook]
+DialTone: {{HandlePicker.chosen_name()}}. You made it back.
+=> post_2_menu
+
+~ post_2_menu
+
+- Onward.
+	=> post_2_done
+- Who is Splice?
+	=> post_2_who
+- How did he get into the sentinels?
+	=> post_2_how
+- You weren't expecting him.
+	=> post_2_admit
+
+~ post_2_who
+
+DialTone: Black-hat. Used to run with Nyx, back before. Got pushed off the grid for things even *we* don't do.
+DialTone: Anything else?
+- How did he get into the sentinels?
+	=> post_2_how
+- You weren't expecting him.
+	=> post_2_admit
+- Onward.
+	=> post_2_done
+
+~ post_2_how
+
+DialTone: Sentinels are old code. He found a backdoor. Or made one.
+DialTone: Either way — they listen to him now.
+DialTone: Anything else?
+- Who is Splice?
+	=> post_2_who
+- You weren't expecting him.
+	=> post_2_admit
+- Onward.
+	=> post_2_done
+
+~ post_2_admit
+
+DialTone: Yeah. He's been quiet for a year. Now he's not. Don't love it.
+DialTone: Anything else?
+- Who is Splice?
+	=> post_2_who
+- How did he get into the sentinels?
+	=> post_2_how
+- Onward.
+	=> post_2_done
+
+~ post_2_done
+
+DialTone: Sex pedestal's primed. Grapple hook on the other side. Don't slow down.
+do GameState.set_flag("level_3_unlocked", true)
 => END
+
+# ── Post Level 3 — loyal branch only (betray path exits to its own scene) ─
 
 ~ stage_post_3
 
-DialTone: [stub — post-level-3 reaction / next hook]
+DialTone: He made you the offer. We heard it on the channel.
+DialTone: You said no.
+=> post_3_menu
+
+~ post_3_menu
+
+- Onward.
+	=> post_3_done
+- Why'd you let him talk to me alone?
+	=> post_3_channel
+- What's his angle?
+	=> post_3_angle
+- You didn't think I'd take it?
+	=> post_3_trust
+
+~ post_3_channel
+
+DialTone: Couldn't block him. He owns half the routing now. We just listened.
+DialTone: Anything else?
+- What's his angle?
+	=> post_3_angle
+- You didn't think I'd take it?
+	=> post_3_trust
+- Onward.
+	=> post_3_done
+
+~ post_3_angle
+
+DialTone: He wants the Gibson root. We're the only thing in his way.
+DialTone: Reds run patrol. Greens are throwaway. He's saving the heavy ops for us.
+DialTone: Anything else?
+- Why'd you let him talk to me alone?
+	=> post_3_channel
+- You didn't think I'd take it?
+	=> post_3_trust
+- Onward.
+	=> post_3_done
+
+~ post_3_trust
+
+DialTone: Honestly? Not sure. Glad I was wrong.
+DialTone: Anything else?
+- Why'd you let him talk to me alone?
+	=> post_3_channel
+- What's his angle?
+	=> post_3_angle
+- Onward.
+	=> post_3_done
+
+~ post_3_done
+
+DialTone: God pedestal's hot. Flare guns on the other side. We push him out.
+do GameState.set_flag("level_4_unlocked", true)
 => END
+
+# ── Post Level 4 — loyal endgame (Splice quarantined, not destroyed) ─────
 
 ~ stage_post_4
 
-DialTone: [stub — post-level-4 / end-game reaction]
+DialTone: Splice is quarantined. Not gone — but boxed in. The grid's logging it everywhere.
+DialTone: They're calling it "the Gibson run". You're a name now, {{HandlePicker.chosen_name()}}.
+=> post_4_menu
+
+~ post_4_menu
+
+- What now?
+	=> post_4_what
+- Where's Nyx?
+	=> post_4_nyx
+- About Splice — he's still in there.
+	=> post_4_splice
+- Sign me out.
+	=> post_4_done
+
+~ post_4_what
+
+DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
+DialTone: Anything else?
+- Where's Nyx?
+	=> post_4_nyx
+- About Splice — he's still in there.
+	=> post_4_splice
+- Sign me out.
+	=> post_4_done
+
+~ post_4_nyx
+
+DialTone: Around. She'll find you when she wants. She always does.
+DialTone: Anything else?
+- What now?
+	=> post_4_what
+- About Splice — he's still in there.
+	=> post_4_splice
+- Sign me out.
+	=> post_4_done
+
+~ post_4_splice
+
+DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
+DialTone: Anything else?
+- What now?
+	=> post_4_what
+- Where's Nyx?
+	=> post_4_nyx
+- Sign me out.
+	=> post_4_done
+
+~ post_4_done
+
+DialTone: Catch you around, runner.
+do GameState.set_flag("game_completed", true)
 => END

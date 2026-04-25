@@ -41,6 +41,20 @@ func advance() -> void:
 	_save_if_active()
 
 
+## Path-based scene swap that bypasses the 1–4 gating + completion bookkeeping
+## of `goto_level`. Used by branching dialogue outcomes that send the player
+## somewhere outside the normal arc (e.g. Splice's L3 offer → L5 betrayal
+## continuation, or refusal → straight back to hub without marking L3 complete).
+func goto_path(path: String) -> void:
+	if path.is_empty():
+		push_error("LevelProgression.goto_path: empty path"); return
+	if not ResourceLoader.exists(path):
+		push_error("LevelProgression.goto_path: missing scene %s" % path); return
+	SaveService.set_current_level(_scene_id_from_path(path))
+	_goto(path)
+	_save_if_active()
+
+
 func goto_level(num: int) -> void:
 	if num < 1 or num > 4:
 		push_error("LevelProgression.goto_level: invalid num %d" % num)

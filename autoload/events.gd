@@ -97,3 +97,11 @@ signal menu_closed(id: StringName)
 signal respawn_message_armed(text: String)
 @warning_ignore("unused_signal")
 signal respawn_message_show(text: String)
+
+# Voiced sibling of respawn_message_*. Same arm-on-entry / fire-on-respawn
+# semantics, but routes to the Companion bus (reverb voice) instead of the
+# center-screen label. RespawnMessageZone fires armed when its voice_line is
+# set; PlayerBody queues, then on respawn waits a settle window and calls
+# Companion.speak per entry. No visual label appears for these.
+@warning_ignore("unused_signal")
+signal respawn_voice_armed(character: String, line: String)

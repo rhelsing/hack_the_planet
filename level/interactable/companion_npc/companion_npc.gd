@@ -42,6 +42,20 @@ extends DialogueTrigger
 ## DialTone, ...) share the base scene while wearing different skins.
 @export var skin_scene: PackedScene
 
+## Ratchet system — companion travels through a sequence of CompanionStation
+## markers in the level. When the current dialogue sets `advance_flag` on
+## GameState, the companion elastic-tweens to the next station and adopts
+## its dialogue + advance_flag. Single forward-only progression.
+@export var stations: Array[NodePath] = []
+## Flag the companion's CURRENT dialogue sets on completion (via
+## `do GameState.set_flag`). When it flips true, the ratchet fires.
+## Updated each time the companion advances to a new station.
+@export var advance_flag: StringName = &""
+## Seconds for the elastic travel tween between stations. Long because the
+## elastic settle feels right when the actual translation reads as a
+## deliberate glide rather than a snap-with-bounce.
+@export var travel_duration: float = 16.0
+
 # Skins built on the body system natively face +basis.z, so a yaw of
 # atan2(dir.x, dir.z) points the basis.z axis at the target.
 const _MODEL_FORWARD_OFFSET: float = 0.0
@@ -54,6 +68,15 @@ var _wave_anim_tree: AnimationTree
 var _wave_timer: float = 0.0
 var _next_wave_at: float = 0.0
 var _waving: bool = false
+var _station_idx: int = -1   # -1 = sitting at the initial spawn position
+var _traveling: bool = false
+# Dance loop — when active, AnimationTree is disabled and the underlying
+# AnimationPlayer plays a random clip from `_dance_clips`, holds for a
+# random interval from `_dance_intervals`, then picks again. Used by the
+# post-L4 victory hub state to make companions celebrate.
+var _dance_clips: Array[StringName] = []
+var _dance_intervals: Array[float] = []
+var _dancing: bool = false
 
 
 func _ready() -> void:
@@ -69,6 +92,15 @@ func _ready() -> void:
 	_apply_initial_presence()
 	if visible_when_flag != &"" or hide_when_flag != &"":
 		Events.flag_set.connect(_on_flag_set)
+	# Ratchet system — listen for advance_flag firing if we have stations
+	# wired up. Connection is independent of the legacy hide/visible flow.
+	if not stations.is_empty():
+		Events.flag_set.connect(_on_advance_flag_set)
+		# Restore prior progress: if the player already completed any of our
+		# advance flags in a saved session, walk forward (snap, no tween) so
+		# we land at the correct station with the correct dialogue + flag.
+		# Persistence lives in GameState.flags via the existing save system.
+		_restore_progress()
 	# Cache the underlying AnimationPlayer + AnimationTree once so wave
 	# triggers don't walk the scene every tick.
 	if _swivel != null:
@@ -155,6 +187,10 @@ func _set_bump_enabled(on: bool) -> void:
 func _process(delta: float) -> void:
 	if _swivel == null:
 		return
+	# In travel mode the swivel + wave systems are frozen — facing was set
+	# at travel-start so the model already points at the destination.
+	if _traveling:
+		return
 	if _player == null or not is_instance_valid(_player):
 		_player = _find_player()
 		if _player == null:
@@ -176,10 +212,84 @@ func _find_player() -> Node3D:
 	return null
 
 
+# --- Ratchet — travel to next CompanionStation --------------------------
+
+func _on_advance_flag_set(id: StringName, value: Variant) -> void:
+	# Ignore false/0 values (set_flag(name, false) shouldn't trigger advance).
+	# Match check on `advance_flag` naturally guards against double-fire from
+	# repeated set_flag calls — once we advance, advance_flag changes.
+	if not value:
+		return
+	if id == &"" or id != advance_flag:
+		return
+	if _traveling:
+		return
+	_advance_to_next_station(false)
+
+
+func _advance_to_next_station(snap: bool) -> void:
+	var next_idx: int = _station_idx + 1
+	if next_idx >= stations.size():
+		return  # No more stops — companion stays where it is.
+	var node: Node = get_node_or_null(stations[next_idx])
+	var station: CompanionStation = node as CompanionStation
+	if station == null:
+		push_warning("[%s] station[%d] resolves to %s — not a CompanionStation; aborting ratchet." % [name, next_idx, node])
+		return
+	_station_idx = next_idx
+	if snap:
+		_snap_to(station)
+	else:
+		_travel_to(station)
+
+
+func _travel_to(station: CompanionStation) -> void:
+	_traveling = true
+	# Snap-rotate skin to face destination so the elastic flight reads as a
+	# committed move rather than a sideways slide. Swivel toward player is
+	# disabled (see _process guard) so this rotation sticks for the duration.
+	var dest: Vector3 = station.global_position
+	var planar := Vector3(dest.x - global_position.x, 0.0, dest.z - global_position.z)
+	if _swivel != null and planar.length_squared() > 0.0001:
+		_swivel.rotation.y = atan2(planar.x, planar.z) + _MODEL_FORWARD_OFFSET
+	var tw := create_tween()
+	tw.tween_property(self, "global_position", dest, travel_duration) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_callback(_on_travel_finished.bind(station))
+
+
+func _snap_to(station: CompanionStation) -> void:
+	# Used during save-load restore. No tween, no traveling state — just be
+	# at the station with the right dialogue + advance flag, immediately.
+	global_position = station.global_position
+	dialogue_resource = station.dialogue_resource
+	advance_flag = station.advance_flag
+
+
+func _on_travel_finished(station: CompanionStation) -> void:
+	_traveling = false
+	dialogue_resource = station.dialogue_resource
+	advance_flag = station.advance_flag
+
+
+# Walk forward through stations whose advance_flag is already true on
+# GameState — that means a prior session advanced past them. Each iteration
+# updates `advance_flag` to the current station's, so the loop terminates
+# at the first station whose flag is NOT yet set (or end of the list).
+func _restore_progress() -> void:
+	var safety: int = stations.size() + 1
+	while safety > 0 and advance_flag != &"" and bool(GameState.get_flag(advance_flag, false)):
+		var prev_idx: int = _station_idx
+		_advance_to_next_station(true)
+		if _station_idx == prev_idx:
+			break  # ran out of stations — bail
+		safety -= 1
+
+
 # --- Idle wave -----------------------------------------------------------
 
 func _tick_wave(delta: float) -> void:
-	if _waving or not visible:
+	if _waving or _dancing or not visible:
 		return
 	if _wave_anim_player == null:
 		return
@@ -189,6 +299,54 @@ func _tick_wave(delta: float) -> void:
 	_wave_timer = 0.0
 	_pick_next_wave_interval()
 	_play_wave()
+
+
+# --- Victory dance loop ---------------------------------------------------
+
+## Disable the AnimationTree and cycle through `clips` on the underlying
+## AnimationPlayer indefinitely. Picks a random clip every random interval
+## (5 / 7 / 13 seconds by default — same flavour as the wave_intervals_sec
+## pattern). Used by hub.gd's post-L4 victory state. Idempotent — calling
+## again resets the picker.
+func enter_dance_loop(clips: Array, intervals_sec: Array = [5.0, 7.0, 13.0]) -> void:
+	if _wave_anim_player == null:
+		return
+	_dance_clips.clear()
+	for c in clips:
+		var sn: StringName = c if c is StringName else StringName(str(c))
+		if _wave_anim_player.has_animation(sn):
+			_dance_clips.append(sn)
+	if _dance_clips.is_empty():
+		return
+	_dance_intervals.clear()
+	for s in intervals_sec:
+		_dance_intervals.append(float(s))
+	if _dance_intervals.is_empty():
+		_dance_intervals = [5.0, 7.0, 13.0]
+	_dancing = true
+	if _wave_anim_tree != null:
+		_wave_anim_tree.active = false
+	_play_random_dance_clip()
+
+
+func exit_dance_loop() -> void:
+	_dancing = false
+	_dance_clips.clear()
+	_dance_intervals.clear()
+	if _wave_anim_tree != null:
+		_wave_anim_tree.active = true
+
+
+func _play_random_dance_clip() -> void:
+	if not _dancing or _dance_clips.is_empty() or _wave_anim_player == null:
+		return
+	var clip: StringName = _dance_clips[randi() % _dance_clips.size()]
+	_wave_anim_player.play(clip)
+	var hold_s: float = _dance_intervals[randi() % _dance_intervals.size()]
+	# create_timer respects the node's PROCESS_MODE (INHERIT) — dance pauses
+	# during dialogue/pause menu, which matches the rest of the world.
+	await get_tree().create_timer(hold_s).timeout
+	_play_random_dance_clip()
 
 
 func _pick_next_wave_interval() -> void:

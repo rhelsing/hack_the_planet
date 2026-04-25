@@ -1,77 +1,60 @@
 extends Node
 
-## Persistent hacker-handle picker. DialTone's intro dialogue calls roll_options
-## to pick 4 random handles from the pool, shows them as choice labels, then
-## pick() locks in the player's handle (stored in GameState.flags.player_handle)
-## and chooses one of 20 DialTone-reaction lines to splice into his reply.
+## Persistent hacker-handle picker. Glitch's first conversation calls option(0..3)
+## to render the four fixed handles as choices, then pick(i) locks one in
+## (stored in GameState.flags.player_handle).
+##
+## The pool is FIXED at 4 — never random, never expanded. This bound is what
+## makes per-handle voice-line variant gen tractable: every voice line that
+## tokenizes {player_handle} has exactly four cached mp3 variants, no more.
+## See docs/dynamic_dialogue_engine.md.
 
-const POOL: Array[String] = [
-	"Cipher", "Vex", "Siren", "Static", "Glyph", "Lux", "Echo", "Raze",
-	"Pixel", "Shiv", "Omen", "Ghost", "Kairos", "Vapor", "Crash", "Prism",
-	"Tempest", "Noise", "Neon", "Byte",
-]
+const POOL: Array[String] = ["Pixel", "Neon", "Cipher", "Byte"]
 
-## DialTone's reaction after you pick. Cycled randomly. 20 variants keeps the
-## re-roll moment from feeling canned on replays.
-const REACTIONS: Array[String] = [
-	"well, that's not what I'd have picked, but okay",
-	"huh — solid choice, actually",
-	"that's what we're going with? alright",
-	"okay, bold. I respect it",
-	"not a bad read on yourself",
-	"you sure? ... okay",
-	"eh, it'll do",
-	"that's... that's a name. sure",
-	"I was gonna pitch you something snappier, but go off",
-	"noted. in the log forever now",
-	"fine — but if anyone asks, I pitched you something cooler",
-	"really? that one?",
-	"punchy. I like it",
-	"bit of a mouthful, but fine",
-	"half the grid's got that handle, but okay",
-	"that's what my uncle calls his firewall, but sure",
-	"classy. retro. works",
-	"you know what, yeah. that tracks",
-	"could be worse. alright",
-	"lock it in, then. no takebacks",
-]
+## Glitch's per-name reaction at pick time. Resigned-British backhand — the
+## through-line is "odd choice, but logged anyway." Pixel and Byte get the
+## "to each their own" shrug; Neon and Cipher get pointed digs in the same
+## resigned tone.
+const REACTIONS: Dictionary = {
+	"Pixel": "Pixel. Not what I would have picked, but to each their own.",
+	"Neon": "Neon. Subtle as a road flare. Brave.",
+	"Cipher": "Cipher. Predictable. Every third runner picks Cipher.",
+	"Byte": "Byte. Not what I would have picked, but to each their own.",
+}
 
-var _options: Array[int] = []
-var _reaction_idx: int = -1
+## Fallback when no handle has been picked yet — used by post-level dialogue
+## that fires before the player has talked to Glitch (edge case, but real).
+const FALLBACK: String = "Runner"
 
 
-## Pick `count` distinct indices from POOL for this session's choices.
-func roll_options(count: int = 4) -> void:
-	var indices: Array = range(POOL.size())
-	indices.shuffle()
-	_options = []
-	for i in min(count, indices.size()):
-		_options.append(int(indices[i]))
-
-
-## Label for the i-th rolled option. Used from dialogue via {{ }} interpolation.
+## Label for the i-th option. Stable for all sessions — index N always returns
+## POOL[N], so the cache hash is deterministic across runs.
 func option(i: int) -> String:
-	if i < 0 or i >= _options.size():
+	if i < 0 or i >= POOL.size():
 		return ""
-	return POOL[_options[i]]
+	return POOL[i]
 
 
-## Lock in the i-th option as the player's handle. Irreversible — persisted via
-## GameState so later dialogues + saves see the same name. Also picks a reaction.
+## Lock in the i-th option. Irreversible — persisted via GameState so later
+## dialogues + saves see the same name.
 func pick(i: int) -> void:
-	if i < 0 or i >= _options.size():
+	if i < 0 or i >= POOL.size():
 		return
-	GameState.set_flag(&"player_handle", POOL[_options[i]])
-	_reaction_idx = randi() % REACTIONS.size()
+	GameState.set_flag(&"player_handle", POOL[i])
 
 
-## The player's locked-in handle (empty before first pick).
+## True once a pick has happened. Use this to gate first-convo vs return-convo
+## branches in dialogue files.
+func has_picked() -> bool:
+	return not String(GameState.get_flag(&"player_handle", "")).is_empty()
+
+
+## The player's locked-in handle, or FALLBACK if not yet picked.
 func chosen_name() -> String:
-	return String(GameState.get_flag(&"player_handle", ""))
+	var stored := String(GameState.get_flag(&"player_handle", ""))
+	return stored if not stored.is_empty() else FALLBACK
 
 
-## Reaction line chosen at pick-time. Stable for this session until re-picked.
+## Glitch's per-handle reaction. Returns "" if called before a pick.
 func reaction() -> String:
-	if _reaction_idx < 0:
-		_reaction_idx = randi() % REACTIONS.size()
-	return REACTIONS[_reaction_idx]
+	return String(REACTIONS.get(chosen_name(), ""))

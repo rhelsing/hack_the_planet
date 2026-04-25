@@ -1,25 +1,79 @@
 ~ start
 
+if HandlePicker.has_picked()
+	=> stage_after_pick
+
+=> stage_pick
+
+# ── First convo: registry / handle pick ──────────────────────────────────
+
+~ stage_pick
+
+Glitch: Here in the Gibson, we need a way to keep track of you.
+Glitch: Right now, you are an anomaly.
+Glitch: Pick a handle.
+- {{HandlePicker.option(0)}}
+	do HandlePicker.pick(0)
+- {{HandlePicker.option(1)}}
+	do HandlePicker.pick(1)
+- {{HandlePicker.option(2)}}
+	do HandlePicker.pick(2)
+- {{HandlePicker.option(3)}}
+	do HandlePicker.pick(3)
+Glitch: {{HandlePicker.reaction()}}
+=> menu
+
+# ── Return convos: existing greeting flow (unchanged) ────────────────────
+
+~ stage_after_pick
+
 if GameState.get_flag("glitch2_done", false)
-	=> enemies_ahead
+	Glitch: At your service.
+	=> menu
 
-Glitch: Nice jump my dude!
-Glitch: How's the movement feeling?
-- Solid.
-	Glitch: Great to hear my dude!
-	Glitch: One more thing — dash (Q) also dodges attacks. And speaking of attacks...
-- Confusing.
-	Glitch: Space/A jumps. Tap it twice for a double-jump. Q dashes mid-air.
-	Glitch: Dash also dodges attacks. And speaking of attacks...
+Glitch: Well executed.
+=> menu
+
+~ menu
+
+- Onward.
+	=> done
+- Refresh the controls.
+	=> controls
+- What are those things ahead?
+	=> sentinels
+
+~ controls
+
+Glitch: Space, or A on a controller, initiates a jump. Tap twice to chain a second.
+Glitch: Q triggers a dash mid-flight. The same dash will sidestep an incoming attack.
+Glitch: T strikes.
+Glitch: Anything else?
+- Tell me about those things ahead.
+	=> sentinels
+- That's all.
+	=> done
+
+~ sentinels
+
+Glitch: Sentinels. Their function is to purge anything that does not belong in the Gibson.
+Glitch: Which, regrettably, includes you. Press attack — T on the keyboard, X on a controller — and a single strike makes them go "poof".
+Glitch: Anything else?
+- What shapes do they take?
+	=> sentinels_variety
+- Refresh the controls.
+	=> controls
+- That's all.
+	=> done
+
+~ sentinels_variety
+
+Glitch: Several configurations. In time, you may find some can be repurposed.
+- Interesting.
+	=> done
+
+~ done
+
 do GameState.set_flag("glitch2_done", true)
-=> enemies_ahead
-
-~ enemies_ahead
-
-Glitch: Enemies are no match for your little punches dude.
-Glitch: Press T to strike them down.
-Glitch: See you around dude.
-Glitch: Remember you can look up controls in the settings menu.
-Glitch: Until the next time!
-do GameState.set_flag("glitch2_gone", true)
+Glitch: Carry on.
 => END

@@ -17,6 +17,7 @@ const BUS_DIALOGUE: StringName = &"Dialogue"
 const BUS_AMBIENCE: StringName = &"Ambience"
 const BUS_UI: StringName = &"UI"
 const BUS_WALKIE: StringName = &"Walkie"
+const BUS_COMPANION: StringName = &"Companion"
 
 ## Settings keys (see sync_up.md ui_dev table). Default 0.0 dB means
 ## "unattenuated." Settings autoload writes them; we subscribe to
@@ -34,12 +35,17 @@ var _music_player: AudioStreamPlayer
 var _ambience_player: AudioStreamPlayer
 var _dialogue_player: AudioStreamPlayer
 var _walkie_player: AudioStreamPlayer
+var _companion_player: AudioStreamPlayer
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_next: int = 0
 
 ## Emitted when a walkie line finishes playing (natural end OR stop_walkie()).
 ## Walkie autoload uses this to advance its FIFO queue.
 signal walkie_finished
+
+## Emitted when a companion line finishes (natural end OR stop_companion()).
+## Companion autoload uses this to advance its FIFO queue.
+signal companion_finished
 
 
 func _ready() -> void:
@@ -151,6 +157,24 @@ func stop_walkie() -> void:
 	walkie_finished.emit()
 
 
+## Companion channel — diegetic in-world voice with reverb + slight low-pass
+## (the "across the room" feel). Used by the Companion autoload for nearby
+## NPC narration that ISN'T radio chatter. Distinct bus from Walkie so the two
+## channels can be tuned independently.
+func play_companion(stream: AudioStream) -> void:
+	if stream == null: return
+	# Don't kill walkie/dialogue here; companion may layer with ambient SFX
+	# but the autoload's FIFO ensures it never overlaps another companion line.
+	_companion_player.stream = stream
+	_companion_player.play()
+
+
+func stop_companion() -> void:
+	if _companion_player.playing:
+		_companion_player.stop()
+	companion_finished.emit()
+
+
 func _play_next_dialogue_if_idle() -> void:
 	if _dialogue_player.playing: return
 	if _dialogue_queue.is_empty(): return
@@ -183,6 +207,8 @@ func _create_players() -> void:
 	_walkie_player = _make_player(BUS_WALKIE)
 	# Natural end: re-emit our signal so the Walkie autoload can dequeue.
 	_walkie_player.finished.connect(func(): walkie_finished.emit())
+	_companion_player = _make_player(BUS_COMPANION)
+	_companion_player.finished.connect(func(): companion_finished.emit())
 	# SFX pool: 6 players round-robin handles overlapping short sounds without
 	# cutting each other off. Overflow silently reuses oldest.
 	for i in range(6):

@@ -20,6 +20,21 @@ extends CharacterSkin
 ## Tune per skin — different rigs have different foot-origin heights.
 @export var skate_root_y: float = 0.134
 
+## Per-part albedo tints. Default to the mannequin's stock grey; override on
+## inherited skin scenes (e.g. enemy_kaykit_red.tscn) to recolor pawns
+## without touching textures or shaders. Each tint duplicates the shared
+## Character_Material at _ready and applies as a surface override on that
+## part's MeshInstance3D, so tints are per-instance, not global.
+const _DEFAULT_TINT := Color(0.4845, 0.4845, 0.4845)
+@export_group("Part Tints")
+@export var tint_head: Color = _DEFAULT_TINT
+@export var tint_body: Color = _DEFAULT_TINT
+@export var tint_arm_left: Color = _DEFAULT_TINT
+@export var tint_arm_right: Color = _DEFAULT_TINT
+@export var tint_leg_left: Color = _DEFAULT_TINT
+@export var tint_leg_right: Color = _DEFAULT_TINT
+@export_group("")
+
 ## Rollerblade wheels live as inspector-tunable Node3D children in the scene
 ## (WheelsLeft / WheelsRight, sibling to Model). At _ready they're reparented
 ## under runtime BoneAttachment3Ds bound to the foot bones, keeping global
@@ -118,6 +133,7 @@ func _ready() -> void:
 	_collect_mannequin_meshes(self)
 	for m: MeshInstance3D in _body_meshes:
 		m.material_overlay = _damage_overlay
+	_apply_part_tints()
 
 	# Reparent the inspector-placed wheel nodes under runtime BoneAttachment3Ds
 	# so they track the foot bones. keep_global_transform=true means the user's
@@ -133,6 +149,36 @@ func _collect_mannequin_meshes(n: Node) -> void:
 		_body_meshes.append(n as MeshInstance3D)
 	for c: Node in n.get_children():
 		_collect_mannequin_meshes(c)
+
+
+# Duplicate the source material per mesh part so tints are per-instance, then
+# stamp the configured albedo. Falls back to a fresh StandardMaterial3D if the
+# part's surface has no source material (shouldn't happen with the stock GLB
+# but guards against future imports). No-op for parts whose name isn't in the
+# tint table — keeps the override slot empty so they read the shared material.
+func _apply_part_tints() -> void:
+	var by_name := {
+		&"Mannequin_Head": tint_head,
+		&"Mannequin_Body": tint_body,
+		&"Mannequin_ArmLeft": tint_arm_left,
+		&"Mannequin_ArmRight": tint_arm_right,
+		&"Mannequin_LegLeft": tint_leg_left,
+		&"Mannequin_LegRight": tint_leg_right,
+	}
+	for m: MeshInstance3D in _body_meshes:
+		if not by_name.has(m.name):
+			continue
+		var color: Color = by_name[m.name]
+		var src: Material = null
+		if m.mesh != null and m.mesh.get_surface_count() > 0:
+			src = m.mesh.surface_get_material(0)
+		var dup: BaseMaterial3D
+		if src is BaseMaterial3D:
+			dup = (src as BaseMaterial3D).duplicate() as BaseMaterial3D
+		else:
+			dup = StandardMaterial3D.new()
+		dup.albedo_color = color
+		m.set_surface_override_material(0, dup)
 
 
 ## Create a BoneAttachment3D under the skin's skeleton bound to `bone_name`

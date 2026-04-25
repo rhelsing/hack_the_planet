@@ -49,3 +49,15 @@ horizontal_alignment = 2
 unique_name_in_owner = true
 alignment = 2
 theme_override_constants/separation = 2
+
+[node name="WalkieRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+alignment = 2
+
+[node name="WalkieIcon" type="Label" parent="WalkieRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 0)
+text = "📞"
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+pivot_offset = Vector2(20, 16)

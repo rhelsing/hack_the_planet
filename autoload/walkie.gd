@@ -80,11 +80,16 @@ func _dispatch_if_idle() -> void:
 		_dispatch_if_idle()
 		return
 	var voice_id: String = voices.get_voice_id(character)
-	var read_path: String = Dialogue._cache_path_read(character, text, voice_id)
+	# Resolve template tokens ({player_handle}, etc.) before the cache key is
+	# computed — different handles = different mp3s. Then kick the sibling
+	# variants into the background primer queue.
+	var resolved_text: String = LineLocalizer.resolve(text)
+	VoicePrimer.enqueue_siblings(character, text, resolved_text)
+	var read_path: String = Dialogue._cache_path_read(character, resolved_text, voice_id)
 	if not read_path.is_empty():
 		_log("dispatch: CACHE HIT %s" % read_path)
 		_queue.pop_front()
-		_play_from_path(read_path, character, text)
+		_play_from_path(read_path, character, resolved_text)
 		return
 
 	if Dialogue._api_key.is_empty():
@@ -94,10 +99,10 @@ func _dispatch_if_idle() -> void:
 		return
 
 	_log("dispatch: cache MISS — requesting from ElevenLabs")
-	var write_path: String = Dialogue._cache_path_write(character, text, voice_id)
+	var write_path: String = Dialogue._cache_path_write(character, resolved_text, voice_id)
 	_in_flight = {
 		"character": character,
-		"text": text,
+		"text": resolved_text,
 		"voice_id": voice_id,
 		"path": write_path,
 	}
@@ -108,7 +113,7 @@ func _dispatch_if_idle() -> void:
 		"xi-api-key: " + Dialogue._api_key,
 	]
 	var body: String = JSON.stringify({
-		"text": text,
+		"text": resolved_text,
 		"model_id": ELEVEN_MODEL_ID,
 		"voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
 	})
