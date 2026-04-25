@@ -13,7 +13,7 @@ const FLAVOR := [
 	"> Grinding rail data stream...",
 	"> Spoofing badge RFID...",
 	"> Injecting payload [█░░░]...",
-	"> She's 17 and doesn't know it's a felony.",
+	"> Mess with the best, die like the rest.",
 	"> Never trust a terminal you can't physically unplug.",
 	"> Backdoor's in the BIOS.",
 	"> Mainframe responding on port 23...",

@@ -21,7 +21,7 @@ extends Node
 ## so a single mapping covers both. If we ever need pure-visual symbols on
 ## the HUD specifically, add a parallel dict and a separate accessor.
 const _GLYPHS: Dictionary = {
-	"jump":          {"keyboard": "Space",      "gamepad": "Cross"},
+	"jump":          {"keyboard": "Space",      "gamepad": "X"},
 	"dash":          {"keyboard": "Q",          "gamepad": "Circle"},
 	"attack":        {"keyboard": "T",          "gamepad": "Square"},
 	"interact":      {"keyboard": "E",          "gamepad": "Triangle"},

@@ -9,8 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://drmsg0one0001" path="res://level/interactable/respawn_message_zone/respawn_message_zone.tscn" id="9_respawnmsg"]
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="11_eicw1"]
 [ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="12_city"]
+[ext_resource type="PackedScene" path="res://level/interactable/companion_npc/companion_station.tscn" id="13b_station"]
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="13_companion"]
-[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="13b_station"]
 [ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="16_warp"]
@@ -18,7 +18,12 @@
 [ext_resource type="Resource" uid="uid://cnclpp0hu1d8b" path="res://dialogue/dial_tone.dialogue" id="18_dialtonedlg"]
 [ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="19_animeskin"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
+[ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="20_kie8i"]
+[ext_resource type="PackedScene" path="res://player/skins/splice/splice_skin.tscn" id="21_c3bbd"]
 [ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="21_robot"]
+[ext_resource type="Resource" uid="uid://d4bg27weqpuq2" path="res://dialogue/level_3_splice_offer.dialogue" id="22_8812u"]
+[ext_resource type="PackedScene" path="res://player/skins/nyx/nyx_skin.tscn" id="23_xlodn"]
+[ext_resource type="Resource" uid="uid://j2u10rpgelfl" path="res://dialogue/level_1_nyx.dialogue" id="24_gtqp8"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -56,9 +61,6 @@ shader_parameter/moon_size = 0.045
 
 [sub_resource type="Sky" id="Sky_0h0bb"]
 sky_material = SubResource("ShaderMaterial_62dii")
-
-[sub_resource type="BoxShape3D" id="ElevatorCarry"]
-size = Vector3(14.5, 2.0, 16.4)
 
 [sub_resource type="Environment" id="Environment_kie8i"]
 background_mode = 2
@@ -99,6 +101,15 @@ volumetric_fog_emission_energy = 11.56
 volumetric_fog_gi_inject = 1.26
 volumetric_fog_anisotropy = 0.9
 
+[sub_resource type="BoxShape3D" id="ElevatorCarry"]
+size = Vector3(14.5, 2, 16.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_c3bbd"]
+size = Vector3(1.2, 1.8, 1.2)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_8812u"]
+data = PackedVector3Array(-0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, 0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, -0.59999996, 0.9, -0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, 0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, 0.9, 0.59999996, -0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, 0.9, -0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, 0.59999996, -0.9, -0.59999996, -0.59999996, -0.9, -0.59999996)
+
 [node name="Hub" type="Node3D" unique_id=1033929937]
 script = ExtResource("1_script")
 
@@ -132,19 +143,16 @@ size = Vector3(15.080139, 1, 19.78363)
 
 [node name="RespawnHintZone1" parent="." unique_id=939626571 instance=ExtResource("9_respawnmsg")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, 3.1557379, -17.32798, 88.252975)
-message = ""
 voice_character = &"Glitch"
 voice_line = "Hit {jump} to jump. Try it next time, yeah?"
 
 [node name="RespawnHintZone2" parent="." unique_id=1479663897 instance=ExtResource("9_respawnmsg")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, 3.1557379, -17.32798, 57.504807)
-message = ""
 voice_character = &"Glitch"
 voice_line = "Two taps. Apex of the first, then the second. Don't rush it."
 
 [node name="RespawnHintZone3" parent="." unique_id=1368947165 instance=ExtResource("9_respawnmsg")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 2.2878394, -14.532114, -17.32798, 45.390038)
-message = ""
 voice_character = &"Glitch"
 voice_line = "At the top of your double-jump, hit {dash}. Or keep falling. Up to you, really."
 
@@ -175,13 +183,11 @@ peak_pause = 1.0
 fall_duration = 5.0
 trough_pause = 2.0
 
-[node name="CarryZone" type="Area3D" parent="ELEVATOR"]
+[node name="CarryZone" type="Area3D" parent="ELEVATOR" unique_id=912636926]
 collision_layer = 0
-collision_mask = 1
-monitoring = true
 monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ELEVATOR/CarryZone"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ELEVATOR/CarryZone" unique_id=1653699356]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 shape = SubResource("ElevatorCarry")
 
@@ -208,27 +214,27 @@ dialogue_resource = ExtResource("18_dialtonedlg")
 interactable_id = &"npc_dialtone"
 
 [node name="PedestalLove" parent="." unique_id=1153728140 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 11.150833, -63.62894)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.069511, 11.150833, -69.8302)
 ready_tint = Color(0.24355009, 0.69582105, 0.5367658, 1)
 require_flag = &"level_1_unlocked"
 interactable_id = &"pedestal_1"
 
 [node name="PedestalSecret" parent="." unique_id=582857367 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 11.150833, -63.62894)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.069511, 11.150833, -69.8302)
 level_num = 2
 ready_tint = Color(0.22080001, 0.50415987, 0.96, 1)
 require_flag = &"level_2_unlocked"
 interactable_id = &"pedestal_2"
 
 [node name="PedestalSex" parent="." unique_id=502467274 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 11.150833, -63.62894)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 11.150833, -69.8302)
 level_num = 3
 ready_tint = Color(0.7495762, 0.22929168, 0.9761173, 1)
 require_flag = &"level_3_unlocked"
 interactable_id = &"pedestal_3"
 
 [node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -63.62894)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -69.8302)
 level_num = 4
 ready_tint = Color(1, 0.84, 0.3, 1)
 require_flag = &"level_4_unlocked"
@@ -254,14 +260,13 @@ script = ExtResource("12_city")
 transform = Transform3D(0.9999957, 0, -0.0029321313, 0, 1, 0, 0.0029321313, 0, 0.9999957, 3.5963764, -11.85, 76.42345)
 warp_sfx = ExtResource("16_warp")
 skin_scene = ExtResource("21_robot")
-stations = [NodePath("../GlitchStation1")]
+stations = Array[NodePath]([NodePath("../GlitchStation1")])
 advance_flag = &"glitch1_done"
 dialogue_resource = ExtResource("14_compdlg")
 
-[node name="GlitchStation1" parent="." instance=ExtResource("13b_station")]
+[node name="GlitchStation1" parent="." unique_id=329238846 instance=ExtResource("13b_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -11.85, 42.416115)
 dialogue_resource = ExtResource("15_glitch2dlg")
-advance_flag = &""
 
 [node name="EnemyKayKit" parent="." unique_id=729066735 instance=ExtResource("20_62dii")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.427982, -11.872522, -15.925325)
@@ -274,3 +279,30 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.46186, -11.87252, -8.9443
 
 [node name="PhoneBooth4" parent="." unique_id=1418926793 instance=ExtResource("11_eicw1")]
 transform = Transform3D(0.069808714, 0, -0.9975604, 0, 1, 0, 0.9975604, 0, 0.069808714, -33.44011, 11.123972, -52.04639)
+
+[node name="postL4Show" type="Node3D" parent="." unique_id=2137431408]
+visible = false
+
+[node name="cage" type="MeshInstance3D" parent="postL4Show" unique_id=559031832]
+transform = Transform3D(4.238725, 0, 0, 0, 4.1788874, 0, 0, 0, 3.3284235, -14.00901, 15.012638, -58.50326)
+material_override = ExtResource("20_kie8i")
+mesh = SubResource("BoxMesh_c3bbd")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="postL4Show/cage" unique_id=237655781]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="postL4Show/cage/StaticBody3D" unique_id=108681847]
+shape = SubResource("ConcavePolygonShape3D_8812u")
+
+[node name="Splice" parent="postL4Show" unique_id=761767451 instance=ExtResource("13_companion")]
+transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, -13.908747, 11.190241, -58.804096)
+hide_when_flag = &"refused_splice"
+skin_scene = ExtResource("21_c3bbd")
+dialogue_resource = ExtResource("22_8812u")
+interactable_id = &"npc_splice_offer"
+
+[node name="Nyx" parent="postL4Show" unique_id=1285406458 instance=ExtResource("13_companion")]
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -31.39301, 11.206046, -60.313766)
+skin_scene = ExtResource("23_xlodn")
+dialogue_resource = ExtResource("24_gtqp8")
+interactable_id = &"npc_nyx_l1"

@@ -106,7 +106,7 @@ DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
 
 ~ stage_post_1
 
-DialTone: Ha — look who's back. {player_handle}, the runner.
+DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
 => post_1_menu
 
 ~ post_1_menu
@@ -163,7 +163,7 @@ do GameState.set_flag("level_2_unlocked", true)
 
 ~ stage_post_2
 
-DialTone: {player_handle}. You made it back.
+DialTone: {{HandlePicker.chosen_name()}}. You made it back.
 => post_2_menu
 
 ~ post_2_menu
@@ -300,7 +300,7 @@ do GameState.set_flag("level_4_unlocked", true)
 ~ stage_post_4
 
 DialTone: Splice is quarantined. Not gone — but boxed in. The grid's logging it everywhere.
-DialTone: They're calling it "the Gibson run". You're a name now, {player_handle}.
+DialTone: They're calling it "the Gibson run". You're a name now, {{HandlePicker.chosen_name()}}.
 => post_4_menu
 
 ~ post_4_menu

@@ -47,36 +47,47 @@ func _log(msg: String) -> void:
 func enqueue_siblings(character: String, template: String, chosen_resolved_text: String) -> void:
 	if not (LineLocalizer.has_handle_token(template) or LineLocalizer.has_device_token(template)):
 		return
-	var voices: Resource = Dialogue._voices
-	if voices == null or not voices.has_voice(character):
-		return
-	var voice_id: String = voices.get_voice_id(character)
 	var added: int = 0
 	for variant: String in LineLocalizer.all_variants(template):
 		if variant == chosen_resolved_text:
 			continue
-		var path: String = Dialogue._cache_path_write(character, variant, voice_id)
-		if _in_flight.has(path):
-			continue
-		if FileAccess.file_exists(path):
-			continue
-		var dup: bool = false
-		for q: Dictionary in _queue:
-			if q.path == path:
-				dup = true
-				break
-		if dup:
-			continue
-		_queue.append({
-			"character": character,
-			"text": variant,
-			"voice_id": voice_id,
-			"path": path,
-		})
-		added += 1
+		if enqueue_text(character, variant):
+			added += 1
 	if added > 0:
 		_log("queued %d sibling(s) for template: %s" % [added, template])
+
+
+## Enqueue a single (character, text) pair for synth. Returns true if the
+## item was actually queued; false if it was already cached, in flight, or
+## already queued. Used by enqueue_siblings (per variant) and by the
+## prerender tool (which feeds explicit text without a template).
+func enqueue_text(character: String, text: String) -> bool:
+	var voices: Resource = Dialogue._voices
+	if voices == null or not voices.has_voice(character):
+		return false
+	var voice_id: String = voices.get_voice_id(character)
+	var path: String = Dialogue._cache_path_write(character, text, voice_id)
+	if _in_flight.has(path):
+		return false
+	if FileAccess.file_exists(path):
+		return false
+	for q: Dictionary in _queue:
+		if q.path == path:
+			return false
+	_queue.append({
+		"character": character,
+		"text": text,
+		"voice_id": voice_id,
+		"path": path,
+	})
 	_drain_if_idle()
+	return true
+
+
+## How many synths are still pending — queued + currently in flight. Used by
+## the prerender tool to poll for completion.
+func pending_count() -> int:
+	return _queue.size() + (1 if not _current.is_empty() else 0)
 
 
 func _drain_if_idle() -> void:

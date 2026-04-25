@@ -45,9 +45,9 @@ Glitch: Well executed.
 
 ~ controls
 
-Glitch: Press {jump} to jump. Tap twice to chain a second.
-Glitch: Press {dash} to dash mid-flight. The same dash will sidestep an incoming attack.
-Glitch: Press {attack} to strike.
+Glitch: Press {{Glyphs.for_action("jump")}} to jump. Tap twice to chain a second.
+Glitch: Press {{Glyphs.for_action("dash")}} to dash mid-flight. The same dash will sidestep an incoming attack.
+Glitch: Press {{Glyphs.for_action("attack")}} to strike.
 Glitch: Anything else?
 - Tell me about those things ahead.
 	=> sentinels
@@ -57,7 +57,7 @@ Glitch: Anything else?
 ~ sentinels
 
 Glitch: Sentinels. Their function is to purge anything that does not belong in the Gibson.
-Glitch: Which, regrettably, includes you. Press {attack}, and a single strike makes them go "poof".
+Glitch: Which, regrettably, includes you. Press {{Glyphs.for_action("attack")}}, and a single strike makes them go "poof".
 Glitch: Anything else?
 - What shapes do they take?
 	=> sentinels_variety
