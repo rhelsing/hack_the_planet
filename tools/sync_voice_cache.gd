@@ -1,14 +1,16 @@
 extends SceneTree
 
-## Copies mp3s from user://tts_cache (dev cache, where ElevenLabs writes)
-## to res://audio/voice_cache (shipped cache, committed to repo).
+## Legacy bake tool: copies mp3s from user://tts_cache → res://audio/voice_cache.
+##
+## NOTE: dialogue.gd now writes fresh editor synths straight to res://, so
+## this script isn't part of the normal workflow anymore. Run it once if
+## you have leftover lines in user://tts_cache from before that change,
+## then forget about it.
 ##
 ## Run from the repo root:
 ##   godot --headless --script res://tools/sync_voice_cache.gd --quit
 ##
-## Idempotent. Safe to re-run after adding lines. Files already present in
-## res:// are skipped. Orphaned files in res:// (no longer in user://) are
-## reported but NOT deleted — manual confirmation required to remove.
+## Idempotent. Files already present in res:// are skipped.
 
 const DEV_CACHE: String = "user://tts_cache/"
 const SHIPPED_CACHE: String = "res://audio/voice_cache/"

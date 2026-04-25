@@ -331,10 +331,13 @@ func _cache_path_read(character: String, text: String, voice_id: String) -> Stri
 	return ""
 
 
-## Write path. Always user:// — res:// is read-only in exported builds.
-## tools/sync_voice_cache.gd copies from user:// → res:// before ship.
+## Write path. In the editor, write straight to res://audio/voice_cache/ so
+## fresh synths show up in `git status` and are committable without a separate
+## bake step. In exported builds, res:// is read-only — fall back to user://.
+## (Exports shouldn't hit the API anyway, so the user:// path is defensive.)
 func _cache_path_write(character: String, text: String, voice_id: String) -> String:
-	return DEV_CACHE_DIR + _cache_filename(character, text, voice_id)
+	var dir := SHIPPED_CACHE_DIR if OS.has_feature("editor") else DEV_CACHE_DIR
+	return dir + _cache_filename(character, text, voice_id)
 
 
 func _load_api_key() -> String:
