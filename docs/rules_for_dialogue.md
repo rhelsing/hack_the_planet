@@ -163,7 +163,114 @@ single line per zone, displayed by the RespawnMessageOverlay (see
 
 ---
 
-## 7. Authoring checklist
+## 7. Inline plugin syntax — quick reference
+
+The DialogueManager plugin parses three bracket constructs inside line text
+and choice labels. Mixing them up causes the literal `[if ...]` text to
+render in the bubble, which is the single most common authoring bug.
+
+### Choice gates (self-closing `/]`)
+
+A choice button that should appear only when a condition holds. **The `[if]`
+must self-close** — `/]` at the end, no closing `[/if]` later:
+
+```
+- [if GameState.get_flag("composure_passed", false) /] About that stare-down...
+    => composure_topic
+- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 4 /] One more thing.
+    => messenger_4
+```
+
+❌ **Wrong** — produces literal text in the bubble:
+
+```
+- [if GameState.get_flag("composure_passed", false)] About that stare-down...
+```
+
+The plugin saw `[if ...]` *without* the closing `/`, parsed it as the OPEN
+of a block conditional, looked for `[/if]`, didn't find one, and gave up.
+
+### Inline-text conditionals (block form)
+
+Switching between two text fragments mid-line. **Open with `]`, close with
+`[/if]`** — no `/` on the open. The `[else]` half is optional:
+
+```
+Grit: [if GameState.get_flag("troll_met", false)]Anything else?[else]What do you want to know?[/if]
+```
+
+If you want the line to disappear entirely when the condition fails, the
+right move is usually a per-stage `if/elif` block at section boundaries —
+not an inline conditional with empty branches.
+
+### Random alternations
+
+Pure flavor variation, no condition:
+
+```
+NPC: [[See you around, kid.|Later.|Don't step on any spikes.]]
+```
+
+Plugin picks one option uniformly at random per render.
+
+### Mustache function calls
+
+Plain `{{ }}` runs a GDScript expression and substitutes the result:
+
+```
+Glitch: {{HandlePicker.reaction()}}
+DialTone: Hey, {{HandlePicker.chosen_name()}}.
+Glitch: Press {{Glyphs.for_action("jump")}} to jump.
+```
+
+The supported sources in this project are listed in
+`tools/prime_all_dialogue.gd` (under `_mustache_alternatives`) — it's the
+build-time enumerator that needs to know every shape we author so it can
+pre-cache every variant. **If you add a new mustache source, also extend
+that table** or the variant won't ship pre-rendered (lazy fill at runtime
+still works — it just costs an HTTP roundtrip the first time).
+
+### What lives inside `[if ...]` — expression rules
+
+The plugin's expression evaluator is **not full GDScript**. It exposes only:
+
+- **Autoloads by name** (`GameState`, `HandlePicker`, `Skills`, `Glyphs`, ...).
+- **Method calls on autoloads** (`GameState.get_flag("foo", 0)`, `Skills.can_attempt("composure")`).
+- **Literals** — strings, numbers, `true` / `false`.
+- **Operators** — `==`, `!=`, `<`, `>`, `<=`, `>=`, `and`, `or`, `not`, `!`.
+
+It does **not** expose GDScript built-ins. Common gotchas:
+
+```
+[if int(GameState.get_flag("foo", 0)) == 1 /]   ← runtime error: "Method 'int' not found"
+[if str(x) == "Cipher" /]                        ← same
+[if GameState.flags["foo"] == 1 /]               ← subscript not supported
+```
+
+Compare against the value the autoload returns directly. Counters in
+`GameState.flags` are stored as `int` natively when set with an int, so
+no cast is needed:
+
+```
+[if GameState.get_flag("dialtone_messenger_thread", 0) == 1 /]
+```
+
+If you actually need a built-in transform, do it in the autoload (e.g.
+add `HandlePicker.has_picked()` rather than checking
+`HandlePicker.chosen_name() != ""` inside the bracket).
+
+### Quick contrast — the `/` matters
+
+| Form | Meaning |
+|---|---|
+| `[if X /]` | Self-closing — gates a single choice line |
+| `[if X]a[else]b[/if]` | Block — two text branches inside one line |
+| `[if X]a[/if]` | Block — single branch, removed when condition fails |
+| `[if X]` (no `/`, no `[/if]`) | **Bug — renders literally** |
+
+---
+
+## 8. Authoring checklist
 
 Before committing a new `.dialogue`:
 

@@ -1,0 +1,49 @@
+~ start
+
+if GameState.get_flag("hub_post4_splice_taunted", false)
+	=> taunt
+
+Splice: Look at you. Standing on the right side of the wall.
+Splice: Funny how that works.
+=> menu
+
+~ menu
+
+- You shouldn't have come at us.
+	=> told_him
+- You okay in there?
+	=> caged
+- I won.
+	=> brag
+- Walk away.
+	=> done
+
+~ told_him
+
+Splice: I came at the Gibson. You were just in the way.
+Splice: That'll be on the record forever, runner. Won't it.
+=> menu
+
+~ caged
+
+Splice: Not really, no.
+Splice: Quarantine's a soft jail. I get bored, the perimeter listens.
+Splice: I am, however, dancing. So.
+=> menu
+
+~ brag
+
+Splice: Yeah. You did. Don't get used to it — perimeters fail.
+Splice: I'll remember the move you pulled.
+=> menu
+
+~ done
+
+Splice: Catch you on the wire.
+do GameState.set_flag("hub_post4_splice_taunted", true)
+=> END
+
+~ taunt
+
+Splice: Back already? The view from outside the cage that good?
+=> menu

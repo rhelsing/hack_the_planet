@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://c5muq8vn066ke"]
+
+[ext_resource type="Script" path="res://tools/find_orphan_voices.gd" id="1_script"]
+
+[node name="FindOrphanVoices" type="Node"]
+script = ExtResource("1_script")

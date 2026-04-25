@@ -116,17 +116,13 @@ func _walk_dialogue_files(root: String) -> Array:
 				continue
 			var character: String = m.get_string(1)
 			var text: String = m.get_string(2).strip_edges()
-			# Skip lines whose final text is plugin-resolved at runtime —
-			# we can't enumerate without simulating Nathan Hoad's dialogue
-			# manager. Cache fills lazily on first play instead.
-			#   {{...}}  — mustache: function calls (HandlePicker, GameState)
-			#   [if ...] — inline conditionals
-			#   [[a|b]]  — random-pick alternations
-			if text.contains("{{") or text.contains("[if") \
-					or text.contains("[[") or text.contains("[else") \
-					or text.contains("[/if"):
-				continue
-			out.append({"character": character, "text": text})
+			# Plugin-resolved primitives — mustache calls, [if]/[else]/[/if],
+			# [[a|b]] alternations — get expanded into their full set of
+			# concrete variants by DialogueExpander. Lines whose only mustache
+			# call is unknown return [] from expand() and get dropped (lazy
+			# fill at runtime via VoicePrimer).
+			for variant: String in DialogueExpander.expand(text):
+				out.append({"character": character, "text": variant})
 		f.close()
 	return out
 

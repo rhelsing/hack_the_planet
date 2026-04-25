@@ -117,7 +117,7 @@ DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
 	=> post_1_explain
 - She said you're a dead man.
 	=> post_1_threat
-- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 1] Back to those questions you mentioned…
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
 	=> post_1_messenger
 
 ~ post_1_messenger
@@ -176,7 +176,7 @@ DialTone: {{HandlePicker.chosen_name()}}. You made it back.
 	=> post_2_how
 - You weren't expecting him.
 	=> post_2_admit
-- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 2] About those boards…
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] About those boards…
 	=> post_2_messenger
 
 ~ post_2_messenger
@@ -244,7 +244,7 @@ DialTone: You said no.
 	=> post_3_angle
 - You didn't think I'd take it?
 	=> post_3_trust
-- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 3] Let's talk about how I got here.
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 3 /] Let's talk about how I got here.
 	=> post_3_messenger
 
 ~ post_3_messenger
@@ -307,11 +307,9 @@ DialTone: They're calling it "the Gibson run". You're a name now, {{HandlePicker
 
 - What now?
 	=> post_4_what
-- Where's Nyx?
-	=> post_4_nyx
 - About Splice — he's still in there.
 	=> post_4_splice
-- [if int(GameState.get_flag("dialtone_messenger_thread", 0)) == 4] The whole thing was an audition, wasn't it?
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 4 /] The whole thing was an audition, wasn't it?
 	=> post_4_messenger
 - Sign me out.
 	=> post_4_done
@@ -328,19 +326,6 @@ do GameState.set_flag("dialtone_messenger_thread", 5)
 
 DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
 DialTone: Anything else?
-- Where's Nyx?
-	=> post_4_nyx
-- About Splice — he's still in there.
-	=> post_4_splice
-- Sign me out.
-	=> post_4_done
-
-~ post_4_nyx
-
-DialTone: Around. She'll find you when she wants. She always does.
-DialTone: Anything else?
-- What now?
-	=> post_4_what
 - About Splice — he's still in there.
 	=> post_4_splice
 - Sign me out.
@@ -352,8 +337,6 @@ DialTone: Quarantine holds as long as the perimeter does. Let's not talk about w
 DialTone: Anything else?
 - What now?
 	=> post_4_what
-- Where's Nyx?
-	=> post_4_nyx
 - Sign me out.
 	=> post_4_done
 

@@ -7,7 +7,7 @@
 level_num = 4
 powerup_flag = &"powerup_god"
 powerup_label = "GOD"
-howto_caption = "PRESS Y TO LOB A FLARE"
+howto_caption = "PRESS {flare_shoot} TO LOB A FLARE"
 
 [node name="Ground4" parent="." index="5" unique_id=1459023526]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.309692, -0.5, -11.948381)

@@ -13,7 +13,7 @@ albedo_color = Color(0.4, 0.08, 0.1, 1)
 level_num = 3
 powerup_flag = &"powerup_sex"
 powerup_label = "SEX"
-howto_caption = "AIM AT A HOOK, PRESS G, JUMP TO LET GO"
+howto_caption = "AIM AT A HOOK, PRESS {grapple_fire}, {jump} TO LET GO"
 
 [node name="Ground4" parent="." index="5" unique_id=1459023526]
 visible = false

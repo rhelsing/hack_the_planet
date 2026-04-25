@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://c8jyiqkr3wt7p"
+path="res://.godot/imported/hub_post4_splice.dialogue-c207302e652510ee8a9b534df358ed18.tres"
+
+[deps]
+
+source_file="res://dialogue/hub_post4_splice.dialogue"
+dest_files=["res://.godot/imported/hub_post4_splice.dialogue-c207302e652510ee8a9b534df358ed18.tres"]
+
+[params]
+
+defaults=true

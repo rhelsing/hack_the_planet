@@ -10,7 +10,7 @@
 level_num = 2
 powerup_flag = &"powerup_secret"
 powerup_label = "SECRET"
-howto_caption = "FIND A HACK TERMINAL AND PRESS E"
+howto_caption = "FIND A HACK TERMINAL AND PRESS {interact}"
 
 [node name="Ground4" parent="." index="5" unique_id=1459023526]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.502594, -0.5, -14.270433)

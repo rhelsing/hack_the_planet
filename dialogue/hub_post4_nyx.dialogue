@@ -1,0 +1,40 @@
+~ start
+
+if GameState.get_flag("hub_post4_nyx_celebrated", false)
+	=> celebrated
+
+Nyx: There you are. Took your sweet time.
+Nyx: We're throwing a perimeter party. Splice gets to watch from the inside.
+=> menu
+
+~ menu
+
+- You're really dancing in front of him.
+	=> dancing
+- He's quarantined for good?
+	=> quarantine
+- I'm out.
+	=> done
+
+~ dancing
+
+Nyx: We absolutely are.
+Nyx: He spent a year in the static planning this. He gets to see us happy. That's the bit.
+=> menu
+
+~ quarantine
+
+Nyx: For now. Forever's a luxury we don't get on this grid.
+Nyx: But for now? Yes. He's boxed.
+=> menu
+
+~ done
+
+Nyx: Go pick a song. Earned it.
+do GameState.set_flag("hub_post4_nyx_celebrated", true)
+=> END
+
+~ celebrated
+
+Nyx: Back for round two? Splice still hates this. Stay as long as you want.
+=> menu

@@ -22,7 +22,10 @@ func _ready() -> void:
 
 
 func show_for(powerup_flag: StringName, caption: String, image: Texture2D = null) -> void:
-	_caption.text = caption
+	# Resolve {action} tokens to the active device's glyph so authoring once
+	# as "PRESS {dash} TO DASH" renders correctly for both keyboard and pad.
+	# No-op for legacy hardcoded captions that contain no tokens.
+	_caption.text = Glyphs.format(caption)
 	if image != null:
 		_image.texture = image
 	else:

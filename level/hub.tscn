@@ -24,6 +24,8 @@
 [ext_resource type="Resource" uid="uid://d4bg27weqpuq2" path="res://dialogue/level_3_splice_offer.dialogue" id="22_8812u"]
 [ext_resource type="PackedScene" path="res://player/skins/nyx/nyx_skin.tscn" id="23_xlodn"]
 [ext_resource type="Resource" uid="uid://j2u10rpgelfl" path="res://dialogue/level_1_nyx.dialogue" id="24_gtqp8"]
+[ext_resource type="Resource" uid="uid://c8jyiqkr3wt7p" path="res://dialogue/hub_post4_splice.dialogue" id="25_p4splice"]
+[ext_resource type="Resource" uid="uid://cd2w6nvbq4xv8" path="res://dialogue/hub_post4_nyx.dialogue" id="26_p4nyx"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -262,6 +264,7 @@ warp_sfx = ExtResource("16_warp")
 skin_scene = ExtResource("21_robot")
 stations = Array[NodePath]([NodePath("../GlitchStation1")])
 advance_flag = &"glitch1_done"
+travel_duration = 5.0
 dialogue_resource = ExtResource("14_compdlg")
 
 [node name="GlitchStation1" parent="." unique_id=329238846 instance=ExtResource("13b_station")]
@@ -296,13 +299,12 @@ shape = SubResource("ConcavePolygonShape3D_8812u")
 
 [node name="Splice" parent="postL4Show" unique_id=761767451 instance=ExtResource("13_companion")]
 transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, -13.908747, 11.190241, -58.804096)
-hide_when_flag = &"refused_splice"
 skin_scene = ExtResource("21_c3bbd")
-dialogue_resource = ExtResource("22_8812u")
-interactable_id = &"npc_splice_offer"
+dialogue_resource = ExtResource("25_p4splice")
+interactable_id = &"npc_post4_splice"
 
 [node name="Nyx" parent="postL4Show" unique_id=1285406458 instance=ExtResource("13_companion")]
 transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -31.39301, 11.206046, -60.313766)
 skin_scene = ExtResource("23_xlodn")
-dialogue_resource = ExtResource("24_gtqp8")
-interactable_id = &"npc_nyx_l1"
+dialogue_resource = ExtResource("26_p4nyx")
+interactable_id = &"npc_post4_nyx"
