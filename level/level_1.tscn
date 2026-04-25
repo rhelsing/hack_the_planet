@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="3_companion"]
 [ext_resource type="PackedScene" uid="uid://db3a23yxpxra3" path="res://player/skins/racer_girl/racer_girl_skin.tscn" id="4_nyxskin"]
 [ext_resource type="Resource" uid="uid://j2u10rpgelfl" path="res://dialogue/level_1_nyx.dialogue" id="5_nyxdlg"]
+[ext_resource type="PackedScene" uid="uid://dohmcvk4b7k37" path="res://lib/drone_robot/drone_robot_enemy.glb" id="6_l1g64"]
 
 [node name="LevelMockup" unique_id=84478335 instance=ExtResource("1_base")]
 
@@ -23,3 +24,6 @@ transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, -25)
 skin_scene = ExtResource("4_nyxskin")
 dialogue_resource = ExtResource("5_nyxdlg")
 interactable_id = &"npc_nyx_l1"
+
+[node name="Sketchfab_Scene" parent="." index="16" unique_id=1841058684 instance=ExtResource("6_l1g64")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54162884, 0.025441548, 24.468964)
