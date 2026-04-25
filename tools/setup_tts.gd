@@ -1,18 +1,18 @@
 extends SceneTree
 
-## One-shot tool: writes an ElevenLabs API key to user://tts_config.tres so
-## the Dialogue autoload picks it up. The config lives under the user's Godot
-## app_userdata directory (NOT in the repo — never committed).
+## Per-dev override tool: writes a custom ElevenLabs API key to
+## user://tts_config.tres. The Dialogue autoload reads in this order at
+## boot:
+##   1. ELEVEN_LABS_API_KEY env var
+##   2. user://tts_config.tres   (this file's output — per-dev override)
+##   3. res://dialogue/tts_config.tres   (committed in repo, default for all devs)
+##
+## You only need to run this if you want to override the committed key on
+## your machine (e.g. testing a different ElevenLabs account). A fresh
+## clone already works without running this.
 ##
 ## Usage:
 ##   godot --headless --script res://tools/setup_tts.gd --quit -- <api_key>
-##
-## Or set it inline (fallback if no arg passed):
-##   godot --headless --script res://tools/setup_tts.gd --quit
-##
-## The key from /Users/ryanhelsing/GodotProjects/3dPFormer/dialogue_balloon/
-## balloon.gd is baked into DEFAULT_KEY below as a convenience for this
-## demo project. Replace with your own key or pass as arg.
 
 
 const DEFAULT_KEY: String = "6d55209ea42585939fb4650dbefe92d1"

@@ -9,7 +9,8 @@ extends Node
 ##
 ## See docs/interactables.md §9. Five bugs from the 3dPFormer reference are
 ## fixed here:
-##   1. API key from user://tts_config.tres or env, NOT hardcoded
+##   1. API key resolved at boot: env var → user://tts_config.tres (per-dev
+##      override) → res://dialogue/tts_config.tres (committed, repo-private)
 ##   2. Cache path user://tts_cache/ (res:// is read-only in exported builds)
 ##   3. voices.tres externalizes the character → voice_id map
 ##   4. HTTPRequest lives here (survives balloon close, FIFO queue)
@@ -24,6 +25,10 @@ const SHIPPED_CACHE_DIR: String = "res://audio/voice_cache/"
 ## During authoring this is where fresh synths land.
 const DEV_CACHE_DIR: String = "user://tts_cache/"
 const CONFIG_PATH: String = "user://tts_config.tres"
+## Committed fallback. Loaded only if env and user:// both come up empty.
+## Repo-private; exists because we'd rather a fresh clone "just work" than
+## require every dev to bootstrap their own user:// config.
+const REPO_CONFIG_PATH: String = "res://dialogue/tts_config.tres"
 const VOICES_PATH: String = "res://dialogue/voices.tres"
 const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
 # eleven_flash_v2_5 — ~75ms latency, right for game NPC dialogue. Trade off vs
@@ -333,15 +338,20 @@ func _cache_path_write(character: String, text: String, voice_id: String) -> Str
 
 
 func _load_api_key() -> String:
-	# Prefer env var.
+	# Prefer env var (CI / per-shell override).
 	var env_key: String = OS.get_environment("ELEVEN_LABS_API_KEY")
 	if not env_key.is_empty(): return env_key
-	# Fallback to user://tts_config.tres if authored by the user. We read
-	# as ConfigFile for simplicity — no custom Resource class needed.
+	# Per-dev override at user://tts_config.tres (machine-local).
 	if FileAccess.file_exists(CONFIG_PATH):
 		var cf := ConfigFile.new()
 		if cf.load(CONFIG_PATH) == OK:
-			return cf.get_value("tts", "api_key", "")
+			var key := cf.get_value("tts", "api_key", "") as String
+			if not key.is_empty(): return key
+	# Committed fallback so a fresh clone boots with TTS working.
+	if FileAccess.file_exists(REPO_CONFIG_PATH):
+		var cf2 := ConfigFile.new()
+		if cf2.load(REPO_CONFIG_PATH) == OK:
+			return cf2.get_value("tts", "api_key", "")
 	return ""
 
 
