@@ -39,3 +39,21 @@ func _ready() -> void:
 	# Register with the state machine so completion flags + save paths
 	# reference this level.
 	LevelProgression.register_level(level_num)
+	# Level 1 is the skate tutorial — once the player enables skates, lock
+	# them on for the rest of the run. PlayerBody.toggle_profile honors the
+	# flag so the controller's L1 / keyboard's R becomes inert until the
+	# next level boundary clears it.
+	_set_player_skate_lock(level_num == 1)
+
+
+func _exit_tree() -> void:
+	# Release the lock so subsequent levels (and the hub) get free toggling
+	# back. The player persists across level swaps, so this is necessary
+	# even when the player isn't moving — they'd keep the property otherwise.
+	_set_player_skate_lock(false)
+
+
+func _set_player_skate_lock(on: bool) -> void:
+	var player := get_tree().get_first_node_in_group(&"player")
+	if player != null and "skate_locked" in player:
+		player.skate_locked = on

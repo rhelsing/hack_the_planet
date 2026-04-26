@@ -383,11 +383,22 @@ func set_profile_skate() -> void:
 		_skin.set_skate_mode(true)
 
 
+## When true, `toggle_profile` refuses to switch skate→walk. Set per-level
+## by tutorial scripts (level_1) that mandate skates-stay-on once enabled.
+## Cleared when the level is exited so the hub / later levels keep their
+## free-toggle behavior. Walk→skate transitions are unaffected.
+var skate_locked: bool = false
+
+
 ## Public hook called by PlayerBrain when the skate/walk toggle is pressed.
 ## Notifies the active skin so it can switch gear visuals (Sophia's wheels).
 ## Gated by powerup_love — no-op until the L1 pickup is collected.
 func toggle_profile() -> void:
 	if pawn_group == "player" and not GameState.get_flag(&"powerup_love", false):
+		return
+	# Tutorial gate — level 1 sets skate_locked so the player can't toggle
+	# back to walk once they've enabled skates.
+	if skate_locked and _current_profile == skate_profile:
 		return
 	if _current_profile == skate_profile and walk_profile != null:
 		_current_profile = walk_profile

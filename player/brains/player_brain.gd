@@ -39,11 +39,25 @@ var spring_arm: SpringArm3D
 ## Keeps the camera completely still at rest.
 @export var stick_look_deadzone := 0.15
 
+@export_group("Sneak (post-hacking ability)")
+## Above this magnitude on the move stick, the player runs at full speed.
+## Below it but above `move_deadzone`, controller-driven auto-sneak engages.
+## Only relevant on gamepad — keyboard players use Shift toggle.
+@export var sneak_stick_threshold := 0.5
+## GameState flag that gates the sneak feature. Set to "" to enable
+## unconditionally (debug). Default is the L2 hacking power-up.
+@export var sneak_required_flag: StringName = &"powerup_secret"
+
 ## Deadzone applied to the raw 2D movement axis before converting to world
 ## direction. Small — the body layers its own thresholds on top.
 @export var move_deadzone := 0.1
 
 var _intent := Intent.new()
+## Toggled on every Shift press once the hacking ability is owned. Persists
+## until pressed again — sneak stays engaged even if the player runs through
+## it. Controller players bypass this entirely; their auto-sneak reads the
+## stick magnitude per-tick.
+var _sneak_toggle: bool = false
 ## Set true the tick a mouse moved; the body reads this to re-engage manual
 ## camera control. Exposed so the body's camera follow logic can query it.
 var time_since_mouse_input := 999.0
@@ -160,10 +174,29 @@ func tick(_body: Node3D, delta: float) -> Intent:
 	if world_dir.length_squared() > 0.0001:
 		world_dir = world_dir.normalized() * mag
 
+	# Crouch / sneak — entire mechanic is gated on the hacking power-up. Until
+	# the player owns it, Ctrl / R3 / Shift / slow-stick are all inert. Once
+	# owned, three activation paths feed the same crouch_held wire (which
+	# drives Crouching Idle / Crouched Walking via the existing state machine):
+	#   1. Crouch action (Ctrl key, R3 stick click) — held.
+	#   2. Sneak toggle (Shift key) — sticky.
+	#   3. Auto-sneak — controller stick below `sneak_stick_threshold`.
+	var crouch_held: bool = false
+	var ability_owned: bool = sneak_required_flag.is_empty() or GameState.get_flag(sneak_required_flag, false)
+	if ability_owned:
+		if Input.is_action_just_pressed("sneak_toggle"):
+			_sneak_toggle = not _sneak_toggle
+		var sneak_active: bool = _sneak_toggle
+		if last_device == "gamepad":
+			var stick_mag: float = raw_axis.length()
+			if stick_mag > 0.0 and stick_mag < sneak_stick_threshold:
+				sneak_active = true
+		crouch_held = Input.is_action_pressed("crouch") or sneak_active
+
 	_intent.move_direction = world_dir
 	_intent.jump_pressed = Input.is_action_just_pressed("jump")
 	_intent.attack_pressed = Input.is_action_just_pressed("attack")
 	_intent.interact_pressed = Input.is_action_just_pressed("interact")
 	_intent.dash_pressed = Input.is_action_just_pressed("dash")
-	_intent.crouch_held = Input.is_action_pressed("crouch")
+	_intent.crouch_held = crouch_held
 	return _intent

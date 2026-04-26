@@ -50,8 +50,11 @@ designer          -  Ryan
 --- THANKS ---
 
 Godot Engine, Nathan Hoad (dialogue_manager),
+GDQuest (base player controller),
 Inigo Quilez (noise / SDFs),
 meloonics (3D menu camera),
+KayKit (mannequin character pack + animations),
+Mixamo (rigs and motion-capture animations),
 and every phone booth that still takes a quarter.[/center]"
 
 [node name="Gap" type="Control" parent="Center/Panel/Column"]
