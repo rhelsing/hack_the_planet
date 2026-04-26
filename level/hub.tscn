@@ -284,6 +284,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.46186, -11.87252, -8.9443
 transform = Transform3D(0.069808714, 0, -0.9975604, 0, 1, 0, 0.9975604, 0, 0.069808714, -33.44011, 11.123972, -52.04639)
 
 [node name="postL4Show" type="Node3D" parent="." unique_id=2137431408]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30, 0)
 visible = false
 
 [node name="cage" type="MeshInstance3D" parent="postL4Show" unique_id=559031832]

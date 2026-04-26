@@ -78,10 +78,12 @@ func _enter_victory_state() -> void:
 		if dancer != null and dancer.has_method(&"enter_dance_loop"):
 			dancer.call(&"enter_dance_loop", victory_dance_clips)
 	# Reveal the post-L4 victory tableau (Splice in the cage, Nyx celebrating).
-	# Hidden by default in the tscn so the hub doesn't spoil the endgame on
-	# earlier visits.
+	# Parked Y+30 + invisible by default in the tscn so it can't be reached
+	# or interacted with before victory. Snap it to its authored position on
+	# entry — no animation, just appears where it belongs.
 	var post4 := get_node_or_null(^"postL4Show") as Node3D
 	if post4 != null:
+		post4.position.y = 0.0
 		post4.visible = true
 		# Both NPCs in the tableau dance through the same Mixamo dance pool the
 		# player skin uses — keeps the choreography synchronized in vibe.

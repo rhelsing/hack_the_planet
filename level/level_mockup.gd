@@ -54,6 +54,24 @@ func _exit_tree() -> void:
 
 
 func _set_player_skate_lock(on: bool) -> void:
+	# Use call_deferred so the lookup runs AFTER the current frame's _ready
+	# pass — guarantees PlayerBody._ready has run its add_to_group("player")
+	# step regardless of ready order.
+	_apply_skate_lock.call_deferred(on)
+
+
+func _apply_skate_lock(on: bool) -> void:
 	var player := get_tree().get_first_node_in_group(&"player")
-	if player != null and "skate_locked" in player:
-		player.skate_locked = on
+	if player == null:
+		# Fallback: walk the absolute path that game.tscn uses. Useful when
+		# the player either hasn't joined the group yet or the level is being
+		# tested in isolation (no game.tscn shell).
+		player = get_tree().root.get_node_or_null(^"Game/Player")
+	if player == null:
+		print("[level_mockup] skate_lock(%s): player NOT FOUND — gate inert" % on)
+		return
+	if not ("skate_locked" in player):
+		print("[level_mockup] skate_lock(%s): player has no `skate_locked` property — wrong PlayerBody?" % on)
+		return
+	player.skate_locked = on
+	print("[level_mockup] skate_lock(%s) applied to %s" % [on, player])

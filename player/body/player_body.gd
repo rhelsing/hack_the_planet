@@ -67,6 +67,12 @@ signal ability_enabled_changed(ability_id: StringName, enabled: bool)
 @export var dash_speed: float = 18.0
 ## Seconds the dash impulse stays active.
 @export var dash_duration: float = 0.2
+## How long the skin's Dash state holds before the per-frame idle/move/fall
+## routing resumes. Decoupled from `dash_duration` so the visual roll plays
+## through the apex even though the gameplay impulse + i-frames are short.
+## Should match the (custom-timeline-shortened) Sprinting Forward Roll
+## duration set on each skin — see *_skin.gd `_ready`.
+@export var dash_visual_duration: float = 0.8
 ## Seconds after a dash before another can fire.
 @export var dash_cooldown: float = 0.8
 ## Seconds of damage immunity when a dash starts. Reuses _invuln_until_time.
@@ -216,6 +222,11 @@ var _invuln_until_time: float = -INF
 
 # Dash state
 var _dash_timer: float = 0.0
+## Decoupled visual hold — mirrors `dash_visual_duration` and gates the
+## per-frame skin animation routing so the Sprinting Forward Roll plays
+## through its apex even after the gameplay dash impulse has ended. See
+## `dash_visual_duration` export note.
+var _dash_visual_timer: float = 0.0
 var _dash_cooldown_timer: float = 0.0
 var _dash_direction: Vector3 = Vector3.ZERO
 # Crouch state — tracked for edge detection so skin.crouch(active) only fires
@@ -955,10 +966,11 @@ func _physics_process(delta: float) -> void:
 	if move_direction.length() > 0.01:
 		var h_dir := h_vel.normalized() if h_vel.length() > 0.1 else move_direction
 		var steered := h_dir.slerp(move_direction, clamp(profile.turn_rate * delta, 0.0, 1.0))
-		# Crouch applies ONLY in walk mode ("crouch is slow walk for sophia").
-		# Skaters don't crouch. Silently ignored if held on skate.
+		# Crouch / sneak slows the player in EITHER profile (the post-hacking
+		# sneak mechanic engages while the player's still on skates from L1).
+		# Skin's crouch state plays the same Crouching pose either way.
 		var crouch_mult := 1.0
-		if intent.crouch_held and profile == walk_profile and is_on_floor():
+		if intent.crouch_held and is_on_floor():
 			crouch_mult = crouch_speed_multiplier
 		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
@@ -999,11 +1011,13 @@ func _physics_process(delta: float) -> void:
 
 	# One-shot states (dash, crouch, attack) must not be overwritten by the
 	# per-frame idle/move/fall/jump travel calls. Gate here so the skin's
-	# state machine can hold the pose until the body signals exit.
-	var is_dashing := _dash_timer > 0.0
-	var is_crouching_now := intent.crouch_held and _current_profile == walk_profile and on_floor
+	# state machine can hold the pose until the body signals exit. Dash uses
+	# the LONGER `_dash_visual_timer` so the Sprinting Forward Roll plays
+	# through its apex even after the gameplay impulse + i-frames end.
+	var is_visual_dashing := _dash_visual_timer > 0.0
+	var is_crouching_now := intent.crouch_held and on_floor
 	var is_attacking_now := _attack_active_timer > 0.0
-	if not _wall_ride_active and not is_dashing and not is_crouching_now and not is_attacking_now:
+	if not _wall_ride_active and not is_visual_dashing and not is_crouching_now and not is_attacking_now:
 		if is_just_jumping or is_air_jumping:
 			_skin.jump()
 		elif not on_floor and velocity.y < 0:
@@ -1113,6 +1127,7 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 func _update_dash(delta: float, intent: Intent) -> void:
 	_dash_cooldown_timer = maxf(0.0, _dash_cooldown_timer - delta)
 	_dash_timer = maxf(0.0, _dash_timer - delta)
+	_dash_visual_timer = maxf(0.0, _dash_visual_timer - delta)
 	# Fire on edge if cooldown elapsed and not currently in a locked state.
 	if intent.dash_pressed and _dash_cooldown_timer <= 0.0 and _dash_timer <= 0.0 and not _grinding and not _wall_ride_active and not _dying:
 		var dir := intent.move_direction if intent.move_direction.length() > 0.2 else _last_input_direction
@@ -1122,6 +1137,7 @@ func _update_dash(delta: float, intent: Intent) -> void:
 			_dash_direction = -global_basis.z
 		_dash_direction.y = 0.0
 		_dash_timer = dash_duration
+		_dash_visual_timer = dash_visual_duration
 		_dash_cooldown_timer = dash_cooldown
 		# Grant i-frames via the shared invuln window.
 		var now: float = Time.get_ticks_msec() / 1000.0

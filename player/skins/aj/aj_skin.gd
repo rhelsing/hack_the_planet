@@ -79,6 +79,14 @@ func _ready() -> void:
 			_edge_anim_node = sm.get_node(&"EdgeGrab") as AnimationNodeAnimation
 			_hit_anim_node = sm.get_node(&"Hit") as AnimationNodeAnimation
 			_idle_anim_node = sm.get_node(&"Idle") as AnimationNodeAnimation
+			# Speed-shorten the Sprinting Forward Roll. Native clip is 1.2s —
+			# shrink to 0.8s so the roll lands with the body's
+			# `dash_visual_duration` window without freezing on the last
+			# frame. stretch_time_scale rescales the underlying clip to fit.
+			if _dash_anim_node != null:
+				_dash_anim_node.use_custom_timeline = true
+				_dash_anim_node.timeline_length = 0.8
+				_dash_anim_node.stretch_time_scale = true
 
 	_damage_overlay = StandardMaterial3D.new()
 	_damage_overlay.albedo_color = Color(1.0, 0.12, 0.12, 0.0)
