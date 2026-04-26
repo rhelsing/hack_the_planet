@@ -1137,13 +1137,19 @@ func _update_dash(delta: float, intent: Intent) -> void:
 			_dash_direction = -global_basis.z
 		_dash_direction.y = 0.0
 		_dash_timer = dash_duration
-		_dash_visual_timer = dash_visual_duration
 		_dash_cooldown_timer = dash_cooldown
 		# Grant i-frames via the shared invuln window.
 		var now: float = Time.get_ticks_msec() / 1000.0
 		_invuln_until_time = maxf(_invuln_until_time, now + dash_iframes_duration)
-		if _skin != null:
-			_skin.dash(_dash_direction)
+		# The Sprinting Forward Roll only reads as a roll if you're on the
+		# ground. Air-dashing into a roll looks like a sideways flop — skip
+		# the visual so the in-air dash just keeps the existing fall/jump
+		# pose. Gameplay impulse + i-frames still fire either way.
+		var grounded_now: bool = is_on_floor()
+		if grounded_now:
+			_dash_visual_timer = dash_visual_duration
+			if _skin != null:
+				_skin.dash(_dash_direction)
 	# While active, override horizontal velocity to the dash vector.
 	# dash_preserves_y keeps jump / fall momentum intact.
 	if _dash_timer > 0.0:

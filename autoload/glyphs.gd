@@ -26,6 +26,7 @@ const _GLYPHS: Dictionary = {
 	"attack":        {"keyboard": "T",          "gamepad": "Square"},
 	"interact":      {"keyboard": "E",          "gamepad": "Triangle"},
 	"crouch":        {"keyboard": "Ctrl",       "gamepad": "R3"},
+	"sneak_toggle":  {"keyboard": "Shift",      "gamepad": "(slow stick)"},
 	"toggle_skate":  {"keyboard": "R",          "gamepad": "L1"},
 	"pause":         {"keyboard": "Esc",        "gamepad": "Options"},
 	"grapple_fire":  {"keyboard": "G",          "gamepad": "L2"},
