@@ -15,18 +15,8 @@ Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'
 Nyx: God, I swear going to kill him.
 Nyx: Go on back and tell him great joke. Tell him Nyx says he's a dead man.
 - Head back to the hub.
-	=> level_clear
-- I'll hang out here a sec.
-	Nyx: Suit yourself.
-	=> END
-
-~ level_clear
-
-NPC: You did it! Level cleared.
-NPC: What's next?
-- Continue to the hub
 	do LevelProgression.advance()
 	=> END
-- Keep exploring
-	NPC: Suit yourself. I'll be here.
+- I'll hang out here a sec.
+	Nyx: Suit yourself.
 	=> END

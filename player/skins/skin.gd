@@ -70,6 +70,12 @@ func dash(_direction: Vector3 = Vector3.ZERO) -> void: pass
 ## active=true, return to prior state on active=false.
 func crouch(_active: bool) -> void: pass
 
+## Called every tick by PlayerBody when the pawn is crouched AND moving on
+## the floor. Skins with a dedicated "Crouched Walking" anim override to
+## travel that state. Default forwards to move() so skins without the clip
+## still show feet animating instead of freezing.
+func crouch_move() -> void: move()
+
 ## Called when the body switches between walk_profile and skate_profile.
 ## No-op default. Sophia overrides to toggle her rollerblade wheels and
 ## the skin root Y offset (skates lift her heel off the ground slightly).

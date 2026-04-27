@@ -43,7 +43,7 @@ var spring_arm: SpringArm3D
 ## Above this magnitude on the move stick, the player runs at full speed.
 ## Below it but above `move_deadzone`, controller-driven auto-sneak engages.
 ## Only relevant on gamepad — keyboard players use Shift toggle.
-@export var sneak_stick_threshold := 0.5
+@export var sneak_stick_threshold := 0.25
 ## GameState flag that gates the sneak feature. Set to "" to enable
 ## unconditionally (debug). Default is the L2 hacking power-up.
 @export var sneak_required_flag: StringName = &"powerup_secret"

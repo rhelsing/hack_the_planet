@@ -315,8 +315,14 @@ func dash(_direction: Vector3 = Vector3.ZERO) -> void:
 
 
 func crouch(active: bool) -> void:
+	# travel() (not start()) so per-tick re-calls from PlayerBody routing
+	# don't restart the loop every frame and freeze the pose.
 	if active:
-		state_machine.start("Crouch")
+		state_machine.travel("Crouch")
+
+
+func crouch_move() -> void:
+	state_machine.travel("CrouchMove")
 
 
 func set_damage_tint(value: float) -> void:

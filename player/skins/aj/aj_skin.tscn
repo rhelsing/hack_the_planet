@@ -9,6 +9,9 @@
 [sub_resource type="AnimationNodeAnimation" id="ANA_Crouch"]
 animation = &"Crouching Idle"
 
+[sub_resource type="AnimationNodeAnimation" id="ANA_CrouchMove"]
+animation = &"Crouched Walking"
+
 [sub_resource type="AnimationNodeAnimation" id="ANA_Dash"]
 animation = &"Sprinting Forward Roll"
 
@@ -164,9 +167,29 @@ xfade_time = 0.12
 [sub_resource type="AnimationNodeStateMachineTransition" id="T_hit_move"]
 xfade_time = 0.12
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_idle_crouch"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_move_crouchmove"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_crouch_crouchmove"]
+xfade_time = 0.1
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_crouchmove_crouch"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_crouchmove_move"]
+xfade_time = 0.15
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="T_crouchmove_idle"]
+xfade_time = 0.15
+
 [sub_resource type="AnimationNodeStateMachine" id="ANSM_root"]
 states/Crouch/node = SubResource("ANA_Crouch")
 states/Crouch/position = Vector2(180, 290)
+states/CrouchMove/node = SubResource("ANA_CrouchMove")
+states/CrouchMove/position = Vector2(80, 360)
 states/Dash/node = SubResource("ANA_Dash")
 states/Dash/position = Vector2(627, 44)
 states/Die/node = SubResource("ANA_Die")
@@ -189,7 +212,7 @@ states/Move/position = Vector2(474, 122)
 states/Start/position = Vector2(327, 44)
 states/WallSlide/node = SubResource("ANA_WallSlide")
 states/WallSlide/position = Vector2(474, 290)
-transitions = ["Start", "Idle", SubResource("T_start"), "Idle", "Jump", SubResource("T_idle_jump"), "Jump", "Idle", SubResource("T_jump_idle"), "Jump", "Fall", SubResource("T_jump_fall"), "Fall", "Jump", SubResource("T_fall_jump"), "Fall", "Idle", SubResource("T_fall_idle"), "Idle", "Fall", SubResource("T_idle_fall"), "Idle", "Move", SubResource("T_idle_move"), "Move", "Idle", SubResource("T_move_idle"), "Fall", "Move", SubResource("T_fall_move"), "Move", "Fall", SubResource("T_move_fall"), "Move", "Jump", SubResource("T_move_jump"), "Jump", "Move", SubResource("T_jump_move"), "Jump", "Attack", SubResource("T_jump_edge"), "WallSlide", "Fall", SubResource("T_wall_fall"), "Jump", "WallSlide", SubResource("T_jump_wall"), "Attack", "Fall", SubResource("T_edge_fall"), "Attack", "WallSlide", SubResource("T_edge_wall"), "Fall", "Attack", SubResource("T_fall_edge"), "WallSlide", "Jump", SubResource("T_wall_jump"), "Attack", "Jump", SubResource("T_edge_jump"), "Fall", "WallSlide", SubResource("T_fall_wall"), "Dash", "Idle", SubResource("T_dash_idle"), "Dash", "Move", SubResource("T_dash_move"), "Dash", "Fall", SubResource("T_dash_fall"), "Dash", "Jump", SubResource("T_dash_jump"), "Crouch", "Idle", SubResource("T_crouch_idle"), "Crouch", "Move", SubResource("T_crouch_move"), "Attack", "Idle", SubResource("T_edge_idle"), "Attack", "Move", SubResource("T_edge_move"), "Land", "Idle", SubResource("T_land_idle"), "Land", "Move", SubResource("T_land_move"), "Hit", "Idle", SubResource("T_hit_idle"), "Hit", "Move", SubResource("T_hit_move")]
+transitions = ["Start", "Idle", SubResource("T_start"), "Idle", "Jump", SubResource("T_idle_jump"), "Jump", "Idle", SubResource("T_jump_idle"), "Jump", "Fall", SubResource("T_jump_fall"), "Fall", "Jump", SubResource("T_fall_jump"), "Fall", "Idle", SubResource("T_fall_idle"), "Idle", "Fall", SubResource("T_idle_fall"), "Idle", "Move", SubResource("T_idle_move"), "Move", "Idle", SubResource("T_move_idle"), "Fall", "Move", SubResource("T_fall_move"), "Move", "Fall", SubResource("T_move_fall"), "Move", "Jump", SubResource("T_move_jump"), "Jump", "Move", SubResource("T_jump_move"), "Jump", "Attack", SubResource("T_jump_edge"), "WallSlide", "Fall", SubResource("T_wall_fall"), "Jump", "WallSlide", SubResource("T_jump_wall"), "Attack", "Fall", SubResource("T_edge_fall"), "Attack", "WallSlide", SubResource("T_edge_wall"), "Fall", "Attack", SubResource("T_fall_edge"), "WallSlide", "Jump", SubResource("T_wall_jump"), "Attack", "Jump", SubResource("T_edge_jump"), "Fall", "WallSlide", SubResource("T_fall_wall"), "Dash", "Idle", SubResource("T_dash_idle"), "Dash", "Move", SubResource("T_dash_move"), "Dash", "Fall", SubResource("T_dash_fall"), "Dash", "Jump", SubResource("T_dash_jump"), "Crouch", "Idle", SubResource("T_crouch_idle"), "Crouch", "Move", SubResource("T_crouch_move"), "Attack", "Idle", SubResource("T_edge_idle"), "Attack", "Move", SubResource("T_edge_move"), "Land", "Idle", SubResource("T_land_idle"), "Land", "Move", SubResource("T_land_move"), "Hit", "Idle", SubResource("T_hit_idle"), "Hit", "Move", SubResource("T_hit_move"), "Idle", "Crouch", SubResource("T_idle_crouch"), "Move", "CrouchMove", SubResource("T_move_crouchmove"), "Crouch", "CrouchMove", SubResource("T_crouch_crouchmove"), "CrouchMove", "Crouch", SubResource("T_crouchmove_crouch"), "CrouchMove", "Move", SubResource("T_crouchmove_move"), "CrouchMove", "Idle", SubResource("T_crouchmove_idle")]
 graph_offset = Vector2(-264, 106)
 
 [sub_resource type="AnimationNodeBlendTree" id="ABT_root"]

@@ -104,6 +104,12 @@ func _mount_level(packed: PackedScene) -> void:
 		# queue_free would leave the old level alive for the rest of this
 		# frame which can double-fire kill_plane / flag signals.
 		var old := _current_level
+		# Rescue any pawn that's been reparented onto a level node (elevator
+		# CarryZone reparent-trick, glitch_lift, etc.). Without this they're
+		# descendants of `old` and would be queue_free'd along with it —
+		# camera goes with the player and the new level mounts to a grey
+		# void with no Player. See sync_up: 2026-04-26 regression.
+		_rescue_pawns_from(old)
 		remove_child(old)
 		old.queue_free()
 	var new_level := packed.instantiate() as Node3D
@@ -114,6 +120,18 @@ func _mount_level(packed: PackedScene) -> void:
 	add_child(new_level)
 	_current_level = new_level
 	_spawn_player(new_level)
+
+
+## Walk the doomed level and reparent any "player"-group node back onto
+## game.tscn root so freeing the level doesn't free the player along with
+## it. Triggered by elevator/lift scripts that reparent pawns for the
+## physics carry-trick — if the player is mid-ride when a transition
+## fires, they're descendants of the level until they exit the carry zone.
+func _rescue_pawns_from(level: Node) -> void:
+	for n in get_tree().get_nodes_in_group("player"):
+		if n is Node3D and level.is_ancestor_of(n):
+			print("[game] rescue: reparenting %s out of doomed level %s" % [n.name, level.name])
+			n.reparent(self, true)
 
 
 func _spawn_player(level: Node) -> void:

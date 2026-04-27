@@ -1447,13 +1447,22 @@ func _physics_process(delta: float) -> void:
 	var is_visual_dashing := _dash_visual_timer > 0.0
 	var is_crouching_now := intent.crouch_held and on_floor
 	var is_attacking_now := _attack_visual_timer > 0.0
-	if not _wall_ride_active and not is_visual_dashing and not is_crouching_now and not is_attacking_now:
+	if not _wall_ride_active and not is_visual_dashing and not is_attacking_now:
 		if is_just_jumping or is_air_jumping:
 			_skin.jump()
 		elif not on_floor and velocity.y < 0:
 			_skin.fall()
 		elif on_floor:
-			if ground_speed > 0.0:
+			# Crouch routes to crouch_move() while moving so the skin can play
+			# Crouched Walking; idle-crouch holds Crouching Idle. Skins without
+			# a CrouchMove state inherit the base default that forwards to
+			# move(), so feet still animate instead of freezing.
+			if is_crouching_now:
+				if ground_speed > 0.0:
+					_skin.crouch_move()
+				else:
+					_skin.crouch(true)
+			elif ground_speed > 0.0:
 				_skin.move()
 			else:
 				_skin.idle()
