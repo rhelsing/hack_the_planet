@@ -347,12 +347,17 @@ func _cache_path_read(character: String, text: String, voice_id: String) -> Stri
 	return ""
 
 
-## Write path. In the editor, write straight to res://audio/voice_cache/ so
-## fresh synths show up in `git status` and are committable without a separate
-## bake step. In exported builds, res:// is read-only — fall back to user://.
+## Write path. In editor builds (including "Play"-from-editor playtests),
+## write straight to res://audio/voice_cache/ so fresh synths show up in
+## `git status` and are committable without a separate bake step. In exported
+## builds (templates), res:// is read-only — fall back to user://.
 ## (Exports shouldn't hit the API anyway, so the user:// path is defensive.)
+##
+## Note: `OS.has_feature("editor")` is FALSE during editor playtest — only
+## true in the editor's main process. We invert `OS.has_feature("template")`
+## instead, which IS false in editor + playtest and true in real exports.
 func _cache_path_write(character: String, text: String, voice_id: String) -> String:
-	var dir := SHIPPED_CACHE_DIR if OS.has_feature("editor") else DEV_CACHE_DIR
+	var dir := DEV_CACHE_DIR if OS.has_feature("template") else SHIPPED_CACHE_DIR
 	return dir + _cache_filename(character, text, voice_id)
 
 
@@ -379,6 +384,13 @@ func _maybe_dispatch_next_tts() -> void:
 		_log("_maybe_dispatch: waiting on in-flight (character=%s)" % _tts_in_flight.get("character", "?"))
 		return
 	if _tts_queue.is_empty():
+		return
+	# Production gate: never hit ElevenLabs from an exported build, even on
+	# a true cache miss. Shipped builds must rely on res://audio/voice_cache/
+	# (run tools/sync_voice_cache.gd before exporting if cache is stale).
+	if OS.has_feature("template"):
+		_log("_maybe_dispatch: SKIP — exported build, no runtime synthesis allowed")
+		_tts_queue.clear()
 		return
 	if _api_key.is_empty():
 		_log("_maybe_dispatch: SKIP — no api key configured (see tools/setup_tts.gd)")
@@ -431,13 +443,17 @@ func _on_http_completed(result: int, response_code: int, _headers: PackedStringA
 
 
 func _play_cached(path: String) -> void:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		_log("_play_cached: FileAccess.open(READ) failed for %s" % path)
+	# Use ResourceLoader so cached mp3s play in EXPORTED builds. FileAccess.open
+	# only finds the raw source file — Godot strips source mp3s from exports
+	# and only ships the imported (.mp3str) form, which ResourceLoader resolves
+	# via the .import sidecar. Editor reads either way; exports REQUIRE this.
+	if not ResourceLoader.exists(path):
+		_log("_play_cached: ResourceLoader.exists(%s) returned false" % path)
 		return
-	var mp3 := AudioStreamMP3.new()
-	mp3.data = file.get_buffer(file.get_length())
-	file.close()
-	_log("_play_cached: routing %d bytes through Audio.play_dialogue (Dialogue bus)" % mp3.data.size())
+	var stream: AudioStream = load(path) as AudioStream
+	if stream == null:
+		_log("_play_cached: load(%s) returned null or non-AudioStream" % path)
+		return
+	_log("_play_cached: loaded %s, routing through Audio.play_dialogue (Dialogue bus)" % path)
 	# Route through Audio autoload so the Dialogue bus drives sidechain ducking.
-	Audio.play_dialogue(mp3)
+	Audio.play_dialogue(stream)

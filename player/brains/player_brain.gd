@@ -100,9 +100,7 @@ func _input(event: InputEvent) -> void:
 	var body := get_parent()
 	if body == null:
 		return
-	if event.is_action_pressed("toggle_skate") and body.has_method("toggle_profile"):
-		body.toggle_profile()
-	elif event.is_action_pressed("toggle_follow_mode") and body.has_method("toggle_follow_mode"):
+	if event.is_action_pressed("toggle_follow_mode") and body.has_method("toggle_follow_mode"):
 		body.toggle_follow_mode()
 
 

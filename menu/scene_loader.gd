@@ -33,6 +33,20 @@ func _ready() -> void:
 	layer = 1000
 	_flavor_label.text = FLAVOR.pick_random()
 	set_progress(0.0)
+	# Steal focus + eat ui_* events. The visual cover at layer 1000 hid the
+	# underlying menu but kbd/controller could still hit its focused Buttons.
+	var dim: Control = get_node_or_null(^"Dim") as Control
+	if dim != null:
+		dim.focus_mode = Control.FOCUS_ALL
+		dim.grab_focus.call_deferred()
+
+
+func _input(event: InputEvent) -> void:
+	# Block any UI navigation (ui_accept / ui_up / ui_cancel / etc.) from
+	# reaching the menu underneath. mouse_filter only handles mouse — this
+	# covers keyboard + controller too.
+	if event.is_action_type():
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:

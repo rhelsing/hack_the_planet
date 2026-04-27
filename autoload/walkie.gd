@@ -92,6 +92,14 @@ func _dispatch_if_idle() -> void:
 		_play_from_path(read_path, character, resolved_text)
 		return
 
+	# Production gate: exported builds never hit ElevenLabs (mirrors the
+	# Dialogue autoload). Shipped builds must rely on res://audio/voice_cache/.
+	if OS.has_feature("template"):
+		_log("dispatch: SKIP — exported build, no runtime synthesis allowed")
+		_queue.pop_front()
+		_dispatch_if_idle()
+		return
+
 	if Dialogue._api_key.is_empty():
 		_log("dispatch: cache MISS + no API key — skipping line")
 		_queue.pop_front()

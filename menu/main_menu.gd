@@ -151,6 +151,15 @@ func _pop_sub_menu(inst: Node) -> void:
 
 func _go_to_game(show_intro: bool = false) -> void:
 	print("[main_menu] _go_to_game → %s show_intro=%s" % [GAME_SCENE, show_intro])
+	# Hide + disable the menu RIGHT NOW so the cutscene + loading windows
+	# can't be navigated by kbd/controller. Without this the intro video
+	# (5-10s) is a window where save_slots Buttons remain focusable below.
+	# Walk children to hide CanvasLayers (they're independent of scene-tree
+	# visibility), then disable the whole subtree to stop input dispatch.
+	for c in get_children():
+		if c is CanvasItem: (c as CanvasItem).visible = false
+		if c is CanvasLayer: (c as CanvasLayer).visible = false
+	process_mode = Node.PROCESS_MODE_DISABLED
 	# New Game only: play the intro cinematic before the loading sequence.
 	# Cutscene.show_video pauses music + ambience for the duration and resumes
 	# them on its own. Awaits naturally to the video's end via `finished`.

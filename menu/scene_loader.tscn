@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://menu/scene_loader.gd" id="2_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dim"]
-bg_color = Color(0, 0, 0, 0.85)
+bg_color = Color(0, 0, 0, 1)
 
 [node name="SceneLoaderUI" type="CanvasLayer"]
 layer = 1000
@@ -13,7 +13,7 @@ script = ExtResource("2_script")
 [node name="Dim" type="Panel" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
+mouse_filter = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_dim")
 
 [node name="Root" type="CenterContainer" parent="."]

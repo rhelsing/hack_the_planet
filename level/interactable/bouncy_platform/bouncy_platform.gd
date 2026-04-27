@@ -39,6 +39,9 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 @export_dir var bounce_sound_auto_load_dir: String = ""
 @export_range(-30.0, 12.0) var bounce_sound_volume_db: float = 0.0
 @export_range(0.0, 0.5) var bounce_sound_pitch_jitter: float = 0.06
+## Delay between the squash impact and the boing playing. Lets the audio
+## land on the spring-back rather than the compression. 0 = play immediately.
+@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.5
 
 @export_group("Bounce")
 ## Peak height (meters) the player reaches above the deck top. Velocity is
@@ -250,7 +253,11 @@ func _on_body_exited(body: Node) -> void:
 func _start_bounce() -> void:
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
-	_play_random_bounce_sfx()
+	if bounce_sound_delay > 0.0:
+		get_tree().create_timer(bounce_sound_delay).timeout.connect(
+			_play_random_bounce_sfx, CONNECT_ONE_SHOT)
+	else:
+		_play_random_bounce_sfx()
 	var depth: float = _eff_squash_depth()
 	_tween = create_tween()
 	_tween.tween_property(_deck, ^"position:y", _deck_base_y - depth, _eff_squash_duration()) \

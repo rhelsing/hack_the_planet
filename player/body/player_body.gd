@@ -84,6 +84,9 @@ static func get_player() -> PlayerBody:
 @export_group("Dash")
 ## Peak velocity along dash direction (m/s).
 @export var dash_speed: float = 18.0
+## Multiplier applied to dash_speed when the dash fires while airborne.
+## 1.5 = 50% farther in air than on ground over the same dash_duration.
+@export_range(0.5, 3.0) var air_dash_speed_multiplier: float = 1.2
 ## Seconds the dash impulse stays active.
 @export var dash_duration: float = 0.2
 ## How long the skin's Dash state holds before the per-frame idle/move/fall
@@ -179,8 +182,8 @@ enum FollowMode { PARENTED, DETACHED }
 ## still pull your aim — the lunge then closes the gap.
 @export var attack_auto_orient_range: float = 4.0
 ## Full cone (degrees) measured from current facing. 0 = no auto-orient,
-## 180 = always orient toward nearest target. AAA default ~70.
-@export_range(0.0, 180.0) var attack_auto_orient_cone_deg: float = 70.0
+## 360 = always orient toward nearest target regardless of facing.
+@export_range(0.0, 360.0) var attack_auto_orient_cone_deg: float = 280.0
 ## Seconds the swing stays "live" after pressing J. While active, any enemy
 ## that enters attack_range gets hit — so the forward lunge sweeps through
 ## enemies that were just out of reach at the press frame. Each enemy can
@@ -242,6 +245,15 @@ enum FollowMode { PARENTED, DETACHED }
 @export_range(-30.0, 12.0) var skate_stride_volume_db: float = 6.0
 @export_range(0.0, 0.5) var skate_stride_pitch_jitter: float = 0.04
 @export var skate_strides_enabled: bool = true
+## Layer the walk footstep pool on top of skate strides. Same pool, same
+## cadence/min-speed plumbing as walk mode — so keyboard-clicks ride along
+## while you roll. Each stride checks `walk_during_skate_dropout` and
+## skips that fraction, giving the "occasional burst" feel.
+@export var walk_during_skate_enabled: bool = true
+## Fraction of walk-strides to drop while skating. 0.0 = play every stride,
+## 1.0 = always silent. Default 0.5 = roughly half the strides play, which
+## reads as bursts from the random distribution.
+@export_range(0.0, 1.0) var walk_during_skate_dropout: float = 0.5
 
 @export_group("Attack SFX")
 ## Kick: plays at the start of an attack swing (before the active window
@@ -345,6 +357,11 @@ var _attack_kick_pool_resolved: Array[AudioStream] = []
 var _attack_impact_pool_resolved: Array[AudioStream] = []
 var _footstep_phase: float = 0.0
 var _skate_phase: float = 0.0
+# Phase counter for the walk-bursts-during-skate layer. Independent of
+# `_footstep_phase` (which is for walk-mode strides) so the two never
+# step on each other — you can be in skate mode with this ticking and walk
+# mode with the other ticking, no carry-over.
+var _skate_walk_phase: float = 0.0
 var _last_footstep_idx: int = -1
 var _last_skate_stride_idx: int = -1
 var _last_death_sfx_idx: int = -1
@@ -545,7 +562,8 @@ func _ready() -> void:
 		_spring.shape = sphere
 		_spring.margin = spring_margin
 	_setup_pawn_audio()
-	_register_debug_panel()
+	if is_active_player:
+		_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	# Player-only: hold the most recent RespawnMessageZone text. Enemies don't
@@ -720,11 +738,12 @@ func _start_attack_jostle() -> void:
 			forward = to_target.normalized()
 			_target_yaw = atan2(forward.x, forward.z)
 			_yaw_state = _target_yaw
-	# Additive velocity kick. The existing friction handles decay; we don't
-	# need to lock out other movement or change animation state.
-	velocity.x += forward.x * attack_lunge_speed
-	velocity.z += forward.z * attack_lunge_speed
-	velocity.y = maxf(velocity.y, attack_lunge_hop)
+		# Lunge fires only when locked on. Without a target the swing still
+		# happens (sweep + visual), but no forward burst — keeps stationary
+		# attacks from sliding the player off ledges or into walls.
+		velocity.x += forward.x * attack_lunge_speed
+		velocity.z += forward.z * attack_lunge_speed
+		velocity.y = maxf(velocity.y, attack_lunge_hop)
 	# Open the active swing window. The sweep runs each frame in physics.
 	_attack_active_timer = attack_active_duration
 	_attack_visual_timer = maxf(attack_active_duration, attack_visual_duration)
@@ -894,6 +913,27 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 			if _skate_phase >= 1.0:
 				_skate_phase -= 1.0
 				_play_random_skate_stride()
+	# --- walk strides layered on top of skate (occasional keyboard-bursts
+	# while rolling). Same pool + cadence as walk mode but each stride rolls
+	# the dropout dice — at 0.5, ~half the strides play, which reads as
+	# clusters thanks to random distribution.
+	if walk_during_skate_enabled and in_skate \
+			and walk_footsteps_enabled and not _walk_footstep_pool_resolved.is_empty():
+		if _dying or not is_on_floor() or h_speed < walk_footstep_min_speed:
+			_skate_walk_phase = 0.0
+		elif _skate_walk_phase == 0.0:
+			if randf() >= walk_during_skate_dropout:
+				_play_random_footstep()
+			_skate_walk_phase = 0.0001
+		else:
+			var max_speed_skw: float = maxf(profile.max_speed, 0.001)
+			_skate_walk_phase += (h_speed / max_speed_skw) * walk_footstep_cadence_at_max * delta
+			if _skate_walk_phase >= 1.0:
+				_skate_walk_phase -= 1.0
+				if randf() >= walk_during_skate_dropout:
+					_play_random_footstep()
+	else:
+		_skate_walk_phase = 0.0
 
 
 func _stop_stride_audio() -> void:
@@ -1796,20 +1836,21 @@ func _update_dash(delta: float, intent: Intent) -> void:
 		# Grant i-frames via the shared invuln window.
 		var now: float = Time.get_ticks_msec() / 1000.0
 		_invuln_until_time = maxf(_invuln_until_time, now + dash_iframes_duration)
-		# The Sprinting Forward Roll only reads as a roll if you're on the
-		# ground. Air-dashing into a roll looks like a sideways flop — skip
-		# the visual so the in-air dash just keeps the existing fall/jump
-		# pose. Gameplay impulse + i-frames still fire either way.
-		var grounded_now: bool = is_on_floor()
-		if grounded_now:
-			_dash_visual_timer = dash_visual_duration
-			if _skin != null:
-				_skin.dash(_dash_direction)
-	# While active, override horizontal velocity to the dash vector.
-	# dash_preserves_y keeps jump / fall momentum intact.
+		# Roll plays whether we're grounded or airborne — the visual timer
+		# also gates routing so jump/fall won't clobber the roll mid-flight.
+		_dash_visual_timer = dash_visual_duration
+		if _skin != null:
+			_skin.dash(_dash_direction)
+	# While active, override horizontal velocity to the dash vector. Air
+	# dash applies an extra reach multiplier so the in-air burst clears
+	# bigger gaps without changing dash_duration. dash_preserves_y keeps
+	# jump / fall momentum intact.
 	if _dash_timer > 0.0:
-		velocity.x = _dash_direction.x * dash_speed
-		velocity.z = _dash_direction.z * dash_speed
+		var speed: float = dash_speed
+		if not is_on_floor():
+			speed *= air_dash_speed_multiplier
+		velocity.x = _dash_direction.x * speed
+		velocity.z = _dash_direction.z * speed
 		if not dash_preserves_y:
 			velocity.y = 0.0
 

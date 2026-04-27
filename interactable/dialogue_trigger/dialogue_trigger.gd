@@ -85,6 +85,11 @@ var _saved_camera: Camera3D = null
 var _cinematic_cam: Camera3D = null
 var _saved_player_physics: bool = true
 var _saved_dust_emitting: bool = false
+# Transparent input-blocking overlay placed on its own CanvasLayer below the
+# dialogue balloon (~1500) and above HUD (~1) for the duration of the cinematic.
+# Without it kbd/controller can navigate to and click on HUD/menu Controls
+# while the camera is in NPC-cam mode.
+var _input_blocker_layer: CanvasLayer = null
 ## Held during cinematic so _exit_tree can thaw the player even if we're
 ## detached before the normal `dialogue_ended` path reaches _exit_cinematic.
 var _saved_actor: Node3D = null
@@ -171,6 +176,7 @@ func _enter_cinematic(actor: Node3D) -> void:
 	if _cinematic_active: return
 	_cinematic_active = true
 	_saved_actor = actor
+	_spawn_input_blocker()
 
 	var approach_node := get_node_or_null(approach_spot) as Node3D
 	var look_at_node := get_node_or_null(look_at_target) as Node3D
@@ -339,6 +345,7 @@ func _freeze_player_for_cinematic(actor: Node3D, skin: Node3D) -> void:
 func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 	if not _cinematic_active: return
 	_cinematic_active = false
+	_free_input_blocker()
 
 	# Restore skin rotation (tween back to pre-cinematic local angle) so
 	# when physics re-engages and the body's _yaw_state hasn't changed, the
@@ -393,3 +400,35 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 			skin_after.call(&"set_skate_mode", skate_active)
 	_saved_camera = null
 	_saved_actor = null
+
+
+## Push a transparent input-blocking overlay on a CanvasLayer so the menu /
+## HUD beneath the cinematic camera can't be navigated while we're focused
+## on the NPC. Layer 1500 sits below the dialogue balloon (Nathan Hoad's
+## DialogueManager balloon canvas is ~2000) and above HUD (~1).
+func _spawn_input_blocker() -> void:
+	if _input_blocker_layer != null:
+		return
+	_input_blocker_layer = CanvasLayer.new()
+	_input_blocker_layer.layer = 1500
+	_input_blocker_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().root.add_child(_input_blocker_layer)
+	var blocker := Control.new()
+	blocker.anchor_right = 1.0
+	blocker.anchor_bottom = 1.0
+	blocker.offset_right = 0.0
+	blocker.offset_bottom = 0.0
+	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
+	blocker.focus_mode = Control.FOCUS_ALL
+	_input_blocker_layer.add_child(blocker)
+	# Pull focus away from any HUD button currently focused, then keep
+	# eating ui_* events via the layer-level _input below.
+	blocker.grab_focus.call_deferred()
+	# Eat keyboard / controller actions targeting underlying UI.
+	_input_blocker_layer.set_script(preload("res://interactable/dialogue_trigger/_input_blocker_layer.gd"))
+
+
+func _free_input_blocker() -> void:
+	if _input_blocker_layer != null and is_instance_valid(_input_blocker_layer):
+		_input_blocker_layer.queue_free()
+	_input_blocker_layer = null

@@ -51,16 +51,23 @@ func _spawn(host: SceneTree) -> void:
 	_canvas = CanvasLayer.new()
 	_canvas.layer = 2000  # above scene_loader's 1000; transitions always win
 	_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
+	# Eat all `is_action_type` events while the transition is up — kbd/controller
+	# can otherwise navigate the menu visible through the chromatic effect.
+	_canvas.set_script(preload("res://menu/transitions/_transition_input_block.gd"))
 	host.root.add_child(_canvas)
 	_rect = ColorRect.new()
 	_rect.anchor_right = 1.0
 	_rect.anchor_bottom = 1.0
-	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# STOP (not IGNORE) so mouse clicks are also blocked. Plus grab focus so
+	# any currently-focused Button on the menu underneath loses input routing.
+	_rect.mouse_filter = Control.MOUSE_FILTER_STOP
+	_rect.focus_mode = Control.FOCUS_ALL
 	var sh: Shader = load(SHADER_PATH)
 	_mat = ShaderMaterial.new()
 	_mat.shader = sh
 	_rect.material = _mat
 	_canvas.add_child(_rect)
+	_rect.grab_focus.call_deferred()
 
 
 func _set_alpha(v: float) -> void:

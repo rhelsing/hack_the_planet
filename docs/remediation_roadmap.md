@@ -56,18 +56,27 @@ In editor + dev environment, the source `.mp3` files exist on disk so `FileAcces
 
 **Symptom (user report):** "the menu is still seen and interactable below loading menus and the cinematics.. thats crazy and dumb."
 
-**Root cause (loading screen):** `menu/scene_loader.tscn` puts the loader UI on `CanvasLayer` 1000 (correctly above the menu's default layer 1). BUT both the `Dim` Panel and the `Root` CenterContainer have `mouse_filter = 2` (`MOUSE_FILTER_IGNORE`). That means the loader **renders on top** but **does not consume mouse input** — every click falls through the loader straight to the main_menu Buttons sitting on the lower CanvasLayer. The visual cover and the input cover are decoupled, and only the visual is wired.
+**Root cause (loading screen):** the loader UI on `CanvasLayer` 1000 visually covers the menu, but the menu underneath is still **keyboard- and controller-interactable**. `mouse_filter` on the loader's panels only blocks **mouse** input; Godot's UI focus system is independent and `ui_accept` / `ui_cancel` / `ui_up` / `ui_down` still reach whichever menu Button currently holds focus on the lower CanvasLayer.
 
-**Fix:** flip `mouse_filter` on the `Dim` Panel from `2 → 0` (`MOUSE_FILTER_STOP`). One-property edit. Optionally also set the root `CanvasLayer.layer` higher on the menu side, but with STOP on the dim panel the layering already works.
+**Fix:** the loader UI needs to (a) grab focus on spawn, AND (b) intercept all `ui_*` actions while visible. ~5 lines in `menu/scene_loader.gd`:
+```gdscript
+func _ready() -> void:
+    grab_focus()  # or focus a no-op spacer Control inside the loader
 
-**Root cause (cinematics):** `autoload/cutscene.gd` correctly applies `MOUSE_FILTER_STOP` on its bg ColorRect, so still-image cutscenes block input. The bug is in the **NPC-dialogue cinematic camera** path (`level/interactable/companion_npc/companion_npc.gd` + `interactable/dialogue_trigger/dialogue_trigger.gd`). When that fires:
-- The camera switches to a `CameraTarget` Marker3D
-- The dialogue balloon opens for player choices
-- BUT no input-consuming overlay covers the rest of the screen
+func _input(event: InputEvent) -> void:
+    if event.is_action_type():
+        get_viewport().set_input_as_handled()
+```
+Optional belt-and-suspenders: also flip Dim Panel `mouse_filter = 2 → 0` so mouse clicks are eaten too (the menu still loses focus once the loader grabs it, so this is mostly cosmetic).
 
-If the player has somehow returned to a state where the main_menu (or any other Control with focus_mode != NONE) is still in the tree, those controls receive input. The log shows `[cinematic] enter: actor=Player … cam=CameraTarget` followed by `[Dialogue] _on_line_shown` — no overlay creation in between.
+**Root cause (cinematics):** `autoload/cutscene.gd` correctly applies `MOUSE_FILTER_STOP` on its bg ColorRect, so the still-image cutscene path is fine. The bug is **specifically in the NPC-dialogue cinematic camera** (`level/interactable/companion_npc/companion_npc.gd` + `interactable/dialogue_trigger/dialogue_trigger.gd`). When the player approaches an NPC and the cinematic camera engages:
+- The camera switches to a `CameraTarget` Marker3D (good)
+- The dialogue balloon opens for player choices (good — its own UI handles balloon-internal input)
+- BUT **no overlay covers the rest of the screen**, so any other Control still in the scene tree (HUD buttons, leftover menu state) receives raw mouse clicks
 
-**Suggested fix:** at cinematic enter, push a transparent input-stopping overlay (one ColorRect with `Color(0,0,0,0)` and `MOUSE_FILTER_STOP`) on a high CanvasLayer; remove on cinematic exit. The dialogue balloon's own modal handling intercepts UI navigation but doesn't blanket-block raw mouse clicks against world-space buttons or other Controls.
+The log confirms: `[cinematic] enter: actor=Player … cam=CameraTarget` immediately followed by `[Dialogue] _on_line_shown` — no overlay creation in between.
+
+**Suggested fix:** at cinematic enter, push a transparent input-stopping overlay (one full-screen `ColorRect` with `Color(0,0,0,0)` and `MOUSE_FILTER_STOP`) onto a CanvasLayer that sits **below** the dialogue balloon's layer but **above** the world UI. Remove it on cinematic exit. This blanket-blocks raw clicks against any underlying Controls without interfering with the balloon's interactive choices.
 
 **Files to touch:**
 - `menu/scene_loader.tscn` — flip mouse_filter on Dim Panel.
@@ -77,7 +86,9 @@ If the player has somehow returned to a state where the main_menu (or any other 
 
 ---
 
-### G1. Attack swing ("woosh") and impact sounds not playing
+### G1. ~~Attack swing ("woosh") and impact sounds not playing~~ **(resolved by user via volume tuning)**
+
+
 
 **Symptom (user):** "the woosh sounds for attack, the impact hit sounds, the bounce sounds are not playing."
 
@@ -115,7 +126,7 @@ The log does NOT contain the `BouncyPlatform: bounce_sfx silent` warning that `_
 
 ### G2. "CONNECTION TERMINATED" card renders in top-left, not full-screen
 
-> **Log diagnostic limit:** the player did NOT die during this playthrough — no `take_hit`, `_dying`, `_finish_death`, or `death_overlay` events anywhere in 37k lines. Cannot verify behavior from this log. Capture a session that includes a death to confirm root cause.
+> **User-confirmed in-game** (the log just didn't capture the death event since the death code is mostly silent — no debug prints fire on `_start_death` / `_finish_death`). Card visible top-left during a real death.
 
 
 **Symptom (user):** "the connection terminated screen doesnt display overlayed, its up in top left."
@@ -134,9 +145,22 @@ The log does NOT contain the `BouncyPlatform: bounce_sfx silent` warning that `_
 
 ---
 
-### G3. Skate toggle still works on controller and keyboard — should be permanent
+### G3. Skate toggle — remove the keyboard / controller binding entirely
 
-> **Log diagnostic limit:** no `toggle_skate`, `toggle_profile`, or profile-swap events appear anywhere in this playthrough — the user didn't actually exercise the toggle in this session. Behavior assumed from code review (input map + handler trace). Capture a session where you press R / button 9 to verify there isn't a second handler.
+**Refined intent (corrected from prior turn):** blades are already always-on once unlocked (the underlying state machine handles that). The user's complaint is that pressing R or controller button 9 still flips between walk and skate. They want **no input toggle at all** — input shouldn't change the mode under any circumstances.
+
+**Fix (pick one):**
+
+1. **Surgical** — delete `player_brain.gd:103-104`:
+   ```gdscript
+   if event.is_action_pressed("toggle_skate") and body.has_method("toggle_profile"):
+       body.toggle_profile()
+   ```
+   Two lines removed. The `toggle_skate` input action stays in `project.godot` as orphaned binding; harmless.
+
+2. **Cleaner** — also strip the `toggle_skate` mapping from `project.godot` so the action vanishes from the project entirely. Slightly more invasive but kills dead config.
+
+Recommended: option 1 first; revisit option 2 in a config sweep later.
 
 
 **Symptom (user):** "i shouldnt still be able to to turn off an on rollerblades from controller or keyboard.. can from controller.. i want permanent blades."
@@ -159,48 +183,47 @@ The log does NOT contain the `BouncyPlatform: bounce_sfx silent` warning that `_
 
 ---
 
-### G4. Portal transitions (hub ↔ level) hitch — preload during teleporter approach
+### G4. Portal transitions (hub ↔ level) — route through SceneLoader so the loading screen actually appears
 
-**Symptom (user):** "we may need some preloading between the portal transitions from hub to levels?"
+**Symptom (user, refined):** "i'd prefer our loading screen we use between menu and level also. to make sure everything is loaded well."
+
+**Current state:** the menu→game transition uses `SceneLoader.goto(...)` which spawns the proper loading UI from `menu/scene_loader.tscn` (visible loader, progress bar, glitch transition). The hub→level portal transition does NOT — it instead calls `Game._mount_level(packed)` directly (game.gd:120), which is synchronous and gives no loading feedback. Hence the visible hitch + no UI cover.
 
 **Diagnostic context from log:**
 - `WARNING: SceneLoader.goto called while already loading res://game.tscn` — racey transitions (menu firing goto twice OR portal trigger overlapping main-menu click).
 - `ERROR: SceneLoader failed to load: res://game.tscn` — `scene_loader.gd:66` push_error in the threaded-load failure branch. Single occurrence in log.
-- `_mount_level` (game.gd:120) runs synchronously after threaded load completes. The `scene_loader.gd` already uses `ResourceLoader.load_threaded_request` so the load itself is off the main thread, but the `instantiate()` + `add_child(new_level)` chain at game.gd:120 **is not** — that's where you'd see the visible hitch when a 100k-poly level enters the tree.
+- `_mount_level` (game.gd:120) runs synchronously when fired from a portal. The `scene_loader.gd` already uses `ResourceLoader.load_threaded_request` so the load itself is off the main thread when goto is used; portals bypass it entirely.
 
-**Recommended approach:**
-1. **Pre-warm the next level's PackedScene** when the player enters the portal's "approach zone" (e.g., 6m before the trigger). Call `ResourceLoader.load_threaded_request("res://level/level_X.tscn")` early; the bytes are decompressed and resource graph built in the background. By the time the player hits the trigger, `load_threaded_get_status` returns LOADED instantly.
-2. **Async instantiate** if the hitch persists. Spread `instantiate()` across frames using `ResourceLoader.LOAD_THREADED_LOAD_AS_FAR_AS_POSSIBLE` flag, or render a transition curtain (the existing GlitchTransition could double here) so the hitch is hidden behind a visual.
-3. **Debounce SceneLoader.goto.** Track `_loading: bool` in `scene_loader.gd`; ignore further `goto()` calls until the current load completes. Solves the "goto-while-loading" warning.
+**Recommended approach (in priority order):**
+1. **Route portal transitions through SceneLoader.goto.** Find the portal interactable script(s) in `level/interactable/` (likely `phone_booth` or a dedicated portal scene). Replace any direct `Game.set_level(...)` / `_mount_level` invocation with `SceneLoader.goto("res://level/level_X.tscn")`. This gives portals the same loader UI + glitch transition + threaded load that the main menu already enjoys.
+2. **Debounce SceneLoader.goto.** Track `_loading: bool` (or just check `_target_path != ""`) in `scene_loader.gd`; ignore further `goto()` calls until the current load completes. Solves the "goto-while-loading" warning + the failed-load that follows it.
+3. *(Optional, later)* **Pre-warm the next level's PackedScene** when the player enters a portal's "approach zone" (e.g., 6m before the trigger). Call `ResourceLoader.load_threaded_request("res://level/level_X.tscn")` early; the bytes are decompressed in the background. By the time the player hits the trigger, `load_threaded_get_status` returns LOADED. Only worth doing if the routing-through-SceneLoader fix doesn't fully hide the hitch.
 
-**Files to touch:** `autoload/scene_loader.gd` (add preload entrypoint + busy guard), and the portal interactable script (call preload on body-entered-approach-area, fire goto on body-entered-trigger-area).
-
----
-
-### G5. Nyx beacon — log shows it actually works after the previous-turn fix
-
-User flagged earlier that the Nyx waypoint didn't show. Log confirms the fix from `level/level_1.tscn:Nyx/Beacon` IS firing correctly:
-
-- `5762: [beacon] ready: /root/Game/Level/Nyx/Beacon visible=false voice_gate=DialTone flag_gate=/`
-- `17393: [beacon] Beacon armed by voice: DialTone 'Runner. Nyx is in your vicinity!…'`
-- `18882: [beacon] Beacon visible -> true`
-- Immediately after: `[beacon_layer] drawing Beacon at (-66.69823, 65.97045, -97.31536)` `drawn=1 (registered=2)`
-
-Either the user's earlier complaint predates the fix, or the on-screen marker was visually subtle / off-screen at the moment of reveal. **Worth confirming with the user before marking resolved** — if they still don't notice it in-game, the issue is BeaconLayer rendering style (size, color, offscreen-arrow visibility), not the trigger system.
+**Files to touch:** the portal interactable script(s) under `level/interactable/`, `autoload/scene_loader.gd` (add busy guard).
 
 ---
+
+### G5. ~~Nyx beacon~~ **(resolved by previous-turn fix; confirmed in log + user)**
+
+
 
 ## P2 — Engine warnings flooding the log (cleanup)
 
 ### W1. DebugPanel duplicate-registration storm — 3959 warnings
 
-**Symptom:** every PlayerBody (player + every enemy + every spawned enemy) calls `_register_debug_panel()` in `_ready`. Each call attempts to register the same `~40` paths (`Camera/Follow/...`, `Movement/skate/...`, etc.). After the first PlayerBody registers them, every subsequent one push_warns "path X already registered, skipping." With ~10 enemies in the level that's `10 × 40 ≈ 400` warnings per level load. Across multiple level transitions in the playthrough this hits 3959.
+**Symptom:** every PlayerBody (player + every enemy + every spawned enemy) calls `_register_debug_panel()` in `_ready`. Each call attempts to register the same `~40` paths.
 
-**Root cause:** `_register_debug_panel` is unconditionally called from `_ready` — `player_body.gd:489`. No `pawn_group == "player"` gate.
+**User has already done most of the work.** A `_player_singleton` static var + `is_active_player` flag now correctly gates abilities, camera setup, and signal subscriptions. **One line missed:** `_register_debug_panel()` at `player_body.gd:562` is still called unconditionally.
 
-**Fix:** wrap the `_register_debug_panel()` call in `if pawn_group == "player":`. The debug panel readouts are inherently per-player (they tune live — only one set is meaningful). Enemies don't need to register the same paths.
+**Fix:** wrap line 562 in the existing flag:
+```gdscript
+if is_active_player:
+    _register_debug_panel()
+```
 
 **Side effect:** the `det == 0` engine errors (61 occurrences, no GDScript trace) appear *interleaved* with the duplicate-registration warnings. The most parsimonious explanation is that the DebugPanel duplicate-add path is doing math on a degenerate state when it tries to compute a position for a slider it skipped. Worth re-checking after the gate fix — they may evaporate.
+
+**Be careful with this class:** the DebugPanel uses paths-as-keys, so all the existing UI bindings depend on the path strings staying stable. The fix is purely "don't call the registration function for non-player pawns" — no internal DebugPanel changes needed.
 
 ---
 
@@ -209,15 +232,14 @@ Either the user's earlier complaint predates the fix, or the on-screen marker wa
 **Symptom:**
 ```
 ERROR: Function blocked during in/out signal. Use set_deferred("monitoring", true/false).
-   at: set_monitoring (scene/3d/physics/area_3d.cpp:379)
-   GDScript backtrace (most recent call first):
-       [0] _on_body_entered (res://level/interactable/coin/coin.gd:55)
 ```
 Fires every coin pickup. ~14 occurrences in the log.
 
-**Root cause:** `level/interactable/coin/coin.gd:55` — `monitoring = false` is set directly inside the `body_entered` signal handler. Godot 4 forbids physics-state mutation during signal dispatch.
+**Important context:** this error is **engine log noise — nothing functionally broken.** Godot still applies the change after the signal completes; the coin still stops detecting. The coin pickup audio (which user got working via a player-side listener) is a completely separate system unaffected by this. The fix is purely log hygiene so the actual errors aren't drowned out.
 
-**Fix:** `set_deferred("monitoring", false)`. One-line change.
+**Root cause:** `level/interactable/coin/coin.gd:55` — `monitoring = false` is set directly inside the `body_entered` signal handler. Godot 4 forbids physics-state mutation during signal dispatch (engine treats it as an error even though it semi-applies).
+
+**Fix:** `monitoring = false` → `set_deferred("monitoring", false)`. One-character-class change. Same outcome, no error.
 
 ---
 
@@ -253,28 +275,41 @@ Fires every coin pickup. ~14 occurrences in the log.
 
 ## Suggested execution order
 
-| Order | Item | Effort | Impact |
-|---|---|---|---|
-| 1 | **A1a**: Cache write path — drop `OS.has_feature("editor")` gate so editor playtests fill `res://audio/voice_cache/` directly | XS | Stops silent cache poisoning during dev playtests |
-| 2 | **A1b**: Production audio cache (ResourceLoader switch + production dispatch gate) | M | **Ships** the audio drama everyone wrote |
-| 3 | **G0**: Loading screen + cinematic input passthrough (`mouse_filter` + cinematic input blocker) | XS | Stops UX-shattering click-through to menu |
-| 4 | **G3**: Permanent blades (gate `toggle_profile` on editor feature) | XS | Matches design intent |
-| 5 | **G2**: Death overlay anchors (verify on a death-included playthrough first) | XS | Visible UX bug |
-| 6 | **W1**: Gate `_register_debug_panel` to player only | XS | Kills 3959 warnings + likely the 61 det==0 errors |
-| 7 | **W2**: `set_deferred` on coin monitoring | XS | Kills per-coin error spam |
-| 8 | **G1**: Bouncy/attack/impact sound volume tuning (bump `unit_size` + `volume_db`, switch bouncy to 2D player to match comment intent) | S | Combat + traversal feel |
-| 9 | **G4 + W3 + W4**: SceneLoader debounce + portal pre-warm | M | Smoother hub→level transitions, kills the loader race |
-| 10 | **G5**: Confirm with user that Nyx beacon visually reads (log shows it draws) | XS | May be no-op |
-| 11 | **W5**: Investigate ObjectDB leaks | S | Cleanliness |
+### Dead-simple batch (one sitting, ~30 min including smoke tests)
 
-Total scope is small — most items are 1-line fixes. A1a + A1b are the only items with real complexity, and they're the only true user-facing production blockers. The rest is hygiene + tuning.
+| # | Item | Fix |
+|---|---|---|
+| 1 | **A1a** Cache write path | `dialogue.gd:355` — flip the OS check (one line) |
+| 2 | **G0a** Loading screen accepts kbd/controller | `menu/scene_loader.gd` — `grab_focus()` on `_ready` + `_input` that consumes `is_action_type()` events (~5 lines) |
+| 3 | **G3** Skate toggle binding | `player_brain.gd:103-104` — delete the two-line handler (toggle should never fire from input) |
+| 4 | **W1** DebugPanel duplicate-register | `player_body.gd:562` — wrap in existing `if is_active_player:` (one line) |
+| 5 | **W2** Coin signal mutation | `coin.gd:55` — `monitoring = false` → `set_deferred(...)` (one character class) |
+
+### Verify-then-edit (small experiment first)
+
+| # | Item | Verification → Fix |
+|---|---|---|
+| 6 | **A1b** Production audio cache | Smoke test passes (editor); proper test = build + export + listen. Then swap `_play_cached` from FileAccess → ResourceLoader. Add production gate so `_maybe_dispatch_next_tts` no-ops when `OS.has_feature("template")`. |
+| 7 | **G2** Death overlay anchors | User-confirmed bug. Open `death_overlay.tscn`, set root Control to Layout → Full Rect. Test by killing player. |
+
+### Iterative / requires playtest tuning
+
+| # | Item | Notes |
+|---|---|---|
+| 8 | **G0b** Cinematic input blocker | Add transparent `MOUSE_FILTER_STOP` overlay on cinematic-enter, remove on exit. Layer needs to sit below dialogue balloon but above world UI — 1-2 attempts. |
+| 9 | **G4** Portal → SceneLoader.goto | Find portal interactable, swap `_mount_level` direct call for `SceneLoader.goto(...)`. Also add `_loading` busy-guard. Test by walking through the portal repeatedly + stress-clicking. |
+| 10 | **W5** ObjectDB leaks (17 instances) | Run with `--verbose`, identify leaked types, fix per-case. Could be 5 min or 5 hrs. |
+
+### Done / removed from scope
+
+- **G1** ~~bouncy/attack/impact volumes~~ (resolved by user)
+- **G5** ~~Nyx beacon~~ (resolved by previous-turn fix; confirmed in log)
 
 ---
 
-## Diagnostic gaps (need new logs to confirm)
+## Diagnostic gaps still open
 
 | Item | Why log can't confirm | What to capture |
 |---|---|---|
-| G2 — death overlay top-left | Player never died in playthrough | Log of a player death sequence start to respawn |
-| G3 — controller toggle works | Player never pressed R / button 9 | Log of pressing the toggle, ideally on both keyboard and controller |
-| Audio cache HIT rate baseline | Every line in log was recently edited (100% miss) | After A1a fix + a fresh sync, log should show CACHE HIT lines for unedited dialogue |
+| G3 — controller toggle | Player never pressed R / button 9 in this playthrough | Log of toggle press on both inputs |
+| Audio cache HIT rate baseline | Every line in log was recently edited (100% miss) | After A1a fix + a fresh sync, log should show CACHE HIT for unedited dialogue |

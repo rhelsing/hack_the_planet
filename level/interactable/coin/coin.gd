@@ -51,5 +51,7 @@ func _on_body_entered(body: Node) -> void:
 	_target = body as Node3D
 	_collect_start_pos = global_position
 	_collect_timer = 0.0
-	# Prevent re-triggering if the player lingers overlapping us.
-	monitoring = false
+	# Prevent re-triggering if the player lingers overlapping us. Deferred
+	# because Godot 4 disallows mutating Area3D state inside its own signal
+	# dispatch — direct assignment works but spams an engine error per coin.
+	set_deferred("monitoring", false)

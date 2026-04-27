@@ -38,6 +38,11 @@ func goto(path: String) -> void:
 	_progress = [0.0]
 	_last_progress_value = 0.0
 	_last_progress_change_time = Time.get_ticks_msec() / 1000.0
+	# Hide + freeze the outgoing scene RIGHT NOW (before any await) so the
+	# menu underneath can't be navigated by kbd/controller during the
+	# transition + load window. The scene is freed by change_scene_to_packed
+	# anyway; this just yanks input/render forward by ~1s.
+	_disable_outgoing_scene()
 	# Create a Transition based on user Settings. If Settings isn't in the
 	# tree yet (very early boot), we fall back to the default (glitch).
 	var style := "glitch"
@@ -49,6 +54,32 @@ func goto(path: String) -> void:
 	_spawn_ui()
 	ResourceLoader.load_threaded_request(path)
 	set_process(true)
+
+
+## Hide + disable the current scene so its Buttons can't be navigated and
+## its render isn't visible behind the transition / loader. Idempotent —
+## safe even if there's no current scene yet (very early boot).
+##
+## process_mode = DISABLED gates _input + _process on the whole subtree —
+## Controls inside CanvasLayers stop receiving navigation events. We also
+## walk the tree and flip `visible = false` on every CanvasLayer + CanvasItem
+## descendant, since CanvasLayer rendering is independent of scene-tree
+## visibility — disabling alone doesn't hide them.
+func _disable_outgoing_scene() -> void:
+	var cur := get_tree().current_scene
+	if cur == null:
+		return
+	cur.process_mode = Node.PROCESS_MODE_DISABLED
+	_hide_recursive(cur)
+
+
+func _hide_recursive(n: Node) -> void:
+	if n is CanvasItem:
+		(n as CanvasItem).visible = false
+	if n is CanvasLayer:
+		(n as CanvasLayer).visible = false
+	for c in n.get_children():
+		_hide_recursive(c)
 
 
 ## Returns true when a load is in progress. Test hook.

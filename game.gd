@@ -8,6 +8,7 @@ extends Node
 ## The full-scene SceneLoader.goto is reserved for main-menu → game boundary.
 
 const TransitionScript := preload("res://menu/transitions/transition.gd")
+const LOADER_UI_SCENE := "res://menu/scene_loader.tscn"
 
 ## Fallback level loaded at _ready if SaveService has no current_level set
 ## (e.g. a fresh New Game before LevelProgression points at the hub).
@@ -16,6 +17,9 @@ const TransitionScript := preload("res://menu/transitions/transition.gd")
 # The level currently mounted as our "Level" child. Updated whenever we
 # swap. Null before _ready finishes.
 var _current_level: Node3D = null
+# Busy guard: a second load_level() call while one is in progress is dropped
+# (with a push_warning) instead of stacking transitions and racing _mount_level.
+var _is_loading: bool = false
 
 
 func _ready() -> void:
@@ -53,10 +57,10 @@ func _input(event: InputEvent) -> void:
 ## LevelProgression) that need to know when the mount is complete (so the
 ## save file records the player at the new spawn, not the old position).
 func load_level(path: String) -> void:
-	var packed: PackedScene = load(path) as PackedScene
-	if packed == null:
-		push_error("Game.load_level: cannot load %s" % path)
+	if _is_loading:
+		push_warning("Game.load_level: already loading, ignoring %s" % path)
 		return
+	_is_loading = true
 	var style := "glitch"
 	var settings := get_tree().root.get_node_or_null(^"Settings")
 	if settings != null and settings.has_method(&"get_value"):
@@ -71,10 +75,50 @@ func load_level(path: String) -> void:
 	# scene_entered has had a tick to update sensor focus.
 	Events.modal_opened.emit(&"level_transition")
 	await transition.play_out(get_tree())
+	# Threaded load + the same loader UI the main menu uses. Previously this
+	# was a synchronous load() that hitched the main thread on big levels;
+	# now the player sees the loading bar (covers the hitch + matches the
+	# menu→game transition aesthetic). See docs/remediation_roadmap.md G4.
+	var packed: PackedScene = await _threaded_load_with_ui(path)
+	if packed == null:
+		push_error("Game.load_level: cannot load %s" % path)
+		Events.modal_closed.emit(&"level_transition")
+		_is_loading = false
+		return
 	_mount_level(packed)
 	SaveService.set_current_level(StringName(path.get_file().trim_suffix(".tscn")))
 	await transition.play_in(get_tree())
 	Events.modal_closed.emit(&"level_transition")
+	_is_loading = false
+
+
+## Run a threaded ResourceLoader request with the same loader UI the main
+## menu transitions use. Returns the loaded PackedScene or null on failure.
+## Awaits internally — caller blocks until the load completes.
+func _threaded_load_with_ui(path: String) -> PackedScene:
+	var ui: Node = null
+	if ResourceLoader.exists(LOADER_UI_SCENE):
+		var ui_packed: PackedScene = load(LOADER_UI_SCENE)
+		if ui_packed != null:
+			ui = ui_packed.instantiate()
+			ui.process_mode = Node.PROCESS_MODE_ALWAYS
+			get_tree().root.add_child(ui)
+	ResourceLoader.load_threaded_request(path)
+	var progress: Array[float] = [0.0]
+	var packed: PackedScene = null
+	while true:
+		await get_tree().process_frame
+		var status := ResourceLoader.load_threaded_get_status(path, progress)
+		if ui != null and ui.has_method(&"set_progress"):
+			ui.call(&"set_progress", progress[0] if progress.size() > 0 else 0.0)
+		if status == ResourceLoader.THREAD_LOAD_LOADED:
+			packed = ResourceLoader.load_threaded_get(path) as PackedScene
+			break
+		elif status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			break
+	if ui != null and is_instance_valid(ui):
+		ui.queue_free()
+	return packed
 
 
 # ── Internals ────────────────────────────────────────────────────────────

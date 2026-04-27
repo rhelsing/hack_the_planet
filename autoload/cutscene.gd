@@ -37,21 +37,8 @@ func show_image(path: String, duration: float = 3.0) -> void:
 	if tex == null:
 		push_warning("Cutscene.show_image: failed to load %s" % path)
 		return
-	_canvas = CanvasLayer.new()
-	_canvas.layer = _LAYER
-	# Run while paused — same as the dialogue balloon. If a future cutscene
-	# pauses the world for cinematic effect, this autoload still ticks.
-	_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(_canvas)
-
-	var bg: ColorRect = ColorRect.new()
-	bg.anchor_right = 1.0
-	bg.anchor_bottom = 1.0
+	var bg: ColorRect = _spawn_input_gated_canvas()
 	bg.color = Color.BLACK
-	# Eat input while shown so the player can't accidentally click through
-	# to anything below.
-	bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	_canvas.add_child(bg)
 
 	var img: TextureRect = TextureRect.new()
 	img.anchor_right = 1.0
@@ -80,17 +67,8 @@ func show_video(path: String, duration: float = -1.0) -> void:
 	if stream == null:
 		push_warning("Cutscene.show_video: failed to load %s" % path)
 		return
-	_canvas = CanvasLayer.new()
-	_canvas.layer = _LAYER
-	_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(_canvas)
-
-	var bg: ColorRect = ColorRect.new()
-	bg.anchor_right = 1.0
-	bg.anchor_bottom = 1.0
+	var bg: ColorRect = _spawn_input_gated_canvas()
 	bg.color = Color.BLACK
-	bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	_canvas.add_child(bg)
 
 	var player: VideoStreamPlayer = VideoStreamPlayer.new()
 	player.anchor_right = 1.0
@@ -124,3 +102,28 @@ func _cleanup() -> void:
 	if _canvas != null and is_instance_valid(_canvas):
 		_canvas.queue_free()
 	_canvas = null
+
+
+## Build the cutscene's CanvasLayer + a full-rect ColorRect bg that
+## blocks ALL input (mouse, keyboard, controller). Mouse blocked via
+## MOUSE_FILTER_STOP on the bg; kbd/controller blocked by the layer's
+## script which set_input_as_handled()'s every action event; focus
+## yanked off any underlying menu Button via grab_focus on the bg.
+## Returns the bg (caller adds children + tweaks color/etc.).
+func _spawn_input_gated_canvas() -> ColorRect:
+	_canvas = CanvasLayer.new()
+	_canvas.layer = _LAYER
+	_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
+	# Eats every action-typed event while the cutscene is up so kbd/controller
+	# can't navigate menu Buttons on lower CanvasLayers.
+	_canvas.set_script(preload("res://autoload/_cutscene_input_block.gd"))
+	add_child(_canvas)
+
+	var bg: ColorRect = ColorRect.new()
+	bg.anchor_right = 1.0
+	bg.anchor_bottom = 1.0
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	bg.focus_mode = Control.FOCUS_ALL
+	_canvas.add_child(bg)
+	bg.grab_focus.call_deferred()
+	return bg
