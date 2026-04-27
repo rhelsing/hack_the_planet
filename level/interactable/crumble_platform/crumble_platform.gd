@@ -83,6 +83,7 @@ func _ready() -> void:
 	_apply_size()
 	_deck_base_position = _deck.position
 	_carry_zone.body_entered.connect(_on_body_entered)
+	_carry_zone.body_exited.connect(_on_body_exited)
 	_register_debug_panel()
 
 
@@ -110,9 +111,20 @@ func _on_body_entered(body: Node) -> void:
 	_carried_body = body as Node3D
 	_original_parent = body.get_parent()
 	# Reparent under Deck (elevator trick) so the shake doesn't fight the
-	# player's own physics — they ride the jitter cleanly.
+	# player's own physics — they ride the jitter cleanly. Deferred because
+	# we're inside a body_entered signal (physics frame).
 	body.call_deferred(&"reparent", _deck, true)
 	_enter_shaking()
+
+
+func _on_body_exited(body: Node) -> void:
+	# Walked / jumped off mid-shake. If still parented under Deck, restore
+	# their original parent — otherwise the deck's shake / fall / reset
+	# will keep dragging them via parent transform inheritance even though
+	# they're physically meters away.
+	if body != _carried_body:
+		return
+	_release_player()
 
 
 func _enter_shaking() -> void:
@@ -162,6 +174,15 @@ func _enter_gone() -> void:
 
 func _reset() -> void:
 	_phase = Phase.IDLE
+	# Defensive: evict anything still parented under Deck before snapping it
+	# back to base. If a body slipped through (e.g. body_exited didn't fire
+	# because they fell straight down and never crossed the carry-zone edge),
+	# the position snap would teleport them up by `crumble_drop` meters.
+	for child in _deck.get_children():
+		if child == _box:
+			continue
+		if child is Node3D:
+			child.reparent(get_tree().current_scene, true)
 	_deck.position = _deck_base_position
 	_box.visible = true
 	_box.use_collision = true
@@ -172,12 +193,24 @@ func _reset() -> void:
 
 func _release_player() -> void:
 	if _carried_body == null or not is_instance_valid(_carried_body):
+		_carried_body = null
+		_original_parent = null
 		return
 	if _carried_body.get_parent() != _deck:
+		# Already not parented under us (someone else moved them, or the
+		# initial deferred reparent never landed). Just clear bookkeeping.
+		_carried_body = null
+		_original_parent = null
 		return
 	if _original_parent == null or not is_instance_valid(_original_parent):
+		_carried_body = null
+		_original_parent = null
 		return
-	_carried_body.call_deferred(&"reparent", _original_parent, true)
+	# Direct (non-deferred) reparent: this runs from tween callbacks or
+	# body_exited (post-physics), so it's safe — and we need it to land
+	# *now* so the next tween step doesn't move the deck while the player
+	# is still inheriting its transform.
+	_carried_body.reparent(_original_parent, true)
 	_carried_body = null
 	_original_parent = null
 

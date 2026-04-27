@@ -12,6 +12,15 @@ extends CharacterSkin
 
 @export var skate_root_y: float = 0.134
 
+## Skip into the attack clip so the wind-up phase doesn't eat the visible
+## window. Mma Kick has a long anticipation; starting at 0.2s lands closer
+## to the strike on the first frame.
+@export var attack_clip_start_offset: float = 0.2
+## How long (seconds) of clip to play after the start offset. Should match
+## or undershoot `PlayerBody.attack_visual_duration` so the body's
+## per-tick travel doesn't interrupt before the strike completes.
+@export var attack_clip_play_duration: float = 0.8
+
 const _FOOT_L_BONE := &"mixamorig_LeftFoot"
 const _FOOT_R_BONE := &"mixamorig_RightFoot"
 @onready var _wheels_left: Node3D = $WheelsLeft
@@ -24,8 +33,7 @@ const _FOOT_R_BONE := &"mixamorig_RightFoot"
 @onready var run_speed_path: String = "parameters/StateMachine/Move/RunSpeed/scale"
 
 var _dash_anim_node: AnimationNodeAnimation
-var _edge_anim_node: AnimationNodeAnimation
-const _ATTACK_CLIPS := [&"Mma Kick"]
+var _attack_anim_node: AnimationNodeAnimation
 
 var _hit_anim_node: AnimationNodeAnimation
 const _HIT_CLIPS := [&"Yelling"]
@@ -80,7 +88,7 @@ func _ready() -> void:
 		var sm := outer.get_node(&"StateMachine") as AnimationNodeStateMachine
 		if sm != null:
 			_dash_anim_node = sm.get_node(&"Dash") as AnimationNodeAnimation
-			_edge_anim_node = sm.get_node(&"EdgeGrab") as AnimationNodeAnimation
+			_attack_anim_node = sm.get_node(&"Attack") as AnimationNodeAnimation
 			_hit_anim_node = sm.get_node(&"Hit") as AnimationNodeAnimation
 			_idle_anim_node = sm.get_node(&"Idle") as AnimationNodeAnimation
 			# Speed-shorten the Sprinting Forward Roll. Native clip is 1.2s —
@@ -91,6 +99,16 @@ func _ready() -> void:
 				_dash_anim_node.use_custom_timeline = true
 				_dash_anim_node.timeline_length = 0.8
 				_dash_anim_node.stretch_time_scale = true
+			# Mma Kick has a long wind-up; skip past it (start_offset) and
+			# play the strike at native speed (stretch_time_scale=false) for
+			# `attack_clip_play_duration` seconds. The body's
+			# `attack_visual_duration` should be set to match so its
+			# per-tick travel doesn't cut us off mid-kick.
+			if _attack_anim_node != null:
+				_attack_anim_node.use_custom_timeline = true
+				_attack_anim_node.start_offset = attack_clip_start_offset
+				_attack_anim_node.timeline_length = attack_clip_play_duration
+				_attack_anim_node.stretch_time_scale = false
 
 	_damage_overlay = StandardMaterial3D.new()
 	_damage_overlay.albedo_color = Color(1.0, 0.12, 0.12, 0.0)
@@ -275,9 +293,7 @@ func wall_slide() -> void: state_machine.travel("WallSlide")
 
 
 func attack() -> void:
-	if _edge_anim_node != null:
-		_edge_anim_node.animation = _ATTACK_CLIPS[randi() % _ATTACK_CLIPS.size()]
-	state_machine.start("EdgeGrab")
+	state_machine.start("Attack")
 
 
 func die() -> void:

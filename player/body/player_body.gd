@@ -157,6 +157,11 @@ enum FollowMode { PARENTED, DETACHED }
 ## enemies that were just out of reach at the press frame. Each enemy can
 ## only be hit once per swing.
 @export var attack_active_duration := 0.22
+## Visual hold for the attack animation, separate from the hit-detection
+## window above. Without this the body re-travels the skin to Idle/Move at
+## `attack_active_duration` and clips longer than that (e.g. Mma Kick at
+## ~1s) get cut off before the strike lands. Mirrors `_dash_visual_timer`.
+@export var attack_visual_duration := 0.8
 ## Horizontal knockback speed (m/s) applied to hit enemies.
 @export var attack_knockback := 14.0
 ## Horizontal speed added to the player on attack (the "jostle" forward).
@@ -180,12 +185,12 @@ enum FollowMode { PARENTED, DETACHED }
 @export_dir var walk_footstep_auto_load_dir: String = ""
 ## Footsteps per second when the body is moving at full max_speed in walk
 ## mode. At half speed, half the cadence. Tune to match the visual gait.
-@export var walk_footstep_cadence_at_max: float = 5.0
+@export var walk_footstep_cadence_at_max: float = 7.0
 ## Below this horizontal speed (m/s), no footsteps fire — kills drifting
 ## clicks when the body is barely moving.
 @export var walk_footstep_min_speed: float = 0.6
 ## dB offset applied to each click. 0 = sample's authored level.
-@export_range(-30.0, 12.0) var walk_footstep_volume_db: float = -2.0
+@export_range(-30.0, 12.0) var walk_footstep_volume_db: float = 6.0
 ## Random pitch jitter (±this fraction) per click. 0 = identical pitch.
 @export_range(0.0, 0.5) var walk_footstep_pitch_jitter: float = 0.06
 ## Master enable. Off = silent regardless of pool.
@@ -203,9 +208,9 @@ enum FollowMode { PARENTED, DETACHED }
 @export_dir var skate_stride_auto_load_dir: String = ""
 ## Strides per second when moving at full skate max_speed. Skate cadence is
 ## typically slower than walk because of the longer push-glide cycle.
-@export var skate_stride_cadence_at_max: float = 2.5
+@export var skate_stride_cadence_at_max: float = 4.0
 @export var skate_stride_min_speed: float = 1.5
-@export_range(-30.0, 12.0) var skate_stride_volume_db: float = -2.0
+@export_range(-30.0, 12.0) var skate_stride_volume_db: float = 6.0
 @export_range(0.0, 0.5) var skate_stride_pitch_jitter: float = 0.04
 @export var skate_strides_enabled: bool = true
 
@@ -264,6 +269,10 @@ var _grind_direction := 1.0
 var _grind_snap_t := 1.0
 var _grind_start_pos := Vector3.ZERO
 var _air_jump_available := false
+# Coyote-time countdown — set to profile.coyote_time on every grounded
+# tick, ticks down each airborne tick. While > 0, a jump press is treated
+# as a ground jump (does NOT consume the air jump).
+var _coyote_timer: float = 0.0
 var _flip_timer := 0.0
 var _flip_duration := 0.55
 var _flip_axis := Vector3.RIGHT
@@ -271,6 +280,11 @@ var _yaw_state := 0.0
 var _attack_timer := 0.0
 var _attack_duration := 0.3
 var _attack_active_timer := 0.0
+# Visual hold timer — runs longer than _attack_active_timer so the skin
+# can play out the full attack clip (Mma Kick, etc.) before the body
+# resumes its per-tick travel calls. Hit detection still uses the active
+# timer above.
+var _attack_visual_timer := 0.0
 var _attack_forward := Vector3.ZERO
 var _attack_hit_enemies: Array[Node] = []
 var _health := 3
@@ -385,15 +399,24 @@ func _ready() -> void:
 		var abilities_node := get_node_or_null(^"Abilities")
 		if abilities_node != null:
 			abilities_node.queue_free()
-		# Camera rig is baked into player_body.tscn with `current = true`.
-		# Every enemy / companion variant therefore ships a Camera3D that
-		# would steal the active-camera slot when it enters the tree (last
-		# `current = true` Camera3D wins per Godot's docs). Force it off for
-		# non-player pawns. Without this, swapping levels with enemies in the
-		# new scene yanks the camera away from the player into an enemy POV.
+		# Non-player pawns get NO camera at all. The Camera3D node is freed
+		# entirely so it can't appear in the viewport's camera registry —
+		# regardless of `current` flag, scene-load timing, inspector overrides,
+		# or anything else. _camera is nulled so downstream null-checks work.
+		# Per user invariant: only the player's body owns a camera, period.
 		var enemy_cam := get_node_or_null(^"%Camera3D") as Camera3D
 		if enemy_cam != null:
-			enemy_cam.current = false
+			print("[cam-dbg] free enemy/companion cam %s on %s" % [
+				enemy_cam.get_path(), get_path()])
+			enemy_cam.queue_free()
+			_camera = null
+	else:
+		# Player owns the active camera slot — claim it explicitly. This is
+		# the ONLY place make_current() is called on a non-cinematic camera.
+		var player_cam := get_node_or_null(^"%Camera3D") as Camera3D
+		if player_cam != null:
+			player_cam.make_current()
+			print("[cam-dbg] player claim: %s" % player_cam.get_path())
 	# Pick the initial profile. start_in_walk_mode wins over skate_profile
 	# existence so enemies / NPCs can hold both profiles (for a future
 	# power-up toggle) but spawn in walk mode.
@@ -409,18 +432,22 @@ func _ready() -> void:
 	# the initial profile before the player presses any toggle.
 	if _skin != null:
 		_skin.set_skate_mode(_current_profile == skate_profile)
-	_apply_follow_mode()
-	_target_yaw = _camera_pivot.global_rotation.y
-	_spring = _camera_pivot.get_node("SpringArm3D")
-	_base_pitch = _spring.rotation.x
-	_camera_original_z = _camera.position.z
-	_current_camera_z = _camera_original_z
-	# Replace the SeparationRayShape3D (meant for character floor separation)
-	# with a sphere so margin acts as a real physical buffer around obstacles.
-	var sphere := SphereShape3D.new()
-	sphere.radius = spring_cast_radius
-	_spring.shape = sphere
-	_spring.margin = spring_margin
+	# Camera rig setup is player-only — enemies / companions had their
+	# Camera3D freed above, so deref'ing _camera here would crash, and the
+	# spring-arm tuning wouldn't be visible on a camera-less pawn anyway.
+	if pawn_group == "player":
+		_apply_follow_mode()
+		_target_yaw = _camera_pivot.global_rotation.y
+		_spring = _camera_pivot.get_node("SpringArm3D")
+		_base_pitch = _spring.rotation.x
+		_camera_original_z = _camera.position.z
+		_current_camera_z = _camera_original_z
+		# Replace the SeparationRayShape3D (meant for character floor separation)
+		# with a sphere so margin acts as a real physical buffer around obstacles.
+		var sphere := SphereShape3D.new()
+		sphere.radius = spring_cast_radius
+		_spring.shape = sphere
+		_spring.margin = spring_margin
 	_setup_pawn_audio()
 	_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
@@ -568,11 +595,14 @@ func _start_attack_jostle() -> void:
 	if _attack_timer > 0.0:
 		return
 	_attack_timer = _attack_duration
-	# Forward = flattened camera direction; fall back to character facing.
-	var forward := -_camera.global_basis.z
-	forward.y = 0.0
-	if forward.length_squared() > 0.0001:
-		forward = forward.normalized()
+	# Forward = flattened camera direction (player); enemies have no camera
+	# (it's freed in _ready), so they fall back to character facing.
+	var forward: Vector3
+	if _camera != null:
+		forward = -_camera.global_basis.z
+		forward.y = 0.0
+		if forward.length_squared() <= 0.0001:
+			forward = -global_basis.z
 	else:
 		forward = -global_basis.z
 	# Additive velocity kick. The existing friction handles decay; we don't
@@ -582,6 +612,7 @@ func _start_attack_jostle() -> void:
 	velocity.y = maxf(velocity.y, attack_lunge_hop)
 	# Open the active swing window. The sweep runs each frame in physics.
 	_attack_active_timer = attack_active_duration
+	_attack_visual_timer = maxf(attack_active_duration, attack_visual_duration)
 	_attack_forward = forward
 	_attack_hit_enemies.clear()
 	# Tell the skin to play its attack animation. Skins with a real punch /
@@ -646,9 +677,10 @@ func _setup_pawn_audio() -> void:
 func _make_pawn_3d_player() -> AudioStreamPlayer3D:
 	var p := AudioStreamPlayer3D.new()
 	p.bus = &"SFX"
-	# unit_size 4m: stays loud within ~4m of the pawn, attenuates beyond.
-	# max_distance 25m: fully silent past that — keeps distant pawns quiet.
-	p.unit_size = 4.0
+	# unit_size 12m: stays loud out to the player's camera arm (~9m back) so
+	# the player hears their own footsteps clearly. Inverse-distance attenuation
+	# kicks in past 12m, max_distance silences other pawns past 25m.
+	p.unit_size = 12.0
 	p.max_distance = 25.0
 	add_child(p)
 	return p
@@ -703,8 +735,11 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 	# --- walk footsteps ---
 	if walk_footsteps_enabled and not _walk_footstep_pool_resolved.is_empty():
 		if not in_walk or _dying or not is_on_floor() or h_speed < walk_footstep_min_speed:
-			# Reset so the next stride starts clean (rising edge fires
-			# immediately below).
+			# Rising edge of "no longer striding": cut any audio still ringing
+			# out (matters for skate; harmless for short walk clicks). Then
+			# reset phase so the next stride fires immediately on resume.
+			if _footstep_phase != 0.0:
+				_stop_stride_audio()
 			_footstep_phase = 0.0
 		elif _footstep_phase == 0.0:
 			_play_random_footstep()
@@ -719,6 +754,8 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 	var in_skate: bool = profile == skate_profile and skate_profile != null
 	if skate_strides_enabled and not _skate_stride_pool_resolved.is_empty():
 		if not in_skate or _dying or not is_on_floor() or h_speed < skate_stride_min_speed:
+			if _skate_phase != 0.0:
+				_stop_stride_audio()
 			_skate_phase = 0.0
 		elif _skate_phase == 0.0:
 			_play_random_skate_stride()
@@ -729,6 +766,13 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 			if _skate_phase >= 1.0:
 				_skate_phase -= 1.0
 				_play_random_skate_stride()
+
+
+func _stop_stride_audio() -> void:
+	if _footstep_player_a != null and _footstep_player_a.playing:
+		_footstep_player_a.stop()
+	if _footstep_player_b != null and _footstep_player_b.playing:
+		_footstep_player_b.stop()
 
 
 func _play_random_footstep() -> void:
@@ -1282,8 +1326,17 @@ func _physics_process(delta: float) -> void:
 	# Lean is scaled by the active skin — Sophia leans dramatically, cops
 	# stiffer. Null skin (shouldn't happen for a valid pawn) falls back to 1.
 	var lean_mult: float = _skin.lean_multiplier if _skin != null else 1.0
+	# Wall-ride lean: tilt the skin INTO the wall by the side it's on.
+	# `_wall_normal` points away from the wall; dotting against the player's
+	# local +X (right) gives sign — negative when wall is on the right (lean
+	# right) and positive when wall is on the left. Stacks atop the regular
+	# centripetal roll so a curved wall-ride still reads.
+	var wall_ride_roll: float = 0.0
+	if _wall_ride_active:
+		var player_right: Vector3 = Basis(Vector3.UP, new_yaw) * Vector3.RIGHT
+		wall_ride_roll = _wall_normal.dot(player_right) * profile.wall_ride_lean_amount
 	var final_pitch: float = (_current_lean_pitch + _brake_impulse + attack_pitch) * lean_mult
-	var final_roll: float = (_current_lean_roll + speedup_roll) * lean_mult
+	var final_roll: float = (_current_lean_roll + speedup_roll + wall_ride_roll) * lean_mult
 
 	# Rotate the skin around a head-height pivot: the basis holds yaw+pitch+roll,
 	# and we shift the skin's origin so the pivot point stays fixed in space.
@@ -1344,10 +1397,17 @@ func _physics_process(delta: float) -> void:
 	# Animations and FX.
 	if on_floor:
 		_air_jump_available = true
+		_coyote_timer = profile.coyote_time
+	else:
+		_coyote_timer = maxf(0.0, _coyote_timer - delta)
 	var ground_speed := Vector2(velocity.x, velocity.z).length()
-	var is_just_jumping := intent.jump_pressed and on_floor
-	var is_air_jumping := (intent.jump_pressed and not on_floor and _air_jump_available
-		and not _wall_ride_active)
+	# Coyote: count a jump press shortly after stepping off a ledge as a
+	# ground jump. Order matters — is_just_jumping is checked FIRST in the
+	# branch below so an air jump never fires during the grace window.
+	var in_coyote: bool = _coyote_timer > 0.0
+	var is_just_jumping := intent.jump_pressed and (on_floor or in_coyote)
+	var is_air_jumping := (intent.jump_pressed and not is_just_jumping
+		and not on_floor and _air_jump_available and not _wall_ride_active)
 
 	# Attack jostle is purely procedural (velocity kick + skin pitch) so we
 	# just let the timer tick down — no animation state to enter/exit.
@@ -1358,10 +1418,20 @@ func _physics_process(delta: float) -> void:
 	if _attack_active_timer > 0.0:
 		_attack_active_timer = maxf(0.0, _attack_active_timer - delta)
 		_sweep_attack()
+	if _attack_visual_timer > 0.0:
+		_attack_visual_timer = maxf(0.0, _attack_visual_timer - delta)
 
 	if is_just_jumping:
-		velocity.y += profile.jump_impulse
+		# Coyote case: player has been falling, velocity.y is negative. Reset
+		# (not add) so the jump reads as full-strength, like a true ground
+		# jump from a standing start. Ground case: velocity.y ≈ 0 so behavior
+		# is unchanged.
+		if on_floor:
+			velocity.y += profile.jump_impulse
+		else:
+			velocity.y = profile.jump_impulse
 		_jump_sound.play()
+		_coyote_timer = 0.0  # spent — no double-firing
 	elif is_air_jumping:
 		velocity.y = profile.jump_impulse
 		_jump_sound.play()
@@ -1376,7 +1446,7 @@ func _physics_process(delta: float) -> void:
 	# through its apex even after the gameplay impulse + i-frames end.
 	var is_visual_dashing := _dash_visual_timer > 0.0
 	var is_crouching_now := intent.crouch_held and on_floor
-	var is_attacking_now := _attack_active_timer > 0.0
+	var is_attacking_now := _attack_visual_timer > 0.0
 	if not _wall_ride_active and not is_visual_dashing and not is_crouching_now and not is_attacking_now:
 		if is_just_jumping or is_air_jumping:
 			_skin.jump()
@@ -1395,7 +1465,11 @@ func _physics_process(delta: float) -> void:
 
 	if on_floor and not _was_on_floor_last_frame:
 		_landing_sound.play()
-		if _skin != null:
+		# Skip the Land state visual if a one-shot is currently holding the
+		# skin (attack, dash). The attack lunge adds an upward hop which
+		# immediately tripped this branch and clobbered the kick clip; same
+		# would happen for any one-shot that briefly leaves the floor.
+		if _skin != null and not is_attacking_now and not is_visual_dashing:
 			_skin.land()
 
 	# Wall ride (only runs if the current profile enables it).
@@ -1580,7 +1654,26 @@ func _find_wall(profile: MovementProfile) -> Vector3:
 	return Vector3.ZERO
 
 
+var _dbg_last_active_cam: Camera3D = null
+
+
 func _process(delta: float) -> void:
+	# Camera-attaches-to-enemy debug. Player-side only (one tracker on the
+	# player's body, not every pawn). Logs only when the active camera
+	# changes — silent when stable. On switch, also enumerates every
+	# Camera3D in the tree with current=true so we know exactly who's vying.
+	if pawn_group == "player":
+		var cur_cam: Camera3D = get_viewport().get_camera_3d()
+		if cur_cam != _dbg_last_active_cam:
+			var cur_path: String = cur_cam.get_path() if cur_cam != null else "<none>"
+			var prev_path: String = _dbg_last_active_cam.get_path() if _dbg_last_active_cam != null and is_instance_valid(_dbg_last_active_cam) else "<none>"
+			print("[cam-dbg] viewport switched: %s → %s" % [prev_path, cur_path])
+			# Enumerate every Camera3D in the tree, mark which has current=true.
+			var all_cams: Array = []
+			_dbg_collect_cameras(get_tree().root, all_cams)
+			for c in all_cams:
+				print("[cam-dbg]   cam=%s current=%s" % [c.get_path(), c.current])
+			_dbg_last_active_cam = cur_cam
 	# Smooth SpringArm's snap. SpringArm scales the camera's positive local Z by
 	# (hit_length / spring_length) each physics tick; we lerp toward that same
 	# scaled target and write it back in _process so ours is the final write.
@@ -1593,6 +1686,13 @@ func _process(delta: float) -> void:
 	var factor := 1.0 - exp(-spring_smooth_rate * delta)
 	_current_camera_z = lerp(_current_camera_z, target_z, factor)
 	_camera.position.z = _current_camera_z
+
+
+func _dbg_collect_cameras(n: Node, out: Array) -> void:
+	if n is Camera3D:
+		out.append(n)
+	for child in n.get_children():
+		_dbg_collect_cameras(child, out)
 
 
 func _register_debug_panel() -> void:
@@ -1882,6 +1982,12 @@ func _register_debug_panel() -> void:
 
 
 func _update_follow_camera(delta: float) -> void:
+	# No-op for non-player pawns — enemies / companions have no camera rig
+	# (Camera3D freed in _ready, _spring never assigned). They still call
+	# this from shared physics paths (death loop, grind, etc.), so the early
+	# exit is required to avoid null derefs on _spring / _camera_pivot.
+	if _spring == null or _camera_pivot == null:
+		return
 	# Mouse activity is tracked by the brain (player only). AI brains have no
 	# mouse so we treat them as "no recent input" (999).
 	var tsm: float = 999.0

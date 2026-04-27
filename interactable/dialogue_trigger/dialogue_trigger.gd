@@ -117,6 +117,10 @@ func _exit_tree() -> void:
 	_cinematic_cam = null
 	if _saved_camera != null and is_instance_valid(_saved_camera):
 		_saved_camera.make_current()
+		print("[cam-dbg] _exit_tree restored: %s" % _saved_camera.get_path())
+	else:
+		print("[cam-dbg] _exit_tree NO restore: saved=%s valid=%s" % [
+			_saved_camera, is_instance_valid(_saved_camera) if _saved_camera != null else false])
 	_saved_camera = null
 	# Player — thaw physics + restore dust. Actor survives scene swaps (it
 	# lives in game.tscn, not the level scene) so these calls are safe.
@@ -179,6 +183,8 @@ func _enter_cinematic(actor: Node3D) -> void:
 
 	# Save original camera so we can restore it on exit.
 	_saved_camera = actor.get_viewport().get_camera_3d()
+	print("[cam-dbg] cinematic enter: saved=%s on %s" % [
+		_saved_camera.get_path() if _saved_camera != null else "<none>", interactable_id])
 	if skin != null:
 		_saved_skin_rotation_y = skin.rotation.y
 
@@ -360,6 +366,8 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 			await tween.finished
 		if is_instance_valid(_saved_camera):
 			_saved_camera.make_current()
+			print("[cam-dbg] _exit_cinematic restored: %s on %s" % [
+				_saved_camera.get_path(), interactable_id])
 		_cinematic_cam.queue_free()
 		_cinematic_cam = null
 

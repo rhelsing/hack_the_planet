@@ -1,10 +1,18 @@
-[gd_resource type="Resource" script_class="VoicePortraits" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="VoicePortraits" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://dialogue/voice_portraits.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://35p38nikvfc8" path="res://dialogue/portraits/dialtone.png" id="2_dialtone"]
+[ext_resource type="Texture2D" uid="uid://b404tluv70sy4" path="res://dialogue/portraits/aj_card.jpeg" id="2_aj"]
+[ext_resource type="Texture2D" uid="uid://dluqg8hunb7oe" path="res://dialogue/portraits/dialtone_card.jpeg" id="3_dialtone"]
+[ext_resource type="Texture2D" uid="uid://ca6xtyyi8nh4p" path="res://dialogue/portraits/glitch_card.jpeg" id="4_glitch"]
+[ext_resource type="Texture2D" uid="uid://1lv7bj0pnpbd" path="res://dialogue/portraits/nyx_card.jpeg" id="5_nyx"]
+[ext_resource type="Texture2D" uid="uid://befme82ns05kg" path="res://dialogue/portraits/splice_card.jpeg" id="6_splice"]
 
 [resource]
 script = ExtResource("1")
 portraits = {
-"DialTone": ExtResource("2_dialtone")
+"AJ": ExtResource("2_aj"),
+"DialTone": ExtResource("3_dialtone"),
+"Glitch": ExtResource("4_glitch"),
+"Nyx": ExtResource("5_nyx"),
+"Splice": ExtResource("6_splice")
 }
