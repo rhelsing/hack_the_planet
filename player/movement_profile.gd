@@ -77,3 +77,9 @@ extends Resource
 ## Extra downward offset applied to the skin proportional to total tilt
 ## magnitude (radians). Gives a "crouch into the turn" feel.
 @export var tilt_height_drop := 0.0
+## Vertical lift (m) applied to the skin when running, scaled linearly by
+## (speed / max_speed). Counteracts the foot-into-ground sink that the
+## forward lean introduces — without this, dramatic lean values pitch the
+## body forward and the feet visibly clip below the floor at top speed.
+## Only applied while on_floor; airborne skin uses identity offset.
+@export var forward_speed_lift := 0.0

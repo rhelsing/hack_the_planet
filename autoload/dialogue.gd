@@ -11,19 +11,19 @@ extends Node
 ## fixed here:
 ##   1. API key resolved at boot: env var → user://tts_config.tres (per-dev
 ##      override) → res://dialogue/tts_config.tres (committed, repo-private)
-##   2. Cache path user://tts_cache/ (res:// is read-only in exported builds)
+##   2. Single cache at res://audio/voice_cache/ — editor + playtest write
+##      directly there (committed alongside .import sidecars), exports read
+##      via ResourceLoader (no FileAccess on raw paths)
 ##   3. voices.tres externalizes the character → voice_id map
 ##   4. HTTPRequest lives here (survives balloon close, FIFO queue)
 ##   5. Playback routed through Audio.play_dialogue so Dialogue bus sidechains
 
 const MODAL_ID: StringName = &"dialogue"
-## Shipped cache. Checked first at read time. Populated before export by
-## tools/sync_voice_cache.gd (copies from DEV_CACHE_DIR). Exports include
-## everything under res://, so shipped builds hit the API zero times.
+## The single cache location. Editor writes here directly; exports read here
+## through ResourceLoader (which resolves the imported .mp3str form via the
+## .import sidecar). Exports never write — the production gate in
+## _maybe_dispatch_next_tts no-ops ElevenLabs requests.
 const SHIPPED_CACHE_DIR: String = "res://audio/voice_cache/"
-## Dev cache. Writes always go here (res:// is read-only in exported builds).
-## During authoring this is where fresh synths land.
-const DEV_CACHE_DIR: String = "user://tts_cache/"
 const CONFIG_PATH: String = "user://tts_config.tres"
 ## Committed fallback. Loaded only if env and user:// both come up empty.
 ## Repo-private; exists because we'd rather a fresh clone "just work" than
@@ -34,7 +34,7 @@ const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
 # eleven_flash_v2_5 — ~75ms latency, right for game NPC dialogue. Trade off vs
 # eleven_multilingual_v2 (higher quality, ~400ms) and eleven_v3 (best quality,
 # highest latency). Change here to re-voice — cache filename doesn't include
-# the model, so consider clearing user://tts_cache/ after swapping.
+# the model, so consider clearing res://audio/voice_cache/ after swapping.
 const ELEVEN_MODEL_ID: String = "eleven_flash_v2_5"
 
 ## Toggle via `Dialogue.verbose = false` to silence the trace logs.
@@ -62,14 +62,12 @@ func _ready() -> void:
 	# our HTTPRequest child's response handler needs to fire under pause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
-	DirAccess.make_dir_recursive_absolute(DEV_CACHE_DIR)
 	_voices = load(VOICES_PATH)
 	_api_key = _load_api_key()
-	_log("ready. voices=%s api_key=%s shipped_cache=%s dev_cache=%s" % [
+	_log("ready. voices=%s api_key=%s cache=%s" % [
 		"loaded" if _voices != null else "<MISSING>",
 		"present (%d chars)" % _api_key.length() if not _api_key.is_empty() else "<NOT SET — TTS will be silent>",
 		ProjectSettings.globalize_path(SHIPPED_CACHE_DIR),
-		ProjectSettings.globalize_path(DEV_CACHE_DIR),
 	])
 	_http = HTTPRequest.new()
 	_http.request_completed.connect(_on_http_completed)
@@ -336,29 +334,28 @@ func _cache_filename(character: String, text: String, voice_id: String) -> Strin
 	return "%s_%s.mp3" % [safe_char, hashed]
 
 
-## Read path. Shipped cache wins so exports play from res://. Returns "" if no
-## cache hit on either tier — caller falls back to API.
+## Read path. Single cache at res://audio/voice_cache/. Returns "" if not
+## cached — caller falls back to API (editor only; production gates dispatch).
+##
+## Editor uses FileAccess (raw mp3 on disk; un-imported just-written files
+## still resolve). Exports use ResourceLoader (raw source isn't in the .pck;
+## only the imported .mp3str is — which ResourceLoader resolves via .import).
 func _cache_path_read(character: String, text: String, voice_id: String) -> String:
 	var fname: String = _cache_filename(character, text, voice_id)
 	var shipped: String = SHIPPED_CACHE_DIR + fname
-	if FileAccess.file_exists(shipped): return shipped
-	var dev: String = DEV_CACHE_DIR + fname
-	if FileAccess.file_exists(dev): return dev
+	if OS.has_feature("template"):
+		if ResourceLoader.exists(shipped): return shipped
+	else:
+		if FileAccess.file_exists(shipped): return shipped
 	return ""
 
 
-## Write path. In editor builds (including "Play"-from-editor playtests),
-## write straight to res://audio/voice_cache/ so fresh synths show up in
-## `git status` and are committable without a separate bake step. In exported
-## builds (templates), res:// is read-only — fall back to user://.
-## (Exports shouldn't hit the API anyway, so the user:// path is defensive.)
-##
-## Note: `OS.has_feature("editor")` is FALSE during editor playtest — only
-## true in the editor's main process. We invert `OS.has_feature("template")`
-## instead, which IS false in editor + playtest and true in real exports.
+## Write path. Always res://audio/voice_cache/ — editor + playtest both write
+## here directly so synths show up in `git status` and are committable without
+## a separate sync step. Exports never reach this function (gated by
+## OS.has_feature("template") in _maybe_dispatch_next_tts).
 func _cache_path_write(character: String, text: String, voice_id: String) -> String:
-	var dir := DEV_CACHE_DIR if OS.has_feature("template") else SHIPPED_CACHE_DIR
-	return dir + _cache_filename(character, text, voice_id)
+	return SHIPPED_CACHE_DIR + _cache_filename(character, text, voice_id)
 
 
 func _load_api_key() -> String:
@@ -443,17 +440,32 @@ func _on_http_completed(result: int, response_code: int, _headers: PackedStringA
 
 
 func _play_cached(path: String) -> void:
-	# Use ResourceLoader so cached mp3s play in EXPORTED builds. FileAccess.open
-	# only finds the raw source file — Godot strips source mp3s from exports
-	# and only ships the imported (.mp3str) form, which ResourceLoader resolves
-	# via the .import sidecar. Editor reads either way; exports REQUIRE this.
-	if not ResourceLoader.exists(path):
-		_log("_play_cached: ResourceLoader.exists(%s) returned false" % path)
-		return
-	var stream: AudioStream = load(path) as AudioStream
-	if stream == null:
-		_log("_play_cached: load(%s) returned null or non-AudioStream" % path)
-		return
+	# Editor + exports need DIFFERENT load paths because Godot ships only the
+	# imported (.mp3str) form of audio resources, not the raw .mp3 source:
+	#   - Exports:   raw mp3 isn't in the .pck. Use ResourceLoader → resolves
+	#                via .import sidecar → returns a usable AudioStream.
+	#   - Editor:    raw mp3 IS on disk, but a freshly-synthed file has no
+	#                .import sidecar yet (the editor's filesystem watcher
+	#                imports asynchronously after writes). ResourceLoader
+	#                fails on unimported files, so use FileAccess to read
+	#                the raw bytes directly. Already-imported files would
+	#                also work via ResourceLoader, but FileAccess works for
+	#                BOTH cases in editor — simpler.
+	var stream: AudioStream = null
+	if OS.has_feature("template"):
+		stream = load(path) as AudioStream
+		if stream == null:
+			_log("_play_cached: ResourceLoader.load(%s) returned null in export" % path)
+			return
+	else:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			_log("_play_cached: FileAccess.open(%s) failed in editor" % path)
+			return
+		var mp3 := AudioStreamMP3.new()
+		mp3.data = file.get_buffer(file.get_length())
+		file.close()
+		stream = mp3
 	_log("_play_cached: loaded %s, routing through Audio.play_dialogue (Dialogue bus)" % path)
 	# Route through Audio autoload so the Dialogue bus drives sidechain ducking.
 	Audio.play_dialogue(stream)

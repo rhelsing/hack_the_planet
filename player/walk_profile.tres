@@ -9,3 +9,4 @@ forward_lean_amount = -0.055
 speedup_duration = 0.0
 speedup_amplitude = 0.0
 tilt_height_drop = 0.5
+forward_speed_lift = 0.2

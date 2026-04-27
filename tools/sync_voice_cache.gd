@@ -1,11 +1,12 @@
 extends SceneTree
 
-## Legacy bake tool: copies mp3s from user://tts_cache → res://audio/voice_cache.
+## ⚠️  ARCHIVED — single-source migration is complete (2026-04-27).
 ##
-## NOTE: dialogue.gd now writes fresh editor synths straight to res://, so
-## this script isn't part of the normal workflow anymore. Run it once if
-## you have leftover lines in user://tts_cache from before that change,
-## then forget about it.
+## Originally copied mp3s from user://tts_cache → res://audio/voice_cache.
+## dialogue.gd no longer writes to user:// at all; res://audio/voice_cache/
+## is the single source. This tool is harmless to run (idempotent) but
+## should never be needed. Kept on disk only in case a teammate has stale
+## user:// data from a pre-migration clone. Delete in a future cleanup.
 ##
 ## Run from the repo root:
 ##   godot --headless --script res://tools/sync_voice_cache.gd --quit

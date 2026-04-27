@@ -127,44 +127,104 @@ func _walk_dialogue_files(root: String) -> Array:
 	return out
 
 
-## Walks tscn files for `voice_character = &"X"` paired with `voice_line = "..."`
-## within the same node block. Used by RespawnMessageZone hints in level scenes.
+## Walks tscn files for two voice-line styles inside a node block:
+##   1. voice_character = &"X" + voice_line = "..." (RespawnMessageZone)
+##   2. line = "..." (+ optional character = &"X", default "DialTone") on
+##      WalkieTrigger instances. Walkie nodes are detected by matching the
+##      `instance=ExtResource("X")` id against ext_resources whose path
+##      contains "walkie_trigger".
 func _walk_tscn_voice_lines(root: String) -> Array:
 	var out: Array = []
 	var paths: Array[String] = _list_files(root, ".tscn")
 	for path: String in paths:
-		var f := FileAccess.open(path, FileAccess.READ)
-		if f == null:
-			continue
-		var current_character: String = ""
-		while not f.eof_reached():
-			var line: String = f.get_line()
-			# Reset character on every node boundary; voice_character lives
-			# inside a single node block.
-			if line.begins_with("[node "):
-				current_character = ""
-				continue
-			# voice_character = &"X"
-			if line.begins_with("voice_character"):
-				var rhs: String = line.get_slice("&\"", 1)
-				if rhs.length() > 1:
-					current_character = rhs.substr(0, rhs.length() - 1)
-				continue
-			# voice_line = "..."
-			if line.begins_with("voice_line") and not current_character.is_empty():
-				var lhs := line.split("=", true, 1)
-				if lhs.size() < 2:
-					continue
-				var raw: String = lhs[1].strip_edges()
-				# Strip surrounding quotes.
-				if raw.length() >= 2 and raw.begins_with("\"") and raw.ends_with("\""):
-					raw = raw.substr(1, raw.length() - 2)
-				# Skip empty.
-				if raw.is_empty():
-					continue
-				out.append({"character": current_character, "text": raw})
-		f.close()
+		out.append_array(_scan_tscn(path))
 	return out
+
+
+func _scan_tscn(path: String) -> Array:
+	var out: Array = []
+	var walkie_ext_ids: Dictionary = {}
+	# Pass 1: ext_resource ids that point to walkie_trigger.tscn.
+	var f1 := FileAccess.open(path, FileAccess.READ)
+	if f1 == null:
+		return out
+	while not f1.eof_reached():
+		var ln: String = f1.get_line()
+		if not ln.begins_with("[ext_resource"):
+			continue
+		if not ln.contains("walkie_trigger"):
+			continue
+		# NOTE: leading space distinguishes `id="..."` from `uid="..."` —
+		# tscn ext_resource lines have both, with `uid="..."` listed first.
+		var id_marker := " id=\""
+		var id_start := ln.find(id_marker)
+		if id_start < 0:
+			continue
+		id_start += id_marker.length()
+		var id_end := ln.find("\"", id_start)
+		if id_end > id_start:
+			walkie_ext_ids[ln.substr(id_start, id_end - id_start)] = true
+	f1.close()
+	# Pass 2: walk nodes, capture both styles.
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return out
+	var voice_character: String = ""
+	var walkie_character: String = ""
+	var node_is_walkie: bool = false
+	while not f.eof_reached():
+		var line: String = f.get_line()
+		# Node boundary: reset all per-node state, detect walkie via the
+		# instance=ExtResource("X") attribute on the [node ...] header.
+		if line.begins_with("[node "):
+			voice_character = ""
+			walkie_character = "DialTone"
+			node_is_walkie = false
+			var inst_marker := "instance=ExtResource(\""
+			var inst_idx := line.find(inst_marker)
+			if inst_idx >= 0:
+				var id_start := inst_idx + inst_marker.length()
+				var id_end := line.find("\"", id_start)
+				if id_end > id_start:
+					var ext_id: String = line.substr(id_start, id_end - id_start)
+					node_is_walkie = walkie_ext_ids.has(ext_id)
+			continue
+		# RespawnMessageZone-style: voice_character + voice_line.
+		if line.begins_with("voice_character"):
+			var rhs: String = line.get_slice("&\"", 1)
+			if rhs.length() > 1:
+				voice_character = rhs.substr(0, rhs.length() - 1)
+			continue
+		if line.begins_with("voice_line") and not voice_character.is_empty():
+			var raw: String = _parse_quoted_rhs(line)
+			if not raw.is_empty():
+				out.append({"character": voice_character, "text": raw})
+			continue
+		# WalkieTrigger-style: only inside walkie node blocks.
+		if not node_is_walkie:
+			continue
+		if line.begins_with("character "):
+			var wrhs: String = line.get_slice("&\"", 1)
+			if wrhs.length() > 1:
+				walkie_character = wrhs.substr(0, wrhs.length() - 1)
+			continue
+		if line.begins_with("line "):
+			var raw: String = _parse_quoted_rhs(line)
+			if not raw.is_empty():
+				out.append({"character": walkie_character, "text": raw})
+	f.close()
+	return out
+
+
+## Parse `key = "value"` → "value". Returns "" if RHS isn't a quoted string.
+func _parse_quoted_rhs(tscn_line: String) -> String:
+	var lhs := tscn_line.split("=", true, 1)
+	if lhs.size() < 2:
+		return ""
+	var raw: String = lhs[1].strip_edges()
+	if raw.length() < 2 or not raw.begins_with("\"") or not raw.ends_with("\""):
+		return ""
+	return raw.substr(1, raw.length() - 2)
 
 
 func _list_files(root: String, suffix: String) -> Array[String]:

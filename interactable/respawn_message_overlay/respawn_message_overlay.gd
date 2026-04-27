@@ -13,7 +13,7 @@ extends CanvasLayer
 
 ## Delay before the FIRST message in a chain appears (lets the player land
 ## + orient post-respawn). Subsequent messages in the same chain skip this.
-@export var show_delay: float = 3.0
+@export var show_delay: float = 0.2
 @export var hold_duration: float = 3.0
 @export var warp_in_duration: float = 0.28
 @export var warp_out_duration: float = 0.22

@@ -1,5 +1,19 @@
 extends Node
 
+## ⚠️  DEPRECATED — use tools/prime_all_dialogue.gd instead.
+##
+## prime_all_dialogue is a strict superset:
+##   - Walks .dialogue files (this script's only source)
+##   - PLUS scans level .tscn files for inline voice_line / line exports
+##   - PLUS scans Companion.speak / Walkie.speak code calls
+##   - Writes directly to res://audio/voice_cache/ (this script writes to
+##     user://tts_cache/ which is now dead — Apr 2026 migration)
+##
+## Kept here only so existing CI / docs that reference it don't 404.
+## Functionality unchanged; the deprecation is purely "use the bigger tool."
+##
+## ---- original docstring below ----
+##
 ## Pre-renders every spoken line in res://dialogue/*.dialogue through
 ## ElevenLabs into the dev TTS cache, including all variants (handle ×
 ## device cartesian). Run before a release to populate audio/voice_cache/

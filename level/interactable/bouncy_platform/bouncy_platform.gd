@@ -41,7 +41,16 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 @export_range(0.0, 0.5) var bounce_sound_pitch_jitter: float = 0.06
 ## Delay between the squash impact and the boing playing. Lets the audio
 ## land on the spring-back rather than the compression. 0 = play immediately.
-@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.5
+@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.2
+
+@export_group("Timed Boost")
+## Extra Y velocity (m/s) added to the launched body when the player presses
+## jump inside the boost window. Stacked on top of the regular launch_v —
+## with default launch ~19.7 m/s, +7 m/s ≈ +6m peak height. 0 disables.
+@export var bounce_boost_velocity: float = 7.0
+## Total window width (seconds) centered on the bounce sound. 0.2 = ±0.1s
+## from the audio cue. Tighter feels more skill-based; looser more forgiving.
+@export_range(0.0, 1.0) var bounce_boost_window: float = 0.2
 
 @export_group("Bounce")
 ## Peak height (meters) the player reaches above the deck top. Velocity is
@@ -78,6 +87,13 @@ var _last_bounce_sfx_idx: int = -1
 # player's AudioListener3D (attached to player_body). One platform several
 # rooms away should sound farther than one under your feet.
 var _bounce_sfx_player: AudioStreamPlayer3D
+# Timed-boost state. _boost_target tracks who to apply the boost to (set on
+# squash start, used after the body is released by _launch). _boost_window_*
+# bracket the input-listening window. _process is set on/off so non-active
+# platforms don't poll input every frame.
+var _boost_target: Node3D = null
+var _boost_window_close_at: float = 0.0
+var _boost_consumed: bool = false
 
 # Class-level live overrides driven by the debug panel. NAN = "use my @export
 # value." Shared across all instances so panel sliders tune the global feel
@@ -90,6 +106,10 @@ static var _panel_registered: bool = false
 
 
 func _ready() -> void:
+	# Boost-window polling only runs when active (set true in _open_boost_window,
+	# false in _close_boost_window); stays off the rest of the time so dozens
+	# of bouncy platforms in a level don't poll input every frame.
+	set_process(false)
 	_material = _PLATFORM_MATERIAL.duplicate() as ShaderMaterial
 	_box.material_override = _material
 	_apply_palette()
@@ -258,6 +278,24 @@ func _start_bounce() -> void:
 			_play_random_bounce_sfx, CONNECT_ONE_SHOT)
 	else:
 		_play_random_bounce_sfx()
+	# Timed-boost setup. Track who to apply the boost to (the launched body),
+	# schedule the input-listening window centered on the sound, and suppress
+	# the body's own jump for the same duration so accidental presses can't
+	# bypass the timing requirement and stack extra height.
+	_boost_target = _carried_body
+	_boost_consumed = false
+	if bounce_boost_velocity > 0.0 and _boost_target != null:
+		var half: float = bounce_boost_window * 0.5
+		var open_at: float = maxf(0.0, bounce_sound_delay - half)
+		if open_at > 0.0:
+			get_tree().create_timer(open_at).timeout.connect(
+				_open_boost_window, CONNECT_ONE_SHOT)
+		else:
+			_open_boost_window()
+		# Suppress the body's normal jump until just past the window's close.
+		# 0.05s margin covers physics-tick alignment slop.
+		if _boost_target.has_method(&"suppress_jump_for"):
+			_boost_target.suppress_jump_for(bounce_sound_delay + half + 0.05)
 	var depth: float = _eff_squash_depth()
 	_tween = create_tween()
 	_tween.tween_property(_deck, ^"position:y", _deck_base_y - depth, _eff_squash_duration()) \
@@ -284,6 +322,35 @@ func _launch() -> void:
 		body.set(&"velocity", Vector3(v.x, launch_v, v.z))
 	_carried_body = null
 	_original_parent = null
+
+
+func _open_boost_window() -> void:
+	if _boost_consumed or _boost_target == null or not is_instance_valid(_boost_target):
+		return
+	_boost_window_close_at = Time.get_ticks_msec() / 1000.0 + bounce_boost_window
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if _boost_consumed:
+		set_process(false)
+		return
+	if Time.get_ticks_msec() / 1000.0 > _boost_window_close_at:
+		set_process(false)
+		return
+	if Input.is_action_just_pressed(&"jump"):
+		_apply_boost()
+		set_process(false)
+
+
+func _apply_boost() -> void:
+	_boost_consumed = true
+	if _boost_target == null or not is_instance_valid(_boost_target):
+		return
+	if not "velocity" in _boost_target:
+		return
+	var v: Vector3 = _boost_target.get(&"velocity")
+	_boost_target.set(&"velocity", Vector3(v.x, v.y + bounce_boost_velocity, v.z))
 
 
 func _restore_parent() -> void:

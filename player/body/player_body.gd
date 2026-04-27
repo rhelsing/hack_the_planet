@@ -327,6 +327,10 @@ var _grind_direction := 1.0
 var _grind_snap_t := 1.0
 var _grind_start_pos := Vector3.ZERO
 var _air_jump_available := false
+# Timestamp (Time.get_ticks_msec()/1000.0) until which jump input is ignored
+# by the body. Set externally (e.g. BouncyPlatform during squash) so only the
+# platform's timed-boost system can act on jump presses during a bounce.
+var _jump_suppressed_until: float = 0.0
 # Coyote-time countdown — set to profile.coyote_time on every grounded
 # tick, ticks down each airborne tick. While > 0, a jump press is treated
 # as a ground jump (does NOT consume the air jump).
@@ -348,6 +352,9 @@ var _attack_hit_enemies: Array[Node] = []
 var _health := 3
 var _dying := false
 var _dying_timer := 0.0
+# Saved at _start_death, restored at _finish_death so respawning pawns
+# (player) re-enter the collision layer they came from.
+var _pre_death_collision_layer: int = 0
 # Footstep / death audio runtime state. Pools are resolved at _ready (either
 # from the explicit @export array or the auto-load dir fallback).
 var _walk_footstep_pool_resolved: Array[AudioStream] = []
@@ -409,6 +416,10 @@ var _tint_timer := 0.0
 ## Set on respawn to give the player a grace window against enemies near the
 ## checkpoint.
 var _invuln_until_time: float = -INF
+# DEBUG: timestamp of the last _finish_death (s). Used by the kill-plane
+# handler log to show how long after respawn a re-death fires. Strip after
+# the double-kill bug is diagnosed.
+var _dbg_last_finish_death_time: float = -INF
 
 # Dash state
 var _dash_timer: float = 0.0
@@ -704,6 +715,17 @@ func is_attacking() -> bool:
 func get_health() -> int: return _health
 func get_max_health() -> int: return max_health
 func is_dying() -> bool: return _dying
+
+
+## Suppress all jump input (ground, air, coyote) for `duration` seconds.
+## Used by BouncyPlatform so only its timed-boost pickup can act on a jump
+## press during a bounce — accidental air-jumps don't add bonus height.
+## Latest-wins via maxf so two overlapping calls extend the window correctly.
+func suppress_jump_for(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	var now: float = Time.get_ticks_msec() / 1000.0
+	_jump_suppressed_until = maxf(_jump_suppressed_until, now + duration)
 
 
 func _start_attack_jostle() -> void:
@@ -1028,6 +1050,12 @@ func _play_random_attack_impact_sfx() -> void:
 
 func _start_death(impact_direction: Vector3) -> void:
 	_dying = true
+	# Drop out of the collision layer immediately so the player can't bump
+	# into the corpse mid-knockback. Mask stays — the dying body still
+	# collides WITH the floor so it falls and lands. Layer is restored on
+	# respawn (_finish_death) for non-permanent dying pawns.
+	_pre_death_collision_layer = collision_layer
+	collision_layer = 0
 	_skin.damage_tint = 0.0
 	_death_burst_done = false
 	_death_glitch_value = 0.0
@@ -1128,12 +1156,19 @@ func _finish_death() -> void:
 	var old_health := _health
 	_health = max_health
 	_dying = false
+	# Restore the collision layer we saved on death so the respawned pawn
+	# can be bumped/hit again.
+	if _pre_death_collision_layer != 0:
+		collision_layer = _pre_death_collision_layer
 	if old_health != _health:
 		health_changed.emit(_health, old_health)
 	_attack_timer = 0.0
 	_tint_timer = 0.0
 	# Start the post-respawn grace window. take_hit no-ops until this elapses.
 	_invuln_until_time = Time.get_ticks_msec() / 1000.0 + respawn_invuln_duration
+	_dbg_last_finish_death_time = Time.get_ticks_msec() / 1000.0
+	print("[double-kill-dbg] _finish_death pos=(%.2f, %.2f, %.2f) invuln_until=+%.2fs" % [
+		global_position.x, global_position.y, global_position.z, respawn_invuln_duration])
 	if _skin != null:
 		_skin.damage_tint = 0.0
 		# Knockback death froze the AnimationTree and rotated the skin onto
@@ -1599,6 +1634,13 @@ func _physics_process(delta: float) -> void:
 	var origin_offset: Vector3 = pivot - full_basis * pivot
 	var tilt_magnitude: float = sqrt(final_pitch * final_pitch + final_roll * final_roll)
 	origin_offset.y -= tilt_magnitude * profile.tilt_height_drop
+	# Speed lift: counteract the foot-sinks-into-floor side effect of the
+	# forward pitch when running fast. Scales 0..1 with speed/max_speed and
+	# is applied only on_floor (airborne skin offset stays identity).
+	if profile.forward_speed_lift > 0.0 and is_on_floor():
+		var max_s: float = maxf(profile.max_speed, 0.001)
+		var speed_factor: float = clamp(speed / max_s, 0.0, 1.0)
+		origin_offset.y += speed_factor * profile.forward_speed_lift
 	# Scale is applied AFTER the offset is fixed — visuals only, no translation.
 	var skin_scale: float = _skin.uniform_scale if _skin != null else 1.0
 	if not is_equal_approx(skin_scale, 1.0):
@@ -1654,8 +1696,11 @@ func _physics_process(delta: float) -> void:
 	# ground jump. Order matters — is_just_jumping is checked FIRST in the
 	# branch below so an air jump never fires during the grace window.
 	var in_coyote: bool = _coyote_timer > 0.0
-	var is_just_jumping := intent.jump_pressed and (on_floor or in_coyote)
-	var is_air_jumping := (intent.jump_pressed and not is_just_jumping
+	var jump_suppressed: bool = (Time.get_ticks_msec() / 1000.0) < _jump_suppressed_until
+	var is_just_jumping := (intent.jump_pressed and not jump_suppressed
+		and (on_floor or in_coyote))
+	var is_air_jumping := (intent.jump_pressed and not jump_suppressed
+		and not is_just_jumping
 		and not on_floor and _air_jump_available and not _wall_ride_active)
 
 	# Attack jostle is purely procedural (velocity kick + skin pitch) so we

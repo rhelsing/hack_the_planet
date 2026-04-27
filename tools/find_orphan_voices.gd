@@ -22,9 +22,10 @@ const DIALOGUE_DIR: String = "res://dialogue"
 const LEVEL_DIRS: Array[String] = ["res://level"]
 const _SPEAKER_RE: String = "^([A-Z][A-Za-z_0-9]*): (.+)$"
 
+## Single cache location after the Apr 2026 migration. user://tts_cache/ is
+## dead — see autoload/dialogue.gd header.
 const CACHE_DIRS: Array[String] = [
 	"res://audio/voice_cache/",
-	"user://tts_cache/",
 ]
 
 
