@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://b16m6iem46pew"
 path.s3tc="res://.godot/imported/splice_Ch20_1001_Glossiness.png-f459731ec0abfa2e365fb74995b6273f.s3tc.ctex"
+path.etc2="res://.godot/imported/splice_Ch20_1001_Glossiness.png-f459731ec0abfa2e365fb74995b6273f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://player/skins/splice/model/splice_Ch20_1001_Glossiness.png"
-dest_files=["res://.godot/imported/splice_Ch20_1001_Glossiness.png-f459731ec0abfa2e365fb74995b6273f.s3tc.ctex"]
+dest_files=["res://.godot/imported/splice_Ch20_1001_Glossiness.png-f459731ec0abfa2e365fb74995b6273f.s3tc.ctex", "res://.godot/imported/splice_Ch20_1001_Glossiness.png-f459731ec0abfa2e365fb74995b6273f.etc2.ctex"]
 
 [params]
 

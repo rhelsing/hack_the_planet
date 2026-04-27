@@ -147,11 +147,21 @@ enum FollowMode { PARENTED, DETACHED }
 @export var damage_tint_duration := 1.0
 
 @export_group("Attack")
-## Max distance (meters) from player center to enemy center for a hit to land.
-@export var attack_range := 3.0
+## Max distance (meters) from player center to enemy center for a hit to
+## land. AAA platformers (Astro Bot, Mario Galaxy spin) sit around 1.0–1.5;
+## the auto-orient + lunge below compensate for the tight window.
+@export var attack_range := 1.5
 ## Max vertical distance at which a sweep can land. Prevents ground pawns
 ## from hitting things far above/below them — so jumping dodges reliably.
 @export var attack_vertical_range := 1.5
+## Auto-orient: when attack starts, if an enemy is within this radius AND
+## inside the cone below, snap player facing toward the nearest one before
+## the lunge fires. Wider than attack_range so just-out-of-reach enemies
+## still pull your aim — the lunge then closes the gap.
+@export var attack_auto_orient_range: float = 4.0
+## Full cone (degrees) measured from current facing. 0 = no auto-orient,
+## 180 = always orient toward nearest target. AAA default ~70.
+@export_range(0.0, 180.0) var attack_auto_orient_cone_deg: float = 70.0
 ## Seconds the swing stays "live" after pressing J. While active, any enemy
 ## that enters attack_range gets hit — so the forward lunge sweeps through
 ## enemies that were just out of reach at the press frame. Each enemy can
@@ -214,13 +224,30 @@ enum FollowMode { PARENTED, DETACHED }
 @export_range(0.0, 0.5) var skate_stride_pitch_jitter: float = 0.04
 @export var skate_strides_enabled: bool = true
 
+@export_group("Attack SFX")
+## Kick: plays at the start of an attack swing (before the active window
+## opens). Empty = silent. Random clip per swing, no immediate repeat —
+## same shuffle template as the other pawn audio pools.
+@export var attack_kick_pool: Array[AudioStream] = []
+@export_dir var attack_kick_auto_load_dir: String = ""
+@export_range(-30.0, 12.0) var attack_kick_volume_db: float = 0.0
+@export_range(0.0, 0.5) var attack_kick_pitch_jitter: float = 0.05
+## Impact: plays once per swing if any target was struck (not per-hit, to
+## avoid AudioStreamPlayer3D cutoff stutter on multi-target sweeps). Empty
+## = silent.
+@export var attack_impact_pool: Array[AudioStream] = []
+@export_dir var attack_impact_auto_load_dir: String = ""
+@export_range(-30.0, 12.0) var attack_impact_volume_db: float = 0.0
+@export_range(0.0, 0.5) var attack_impact_pitch_jitter: float = 0.05
+
 @export_group("Death SFX")
-## Pool of one-shot sounds played when this pawn enters _start_death.
-## Empty = silent (default for player). Random clip per death, no immediate
-## repeat. Enemy variants override via inspector or auto-load dir.
+## Pool of one-shot sounds played when this pawn's death-confetti burst
+## releases (the visible "glitch out"). Moved from _start_death so the
+## sound lands with the burst instead of with the launch. Empty = silent
+## (default for player). Random clip, no immediate repeat.
 @export var death_sound_pool: Array[AudioStream] = []
 @export_dir var death_sound_auto_load_dir: String = ""
-@export_range(-30.0, 12.0) var death_sound_volume_db: float = 0.0
+@export_range(-30.0, 12.0) var death_sound_volume_db: float = -3.0
 @export_range(0.0, 0.5) var death_sound_pitch_jitter: float = 0.05
 
 @export_group("Camera Occlusion")
@@ -295,15 +322,25 @@ var _dying_timer := 0.0
 var _walk_footstep_pool_resolved: Array[AudioStream] = []
 var _skate_stride_pool_resolved: Array[AudioStream] = []
 var _death_sound_pool_resolved: Array[AudioStream] = []
+var _attack_kick_pool_resolved: Array[AudioStream] = []
+var _attack_impact_pool_resolved: Array[AudioStream] = []
 var _footstep_phase: float = 0.0
 var _skate_phase: float = 0.0
 var _last_footstep_idx: int = -1
 var _last_skate_stride_idx: int = -1
 var _last_death_sfx_idx: int = -1
+var _last_attack_kick_idx: int = -1
+var _last_attack_impact_idx: int = -1
+# Reset to false at each swing start; flipped true the first time impact
+# plays. Keeps the impact sfx to one play per swing even though
+# _sweep_attack runs every tick of the active window.
+var _attack_impact_played: bool = false
 var _footstep_player_a: AudioStreamPlayer3D
 var _footstep_player_b: AudioStreamPlayer3D
 var _footstep_player_toggle: bool = false
 var _death_sfx_player: AudioStreamPlayer3D
+var _kick_sfx_player: AudioStreamPlayer3D
+var _impact_sfx_player: AudioStreamPlayer3D
 # Knockback death (uses_knockback_death skins): launch impulse along the
 # impact direction, ramp the skin's tilt 0→PI/2 over death_tilt_duration so
 # they're flat by landing, freeze the AnimationTree on touchdown, hold pose
@@ -595,6 +632,9 @@ func _start_attack_jostle() -> void:
 	if _attack_timer > 0.0:
 		return
 	_attack_timer = _attack_duration
+	# Kick — fires at swing start, regardless of whether anything's hit.
+	_play_random_attack_kick_sfx()
+	_attack_impact_played = false
 	# Forward = flattened camera direction (player); enemies have no camera
 	# (it's freed in _ready), so they fall back to character facing.
 	var forward: Vector3
@@ -605,6 +645,21 @@ func _start_attack_jostle() -> void:
 			forward = -global_basis.z
 	else:
 		forward = -global_basis.z
+	if forward.length_squared() > 0.0001:
+		forward = forward.normalized()
+	# Auto-orient: if a target sits inside the cone, snap aim toward it before
+	# the lunge fires. This is the AAA "tight hitbox + soft assist" pattern —
+	# the hitbox stays small (1.5m) but the player rarely misses because the
+	# attack aims at whoever they're roughly looking at. Snaps both the lunge
+	# direction AND the visual yaw so the swing reads as deliberate.
+	var target: Node3D = _find_auto_orient_target(forward)
+	if target != null:
+		var to_target: Vector3 = target.global_position - global_position
+		to_target.y = 0.0
+		if to_target.length_squared() > 0.0001:
+			forward = to_target.normalized()
+			_target_yaw = atan2(forward.x, forward.z)
+			_yaw_state = _target_yaw
 	# Additive velocity kick. The existing friction handles decay; we don't
 	# need to lock out other movement or change animation state.
 	velocity.x += forward.x * attack_lunge_speed
@@ -669,9 +724,17 @@ func _setup_pawn_audio() -> void:
 	_death_sound_pool_resolved = death_sound_pool.duplicate()
 	if _death_sound_pool_resolved.is_empty() and not death_sound_auto_load_dir.is_empty():
 		_death_sound_pool_resolved = _load_audio_dir(death_sound_auto_load_dir)
+	_attack_kick_pool_resolved = attack_kick_pool.duplicate()
+	if _attack_kick_pool_resolved.is_empty() and not attack_kick_auto_load_dir.is_empty():
+		_attack_kick_pool_resolved = _load_audio_dir(attack_kick_auto_load_dir)
+	_attack_impact_pool_resolved = attack_impact_pool.duplicate()
+	if _attack_impact_pool_resolved.is_empty() and not attack_impact_auto_load_dir.is_empty():
+		_attack_impact_pool_resolved = _load_audio_dir(attack_impact_auto_load_dir)
 	_footstep_player_a = _make_pawn_3d_player()
 	_footstep_player_b = _make_pawn_3d_player()
 	_death_sfx_player = _make_pawn_3d_player()
+	_kick_sfx_player = _make_pawn_3d_player()
+	_impact_sfx_player = _make_pawn_3d_player()
 
 
 func _make_pawn_3d_player() -> AudioStreamPlayer3D:
@@ -822,12 +885,44 @@ func _play_random_death_sfx() -> void:
 	_death_sfx_player.play()
 
 
+func _play_random_attack_kick_sfx() -> void:
+	var pool: Array[AudioStream] = _attack_kick_pool_resolved
+	if pool.is_empty() or _kick_sfx_player == null:
+		return
+	var n: int = pool.size()
+	var idx: int = randi() % n
+	if n > 1 and idx == _last_attack_kick_idx:
+		idx = (idx + 1) % n
+	_last_attack_kick_idx = idx
+	_kick_sfx_player.stream = pool[idx]
+	_kick_sfx_player.volume_db = attack_kick_volume_db
+	_kick_sfx_player.pitch_scale = 1.0 + randf_range(-attack_kick_pitch_jitter, attack_kick_pitch_jitter)
+	_kick_sfx_player.play()
+
+
+func _play_random_attack_impact_sfx() -> void:
+	var pool: Array[AudioStream] = _attack_impact_pool_resolved
+	if pool.is_empty() or _impact_sfx_player == null:
+		return
+	var n: int = pool.size()
+	var idx: int = randi() % n
+	if n > 1 and idx == _last_attack_impact_idx:
+		idx = (idx + 1) % n
+	_last_attack_impact_idx = idx
+	_impact_sfx_player.stream = pool[idx]
+	_impact_sfx_player.volume_db = attack_impact_volume_db
+	_impact_sfx_player.pitch_scale = 1.0 + randf_range(-attack_impact_pitch_jitter, attack_impact_pitch_jitter)
+	_impact_sfx_player.play()
+
+
 func _start_death(impact_direction: Vector3) -> void:
 	_dying = true
 	_skin.damage_tint = 0.0
 	_death_burst_done = false
 	_death_glitch_value = 0.0
-	_play_random_death_sfx()
+	# Death sfx is now played from _spawn_death_confetti() so it lands with
+	# the burst, not at launch. (Legacy path spawns confetti immediately
+	# below; knockback path waits for the pose-hold then bursts.)
 	if _skin.uses_knockback_death:
 		# Procedural knockback: launch along impact + lift, capture the skin's
 		# current basis to slerp from, let physics carry them. Death tick
@@ -947,6 +1042,10 @@ func _finish_death() -> void:
 
 
 func _spawn_death_confetti() -> void:
+	# Glitch sfx fires together with the burst so the audio + visual land on
+	# the same frame. Moved here from _start_death (which was at launch time
+	# for the knockback path, sometimes ~1s before the burst actually appeared).
+	_play_random_death_sfx()
 	if death_burst_scene == null:
 		return
 	var burst: Node3D = death_burst_scene.instantiate()
@@ -987,8 +1086,40 @@ func take_hit(impact_direction: Vector3, force: float) -> void:
 		_start_death(impact_direction)
 
 
+# Pick the nearest auto-orient candidate within attack_auto_orient_range AND
+# inside the cone defined by attack_auto_orient_cone_deg around `facing`.
+# Both inputs are world-space horizontal-flat vectors. Returns null if no
+# valid target — caller leaves `forward` unchanged.
+func _find_auto_orient_target(facing: Vector3) -> Node3D:
+	if attack_auto_orient_cone_deg <= 0.0 or attack_auto_orient_range <= 0.0:
+		return null
+	if facing.length_squared() <= 0.0001:
+		return null
+	# Half-angle drives the cone test (dot product against facing). 70°
+	# full cone → 35° half → cos ≈ 0.819.
+	var cos_threshold: float = cos(deg_to_rad(attack_auto_orient_cone_deg * 0.5))
+	var best: Node3D = null
+	var best_dist_sq: float = attack_auto_orient_range * attack_auto_orient_range
+	for n: Node in get_tree().get_nodes_in_group(attack_target_group):
+		if not (n is Node3D):
+			continue
+		var node3d: Node3D = n as Node3D
+		var to_target: Vector3 = node3d.global_position - global_position
+		to_target.y = 0.0
+		var dist_sq: float = to_target.length_squared()
+		if dist_sq <= 0.0001 or dist_sq > best_dist_sq:
+			continue
+		var dir: Vector3 = to_target / sqrt(dist_sq)
+		if dir.dot(facing) < cos_threshold:
+			continue
+		best = node3d
+		best_dist_sq = dist_sq
+	return best
+
+
 func _sweep_attack() -> void:
 	var range_sq := attack_range * attack_range
+	var hit_any: bool = false
 	for enemy: Node in get_tree().get_nodes_in_group(attack_target_group):
 		if not (enemy is Node3D):
 			continue
@@ -1016,6 +1147,13 @@ func _sweep_attack() -> void:
 		elif enemy.has_method("hit"):
 			enemy.hit(impact_dir, attack_knockback)
 		_attack_hit_enemies.append(enemy)
+		hit_any = true
+	# One impact play per swing if anything connected. _sweep_attack runs
+	# every tick of the active window; the _attack_impact_played gate makes
+	# the sfx fire on the first connecting tick only.
+	if hit_any and not _attack_impact_played:
+		_play_random_attack_impact_sfx()
+		_attack_impact_played = true
 
 
 func _apply_follow_mode() -> void:

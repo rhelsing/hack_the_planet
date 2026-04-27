@@ -150,7 +150,7 @@ monitorable = false
 
 [node name="WalkieTriggerIntro" parent="." index="21" unique_id=1452023600 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -36.48487, 0.33396053, 245.53955)
-line = "You're in. Signal's bouncing. Watch out for Sentinals. My sensors are showing they are crawling in that sector. I'm triangulating Nyx's location. Be on the lookout but I should have her cooridnates for you soon."
+line = "You're in. Signal's bouncing. Watch out for Sentinels. My sensors are showing they are crawling in that sector. I'm triangulating Nyx's location. Be on the lookout but I should have her coordinates for you soon."
 require_flag = &""
 
 [node name="WalkieTriggerIntro3" parent="." index="22" unique_id=1589605069 instance=ExtResource("2_walkie")]
@@ -160,12 +160,12 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro4" parent="." index="23" unique_id=753024947 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 8.698025, 127.47084)
-line = "I see the hot shot has blades now. I have to admit - I'm jealous. I didnt get those for a month."
+line = "I see the hot shot has blades now. I have to admit - I'm jealous. I didn't get those for a month."
 require_flag = &""
 
 [node name="WalkieTriggerIntro5" parent="." index="24" unique_id=175229872 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 11.094522, 24.566835)
-line = "Wow look at you go. Honestly, youre him."
+line = "Wow look at you go. Honestly, you're him."
 require_flag = &""
 
 [node name="WalkieTriggerIntro7" parent="." index="25" unique_id=241515978 instance=ExtResource("2_walkie")]
@@ -181,7 +181,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro2" parent="." index="27" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "Ah I see you've started collecting the floppy discs - a vital currency here in the gibson. Try not to spend it all in one place."
+line = "Ah I see you've started collecting the floppy discs - a vital currency here in the Gibson. Try not to spend it all in one place."
 require_flag = &""
 
 [node name="Nyx" parent="." index="28" unique_id=1420528326 instance=ExtResource("3_companion")]
@@ -189,6 +189,12 @@ transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -66.69823, 62.428
 skin_scene = ExtResource("4_nyxskin")
 dialogue_resource = ExtResource("5_nyxdlg")
 interactable_id = &"npc_nyx_l1"
+
+[node name="Beacon" parent="Nyx" instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+label = "NYX"
+visible_when_voice_ends = &"DialTone"
+visible_when_voice_match = "Wiring her location"
 
 [node name="Sketchfab_Scene" parent="." index="29" unique_id=1841058684 instance=ExtResource("6_l1g64")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54162884, 0.025441548, 24.468964)

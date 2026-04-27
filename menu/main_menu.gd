@@ -11,6 +11,9 @@ const SETTINGS_MENU := "res://menu/settings_menu.tscn"
 const SAVE_SLOTS    := "res://menu/save_slots.tscn"
 const CREDITS       := "res://menu/credits.tscn"
 const GAME_SCENE    := "res://game.tscn"
+## Intro cinematic shown only on New Game (not Continue / Load). Plays
+## after the slot is picked, before the SceneLoader transitions in.
+const INTRO_VIDEO_PATH := "res://cutscenes/intro_movie.ogv"
 ## Menu background music. Swap for any of the imported tracks under
 ## audio/music/ — size_of_life_*.mp3, song1/2, disco_music, etc. — to taste.
 const MENU_MUSIC_PATH := "res://audio/music/hackers_theme.mp3"
@@ -142,12 +145,19 @@ func _pop_sub_menu(inst: Node) -> void:
 			var has_slot: bool = ss != null and bool(ss.call(&"has_active_slot"))
 			print("[main_menu] after pick: SaveService=%s has_active_slot=%s" % [ss, has_slot])
 			if has_slot:
-				print("[main_menu] calling _go_to_game()")
-				_go_to_game()
+				print("[main_menu] calling _go_to_game(show_intro=true)")
+				_go_to_game(true)
 
 
-func _go_to_game() -> void:
-	print("[main_menu] _go_to_game → %s" % GAME_SCENE)
+func _go_to_game(show_intro: bool = false) -> void:
+	print("[main_menu] _go_to_game → %s show_intro=%s" % [GAME_SCENE, show_intro])
+	# New Game only: play the intro cinematic before the loading sequence.
+	# Cutscene.show_video pauses music + ambience for the duration and resumes
+	# them on its own. Awaits naturally to the video's end via `finished`.
+	if show_intro and ResourceLoader.exists(INTRO_VIDEO_PATH):
+		var cs := get_tree().root.get_node_or_null(^"Cutscene")
+		if cs != null and cs.has_method(&"show_video"):
+			await cs.call(&"show_video", INTRO_VIDEO_PATH, -1.0)
 	var sl := get_tree().root.get_node_or_null(^"SceneLoader")
 	if sl != null and sl.has_method(&"goto"):
 		print("[main_menu] using SceneLoader.goto")

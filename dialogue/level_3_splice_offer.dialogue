@@ -7,6 +7,8 @@ if GameState.get_flag("betrayed_friends", false)
 	=> already_committed
 
 Splice: Hey. Hey listen — I've been watching you, runner.
+do Cutscene.show_video("res://cutscenes/splice_intro.ogv")
+Splice: You may have heard of me. Name's Splice.
 Splice: You're built different. The crew you're running with? They don't see it.
 Splice: Walk with me. Step off their channel. The Gibson's about to belong to whoever's smart enough to take it.
 - Get off my channel.

@@ -7,6 +7,7 @@ size = Vector3(4.0, 0.6, 4.0)
 
 [node name="BouncyPlatform" type="Node3D"]
 script = ExtResource("1_bplat")
+bounce_sound_auto_load_dir = "res://audio/sfx/bounces"
 
 [node name="Deck" type="Node3D" parent="."]
 

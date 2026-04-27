@@ -1,6 +1,8 @@
 ~ start
 
-Nyx: Hey Runner, why are you looking at me like that?
+Nyx: Hey there runner.
+do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
+Nyx: Umm.. why are you looking at me like that?
 - Dial tone said you needed help?
 	Nyx: Of course he did! He's a child.
 	Nyx: This is just where I like to go to think sometimes.
@@ -12,7 +14,7 @@ Nyx: Hey Runner, why are you looking at me like that?
 ~ tail
 
 Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
-Nyx: God, I swear going to kill him.
+Nyx: God, I swear I'm going to kill him!
 Nyx: Go on back and tell him great joke. Tell him Nyx says he's a dead man.
 - Head back to the hub.
 	do LevelProgression.advance()

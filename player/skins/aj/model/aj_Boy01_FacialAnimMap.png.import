@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://kkuq4bj7lwdo"
 path.s3tc="res://.godot/imported/aj_Boy01_FacialAnimMap.png-49c1064d24d2550359cb635ba1d95072.s3tc.ctex"
+path.etc2="res://.godot/imported/aj_Boy01_FacialAnimMap.png-49c1064d24d2550359cb635ba1d95072.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://player/skins/aj/model/aj_Boy01_FacialAnimMap.png"
-dest_files=["res://.godot/imported/aj_Boy01_FacialAnimMap.png-49c1064d24d2550359cb635ba1d95072.s3tc.ctex"]
+dest_files=["res://.godot/imported/aj_Boy01_FacialAnimMap.png-49c1064d24d2550359cb635ba1d95072.s3tc.ctex", "res://.godot/imported/aj_Boy01_FacialAnimMap.png-49c1064d24d2550359cb635ba1d95072.etc2.ctex"]
 
 [params]
 

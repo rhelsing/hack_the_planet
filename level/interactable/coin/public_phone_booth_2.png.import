@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bj72ni08ucmqo"
 path.s3tc="res://.godot/imported/public_phone_booth_2.png-03b6a77fca39da2e8ab75ca0c3679b73.s3tc.ctex"
+path.etc2="res://.godot/imported/public_phone_booth_2.png-03b6a77fca39da2e8ab75ca0c3679b73.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://level/interactable/coin/public_phone_booth_2.png"
-dest_files=["res://.godot/imported/public_phone_booth_2.png-03b6a77fca39da2e8ab75ca0c3679b73.s3tc.ctex"]
+dest_files=["res://.godot/imported/public_phone_booth_2.png-03b6a77fca39da2e8ab75ca0c3679b73.s3tc.ctex", "res://.godot/imported/public_phone_booth_2.png-03b6a77fca39da2e8ab75ca0c3679b73.etc2.ctex"]
 
 [params]
 

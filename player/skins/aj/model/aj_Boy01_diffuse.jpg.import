@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhy14wsjwclg6"
 path.s3tc="res://.godot/imported/aj_Boy01_diffuse.jpg-ee8851265abe73e0e9a203391875d776.s3tc.ctex"
+path.etc2="res://.godot/imported/aj_Boy01_diffuse.jpg-ee8851265abe73e0e9a203391875d776.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://player/skins/aj/model/aj_Boy01_diffuse.jpg"
-dest_files=["res://.godot/imported/aj_Boy01_diffuse.jpg-ee8851265abe73e0e9a203391875d776.s3tc.ctex"]
+dest_files=["res://.godot/imported/aj_Boy01_diffuse.jpg-ee8851265abe73e0e9a203391875d776.s3tc.ctex", "res://.godot/imported/aj_Boy01_diffuse.jpg-ee8851265abe73e0e9a203391875d776.etc2.ctex"]
 
 [params]
 

@@ -29,6 +29,17 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 		size = value
 		_apply_size()
 
+@export_group("Sound")
+## Pool of one-shot boing sounds. Random clip per bounce, no immediate
+## repeat. Plays from an AudioStreamPlayer3D on the deck so the bounce
+## reads from the platform's location.
+@export var bounce_sound_pool: Array[AudioStream] = []
+## If bounce_sound_pool is empty, auto-load every wav/ogg/mp3 in this dir
+## at _ready. Same pattern as PlayerBody's footstep/death pools.
+@export_dir var bounce_sound_auto_load_dir: String = ""
+@export_range(-30.0, 12.0) var bounce_sound_volume_db: float = 0.0
+@export_range(0.0, 0.5) var bounce_sound_pitch_jitter: float = 0.06
+
 @export_group("Bounce")
 ## Peak height (meters) the player reaches above the deck top. Velocity is
 ## derived from gravity and includes squash compensation, so the value
@@ -58,6 +69,9 @@ var _deck_base_y: float = 0.0
 var _carried_body: Node3D = null
 var _original_parent: Node = null
 var _tween: Tween = null
+var _bounce_sound_pool_resolved: Array[AudioStream] = []
+var _last_bounce_sfx_idx: int = -1
+var _bounce_sfx_player: AudioStreamPlayer3D
 
 # Class-level live overrides driven by the debug panel. NAN = "use my @export
 # value." Shared across all instances so panel sliders tune the global feel
@@ -77,7 +91,59 @@ func _ready() -> void:
 	_deck_base_y = _deck.position.y
 	_carry_zone.body_entered.connect(_on_body_entered)
 	_carry_zone.body_exited.connect(_on_body_exited)
+	_setup_bounce_audio()
 	_register_debug_panel()
+
+
+func _setup_bounce_audio() -> void:
+	_bounce_sound_pool_resolved = bounce_sound_pool.duplicate()
+	if _bounce_sound_pool_resolved.is_empty() and not bounce_sound_auto_load_dir.is_empty():
+		_bounce_sound_pool_resolved = _load_audio_dir(bounce_sound_auto_load_dir)
+	_bounce_sfx_player = AudioStreamPlayer3D.new()
+	_bounce_sfx_player.bus = &"SFX"
+	_bounce_sfx_player.unit_size = 6.0
+	_bounce_sfx_player.max_distance = 35.0
+	_deck.add_child(_bounce_sfx_player)
+
+
+func _load_audio_dir(path: String) -> Array[AudioStream]:
+	var out: Array[AudioStream] = []
+	var dir := DirAccess.open(path)
+	if dir == null:
+		push_warning("BouncyPlatform: audio auto-load dir missing: %s" % path)
+		return out
+	dir.list_dir_begin()
+	var files: Array[String] = []
+	while true:
+		var f := dir.get_next()
+		if f == "":
+			break
+		if dir.current_is_dir():
+			continue
+		var lower: String = f.to_lower()
+		if lower.ends_with(".wav") or lower.ends_with(".ogg") or lower.ends_with(".mp3"):
+			files.append(f)
+	dir.list_dir_end()
+	files.sort()
+	for f in files:
+		var s := load(path.path_join(f)) as AudioStream
+		if s != null:
+			out.append(s)
+	return out
+
+
+func _play_random_bounce_sfx() -> void:
+	var n: int = _bounce_sound_pool_resolved.size()
+	if n == 0 or _bounce_sfx_player == null:
+		return
+	var idx: int = randi() % n
+	if n > 1 and idx == _last_bounce_sfx_idx:
+		idx = (idx + 1) % n
+	_last_bounce_sfx_idx = idx
+	_bounce_sfx_player.stream = _bounce_sound_pool_resolved[idx]
+	_bounce_sfx_player.volume_db = bounce_sound_volume_db
+	_bounce_sfx_player.pitch_scale = 1.0 + randf_range(-bounce_sound_pitch_jitter, bounce_sound_pitch_jitter)
+	_bounce_sfx_player.play()
 
 
 # Effective getters: panel override takes precedence, otherwise this
@@ -174,6 +240,7 @@ func _on_body_exited(body: Node) -> void:
 func _start_bounce() -> void:
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
+	_play_random_bounce_sfx()
 	var depth: float = _eff_squash_depth()
 	_tween = create_tween()
 	_tween.tween_property(_deck, ^"position:y", _deck_base_y - depth, _eff_squash_duration()) \

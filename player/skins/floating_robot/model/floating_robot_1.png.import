@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://x1ag7q2ah0xe"
 path.s3tc="res://.godot/imported/floating_robot_1.png-4304e6a1400966cfd36d3207a29873bd.s3tc.ctex"
+path.etc2="res://.godot/imported/floating_robot_1.png-4304e6a1400966cfd36d3207a29873bd.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://player/skins/floating_robot/model/floating_robot_1.png"
-dest_files=["res://.godot/imported/floating_robot_1.png-4304e6a1400966cfd36d3207a29873bd.s3tc.ctex"]
+dest_files=["res://.godot/imported/floating_robot_1.png-4304e6a1400966cfd36d3207a29873bd.s3tc.ctex", "res://.godot/imported/floating_robot_1.png-4304e6a1400966cfd36d3207a29873bd.etc2.ctex"]
 
 [params]
 

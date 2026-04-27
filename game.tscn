@@ -23,6 +23,8 @@ skin_scene = ExtResource("99_playerskin")
 walk_footstep_auto_load_dir = "res://audio/sfx/footsteps_keyboard"
 skate_stride_auto_load_dir = "res://audio/sfx/skate_strides"
 death_sound_auto_load_dir = "res://audio/sfx/player_deaths"
+attack_kick_auto_load_dir = "res://audio/sfx/attack_kicks"
+attack_impact_auto_load_dir = "res://audio/sfx/attack_impacts"
 
 [node name="FlagReachedScreen" parent="." unique_id=735049013 instance=ExtResource("19_cpgj4")]
 

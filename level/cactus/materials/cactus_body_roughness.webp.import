@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bcclp0ve2csgp"
 path.s3tc="res://.godot/imported/cactus_body_roughness.webp-1f071c51a0b14706276f50bd5d32ab89.s3tc.ctex"
+path.etc2="res://.godot/imported/cactus_body_roughness.webp-1f071c51a0b14706276f50bd5d32ab89.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://level/cactus/materials/cactus_body_roughness.webp"
-dest_files=["res://.godot/imported/cactus_body_roughness.webp-1f071c51a0b14706276f50bd5d32ab89.s3tc.ctex"]
+dest_files=["res://.godot/imported/cactus_body_roughness.webp-1f071c51a0b14706276f50bd5d32ab89.s3tc.ctex", "res://.godot/imported/cactus_body_roughness.webp-1f071c51a0b14706276f50bd5d32ab89.etc2.ctex"]
 
 [params]
 

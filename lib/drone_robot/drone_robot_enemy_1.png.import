@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bryqq4hflpicf"
 path.s3tc="res://.godot/imported/drone_robot_enemy_1.png-c487922c2141ec7fba0d0464b503e74b.s3tc.ctex"
+path.etc2="res://.godot/imported/drone_robot_enemy_1.png-c487922c2141ec7fba0d0464b503e74b.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://lib/drone_robot/drone_robot_enemy_1.png"
-dest_files=["res://.godot/imported/drone_robot_enemy_1.png-c487922c2141ec7fba0d0464b503e74b.s3tc.ctex"]
+dest_files=["res://.godot/imported/drone_robot_enemy_1.png-c487922c2141ec7fba0d0464b503e74b.s3tc.ctex", "res://.godot/imported/drone_robot_enemy_1.png-c487922c2141ec7fba0d0464b503e74b.etc2.ctex"]
 
 [params]
 

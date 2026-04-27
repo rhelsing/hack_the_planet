@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dreucfaeokhww"
 path.s3tc="res://.godot/imported/splice_Ch20_1001_Diffuse.png-50d3d6aad06698b80cbd4681fe8d7e00.s3tc.ctex"
+path.etc2="res://.godot/imported/splice_Ch20_1001_Diffuse.png-50d3d6aad06698b80cbd4681fe8d7e00.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://player/skins/splice/model/splice_Ch20_1001_Diffuse.png"
-dest_files=["res://.godot/imported/splice_Ch20_1001_Diffuse.png-50d3d6aad06698b80cbd4681fe8d7e00.s3tc.ctex"]
+dest_files=["res://.godot/imported/splice_Ch20_1001_Diffuse.png-50d3d6aad06698b80cbd4681fe8d7e00.s3tc.ctex", "res://.godot/imported/splice_Ch20_1001_Diffuse.png-50d3d6aad06698b80cbd4681fe8d7e00.etc2.ctex"]
 
 [params]
 

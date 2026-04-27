@@ -129,6 +129,26 @@ func stop_music(fade_out: float = 1.0) -> void:
 	tween.tween_callback(_music_player.stop)
 
 
+## Pause music + ambience playback in place. Position is preserved, so
+## resume_music() picks up where it stopped — used by cutscenes that need
+## the soundtrack out of the way for a few seconds without restarting it.
+## Idempotent.
+func pause_music() -> void:
+	if _music_player != null and _music_player.playing:
+		_music_player.stream_paused = true
+	if _ambience_player != null and _ambience_player.playing:
+		_ambience_player.stream_paused = true
+
+
+## Resume music + ambience after a pause_music() call. Idempotent — safe
+## to call even if nothing was paused.
+func resume_music() -> void:
+	if _music_player != null:
+		_music_player.stream_paused = false
+	if _ambience_player != null:
+		_ambience_player.stream_paused = false
+
+
 func play_ambience(stream: AudioStream, fade_in: float = 1.5) -> void:
 	if stream == null: return
 	_ambience_player.stream = stream

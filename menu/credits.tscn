@@ -55,6 +55,7 @@ Inigo Quilez (noise / SDFs),
 meloonics (3D menu camera),
 KayKit (mannequin character pack + animations),
 Mixamo (rigs and motion-capture animations),
+Pixabay (https://pixabay.com) and all the amazing creators there,
 and every phone booth that still takes a quarter.[/center]"
 
 [node name="Gap" type="Control" parent="Center/Panel/Column"]

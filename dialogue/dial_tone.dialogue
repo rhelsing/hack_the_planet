@@ -17,7 +17,9 @@ elif GameState.get_flag("dialtone_greeted", false)
 
 ~ stage_intro
 
-DialTone: Hey — over here. Name's DialTone.
+DialTone: Hey — over here.
+do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
+DialTone: Name's DialTone.
 DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break her loose.
 => intro_menu
 
