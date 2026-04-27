@@ -36,6 +36,25 @@ signal ability_enabled_changed(ability_id: StringName, enabled: bool)
 ## logic in brains can find the right pawns.
 @export var pawn_group: String = "player"
 
+# Class-level singleton: at most one PlayerBody runs with pawn_group ==
+# "player" at a time. Enforced in _ready — the first claimer wins, and any
+# subsequent player-tagged instance gets a push_error and is routed through
+# the enemy branch (camera freed, no listener, no abilities). Catches
+# accidental duplicate Player nodes baked into level scenes, save/load
+# weirdness, or anything else that could silently produce two cameras /
+# two listeners. The architecture remains "one PlayerBody class" per
+# CLAUDE.md — this is just a runtime invariant on top.
+static var _player_singleton: PlayerBody = null
+
+
+## Typed, O(1) accessor for the active player pawn. Use this instead of
+## `get_tree().get_first_node_in_group("player")` — same answer, no search,
+## stale-instance safe.
+static func get_player() -> PlayerBody:
+	if _player_singleton != null and is_instance_valid(_player_singleton):
+		return _player_singleton
+	return null
+
 ## Group the attack sweep targets when this pawn lunges. Player hits "enemies";
 ## an enemy pawn would hit "player". Cross-faction combat routed by groups.
 @export var attack_target_group: String = "enemies"
@@ -339,6 +358,11 @@ var _footstep_player_a: AudioStreamPlayer3D
 var _footstep_player_b: AudioStreamPlayer3D
 var _footstep_player_toggle: bool = false
 var _death_sfx_player: AudioStreamPlayer3D
+# Kick + impact are 3D so attacks from offscreen sources (enemies hitting
+# the player from behind) read directionally. The AudioListener3D the
+# player creates in _ready is what makes 3D audio reliable now —
+# previously the listener was the SpringArm-parked camera 9m back,
+# which silenced close sounds via attenuation.
 var _kick_sfx_player: AudioStreamPlayer3D
 var _impact_sfx_player: AudioStreamPlayer3D
 # Knockback death (uses_knockback_death skins): launch impulse along the
@@ -423,16 +447,39 @@ func _find_first_brain() -> Brain:
 	return null
 
 
+func _exit_tree() -> void:
+	# Release the singleton slot so a future PlayerBody can claim it. This
+	# is rare in practice (Player persists across scenes via game.tscn) but
+	# matters for tests, scene unloads, and explicit player teardown.
+	if _player_singleton == self:
+		_player_singleton = null
+
+
 func _ready() -> void:
 	if not pawn_group.is_empty():
 		add_to_group(pawn_group)
 	_swap_skin_if_overridden()
 	_swap_brain_if_overridden()
+	# Singleton check: only the first PlayerBody with pawn_group == "player"
+	# wins the camera + listener + abilities. Any duplicate is routed through
+	# the enemy branch below (camera freed, no listener, no abilities) so
+	# we can't end up with two of anything player-only at runtime.
+	var is_active_player: bool = pawn_group == "player"
+	if is_active_player:
+		if _player_singleton != null and _player_singleton != self and is_instance_valid(_player_singleton):
+			push_error(
+				"PlayerBody: duplicate active player detected. Existing=%s new=%s. " %
+				[_player_singleton.get_path(), get_path()] +
+				"Routing this instance through the enemy path (no camera/listener/abilities)."
+			)
+			is_active_player = false
+		else:
+			_player_singleton = self
 	# Abilities are player-only. If we're running as an enemy / companion,
 	# strip the Abilities node so their _unhandled_input handlers don't
 	# hijack the player's inputs (e.g. enemies firing flares when the
 	# player presses Y).
-	if pawn_group != "player":
+	if not is_active_player:
 		var abilities_node := get_node_or_null(^"Abilities")
 		if abilities_node != null:
 			abilities_node.queue_free()
@@ -454,6 +501,17 @@ func _ready() -> void:
 		if player_cam != null:
 			player_cam.make_current()
 			print("[cam-dbg] player claim: %s" % player_cam.get_path())
+		# AudioListener3D wins over the Camera3D as the listener for 3D
+		# audio. Putting it on the player body (not the camera) means
+		# distance attenuation measures from the player, not from where the
+		# SpringArm parks the camera ~9m back. Player-only — enemies
+		# attached to player_body don't get listeners (only the player has
+		# "ears" in this game).
+		var listener := AudioListener3D.new()
+		listener.name = "AudioListener3D"
+		add_child(listener)
+		listener.make_current()
+		print("[cam-dbg] player audio listener attached: %s" % listener.get_path())
 	# Pick the initial profile. start_in_walk_mode wins over skate_profile
 	# existence so enemies / NPCs can hold both profiles (for a future
 	# power-up toggle) but spawn in walk mode.
@@ -469,10 +527,11 @@ func _ready() -> void:
 	# the initial profile before the player presses any toggle.
 	if _skin != null:
 		_skin.set_skate_mode(_current_profile == skate_profile)
-	# Camera rig setup is player-only — enemies / companions had their
-	# Camera3D freed above, so deref'ing _camera here would crash, and the
-	# spring-arm tuning wouldn't be visible on a camera-less pawn anyway.
-	if pawn_group == "player":
+	# Camera rig setup is player-only — enemies / companions / duplicate
+	# players had their Camera3D freed above, so deref'ing _camera here
+	# would crash. Gate on is_active_player so duplicates (singleton check
+	# above) also skip this.
+	if is_active_player:
 		_apply_follow_mode()
 		_target_yaw = _camera_pivot.global_rotation.y
 		_spring = _camera_pivot.get_node("SpringArm3D")
@@ -490,8 +549,9 @@ func _ready() -> void:
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	# Player-only: hold the most recent RespawnMessageZone text. Enemies don't
-	# subscribe (they don't respawn into hint UI).
-	if pawn_group == "player":
+	# subscribe (they don't respawn into hint UI). Duplicates skip too — only
+	# the active player gets respawn-message hooks.
+	if is_active_player:
 		Events.respawn_message_armed.connect(_on_respawn_message_armed)
 		Events.respawn_voice_armed.connect(_on_respawn_voice_armed)
 	_health = max_health
@@ -508,9 +568,9 @@ func _ready() -> void:
 			_start_death(Vector3.DOWN)
 	)
 	# enemy_hit_player and flag_reached are game-world events meant for the
-	# human-controlled pawn only — gate on pawn_group so enemy-PlayerBodies
-	# listening on the same autoload don't all react.
-	if pawn_group == "player":
+	# human-controlled pawn only — gate on is_active_player so duplicates
+	# (and enemy-PlayerBodies on the same autoload) don't all react.
+	if is_active_player:
 		Events.enemy_hit_player.connect(_on_enemy_hit_player)
 		Events.flag_reached.connect(func on_flag_reached() -> void:
 			set_physics_process(false)
@@ -730,6 +790,11 @@ func _setup_pawn_audio() -> void:
 	_attack_impact_pool_resolved = attack_impact_pool.duplicate()
 	if _attack_impact_pool_resolved.is_empty() and not attack_impact_auto_load_dir.is_empty():
 		_attack_impact_pool_resolved = _load_audio_dir(attack_impact_auto_load_dir)
+	if pawn_group == "player":
+		print("[atk-aud-dbg] %s pools: kick=%d (dir=%s) impact=%d (dir=%s)" % [
+			get_path(),
+			_attack_kick_pool_resolved.size(), attack_kick_auto_load_dir,
+			_attack_impact_pool_resolved.size(), attack_impact_auto_load_dir])
 	_footstep_player_a = _make_pawn_3d_player()
 	_footstep_player_b = _make_pawn_3d_player()
 	_death_sfx_player = _make_pawn_3d_player()
@@ -888,6 +953,7 @@ func _play_random_death_sfx() -> void:
 func _play_random_attack_kick_sfx() -> void:
 	var pool: Array[AudioStream] = _attack_kick_pool_resolved
 	if pool.is_empty() or _kick_sfx_player == null:
+		print("[atk-aud-dbg] kick skip: pool=%d player=%s" % [pool.size(), _kick_sfx_player])
 		return
 	var n: int = pool.size()
 	var idx: int = randi() % n
@@ -898,11 +964,16 @@ func _play_random_attack_kick_sfx() -> void:
 	_kick_sfx_player.volume_db = attack_kick_volume_db
 	_kick_sfx_player.pitch_scale = 1.0 + randf_range(-attack_kick_pitch_jitter, attack_kick_pitch_jitter)
 	_kick_sfx_player.play()
+	var sfx_idx := AudioServer.get_bus_index(&"SFX")
+	print("[atk-aud-dbg] kick play: idx=%d stream=%s vol_db=%.1f sfx_bus_db=%.1f sfx_muted=%s" % [
+		idx, pool[idx].resource_path, attack_kick_volume_db,
+		AudioServer.get_bus_volume_db(sfx_idx), AudioServer.is_bus_mute(sfx_idx)])
 
 
 func _play_random_attack_impact_sfx() -> void:
 	var pool: Array[AudioStream] = _attack_impact_pool_resolved
 	if pool.is_empty() or _impact_sfx_player == null:
+		print("[atk-aud-dbg] impact skip: pool=%d player=%s" % [pool.size(), _impact_sfx_player])
 		return
 	var n: int = pool.size()
 	var idx: int = randi() % n

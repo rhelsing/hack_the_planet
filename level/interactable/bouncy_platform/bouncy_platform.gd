@@ -71,6 +71,9 @@ var _original_parent: Node = null
 var _tween: Tween = null
 var _bounce_sound_pool_resolved: Array[AudioStream] = []
 var _last_bounce_sfx_idx: int = -1
+# 3D so multiple bouncy platforms in a level pan + attenuate against the
+# player's AudioListener3D (attached to player_body). One platform several
+# rooms away should sound farther than one under your feet.
 var _bounce_sfx_player: AudioStreamPlayer3D
 
 # Class-level live overrides driven by the debug panel. NAN = "use my @export
@@ -135,6 +138,8 @@ func _load_audio_dir(path: String) -> Array[AudioStream]:
 func _play_random_bounce_sfx() -> void:
 	var n: int = _bounce_sound_pool_resolved.size()
 	if n == 0 or _bounce_sfx_player == null:
+		print("[bnc-aud-dbg] skip: pool=%d player=%s dir=%s" % [
+			n, _bounce_sfx_player, bounce_sound_auto_load_dir])
 		return
 	var idx: int = randi() % n
 	if n > 1 and idx == _last_bounce_sfx_idx:
@@ -144,6 +149,11 @@ func _play_random_bounce_sfx() -> void:
 	_bounce_sfx_player.volume_db = bounce_sound_volume_db
 	_bounce_sfx_player.pitch_scale = 1.0 + randf_range(-bounce_sound_pitch_jitter, bounce_sound_pitch_jitter)
 	_bounce_sfx_player.play()
+	var sfx_idx := AudioServer.get_bus_index(&"SFX")
+	print("[bnc-aud-dbg] play: stream=%s vol_db=%.1f sfx_bus_db=%.1f muted=%s" % [
+		_bounce_sound_pool_resolved[idx].resource_path,
+		bounce_sound_volume_db, AudioServer.get_bus_volume_db(sfx_idx),
+		AudioServer.is_bus_mute(sfx_idx)])
 
 
 # Effective getters: panel override takes precedence, otherwise this
