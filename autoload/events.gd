@@ -50,6 +50,11 @@ signal item_removed(id: StringName)
 @warning_ignore("unused_signal")
 signal flag_set(id: StringName, value: Variant)
 
+# Pawn faction lifecycle (emitted by PlayerBody.set_faction). Listeners can
+# react to enemy → ally conversions, splice corruption, etc.
+@warning_ignore("unused_signal")
+signal faction_changed(pawn: Node, faction: StringName)
+
 # Skill-check lifecycle (emitted by Skills autoload). For animation/SFX hooks
 # and HUD stat readouts later. succeeded: true/false; chance_pct: 0-100.
 # chance_pct carries the EFFECTIVE chance (base + level bonus, post-clamp).

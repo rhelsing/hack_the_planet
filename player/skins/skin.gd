@@ -129,6 +129,14 @@ func _find_animation_tree(n: Node) -> AnimationTree:
 ## overlay override to write their shader's `glitch_progress` uniform.
 func set_glitch_progress(_value: float) -> void: pass
 
+
+## Set the persistent faction tint. `color` is the wash color; `amount` is
+## 0..1 saturation. Called by PlayerBody.set_faction(). Skins with a
+## faction-aware shader overlay (KayKit) override and write their
+## `faction_tint` + `faction_amount` uniforms. No-op default — skins
+## without a tint slot just stay vanilla regardless of faction.
+func set_faction_tint(_color: Color, _amount: float) -> void: pass
+
 ## Called once on the frame the pawn transitions from airborne to grounded.
 ## Lets skins play a landing impact clip. No-op default.
 func land() -> void: pass

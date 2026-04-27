@@ -50,23 +50,34 @@ func _exit_tree() -> void:
 	# Release the lock so subsequent levels (and the hub) get free toggling
 	# back. The player persists across level swaps, so this is necessary
 	# even when the player isn't moving — they'd keep the property otherwise.
-	_set_player_skate_lock(false)
+	# Direct (non-deferred) call here: by exit time the player's _ready has
+	# long since run, AND the deferred path was crashing when this node had
+	# already detached from the tree (get_tree() returns null on detached
+	# nodes, so the in-deferred lookup blew up).
+	_apply_skate_lock(false)
 
 
 func _set_player_skate_lock(on: bool) -> void:
 	# Use call_deferred so the lookup runs AFTER the current frame's _ready
 	# pass — guarantees PlayerBody._ready has run its add_to_group("player")
-	# step regardless of ready order.
+	# step regardless of ready order. Only used from _ready; _exit_tree
+	# calls _apply_skate_lock directly to avoid the detached-tree crash.
 	_apply_skate_lock.call_deferred(on)
 
 
 func _apply_skate_lock(on: bool) -> void:
-	var player := get_tree().get_first_node_in_group(&"player")
+	# Prefer the static singleton accessor — works whether or not this
+	# node is still in the tree (relevant on _exit_tree from a level
+	# swap, where get_tree() returns null on the detaching level).
+	var player: Node = PlayerBody.get_player()
 	if player == null:
-		# Fallback: walk the absolute path that game.tscn uses. Useful when
-		# the player either hasn't joined the group yet or the level is being
-		# tested in isolation (no game.tscn shell).
-		player = get_tree().root.get_node_or_null(^"Game/Player")
+		# Tree-walk fallback for early-boot edge cases. Guard against
+		# null get_tree() — happens if we're already detached.
+		var tree := get_tree()
+		if tree != null:
+			player = tree.get_first_node_in_group(&"player")
+			if player == null:
+				player = tree.root.get_node_or_null(^"Game/Player")
 	if player == null:
 		print("[level_mockup] skate_lock(%s): player NOT FOUND — gate inert" % on)
 		return

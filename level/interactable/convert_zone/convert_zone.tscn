@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://dconvertz0001"]
+
+[ext_resource type="Script" path="res://level/interactable/convert_zone/convert_zone.gd" id="1_cz"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cz"]
+size = Vector3(20.0, 4.0, 20.0)
+
+[node name="ConvertZone" type="Area3D"]
+collision_layer = 0
+collision_mask = 1
+script = ExtResource("1_cz")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_cz")

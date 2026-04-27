@@ -1,21 +1,21 @@
-[gd_scene load_steps=3 format=3 uid="uid://dcrumblept0001"]
+[gd_scene load_steps=3 format=3 uid="uid://dctlportal0001"]
 
-[ext_resource type="Script" path="res://level/interactable/crumble_platform/crumble_platform.gd" id="1_crumble"]
+[ext_resource type="Script" path="res://level/interactable/control_portal/control_portal.gd" id="1_ctrlp"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_trigger"]
 size = Vector3(4.0, 0.6, 4.0)
 
-[node name="CrumblePlatform" type="Node3D"]
-script = ExtResource("1_crumble")
+[node name="ControlPortal" type="Node3D"]
+script = ExtResource("1_ctrlp")
 
 [node name="Deck" type="Node3D" parent="."]
 
 [node name="Box" type="CSGBox3D" parent="Deck"]
 use_collision = true
-size = Vector3(4.0, 1.0, 4.0)
+size = Vector3(4.0, 0.4, 4.0)
 
 [node name="Trigger" type="Area3D" parent="."]
 
 [node name="Shape" type="CollisionShape3D" parent="Trigger"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 shape = SubResource("BoxShape3D_trigger")

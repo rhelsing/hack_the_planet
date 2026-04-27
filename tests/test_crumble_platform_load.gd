@@ -17,8 +17,8 @@ func _init() -> void:
 		push_error("[crumble_platform] missing Deck/Box")
 		quit(1)
 		return
-	if not inst.has_node(^"CarryZone"):
-		push_error("[crumble_platform] missing CarryZone")
+	if not inst.has_node(^"Trigger"):
+		push_error("[crumble_platform] missing Trigger")
 		quit(1)
 		return
 	print("[crumble_platform] load OK")

@@ -132,6 +132,11 @@ func _setup_bounce_audio() -> void:
 	_deck.add_child(_bounce_sfx_player)
 
 
+## Enumerate audio resources in a res:// directory. Critical for exports:
+## Godot strips raw .mp3/.wav source files; only .import sidecars + the
+## imported form ship. Scan for .import siblings (which DO ship), strip
+## the suffix, then load() — ResourceLoader resolves to whichever form is
+## present. See player_body.gd::_load_audio_dir for the full rationale.
 func _load_audio_dir(path: String) -> Array[AudioStream]:
 	var out: Array[AudioStream] = []
 	var dir := DirAccess.open(path)
@@ -139,19 +144,23 @@ func _load_audio_dir(path: String) -> Array[AudioStream]:
 		push_warning("BouncyPlatform: audio auto-load dir missing: %s" % path)
 		return out
 	dir.list_dir_begin()
-	var files: Array[String] = []
+	var sources: Dictionary = {}
 	while true:
 		var f := dir.get_next()
 		if f == "":
 			break
 		if dir.current_is_dir():
 			continue
-		var lower: String = f.to_lower()
-		if lower.ends_with(".wav") or lower.ends_with(".ogg") or lower.ends_with(".mp3"):
-			files.append(f)
+		var source_name: String = f
+		if f.to_lower().ends_with(".import"):
+			source_name = f.substr(0, f.length() - 7)
+		var lower_src: String = source_name.to_lower()
+		if lower_src.ends_with(".wav") or lower_src.ends_with(".ogg") or lower_src.ends_with(".mp3"):
+			sources[source_name] = true
 	dir.list_dir_end()
+	var files: Array = sources.keys()
 	files.sort()
-	for f in files:
+	for f: String in files:
 		var s := load(path.path_join(f)) as AudioStream
 		if s != null:
 			out.append(s)

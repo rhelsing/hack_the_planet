@@ -2,22 +2,18 @@
 
 [ext_resource type="Script" path="res://level/interactable/elevator_platform/elevator_platform.gd" id="1_elev"]
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_carry"]
-size = Vector3(8.0, 0.6, 8.0)
+[sub_resource type="BoxShape3D" id="BoxShape3D_deck"]
+size = Vector3(8.0, 1.0, 8.0)
 
 [node name="ElevatorPlatform" type="Node3D"]
 script = ExtResource("1_elev")
 
-[node name="Deck" type="Node3D" parent="."]
+[node name="Deck" type="AnimatableBody3D" parent="."]
+sync_to_physics = true
 
-[node name="Box" type="CSGBox3D" parent="Deck"]
-use_collision = true
+[node name="Visual" type="CSGBox3D" parent="Deck"]
+use_collision = false
 size = Vector3(8.0, 1.0, 8.0)
 
-[node name="CarryZone" type="Area3D" parent="."]
-collision_layer = 0
-monitorable = false
-
-[node name="Shape" type="CollisionShape3D" parent="CarryZone"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
-shape = SubResource("BoxShape3D_carry")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Deck"]
+shape = SubResource("BoxShape3D_deck")

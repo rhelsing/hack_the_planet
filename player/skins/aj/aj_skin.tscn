@@ -224,7 +224,7 @@ node_connections = [&"output", 0, &"StateMachine"]
 [node name="AjSkin" type="Node3D" unique_id=289833743]
 script = ExtResource("1_script")
 uniform_scale = 1.3
-lean_multiplier = 1.0
+lean_multiplier = 0.8
 
 [node name="Model" parent="." unique_id=730977034 instance=ExtResource("2_model")]
 

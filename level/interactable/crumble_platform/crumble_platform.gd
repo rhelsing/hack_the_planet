@@ -2,14 +2,20 @@ extends Node3D
 class_name CrumblePlatform
 
 ## Player lands → deck shakes for `shake_duration`, then drops out from under
-## them faster than gravity (player is released on phase change, so they fall
-## under their own gravity while the deck pulls away). During the drop the
-## kaykit `death_glitch` overlay ramps to 1, giving the cyan/magenta tear that
-## reads as "glitching out of existence." Resets `reset_after_contact` seconds
-## after first contact so the next traversal restarts the cycle clean.
+## them faster than gravity. During the drop the kaykit `death_glitch` overlay
+## ramps to 1, giving the cyan/magenta tear that reads as "glitching out of
+## existence." Resets `reset_after_contact` seconds after first contact so the
+## next traversal restarts the cycle clean.
 ##
 ## Same shader/palette plumbing as bouncy_platform: per-instance duplicate of
 ## `platforms.tres` with overrideable base/highlight colors (default red).
+##
+## Note: NO reparent trick. The player rides via plain CharacterBody3D
+## collision the entire time. During shake the deck jitters under their feet
+## (the player stays steady; the visual jitter sells the destabilization).
+## During drop the deck pulls away faster than gravity, naturally putting
+## the player in free-fall. During reset the deck's collision is off so the
+## position snap can't push anything.
 
 const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 const _GLITCH_SHADER: Shader = preload("res://player/skins/kaykit/death_glitch.gdshader")
@@ -50,16 +56,14 @@ enum Phase { IDLE, SHAKING, CRUMBLING, GONE }
 
 @onready var _deck: Node3D = $Deck
 @onready var _box: CSGBox3D = $Deck/Box
-@onready var _carry_zone: Area3D = $CarryZone
-@onready var _carry_shape: CollisionShape3D = $CarryZone/Shape
+@onready var _trigger: Area3D = $Trigger
+@onready var _trigger_shape: CollisionShape3D = $Trigger/Shape
 
 var _material: ShaderMaterial = null
 var _glitch_overlay: ShaderMaterial = null
 var _deck_base_position: Vector3 = Vector3.ZERO
 var _phase: int = Phase.IDLE
 var _shake_t: float = 0.0
-var _carried_body: Node3D = null
-var _original_parent: Node = null
 var _tween: Tween = null
 
 # Class-level overrides driven by debug panel. NAN = "use my @export."
@@ -82,8 +86,7 @@ func _ready() -> void:
 	_apply_palette()
 	_apply_size()
 	_deck_base_position = _deck.position
-	_carry_zone.body_entered.connect(_on_body_entered)
-	_carry_zone.body_exited.connect(_on_body_exited)
+	_trigger.body_entered.connect(_on_body_entered)
 	_register_debug_panel()
 
 
@@ -92,7 +95,8 @@ func _process(delta: float) -> void:
 		return
 	_shake_t += delta
 	# Quadratic ramp so jitter is barely visible at first and aggressive by
-	# the time it crumbles — sells "this thing is failing."
+	# the time it crumbles — sells "this thing is failing." Player rides on
+	# the deck's collision; this jitter only moves the deck, not the player.
 	var prog: float = clampf(_shake_t / _eff_shake_duration(), 0.0, 1.0)
 	var amp: float = _eff_shake_amplitude() * prog * prog
 	_deck.position = _deck_base_position + Vector3(
@@ -106,25 +110,9 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if not body.is_in_group("player"):
 		return
-	if not (body is Node3D):
-		return
-	_carried_body = body as Node3D
-	_original_parent = body.get_parent()
-	# Reparent under Deck (elevator trick) so the shake doesn't fight the
-	# player's own physics — they ride the jitter cleanly. Deferred because
-	# we're inside a body_entered signal (physics frame).
-	body.call_deferred(&"reparent", _deck, true)
+	# Just kick off the timeline. No reparent — the player rides via
+	# CharacterBody3D collision against the deck the whole way through.
 	_enter_shaking()
-
-
-func _on_body_exited(body: Node) -> void:
-	# Walked / jumped off mid-shake. If still parented under Deck, restore
-	# their original parent — otherwise the deck's shake / fall / reset
-	# will keep dragging them via parent transform inheritance even though
-	# they're physically meters away.
-	if body != _carried_body:
-		return
-	_release_player()
 
 
 func _enter_shaking() -> void:
@@ -139,10 +127,6 @@ func _enter_shaking() -> void:
 
 func _enter_crumbling() -> void:
 	_phase = Phase.CRUMBLING
-	# Release player BEFORE the drop so they don't ride it down. They're now
-	# at the position the shake left them, with their own velocity + gravity
-	# acting normally; the deck pulls away beneath their feet.
-	_release_player()
 	var crumble_t: float = _eff_crumble_duration()
 	var drop_target_y: float = _deck_base_position.y - _eff_crumble_drop()
 	# Snap deck back to base before tweening — shake left it at a random
@@ -174,45 +158,12 @@ func _enter_gone() -> void:
 
 func _reset() -> void:
 	_phase = Phase.IDLE
-	# Defensive: evict anything still parented under Deck before snapping it
-	# back to base. If a body slipped through (e.g. body_exited didn't fire
-	# because they fell straight down and never crossed the carry-zone edge),
-	# the position snap would teleport them up by `crumble_drop` meters.
-	for child in _deck.get_children():
-		if child == _box:
-			continue
-		if child is Node3D:
-			child.reparent(get_tree().current_scene, true)
+	# Collision was off during the GONE phase, so the position snap can't
+	# push anything — safe to teleport the deck back to base.
 	_deck.position = _deck_base_position
 	_box.visible = true
 	_box.use_collision = true
 	_set_glitch_progress(0.0)
-	_carried_body = null
-	_original_parent = null
-
-
-func _release_player() -> void:
-	if _carried_body == null or not is_instance_valid(_carried_body):
-		_carried_body = null
-		_original_parent = null
-		return
-	if _carried_body.get_parent() != _deck:
-		# Already not parented under us (someone else moved them, or the
-		# initial deferred reparent never landed). Just clear bookkeeping.
-		_carried_body = null
-		_original_parent = null
-		return
-	if _original_parent == null or not is_instance_valid(_original_parent):
-		_carried_body = null
-		_original_parent = null
-		return
-	# Direct (non-deferred) reparent: this runs from tween callbacks or
-	# body_exited (post-physics), so it's safe — and we need it to land
-	# *now* so the next tween step doesn't move the deck while the player
-	# is still inheriting its transform.
-	_carried_body.reparent(_original_parent, true)
-	_carried_body = null
-	_original_parent = null
 
 
 func _set_glitch_progress(v: float) -> void:
@@ -230,10 +181,10 @@ func _apply_palette() -> void:
 func _apply_size() -> void:
 	if _box != null:
 		_box.size = size
-	if _carry_shape != null and _carry_shape.shape is BoxShape3D:
-		var carry_box: BoxShape3D = _carry_shape.shape as BoxShape3D
-		carry_box.size = Vector3(size.x, 0.6, size.z)
-		_carry_shape.position.y = size.y * 0.5 + 0.3
+	if _trigger_shape != null and _trigger_shape.shape is BoxShape3D:
+		var trigger_box: BoxShape3D = _trigger_shape.shape as BoxShape3D
+		trigger_box.size = Vector3(size.x, 0.6, size.z)
+		_trigger_shape.position.y = size.y * 0.5 + 0.3
 
 
 # Effective getters: panel override wins, otherwise the @export.

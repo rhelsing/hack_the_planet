@@ -1,20 +1,16 @@
 [gd_scene format=3 uid="uid://do5lwyjafwlki"]
 
 [ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_body"]
-[ext_resource type="PackedScene" uid="uid://kaykitskin00001" path="res://player/skins/kaykit/kaykit_skin.tscn" id="2_skin"]
-[ext_resource type="PackedScene" uid="uid://defenemyaibr001" path="res://enemy/brains/default_enemy_ai.tscn" id="3_brain"]
+[ext_resource type="PackedScene" uid="uid://bcvkveqpeyxw7" path="res://player/skins/kaykit/kaykit_skin.tscn" id="2_skin"]
+[ext_resource type="PackedScene" uid="uid://de1fabohd4f0k" path="res://enemy/brains/default_enemy_ai.tscn" id="3_brain"]
 [ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="4_profile"]
 
-[node name="EnemyKayKit" instance=ExtResource("1_body")]
+[node name="EnemyKayKit" unique_id=94915355 instance=ExtResource("1_body")]
 skin_scene = ExtResource("2_skin")
 brain_scene = ExtResource("3_brain")
 pawn_group = "enemies"
-attack_target_group = "player"
 dies_permanently = true
-max_health = 1
 walk_profile = ExtResource("4_profile")
 start_in_walk_mode = true
+max_health = 1
 death_sound_auto_load_dir = "res://audio/sfx/enemy_deaths"
-
-[node name="Camera3D" parent="CameraPivot/SpringArm3D" index="0"]
-current = false

@@ -11,7 +11,12 @@ extends Brain
 ## Chase ends at this distance. Must exceed detection_radius (hysteresis
 ## prevents flicker at the boundary).
 @export var chase_exit_radius := 22.0
-@export var target_group := "player"
+## Groups whose members are valid targets. Multi-group so factions can
+## target multiple opposing factions (e.g. allies hit both `enemies` and
+## `splice_enemies`). PlayerBody.set_faction() rewrites this at runtime
+## per the faction targeting table. Inspector default keeps existing
+## "hit the player" behavior for old enemy variants without faction set.
+@export var target_groups: Array[StringName] = [&"player"]
 
 @export_group("Speed")
 ## Fraction of body's max_speed used while wandering. 0 = stand still.
@@ -44,6 +49,16 @@ extends Brain
 ## Fraction of chase speed maintained during wind-up. 0 = full stop,
 ## 0.15 = slow creep (still drifting toward target as they wind up).
 @export_range(0.0, 1.0) var wind_up_speed_fraction := 0.15
+
+@export_group("Follow")
+## When non-empty AND no enemy is in detection range, the brain walks
+## toward the nearest node in this group instead of pure-random wander.
+## Used by ally pawns (faction "gold") set via PlayerBody.set_faction —
+## they follow the player around and idle near them. Empty = pure wander.
+@export var follow_subject_group: StringName = &""
+## Stop-and-idle gap. When closer than this to the follow subject, the
+## brain idles in place; when farther, it walks toward the subject.
+@export var follow_distance: float = 3.0
 
 @export_group("Ledges")
 @export var turn_at_ledges := true
@@ -96,7 +111,13 @@ func tick(body: Node3D, delta: float) -> Intent:
 		State.IDLE:
 			_intent.move_direction = Vector3.ZERO
 		_:
-			_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
+			# WANDER: if a follow subject is configured (allies follow the
+			# player), home toward them with a stop-and-idle gap. Otherwise
+			# fall back to pure-random wander.
+			if follow_subject_group != &"":
+				_intent.move_direction = _follow_direction(body) * chase_speed_fraction
+			else:
+				_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
 
 	return _intent
 
@@ -129,6 +150,37 @@ func _chase_direction(body: Node3D) -> Vector3:
 	if turn_at_ledges and body.has_method("is_on_floor") and body.is_on_floor() and not _has_ground_ahead(body):
 		return Vector3.ZERO
 	return _direction
+
+
+func _follow_direction(body: Node3D) -> Vector3:
+	# Pick the nearest member of follow_subject_group. Returns zero if
+	# inside the follow_distance gap — that maps to "idle in place" via
+	# move_direction = 0. Returns toward-subject unit vector otherwise.
+	var tree := body.get_tree()
+	if tree == null:
+		return Vector3.ZERO
+	var subject: Node3D = null
+	var best_dist_sq: float = INF
+	for n: Node in tree.get_nodes_in_group(follow_subject_group):
+		if not (n is Node3D):
+			continue
+		var node3d: Node3D = n as Node3D
+		var dx: float = node3d.global_position.x - body.global_position.x
+		var dz: float = node3d.global_position.z - body.global_position.z
+		var dsq: float = dx * dx + dz * dz
+		if dsq < best_dist_sq:
+			best_dist_sq = dsq
+			subject = node3d
+	if subject == null:
+		return Vector3.ZERO
+	var dist: float = sqrt(best_dist_sq)
+	if dist <= follow_distance:
+		return Vector3.ZERO  # idle inside the gap
+	var to_subject: Vector3 = subject.global_position - body.global_position
+	to_subject.y = 0.0
+	if to_subject.length_squared() < 0.0001:
+		return Vector3.ZERO
+	return to_subject.normalized()
 
 
 func _wander_direction(body: Node3D, delta: float) -> Vector3:
@@ -164,10 +216,14 @@ func _ensure_target(body: Node3D) -> void:
 	var tree := body.get_tree()
 	if tree == null:
 		return
-	for node: Node in tree.get_nodes_in_group(target_group):
-		if node is Node3D:
-			_target = node
-			return
+	# Walk every target group; first valid Node3D wins. Dedup not needed —
+	# we return on first hit. A pawn in two groups would just be picked
+	# from whichever group iterates first.
+	for grp in target_groups:
+		for node: Node in tree.get_nodes_in_group(grp):
+			if node is Node3D:
+				_target = node
+				return
 
 
 func _horizontal_distance(a: Vector3, b: Vector3) -> float:

@@ -13,12 +13,17 @@ func _init() -> void:
 		quit(1)
 		return
 	root.add_child(inst)
-	if not inst.has_node(^"Deck/Box"):
-		push_error("[elevator_platform] missing Deck/Box")
+	if not inst.has_node(^"Deck/Visual"):
+		push_error("[elevator_platform] missing Deck/Visual")
 		quit(1)
 		return
-	if not inst.has_node(^"CarryZone"):
-		push_error("[elevator_platform] missing CarryZone")
+	if not inst.has_node(^"Deck/CollisionShape3D"):
+		push_error("[elevator_platform] missing Deck/CollisionShape3D")
+		quit(1)
+		return
+	var deck: Node = inst.get_node(^"Deck")
+	if not (deck is AnimatableBody3D):
+		push_error("[elevator_platform] Deck is not AnimatableBody3D, got %s" % deck.get_class())
 		quit(1)
 		return
 	print("[elevator_platform] load OK")

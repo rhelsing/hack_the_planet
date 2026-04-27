@@ -127,6 +127,12 @@ func _exit_tree() -> void:
 		print("[cam-dbg] _exit_tree NO restore: saved=%s valid=%s" % [
 			_saved_camera, is_instance_valid(_saved_camera) if _saved_camera != null else false])
 	_saved_camera = null
+	# Input blocker lives on /root (NOT a child of this node), so it
+	# survives scene swaps unless we explicitly free it here. Without this,
+	# a Nyx-style "do LevelProgression.advance()" mid-cinematic leaks the
+	# blocker into the next scene, and its mouse_filter=STOP / action-eat
+	# script silently swallows mouse-motion + button input → camera locks.
+	_free_input_blocker()
 	# Player — thaw physics + restore dust. Actor survives scene swaps (it
 	# lives in game.tscn, not the level scene) so these calls are safe.
 	if _saved_actor != null and is_instance_valid(_saved_actor):

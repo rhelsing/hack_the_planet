@@ -332,6 +332,16 @@ func set_glitch_progress(value: float) -> void:
 	_push_glitch_uniform()
 
 
+func set_faction_tint(color: Color, amount: float) -> void:
+	# Persistent overlay wash. Lives under the transient damage_alpha and
+	# glitch_progress passes in the shader, so a hit-flush still reads on
+	# top. amount=0 → faction tint invisible (vanilla skin).
+	if _glitch_overlay == null:
+		return
+	_glitch_overlay.set_shader_parameter(&"faction_tint", Vector3(color.r, color.g, color.b))
+	_glitch_overlay.set_shader_parameter(&"faction_amount", clampf(amount, 0.0, 1.0))
+
+
 func _push_glitch_uniform() -> void:
 	if _glitch_overlay == null:
 		return

@@ -55,9 +55,116 @@ static func get_player() -> PlayerBody:
 		return _player_singleton
 	return null
 
-## Group the attack sweep targets when this pawn lunges. Player hits "enemies";
-## an enemy pawn would hit "player". Cross-faction combat routed by groups.
-@export var attack_target_group: String = "enemies"
+
+## Flip a pawn's faction. Single public entry point — handles group
+## membership (leave old, join new), attack target groups, brain target
+## retarget (for EnemyAIBrain), skin tint, and emits Events.faction_changed.
+## Idempotent: setting the current faction is safe (no-op).
+func set_faction(new_faction: StringName) -> void:
+	if not _FACTION_GROUP.has(new_faction):
+		push_warning("PlayerBody.set_faction: unknown faction '%s', ignoring" % new_faction)
+		return
+	# Leave the old physics group if we were in one. We track via _FACTION_GROUP
+	# so we don't have to remember what group we joined last time.
+	var old_group: StringName = _FACTION_GROUP.get(faction, &"")
+	if old_group != &"" and is_in_group(old_group):
+		remove_from_group(old_group)
+	# Join the new group.
+	var new_group: StringName = _FACTION_GROUP[new_faction]
+	if new_group != &"" and not is_in_group(new_group):
+		add_to_group(new_group)
+	# Update faction WITHOUT going through the setter (to avoid recursion).
+	# The setter only matters for inspector-time changes; runtime callers
+	# should hit set_faction directly.
+	var prior_faction: StringName = faction
+	faction = new_faction
+	# Rewrite attack target groups from the table. The constants hold
+	# untyped Arrays (Dictionary values can't carry the [StringName] type
+	# annotation), so we use Array.assign() — copies element-by-element
+	# with the destination's type coercion, satisfying the strict type check.
+	attack_target_groups.assign(_FACTION_TARGETS[new_faction] as Array)
+	# Retarget the brain if it's an EnemyAIBrain (PlayerBrain ignores groups).
+	# Same Array.assign trick because brain.target_groups is also typed.
+	if _brain != null and "target_groups" in _brain:
+		var brain_targets: Array[StringName] = []
+		brain_targets.assign(attack_target_groups)
+		_brain.target_groups = brain_targets
+	# Allies (gold) follow the player when no enemy is in detection range.
+	# Other factions clear the follow subject so they don't accidentally
+	# bias toward anything. Brain-side follow_subject_group is the only
+	# faction-specific brain config beyond target_groups.
+	if _brain != null and "follow_subject_group" in _brain:
+		_brain.follow_subject_group = &"player" if new_faction == &"gold" else &""
+	# Gold gets rollerblades — switch to skate profile if available. Skin
+	# updates via set_profile_skate's set_skate_mode(true). Per
+	# docs/conversion_and_portals.md §6: visual wheels are deferred for
+	# KayKit (no rig); profile flip is the real mechanical change.
+	if new_faction == &"gold":
+		set_profile_skate()
+	# Tint the skin (no-op on skins that haven't implemented set_faction_tint).
+	if _skin != null and _skin.has_method(&"set_faction_tint"):
+		var tint: Array = _FACTION_TINT[new_faction]
+		_skin.set_faction_tint(tint[0] as Color, float(tint[1]))
+	# Broadcast for listeners (HUD, mission triggers, etc.).
+	Events.faction_changed.emit(self, new_faction)
+	if prior_faction != new_faction:
+		print("[faction] %s: %s → %s" % [get_path(), prior_faction, new_faction])
+
+
+## Map pawn_group → default faction for backwards compat. Used by _ready
+## when `faction` was left empty in the inspector.
+func _initial_faction_from_pawn_group() -> StringName:
+	match pawn_group:
+		"player":  return &"player"
+		"enemies": return &"green"
+		"allies":  return &"gold"
+		_:         return &"green"  # safe fallback for any unknown pawn_group
+
+## Faction. Drives runtime group membership + attack targeting + skin tint.
+## Empty = derive from pawn_group at _ready (player→player, enemies→green).
+## Set explicitly in scene files for splice-controlled spawns ("red"). Flip
+## at runtime via `set_faction()` for portal/hack conversions. Per
+## docs/conversion_and_portals.md §3.
+##
+## NOTE: this is a plain @export with no custom setter. `set_faction()`
+## writes to it directly — a custom setter that called set_faction would
+## stack-overflow because set_faction also writes faction. If you want
+## scene-time inspector changes to take effect at runtime, edit `_ready`
+## to re-apply (currently does, via the empty-string fallback).
+@export var faction: StringName = &""
+
+## Groups the attack sweep targets when this pawn lunges. Computed from
+## faction by `set_faction()`; the inspector default is just a safe seed
+## for old enemy variants that haven't had `faction` set. Per-faction
+## targeting table:
+##   player → [enemies, splice_enemies, allies] (player can punch friendlies)
+##   green  → [player, allies]
+##   red    → [player, allies]
+##   gold   → [enemies, splice_enemies] (allies don't hit each other)
+@export var attack_target_groups: Array[StringName] = [&"enemies"]
+
+# Faction → physics group membership + attack targeting + tint.
+const _FACTION_GROUP: Dictionary = {
+	&"player": &"player",
+	&"green":  &"enemies",
+	&"red":    &"splice_enemies",
+	&"gold":   &"allies",
+}
+const _FACTION_TARGETS: Dictionary = {
+	&"player": [&"enemies", &"splice_enemies", &"allies"],
+	&"green":  [&"player",  &"allies"],
+	&"red":    [&"player",  &"allies"],
+	&"gold":   [&"enemies", &"splice_enemies"],
+}
+# Tint: [Color, amount]. Player + green = no tint; red + gold are visibly
+# colored. Used by §4 — currently the skin's set_faction_tint may no-op
+# until the shader gets the new uniforms; safe to call regardless.
+const _FACTION_TINT: Dictionary = {
+	&"player": [Color.WHITE, 0.0],
+	&"green":  [Color.WHITE, 0.0],
+	&"red":    [Color(1.0, 0.18, 0.12), 0.55],
+	&"gold":   [Color(1.0, 0.78, 0.10), 0.55],
+}
 
 ## If true, death is terminal — the body queue_free()s instead of respawning
 ## at the last checkpoint. Enemies set this true; players keep it false so
@@ -242,7 +349,7 @@ enum FollowMode { PARENTED, DETACHED }
 ## typically slower than walk because of the longer push-glide cycle.
 @export var skate_stride_cadence_at_max: float = 4.0
 @export var skate_stride_min_speed: float = 1.5
-@export_range(-30.0, 12.0) var skate_stride_volume_db: float = 6.0
+@export_range(-30.0, 12.0) var skate_stride_volume_db: float = 9.0
 @export_range(0.0, 0.5) var skate_stride_pitch_jitter: float = 0.04
 @export var skate_strides_enabled: bool = true
 ## Layer the walk footstep pool on top of skate strides. Same pool, same
@@ -251,9 +358,9 @@ enum FollowMode { PARENTED, DETACHED }
 ## skips that fraction, giving the "occasional burst" feel.
 @export var walk_during_skate_enabled: bool = true
 ## Fraction of walk-strides to drop while skating. 0.0 = play every stride,
-## 1.0 = always silent. Default 0.5 = roughly half the strides play, which
-## reads as bursts from the random distribution.
-@export_range(0.0, 1.0) var walk_during_skate_dropout: float = 0.5
+## 1.0 = always silent. Default 0.3 = ~70% of strides play, which reads
+## as light keyboard chatter under the skate roll.
+@export_range(0.0, 1.0) var walk_during_skate_dropout: float = 0.3
 
 @export_group("Attack SFX")
 ## Kick: plays at the start of an attack swing (before the active window
@@ -416,10 +523,6 @@ var _tint_timer := 0.0
 ## Set on respawn to give the player a grace window against enemies near the
 ## checkpoint.
 var _invuln_until_time: float = -INF
-# DEBUG: timestamp of the last _finish_death (s). Used by the kill-plane
-# handler log to show how long after respawn a re-death fires. Strip after
-# the double-kill bug is diagnosed.
-var _dbg_last_finish_death_time: float = -INF
 
 # Dash state
 var _dash_timer: float = 0.0
@@ -484,10 +587,16 @@ func _exit_tree() -> void:
 
 
 func _ready() -> void:
-	if not pawn_group.is_empty():
-		add_to_group(pawn_group)
+	# Note: set_faction() below joins the proper physics group; pawn_group is
+	# kept around as the singleton-check / "is this the player" tag, NOT for
+	# runtime group membership.
 	_swap_skin_if_overridden()
 	_swap_brain_if_overridden()
+	# Resolve initial faction. Empty @export = derive from pawn_group;
+	# otherwise the inspector value wins (e.g. splice-controlled enemies
+	# explicitly set "red").
+	var initial: StringName = faction if faction != &"" else _initial_faction_from_pawn_group()
+	set_faction(initial)
 	# Singleton check: only the first PlayerBody with pawn_group == "player"
 	# wins the camera + listener + abilities. Any duplicate is routed through
 	# the enemy branch below (camera freed, no listener, no abilities) so
@@ -593,8 +702,16 @@ func _ready() -> void:
 		# Pass DOWN as the impact direction — knockback-death skins won't
 		# reach this anyway (kill plane = respawn for player), but the
 		# signature requires it.
-		if not _dying:
-			_start_death(Vector3.DOWN)
+		# Honor the post-respawn invuln window like take_hit does. Without
+		# this a stale kill_plane signal queued during the death sequence
+		# can fire after _finish_death and re-kill at the spawn point.
+		# kill_plane_3d.gd also drops stale emits via overlaps_body —
+		# this is defense-in-depth.
+		if _dying:
+			return
+		if Time.get_ticks_msec() / 1000.0 < _invuln_until_time:
+			return
+		_start_death(Vector3.DOWN)
 	)
 	# enemy_hit_player and flag_reached are game-world events meant for the
 	# human-controlled pawn only — gate on is_active_player so duplicates
@@ -855,6 +972,13 @@ func _make_pawn_3d_player() -> AudioStreamPlayer3D:
 	return p
 
 
+## Enumerate audio resources in a res:// directory and load each via
+## ResourceLoader. Critical detail for exports: Godot strips raw .mp3/.wav/.ogg
+## source files from export packs — only the .import sidecars + the imported
+## form (.mp3str / .sample) ship. Scanning for .mp3 extensions in an export
+## returns ZERO files. We scan for .import sidecars instead (they DO ship
+## in both editor and export), strip the suffix to get the source name,
+## then load() — ResourceLoader resolves to the imported form via the .import.
 func _load_audio_dir(path: String) -> Array[AudioStream]:
 	var out: Array[AudioStream] = []
 	var dir := DirAccess.open(path)
@@ -862,22 +986,36 @@ func _load_audio_dir(path: String) -> Array[AudioStream]:
 		push_warning("PlayerBody: audio auto-load dir missing: %s" % path)
 		return out
 	dir.list_dir_begin()
-	var files: Array[String] = []
+	var sources: Dictionary = {}  # dedupe editor's source + .import sibling pairs
 	while true:
 		var f := dir.get_next()
 		if f == "":
 			break
 		if dir.current_is_dir():
 			continue
-		var lower: String = f.to_lower()
-		if lower.ends_with(".wav") or lower.ends_with(".ogg") or lower.ends_with(".mp3"):
-			files.append(f)
+		# "wooshA.mp3.import" → source "wooshA.mp3". In editor we also see
+		# the raw .mp3; the dict dedupes both into the same source key.
+		var source_name: String = f
+		if f.to_lower().ends_with(".import"):
+			source_name = f.substr(0, f.length() - 7)
+		var lower_src: String = source_name.to_lower()
+		if lower_src.ends_with(".wav") or lower_src.ends_with(".ogg") or lower_src.ends_with(".mp3"):
+			sources[source_name] = true
 	dir.list_dir_end()
+	var files: Array = sources.keys()
 	files.sort()
-	for f in files:
+	var loaded := 0
+	var failed := 0
+	for f: String in files:
 		var s := load(path.path_join(f)) as AudioStream
 		if s != null:
 			out.append(s)
+			loaded += 1
+		else:
+			failed += 1
+	if pawn_group == "player":
+		print("[aud-dbg] _load_audio_dir(%s) found=%d loaded=%d failed=%d" % [
+			path, files.size(), loaded, failed])
 	return out
 
 
@@ -998,7 +1136,15 @@ func _play_random_skate_stride() -> void:
 
 
 func _play_random_death_sfx() -> void:
-	var pool: Array[AudioStream] = _death_sound_pool_resolved
+	# Cycle through attack-impact hit sounds (the same pool used for melee
+	# connections) instead of a dedicated death pool. The ex-horn cues read
+	# as cheesy on a fall/death — re-using the punchy hit thuds keeps deaths
+	# feeling weighted and consistent with the rest of the audio palette.
+	# Falls back to the legacy death_sound_pool if attack impacts aren't
+	# loaded (defensive — shouldn't happen in normal play).
+	var pool: Array[AudioStream] = _attack_impact_pool_resolved
+	if pool.is_empty():
+		pool = _death_sound_pool_resolved
 	if pool.is_empty() or _death_sfx_player == null:
 		return
 	var n: int = pool.size()
@@ -1166,9 +1312,6 @@ func _finish_death() -> void:
 	_tint_timer = 0.0
 	# Start the post-respawn grace window. take_hit no-ops until this elapses.
 	_invuln_until_time = Time.get_ticks_msec() / 1000.0 + respawn_invuln_duration
-	_dbg_last_finish_death_time = Time.get_ticks_msec() / 1000.0
-	print("[double-kill-dbg] _finish_death pos=(%.2f, %.2f, %.2f) invuln_until=+%.2fs" % [
-		global_position.x, global_position.y, global_position.z, respawn_invuln_duration])
 	if _skin != null:
 		_skin.damage_tint = 0.0
 		# Knockback death froze the AnimationTree and rotated the skin onto
@@ -1246,54 +1389,68 @@ func _find_auto_orient_target(facing: Vector3) -> Node3D:
 	var cos_threshold: float = cos(deg_to_rad(attack_auto_orient_cone_deg * 0.5))
 	var best: Node3D = null
 	var best_dist_sq: float = attack_auto_orient_range * attack_auto_orient_range
-	for n: Node in get_tree().get_nodes_in_group(attack_target_group):
-		if not (n is Node3D):
-			continue
-		var node3d: Node3D = n as Node3D
-		var to_target: Vector3 = node3d.global_position - global_position
-		to_target.y = 0.0
-		var dist_sq: float = to_target.length_squared()
-		if dist_sq <= 0.0001 or dist_sq > best_dist_sq:
-			continue
-		var dir: Vector3 = to_target / sqrt(dist_sq)
-		if dir.dot(facing) < cos_threshold:
-			continue
-		best = node3d
-		best_dist_sq = dist_sq
+	# Union candidates from every group in attack_target_groups. The
+	# `seen` dict dedupes pawns that are in multiple groups.
+	var seen: Dictionary = {}
+	for grp in attack_target_groups:
+		for n: Node in get_tree().get_nodes_in_group(grp):
+			if seen.has(n):
+				continue
+			seen[n] = true
+			if not (n is Node3D):
+				continue
+			var node3d: Node3D = n as Node3D
+			var to_target: Vector3 = node3d.global_position - global_position
+			to_target.y = 0.0
+			var dist_sq: float = to_target.length_squared()
+			if dist_sq <= 0.0001 or dist_sq > best_dist_sq:
+				continue
+			var dir: Vector3 = to_target / sqrt(dist_sq)
+			if dir.dot(facing) < cos_threshold:
+				continue
+			best = node3d
+			best_dist_sq = dist_sq
 	return best
 
 
 func _sweep_attack() -> void:
 	var range_sq := attack_range * attack_range
 	var hit_any: bool = false
-	for enemy: Node in get_tree().get_nodes_in_group(attack_target_group):
-		if not (enemy is Node3D):
-			continue
-		if _attack_hit_enemies.has(enemy):
-			continue
-		# Horizontal reach uses attack_range; vertical uses attack_vertical_range.
-		# Splitting the two axes means a jumping player reliably clears an
-		# enemy swing — straight up = out of reach — while side-by-side hits
-		# still land cleanly at the full attack_range.
-		var dx: float = (enemy as Node3D).global_position.x - global_position.x
-		var dy: float = (enemy as Node3D).global_position.y - global_position.y
-		var dz: float = (enemy as Node3D).global_position.z - global_position.z
-		if dx * dx + dz * dz > range_sq:
-			continue
-		if absf(dy) > attack_vertical_range:
-			continue
-		# Confetti sprays outward along the player→enemy vector (so a hit
-		# to the side confettis sideways, not along the player's facing).
-		var to_enemy := Vector3(dx, 0.0, dz)
-		var impact_dir := to_enemy.normalized() if to_enemy.length_squared() > 0.0001 else _attack_forward
-		# Unified damage dispatch: prefer take_hit (new universal API), fall
-		# back to hit() for legacy enemy/enemy.gd until it's retired.
-		if enemy.has_method("take_hit"):
-			enemy.take_hit(impact_dir, attack_knockback)
-		elif enemy.has_method("hit"):
-			enemy.hit(impact_dir, attack_knockback)
-		_attack_hit_enemies.append(enemy)
-		hit_any = true
+	# Union candidates across all target groups. `seen` dedupes — a pawn in
+	# two groups (rare but possible) only checked once per swing.
+	var seen: Dictionary = {}
+	for grp in attack_target_groups:
+		for enemy: Node in get_tree().get_nodes_in_group(grp):
+			if seen.has(enemy):
+				continue
+			seen[enemy] = true
+			if not (enemy is Node3D):
+				continue
+			if _attack_hit_enemies.has(enemy):
+				continue
+			# Horizontal reach uses attack_range; vertical uses attack_vertical_range.
+			# Splitting the two axes means a jumping player reliably clears an
+			# enemy swing — straight up = out of reach — while side-by-side hits
+			# still land cleanly at the full attack_range.
+			var dx: float = (enemy as Node3D).global_position.x - global_position.x
+			var dy: float = (enemy as Node3D).global_position.y - global_position.y
+			var dz: float = (enemy as Node3D).global_position.z - global_position.z
+			if dx * dx + dz * dz > range_sq:
+				continue
+			if absf(dy) > attack_vertical_range:
+				continue
+			# Confetti sprays outward along the player→enemy vector (so a hit
+			# to the side confettis sideways, not along the player's facing).
+			var to_enemy := Vector3(dx, 0.0, dz)
+			var impact_dir := to_enemy.normalized() if to_enemy.length_squared() > 0.0001 else _attack_forward
+			# Unified damage dispatch: prefer take_hit (new universal API), fall
+			# back to hit() for legacy enemy/enemy.gd until it's retired.
+			if enemy.has_method("take_hit"):
+				enemy.take_hit(impact_dir, attack_knockback)
+			elif enemy.has_method("hit"):
+				enemy.hit(impact_dir, attack_knockback)
+			_attack_hit_enemies.append(enemy)
+			hit_any = true
 	# One impact play per swing if anything connected. _sweep_attack runs
 	# every tick of the active window; the _attack_impact_played gate makes
 	# the sfx fire on the first connecting tick only.

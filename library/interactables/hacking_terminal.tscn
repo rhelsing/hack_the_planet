@@ -25,6 +25,8 @@ prompt_verb = "hack"
 interactable_id = &"terminal_lobby"
 puzzle_scene = ExtResource("2")
 one_shot = true
+target_factions = Array[StringName]([&"red"])
+resulting_faction = &"green"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("1")

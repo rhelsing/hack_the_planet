@@ -9,7 +9,6 @@
 skin_scene = ExtResource("2_skin")
 brain_scene = ExtResource("3_brain")
 pawn_group = "enemies"
-attack_target_group = "player"
 dies_permanently = true
 max_health = 1
 walk_profile = ExtResource("4_profile")
