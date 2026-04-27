@@ -9,7 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://drmsg0one0001" path="res://level/interactable/respawn_message_zone/respawn_message_zone.tscn" id="9_respawnmsg"]
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="11_eicw1"]
 [ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="12_city"]
-[ext_resource type="PackedScene" path="res://level/interactable/companion_npc/companion_station.tscn" id="13b_station"]
+[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="13b_station"]
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="13_companion"]
 [ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
@@ -19,11 +19,9 @@
 [ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="19_animeskin"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
 [ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="20_kie8i"]
-[ext_resource type="PackedScene" path="res://player/skins/splice/splice_skin.tscn" id="21_c3bbd"]
+[ext_resource type="PackedScene" uid="uid://dsplskin0001" path="res://player/skins/splice/splice_skin.tscn" id="21_c3bbd"]
 [ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="21_robot"]
-[ext_resource type="Resource" uid="uid://d4bg27weqpuq2" path="res://dialogue/level_3_splice_offer.dialogue" id="22_8812u"]
-[ext_resource type="PackedScene" path="res://player/skins/nyx/nyx_skin.tscn" id="23_xlodn"]
-[ext_resource type="Resource" uid="uid://j2u10rpgelfl" path="res://dialogue/level_1_nyx.dialogue" id="24_gtqp8"]
+[ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="23_xlodn"]
 [ext_resource type="Resource" uid="uid://c8jyiqkr3wt7p" path="res://dialogue/hub_post4_splice.dialogue" id="25_p4splice"]
 [ext_resource type="Resource" uid="uid://cd2w6nvbq4xv8" path="res://dialogue/hub_post4_nyx.dialogue" id="26_p4nyx"]
 
@@ -193,11 +191,22 @@ monitorable = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 shape = SubResource("ElevatorCarry")
 
-[node name="platform5" type="CSGBox3D" parent="." unique_id=963815630]
+[node name="first_enemies" type="Node3D" parent="." unique_id=1118078994]
+
+[node name="platform5" type="CSGBox3D" parent="first_enemies" unique_id=963815630]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, 1.3782558)
 material_override = ExtResource("2_c07e2")
 use_collision = true
 size = Vector3(15.080139, 1, 45.345917)
+
+[node name="EnemyKayKit" parent="first_enemies" unique_id=729066735 instance=ExtResource("20_62dii")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.427982, -11.872522, -15.925325)
+
+[node name="EnemyKayKit2" parent="first_enemies" unique_id=778904394 instance=ExtResource("20_62dii")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.71944, -11.872521, -16.720743)
+
+[node name="EnemyKayKit3" parent="first_enemies" unique_id=114572594 instance=ExtResource("20_62dii")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.46186, -11.87252, -8.9443655)
 
 [node name="PlayerSpawn" type="Marker3D" parent="." unique_id=953613540]
 transform = Transform3D(-0.9885677, 0, 0.15077773, 0, 1, 0, -0.15077773, 0, -0.9885677, -23.069511, 11.87849, -49.47721)
@@ -270,15 +279,6 @@ dialogue_resource = ExtResource("14_compdlg")
 [node name="GlitchStation1" parent="." unique_id=329238846 instance=ExtResource("13b_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -11.85, 42.416115)
 dialogue_resource = ExtResource("15_glitch2dlg")
-
-[node name="EnemyKayKit" parent="." unique_id=729066735 instance=ExtResource("20_62dii")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.427982, -11.872522, -15.925325)
-
-[node name="EnemyKayKit2" parent="." unique_id=778904394 instance=ExtResource("20_62dii")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.71944, -11.872521, -16.720743)
-
-[node name="EnemyKayKit3" parent="." unique_id=114572594 instance=ExtResource("20_62dii")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.46186, -11.87252, -8.9443655)
 
 [node name="PhoneBooth4" parent="." unique_id=1418926793 instance=ExtResource("11_eicw1")]
 transform = Transform3D(0.069808714, 0, -0.9975604, 0, 1, 0, 0.9975604, 0, 0.069808714, -33.44011, 11.123972, -52.04639)

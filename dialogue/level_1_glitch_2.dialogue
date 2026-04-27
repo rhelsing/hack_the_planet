@@ -1,0 +1,22 @@
+~ start
+
+Glitch: Three things those wheels do that your worn out sneakers didn't.
+Glitch: One — rails. Hit a pipe with speed, you snap on. Hop off when you want.
+Glitch: Two — speed. Hold a line and your jumps stretch.
+Glitch: Three — wall-rides. Hit a wall sideways at speed. You'll run along it. Sideways jump.
+- Anything else?
+	=> tips
+- Got it.
+	=> done
+
+~ tips
+
+Glitch: Combine them. A rail into a wall-ride into a long jump is the cleanest way through most of what's left.
+- Got it.
+	=> done
+
+~ done
+
+Glitch: I'll be a little further along. Find me when you've practiced.
+do GameState.set_flag("glitch_grind_done", true)
+=> END

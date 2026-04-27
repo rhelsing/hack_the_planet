@@ -21,9 +21,9 @@ Glitch: Pick a handle.
 - {{HandlePicker.option(3)}}
 	do HandlePicker.pick(3)
 Glitch: {{HandlePicker.reaction()}}
-=> menu
+=> warn
 
-# ── Return convos: existing greeting flow (unchanged) ────────────────────
+# ── Return convos: existing greeting flow ────────────────────────────────
 
 ~ stage_after_pick
 
@@ -32,6 +32,19 @@ if GameState.get_flag("glitch2_done", false)
 	=> menu
 
 Glitch: Well executed.
+=> warn
+
+# ── Sentinels warning (fires at most once, regardless of player asking) ──
+
+~ warn
+
+if GameState.get_flag("glitch2_warned", false)
+	=> menu
+
+Glitch: By the way, I should warn you. The Gibson has some security measures in place. Sentinels.
+Glitch: Their function is to purge anything that doesn't belong here. Including you.
+Glitch: Press {{Glyphs.for_action("attack")}}. A single strike makes them go "poof".
+do GameState.set_flag("glitch2_warned", true)
 => menu
 
 ~ menu
@@ -40,8 +53,8 @@ Glitch: Well executed.
 	=> done
 - Refresh the controls.
 	=> controls
-- What are those things ahead?
-	=> sentinels
+- About those Sentinels...
+	=> sentinels_variety
 
 ~ controls
 
@@ -49,20 +62,8 @@ Glitch: Press {{Glyphs.for_action("jump")}} to jump. Tap twice to chain a second
 Glitch: Press {{Glyphs.for_action("dash")}} to dash mid-flight. The same dash will sidestep an incoming attack.
 Glitch: Press {{Glyphs.for_action("attack")}} to strike.
 Glitch: Anything else?
-- Tell me about those things ahead.
-	=> sentinels
-- That's all.
-	=> done
-
-~ sentinels
-
-Glitch: Sentinels. Their function is to purge anything that does not belong in the Gibson.
-Glitch: Which, regrettably, includes you. Press {{Glyphs.for_action("attack")}}, and a single strike makes them go "poof".
-Glitch: Anything else?
-- What shapes do they take?
+- About those Sentinels...
 	=> sentinels_variety
-- Refresh the controls.
-	=> controls
 - That's all.
 	=> done
 

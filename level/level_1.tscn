@@ -6,24 +6,498 @@
 [ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="4_nyxskin"]
 [ext_resource type="Resource" uid="uid://j2u10rpgelfl" path="res://dialogue/level_1_nyx.dialogue" id="5_nyxdlg"]
 [ext_resource type="PackedScene" uid="uid://dohmcvk4b7k37" path="res://lib/drone_robot/drone_robot_enemy.glb" id="6_l1g64"]
+[ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="7_skxlf"]
+[ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="8_hdc4k"]
+[ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="9_4h366"]
+[ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="10_aive4"]
+[ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="11_hdc4k"]
+[ext_resource type="PackedScene" uid="uid://drmsg0one0001" path="res://level/interactable/respawn_message_zone/respawn_message_zone.tscn" id="12_4h366"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="13_b2ana"]
+[ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="14_pgrap"]
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="16_pgrap"]
+[ext_resource type="PackedScene" uid="uid://c6800is15rab5" path="res://level/interactable/bouncy_platform/bouncy_platform.tscn" id="17_7fchg"]
+[ext_resource type="Script" uid="uid://35in5pt7y1oi" path="res://level/glitch_set.gd" id="20_glitchset"]
+[ext_resource type="Script" uid="uid://b0mckikx16tfq" path="res://level/glitch_lift.gd" id="21_glitchlift"]
+[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="22_station"]
+[ext_resource type="Resource" uid="uid://yrgismkcpev2" path="res://dialogue/level_1_glitch.dialogue" id="23_glitchdlg"]
+[ext_resource type="PackedScene" uid="uid://dhnuc5e3b6465" path="res://hud/components/beacon.tscn" id="24_beacon"]
+[ext_resource type="PackedScene" uid="uid://cb2n4kunssn0k" path="res://enemy/enemy_spawner.tscn" id="24_sb0gx"]
+[ext_resource type="Resource" uid="uid://cj2apxt4gaokx" path="res://dialogue/level_1_glitch_2.dialogue" id="25_glitchdlg2"]
+[ext_resource type="Resource" uid="uid://b5sqjmfstxxcc" path="res://dialogue/level_1_glitch_3.dialogue" id="26_glitchdlg3"]
+
+[sub_resource type="BoxShape3D" id="GlitchLiftCarry"]
+size = Vector3(7.5, 2, 8.5)
+
+[sub_resource type="Curve3D" id="Curve3D_b2ana"]
+bake_interval = 0.01
+_data = {
+"points": PackedVector3Array(6.920456, 1.1097641, 2.1939392, -6.920456, -1.1097641, -2.1939392, 3.5279846, 0.51191807, 0, 4.6542206, -0.14643192, -1.3328218, -4.6542206, 0.14643192, 1.3328218, -6.6992645, 2.7348166, 9.12174, 3.7, -0.08, -0.44, 0, 0, 0, -18.764511, 0.58393, 3.2614212),
+"tilts": PackedFloat32Array(0, 0, 0)
+}
+point_count = 3
+
+[sub_resource type="Curve3D" id="Curve3D_pgrap"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -6.1660004, 27.659397, 7.6401024, 1.2787323, 0.18754959, -2.5612087, -1.2787323, -0.18754959, 2.5612087, -9.164932, 27.948692, 9.226154, 1.3223267, 0.367836, 0.008992195, -1.3223267, -0.367836, -0.008992195, -11.583862, 26.504128, 11.985534, -1.1990356, 0.2430191, 2.6948986, 1.1990356, -0.2430191, -2.6948986, -13.886169, 21.51983, 6.714205, -2.4059143, -1.0264568, 1.1218605, 2.4059143, 1.0264568, -1.1218605, -12.596466, 20.886398, -0.17479515, -3.0203705, -0.027236938, 0.6995411, 3.0203705, 0.027236938, -0.6995411, -6.769348, 19.654684, -3.0643196, -0.6292877, 0.278368, -0.5694828, 0.6292877, -0.278368, 0.5694828, 0.54919434, 17.281588, -0.22353935, -1.4575806, 0.302536, -1.1966724, 1.4575806, -0.302536, 1.1966724, 3.6331177, 16.16217, 1.8648319, -0.70526123, 0.15501213, -2.3370323, 0.70526123, -0.15501213, 2.3370323, 3.0143585, 14.359829, 9.713116, 0.68296814, 1.1548824, -0.69379616, -0.68296814, -1.1548824, 0.69379616, 0.6798248, 11.058914, 17.070303, 1.5989227, -0.23617744, 0.07118034, -1.5989227, 0.23617744, -0.07118034, -8.231598, 8.19208, 16.809278, -0.35183716, 0.737093, 2.0330563, 0.35183716, -0.737093, -2.0330563, -13.130707, 4.747038, 7.2993717, -1.9090424, 0.52052116, 1.3451939, 1.9090424, -0.52052116, -1.3451939, -9.513519, 3.697013, -1.3311386, -2.1629486, -0.22806454, 0.40503502, 2.1629486, 0.22806454, -0.40503502, -4.2732544, 3.8161545, -3.8007221, -2.0181274, -0.6094904, -0.39253426, 2.0181274, 0.6094904, 0.39253426, 1.2940063, 2.0239668, -1.1508121, -1.8885651, -0.3920908, -1.1675243, 1.8885651, 0.3920908, 1.1675243, 3.1492767, 1, 3.2209225, -1.8606262, 0.24780655, -0.7303066, 1.8606262, -0.24780655, 0.7303066, 9.418289, 3.9470272, 1.9039974, 0, 0, 0, 0, 0, 0, 14.132523, 3.9126225, 2.162098),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+}
+point_count = 18
 
 [node name="LevelMockup" unique_id=84478335 instance=ExtResource("1_base")]
 
-[node name="LevelEndDialogue" parent="." index="12" unique_id=187308304]
+[node name="DirectionalLight3D" parent="." index="1" unique_id=818576006]
+light_energy = 10.115
+light_indirect_energy = 7.812
+light_volumetric_fog_energy = 4.168
+
+[node name="Ground" parent="." index="2" unique_id=310043039]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.783607, -1.6660395, 257.48303)
+size = Vector3(13.312561, 1, 16.103455)
+
+[node name="stage1ground" type="CSGBox3D" parent="." index="3" unique_id=904517985]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -33.896004, -4.7173944, 235.84183)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(13.177734, 1, 13.655701)
+
+[node name="stage1ground2" type="CSGBox3D" parent="." index="4" unique_id=985928829]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.51112, -4.7173944, 217.3426)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(13.177734, 1, 13.655701)
+
+[node name="stage1ground3" type="CSGBox3D" parent="." index="5" unique_id=1132548634]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.097107, 3.5795245, 193.66429)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(21.3042, 1, 16.08847)
+
+[node name="Ground2" parent="." index="6" unique_id=1550871969]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.48487, 1.1756706, 177.60532)
+
+[node name="Ground3" parent="." index="7" unique_id=548036433]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 10.89022, 167.0114)
+
+[node name="glitch_set" type="Node3D" parent="." index="8" unique_id=1837757669]
+script = ExtResource("20_glitchset")
+
+[node name="Ground6" type="CSGBox3D" parent="glitch_set" index="0" unique_id=992736472]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.02457, 0.82719517, 167.0114)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground7" type="CSGBox3D" parent="glitch_set" index="1" unique_id=925796951]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87.464264, 0.82719517, 167.0114)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+script = ExtResource("21_glitchlift")
+destination_path = NodePath("../../GlitchStation1")
+rider_path = NodePath("../Glitch")
+post_lift_station_path = NodePath("../../GlitchStation1")
+
+[node name="CarryZone" type="Area3D" parent="glitch_set/Ground7" index="0" unique_id=1977989408]
+collision_layer = 0
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="glitch_set/Ground7/CarryZone" index="0" unique_id=1013305208]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("GlitchLiftCarry")
+
+[node name="Glitch" parent="glitch_set" index="2" unique_id=761767451 instance=ExtResource("3_companion")]
+transform = Transform3D(0.9998237, 0, -0.018778536, 0, 1, 0, 0.018778536, 0, 0.9998237, -87.57235, 1.881638, 163.45465)
+warp_sfx = ExtResource("13_b2ana")
+skin_scene = ExtResource("14_pgrap")
+stations = Array[NodePath]([NodePath("../../GlitchStation2")])
+travel_duration = 5.0
+dialogue_resource = ExtResource("23_glitchdlg")
+
+[node name="Beacon" parent="glitch_set/Glitch" index="5" unique_id=141813090 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+label = "GLITCH"
+hide_when_flag = &"glitch_lift_ready"
+visible_when_voice_ends = &"Glitch"
+visible_when_voice_match = "see me"
+
+[node name="Ground4" parent="." index="9" unique_id=1459023526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.03878, 38.179344, -70.45365)
+
+[node name="PlayerSpawn" parent="." index="12" unique_id=139234302]
+transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, -36.48487, -0.24962115, 253.65483)
+
+[node name="Checkpoint1" parent="." index="13" unique_id=679718777]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.48487, 1.6756706, 177.62419)
+
+[node name="Checkpoint3" parent="." index="14" unique_id=547259237 instance=ExtResource("9_4h366")]
+transform = Transform3D(-0.47453377, 0, 0.8802373, 0, 1, 0, -0.8802373, 0, -0.47453377, -22.124058, -4.8425913, 215.48668)
+
+[node name="Checkpoint2" parent="." index="15" unique_id=57134153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.03878, 38.679344, -68.84053)
+
+[node name="PowerupPickup" parent="." index="16" unique_id=221835442]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.5902195, 166.35732)
+
+[node name="LevelEndDialogue" parent="." index="17" unique_id=187308304]
 monitoring = false
 monitorable = false
 
-[node name="WalkieTriggerIntro" parent="." index="14" unique_id=1452023600 instance=ExtResource("2_walkie")]
-transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, 0, 1.5, 18)
-character = &"DialTone"
-line = "You're in. Signal's bouncing — head deep. Sector one, watch the rails."
+[node name="WalkieTriggerIntro" parent="." index="19" unique_id=1452023600 instance=ExtResource("2_walkie")]
+transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -36.48487, 0.33396053, 245.53955)
+line = "You're in. Signal's bouncing. Watch out for Sentinals. My sensors are showing they are crawling in that sector. I'm triangulating Nyx's location. Be on the lookout but I should have her cooridnates for you soon."
 require_flag = &""
 
-[node name="Nyx" parent="." index="15" unique_id=1420528326 instance=ExtResource("3_companion")]
-transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 0, 0, -25)
+[node name="WalkieTriggerIntro3" parent="." index="20" unique_id=1589605069 instance=ExtResource("2_walkie")]
+transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -43.91132, 8.698025, 207.72353)
+line = "Yeah so I forgot to mention.. The orange ones are bouncy."
+require_flag = &""
+
+[node name="WalkieTriggerIntro4" parent="." index="21" unique_id=753024947 instance=ExtResource("2_walkie")]
+transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 8.698025, 127.47084)
+line = "I see the hot shot has blades now. I have to admit - I'm jealous. I didnt get those for a month."
+require_flag = &""
+
+[node name="WalkieTriggerIntro5" parent="." index="22" unique_id=175229872 instance=ExtResource("2_walkie")]
+transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 12.839193, 16.530188)
+line = "Wow look at you go. Honestly, youre him."
+require_flag = &""
+
+[node name="WalkieTriggerIntro6" parent="." index="23" unique_id=1689101184 instance=ExtResource("2_walkie")]
+transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 23.959856, 1.8293638)
+character = &"Glitch"
+line = "To be quite honest, I am even a bit impressed."
+require_flag = &""
+
+[node name="WalkieTriggerIntro2" parent="." index="24" unique_id=1095229215 instance=ExtResource("2_walkie")]
+transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
+line = "Ah I see you've started collecting the floppy discs - a vital currency here in the gibson. Try not to spend it all in one place."
+require_flag = &""
+
+[node name="Nyx" parent="." index="25" unique_id=1420528326 instance=ExtResource("3_companion")]
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -69.811966, 62.42845, -97.31536)
 skin_scene = ExtResource("4_nyxskin")
 dialogue_resource = ExtResource("5_nyxdlg")
 interactable_id = &"npc_nyx_l1"
 
-[node name="Sketchfab_Scene" parent="." index="16" unique_id=1841058684 instance=ExtResource("6_l1g64")]
+[node name="Sketchfab_Scene" parent="." index="26" unique_id=1841058684 instance=ExtResource("6_l1g64")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54162884, 0.025441548, 24.468964)
+
+[node name="CSGPolygon3D9" type="CSGPolygon3D" parent="." index="27" unique_id=1147997265]
+transform = Transform3D(-0.9983156, 0, 0.058016997, 0, 1, 0, -0.058016997, 0, -0.9983156, -57.490074, 36.637592, -32.9683)
+material_override = ExtResource("7_skxlf")
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("8_hdc4k")
+
+[node name="CSGBox3D8" type="CSGBox3D" parent="." index="28" unique_id=255759769]
+transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -66.158066, 49.61811, -95.03306)
+use_collision = true
+size = Vector3(8, 25.487183, 10)
+material = ExtResource("7_skxlf")
+
+[node name="CSGBox3D13" type="CSGBox3D" parent="." index="29" unique_id=939575667]
+transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -58.94418, 51.190777, -44.231808)
+use_collision = true
+size = Vector3(8, 29, 21.730957)
+material = ExtResource("7_skxlf")
+
+[node name="CSGBox3D15" type="CSGBox3D" parent="." index="30" unique_id=945981167]
+transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -71.02231, 51.190777, -61.287155)
+use_collision = true
+size = Vector3(8, 29, 21.730957)
+material = ExtResource("7_skxlf")
+
+[node name="CSGBox3D14" type="CSGBox3D" parent="." index="31" unique_id=1246910935]
+transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -70.51873, 51.190777, -20.917168)
+use_collision = true
+size = Vector3(8, 29, 21.617188)
+material = ExtResource("7_skxlf")
+
+[node name="CSGBox3D16" type="CSGBox3D" parent="." index="32" unique_id=647221267]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, 16.238811, -11, 139.07593)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D9" type="CSGBox3D" parent="." index="33" unique_id=2086335269]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -61.23659, -5.5, 119.32869)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D17" type="CSGBox3D" parent="." index="34" unique_id=603997057]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -61.23659, -5.5, 87.33409)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D20" type="CSGBox3D" parent="." index="35" unique_id=1730190333]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -61.23659, -2.159689, 2.6421356)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(7, 45.055664, 11)
+
+[node name="CSGBox3D12" type="CSGBox3D" parent="." index="36" unique_id=293646453]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -63.80393, 23.124626, -56.493237)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(36.105957, 27, 99.981384)
+material = ExtResource("8_hdc4k")
+
+[node name="CSGBox3D9" type="CSGBox3D" parent="CSGBox3D12" index="0" unique_id=1561398467]
+transform = Transform3D(1.31134e-07, 0, -1, 0, 1, 0, 1, 0, 1.31134e-07, -77.41054, -5.5, -20)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="CSGBox3D10" type="CSGBox3D" parent="." index="37" unique_id=1651418183]
+transform = Transform3D(-0.015953371, -0.97780734, -0.20889804, -0.0140732, 0.20912352, -0.977788, 0.99977386, -0.012659147, -0.0170971, -60.09361, 10.253992, 139.14435)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(16.806152, 1, 8)
+
+[node name="CSGBox3D19" type="CSGBox3D" parent="." index="38" unique_id=1068415606]
+transform = Transform3D(-0.015953371, -0.97780734, -0.20889804, -0.0140732, 0.20912352, -0.977788, 0.99977386, -0.012659147, -0.0170971, -60.09361, 10.253992, 36.439346)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(16.806152, 1, 8)
+
+[node name="CSGBox3D11" type="CSGBox3D" parent="." index="39" unique_id=325904816]
+transform = Transform3D(0.0032637815, 0.9655539, -0.26018286, 0, 0.26018423, 0.965559, 0.9999947, -0.0031513737, 0.00084918446, -68.67598, 10.735246, 129.67293)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(16.47461, 1, 8)
+
+[node name="CSGBox3D18" type="CSGBox3D" parent="." index="40" unique_id=755319153]
+transform = Transform3D(0.0032637815, 0.9655539, -0.26018286, 0, 0.26018423, 0.965559, 0.9999947, -0.0031513737, 0.00084918446, -68.67598, 10.735246, 73.4615)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(16.47461, 1, 8)
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="." index="41" unique_id=465908130]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -52.574486, -9.500001, 168.09119)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(10, 19, 22)
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="." index="42" unique_id=951025796]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -83.58085, 0, 166.19238)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+
+[node name="CSGBox3D6" type="CSGBox3D" parent="CSGCombiner3D" index="0" unique_id=1618574064]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, -6.5, -20)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(12, 25, 8)
+
+[node name="CSGBox3D7" type="CSGBox3D" parent="CSGCombiner3D" index="1" unique_id=602131922]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, -5.5, -20)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(6, 27, 8)
+
+[node name="CSGPolygon3D9" type="CSGPolygon3D" parent="CSGCombiner3D" index="2" unique_id=1291352151]
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, -9, 6, -22)
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("8_hdc4k")
+
+[node name="CSGCombiner" type="CSGCombiner3D" parent="." index="43" unique_id=1929890545]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -83.58085, 0, 166.19238)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+
+[node name="CSGBox3D5" type="CSGBox3D" parent="CSGCombiner" index="0" unique_id=1785061607]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 2, -20.081299)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(7, 4, 7.8374023)
+
+[node name="CSGPolygon3D7" type="CSGPolygon3D" parent="CSGCombiner" index="1" unique_id=820101973]
+transform = Transform3D(-1.0000001, 0, 1.5440382e-07, 0, 1, 0, -8.7422805e-08, 0, -1.7661735, 3.0171328, 3.985773, -23.706816)
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("8_hdc4k")
+
+[node name="CSGCombiner3D2" type="CSGCombiner3D" parent="." index="44" unique_id=1333636942]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -83.58085, 0, 166.19238)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="CSGCombiner3D2" index="0" unique_id=1818285294]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, -29)
+material_override = ExtResource("8_hdc4k")
+use_collision = true
+size = Vector3(4, 2, 4)
+
+[node name="CSGPolygon3D6" type="CSGPolygon3D" parent="CSGCombiner3D2" index="1" unique_id=1926648662]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 3, 0, -34)
+use_collision = true
+polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
+depth = 4.0
+material = ExtResource("8_hdc4k")
+
+[node name="PhoneBooth" parent="." index="45" unique_id=2131362854 instance=ExtResource("9_4h366")]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -65.73639, 5.999999, 159.24742)
+
+[node name="Rail" parent="." index="46" unique_id=276568573 instance=ExtResource("10_aive4")]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -61.385662, 7.9697123, 111.3296)
+curve = SubResource("Curve3D_b2ana")
+grab_pad = 0.4
+
+[node name="Rail3" parent="." index="47" unique_id=1768677000 instance=ExtResource("10_aive4")]
+transform = Transform3D(0.00084736943, 0.9657087, -0.25962675, -0.0031518622, 0.25962812, 0.96570355, 0.9999947, 0, 0.0032637815, -61.385662, 9.235506, 62.878105)
+curve = SubResource("Curve3D_b2ana")
+grab_pad = 0.4
+
+[node name="Rail4" parent="." index="48" unique_id=582858566 instance=ExtResource("10_aive4")]
+transform = Transform3D(-0.109486006, -0.8537689, 0.50901043, -0.7002218, -0.29720566, -0.64912117, 0.7054802, -0.42748988, -0.5652877, -65.15989, 9.235506, 26.263237)
+curve = SubResource("Curve3D_b2ana")
+grab_pad = 0.4
+
+[node name="PhoneBooth2" parent="." index="49" unique_id=1795716640 instance=ExtResource("9_4h366")]
+transform = Transform3D(-0.8879679, 0, 0.45990548, 0, 1, 0, -0.45990548, 0, -0.8879679, -58.54159, 8.000001, 119.70475)
+
+[node name="PhoneBooth3" parent="." index="50" unique_id=1546087795 instance=ExtResource("9_4h366")]
+transform = Transform3D(-0.8879679, 0, 0.45990548, 0, 1, 0, -0.45990548, 0, -0.8879679, -58.54159, 20.529442, -1.8516846)
+
+[node name="Rail2" parent="." index="51" unique_id=1081563416 instance=ExtResource("10_aive4")]
+transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -57.87576, 37.586678, -88.69174)
+curve = SubResource("Curve3D_pgrap")
+grab_pad = 0.4
+
+[node name="Coin" parent="." index="52" unique_id=1783642324 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.52757, 0.438404, 170.4093)
+
+[node name="Coin2" parent="." index="53" unique_id=291870870 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.26308, 0.55349994, 170.92781)
+
+[node name="Coin3" parent="." index="54" unique_id=1507823496 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.8651, 2.4384048, 171.01093)
+
+[node name="Coin4" parent="." index="55" unique_id=1762503612 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.640198, 4.4384046, 170.6394)
+
+[node name="Coin5" parent="." index="56" unique_id=16393232 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.457783, 6.1461754, 159.96812)
+
+[node name="Coin6" parent="." index="57" unique_id=1218027379 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.69181, 8.146176, 149.25545)
+
+[node name="Coin7" parent="." index="58" unique_id=549136699 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.02204, 10.5865755, 141.57803)
+
+[node name="Coin8" parent="." index="59" unique_id=1421348940 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.99499, 10.360572, 135.75536)
+
+[node name="Coin9" parent="." index="60" unique_id=250811305 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.56487, 10.468003, 131.84431)
+
+[node name="Coin10" parent="." index="61" unique_id=512861423 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.66844, 10.778346, 125.73356)
+
+[node name="Coin11" parent="." index="62" unique_id=975972586 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.020943, 1.8218462, 177.37718)
+
+[node name="need_rollerblades" parent="." index="63" unique_id=198651728 instance=ExtResource("12_4h366")]
+transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 4.348541, -62.60135, 3.8437142, 132.523)
+voice_character = &"Glitch"
+voice_line = "Why dont you come see me? You seem to be doing something silly."
+one_shot = true
+
+[node name="EnemyKayKit" parent="." index="64" unique_id=568514464 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.84158, -4.196447, 221.54832)
+
+[node name="EnemyKayKit2" parent="." index="65" unique_id=2100812110 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.735897, -4.196448, 213.10141)
+
+[node name="EnemyKayKit3" parent="." index="66" unique_id=128400311 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.60825, -4.1964474, 220.11696)
+
+[node name="EnemyKayKit4" parent="." index="67" unique_id=1465233931 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.04147, -4.196448, 231.3932)
+
+[node name="Coin12" parent="." index="68" unique_id=1909691609 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.06599, -4.07122, 234.73386)
+
+[node name="Coin13" parent="." index="69" unique_id=1416602935 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.56789, -4.07122, 239.97328)
+
+[node name="Coin14" parent="." index="70" unique_id=245759154 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.064213, -4.07122, 230.98643)
+
+[node name="Coin15" parent="." index="71" unique_id=1600935601 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.957985, -4.071219, 217.4662)
+
+[node name="EnemyKayKit5" parent="." index="72" unique_id=812182651 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.71006, 4.10047, 190.73602)
+
+[node name="EnemyKayKit6" parent="." index="73" unique_id=177225501 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.33421, 4.100471, 189.60416)
+
+[node name="EnemyKayKit7" parent="." index="74" unique_id=80037031 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.914715, 4.100469, 197.22719)
+
+[node name="EnemyKayKit8" parent="." index="75" unique_id=550906019 instance=ExtResource("16_pgrap")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.173813, 4.100471, 194.86765)
+
+[node name="Coin16" parent="." index="76" unique_id=1142757790 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.692368, 8.146176, 121.01214)
+
+[node name="BouncyPlatform" parent="." index="77" unique_id=1865404956 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.17814, -4.8228517, 213.66563)
+
+[node name="BouncyPlatform2" parent="." index="78" unique_id=931356739 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.64082, 0.64319134, 213.66563)
+
+[node name="BouncyPlatform3" parent="." index="79" unique_id=1868365190 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.337093, 6.4431887, 208.53386)
+
+[node name="GlitchStation1" parent="." index="80" unique_id=304176901 instance=ExtResource("22_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87.464264, 11.052332, 167.0114)
+dialogue_resource = ExtResource("25_glitchdlg2")
+advance_flag = &"glitch_grind_done"
+
+[node name="GlitchStation2" parent="." index="81" unique_id=1637347321 instance=ExtResource("22_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.628735, 8.5, 116.71659)
+dialogue_resource = ExtResource("26_glitchdlg3")
+
+[node name="EnemySpawner" parent="." index="82" unique_id=1105610096 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.27088, 0.5288861, 167.20042)
+
+[node name="EnemySpawner2" parent="." index="83" unique_id=96146603 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.558994, 8, 85.87245)
+
+[node name="BouncyPlatform4" parent="." index="84" unique_id=1720854663 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.990597, 18.889969, -0.065782174)
+
+[node name="BouncyPlatform5" parent="." index="85" unique_id=1128039186 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.990597, 25.786436, 3.9032836)
+
+[node name="BouncyPlatform6" parent="." index="86" unique_id=1853947703 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.71067, 29.74564, 3.9032836)
+
+[node name="BouncyPlatform7" parent="." index="87" unique_id=1812380263 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.71067, 34.23088, -3.7054498)
+
+[node name="EnemySpawner3" parent="." index="88" unique_id=718592541 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.93486, 36.624626, -12.651943)
+
+[node name="EnemySpawner4" parent="." index="89" unique_id=136460593 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.975807, 36.624626, -14.315598)
+
+[node name="EnemySpawner5" parent="." index="90" unique_id=658169647 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.92393, 36.624626, -9.962528)
+
+[node name="EnemySpawner6" parent="." index="91" unique_id=330154943 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.214664, 36.624626, -33.11416)
+
+[node name="EnemySpawner7" parent="." index="92" unique_id=1819039530 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.44673, 36.624626, -27.407375)
+
+[node name="EnemySpawner8" parent="." index="93" unique_id=1744593281 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.986683, 36.624626, -25.471113)

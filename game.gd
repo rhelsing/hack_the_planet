@@ -28,6 +28,8 @@ func _ready() -> void:
 	# Honor a saved current_level if it resolves to a real scene; else
 	# fall back to whatever's wired in.
 	var saved_scene := _resolve_initial_level()
+	print("[game] _ready: SaveService.current_level=%s resolved_scene=%s" % [
+		SaveService.current_level, saved_scene])
 	if saved_scene != null:
 		_mount_level(saved_scene)
 
@@ -111,6 +113,18 @@ func _spawn_player(level: Node) -> void:
 		return
 	var marker := level.get_node_or_null(^"PlayerSpawn") as Marker3D
 	if marker == null:
+		return
+	# If a save's player_state is pending, the SaveService is about to apply
+	# it on scene_entered (which fires AFTER our _ready). We still call
+	# snap_to_spawn for camera yaw/skin facing, but skip overwriting position
+	# + respawn_point — load_save_dict will set both from the save.
+	var ss := get_tree().root.get_node_or_null(^"SaveService")
+	var has_pending: bool = ss != null and ss.get("_pending_player_state") != null \
+		and not (ss.get("_pending_player_state") as Dictionary).is_empty()
+	if has_pending:
+		print("[game] _spawn_player: save pending — skipping marker overwrite")
+		if player.has_method(&"snap_to_spawn"):
+			player.call(&"snap_to_spawn", marker.global_transform)
 		return
 	# Position from the marker; basis is consumed by snap_to_spawn (see
 	# player_body.gd) which seeds skin facing + camera yaw without baking

@@ -156,16 +156,28 @@ func _set_focused(next: Interactable) -> void:
 	# Normalize freed-but-dangling refs to null before the equality check —
 	# otherwise Godot 4 can report `null == freed_node` as true and we'd
 	# skip the transition, leaving PromptUI stuck on the old prompt.
-	if focused != null and not is_instance_valid(focused):
+	var was_dangling: bool = focused != null and not is_instance_valid(focused)
+	if was_dangling:
 		focused = null
 	if next != null and not is_instance_valid(next):
 		next = null
-	if next == focused: return
+	if next == focused:
+		# Edge case: we just normalized a dangling focused → null AND the new
+		# best is also null. The equality bail would skip the focus_changed
+		# emit, leaving PromptUI's _focused holding the stale (now-freed) ref
+		# until its own per-frame validity check catches up. Force-emit so the
+		# clear is synchronous.
+		if was_dangling:
+			focus_changed.emit(null)
+		return
 	if focused != null:
 		focused.set_highlighted(false)
+	var prev_name: String = "<null>" if focused == null else focused.name
+	var next_name: String = "<null>" if next == null else next.name
 	focused = next
 	if focused != null:
 		focused.set_highlighted(true)
+	print("[sensor] focus %s -> %s" % [prev_name, next_name])
 	focus_changed.emit(focused)
 	# Walk-in auto-trigger: if the newly focused interactable opts in, fire
 	# try_activate immediately. One-shot per focus cycle — drops when the

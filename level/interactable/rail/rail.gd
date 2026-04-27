@@ -2,6 +2,12 @@
 class_name Rail extends Path3D
 
 
+## Padding (m) added around the curve's baked bounding box when sizing
+## the detection Area3D. Larger = easier to snap onto the rail; smaller
+## requires the player to be right on top of it.
+@export var grab_pad: float = 1.2
+
+
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
@@ -34,7 +40,7 @@ func _fit_area_to_curve() -> void:
 	for p in points:
 		min_p = min_p.min(p)
 		max_p = max_p.max(p)
-	var pad := 0.4
+	var pad := grab_pad
 	var center: Vector3 = (min_p + max_p) * 0.5
 	var size: Vector3 = (max_p - min_p) + Vector3.ONE * (pad * 2.0)
 	# BoxShape3D can't have a zero extent along any axis.

@@ -1,0 +1,46 @@
+~ start
+
+Glitch: That gap ahead — you're not getting across that. Not in.. shoes.
+Glitch: I've got something for you. A small upgrade.
+- What did you have in mind?
+	=> offer
+- I can make it.
+	=> doubt
+
+~ doubt
+
+Glitch: With those sneakers? You'd slip, fall, respawn, repeat. Forever.
+Glitch: I admire the optimism.
+- Fine, what's the upgrade?
+	=> offer
+- I really think I can.
+	=> doubt_2
+
+~ doubt_2
+
+Glitch: Three respawns. Then you come back.
+Glitch: I'll be here.
+- ...alright, what's the upgrade?
+	=> offer
+
+~ offer
+
+Glitch: It's a surprise.
+Glitch: Shall we?
+- Let's do it.
+	=> done
+- Tell me more first.
+	=> sales
+
+~ sales
+
+Glitch: Patented Gibson hardware. Modeled on physics that don't strictly exist.
+Glitch: They feel right. That's the part that matters.
+- I'm in.
+	=> done
+
+~ done
+
+Glitch: Hold on.
+do GameState.set_flag("glitch_lift_ready", true)
+=> END

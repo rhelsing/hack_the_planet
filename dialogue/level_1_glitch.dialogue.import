@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://yrgismkcpev2"
+path="res://.godot/imported/level_1_glitch.dialogue-4179365a072c97061c7422393c9cd440.tres"
+
+[deps]
+
+source_file="res://dialogue/level_1_glitch.dialogue"
+dest_files=["res://.godot/imported/level_1_glitch.dialogue-4179365a072c97061c7422393c9cd440.tres"]
+
+[params]
+
+defaults=true

@@ -70,16 +70,32 @@ var _idle_anim_node: AnimationNodeAnimation
 const _IDLE_CLIPS := [&"Idle_A", &"Idle_B"]
 var _idle_cycle_index: int = 0
 
+# Ambient idle-flicker — every 5 / 7 / 13s a brief 0->1->0 glitch pulse fires
+# while the pawn is alive. Picks a fresh interval each cycle from this set.
+const _AMBIENT_FLICKER_INTERVALS := [5.0, 7.0, 13.0]
+var _ambient_flicker_timer: float = 0.0
+var _ambient_flicker_active: bool = false
+var _ambient_flicker_elapsed: float = 0.0
+const _AMBIENT_FLICKER_DURATION := 0.35
+
+# Glitch overlay state. Body owns the death-sequence ramp and writes via
+# set_glitch_progress; ambient flicker drives its own ramp on _ambient_flicker_*.
+# The shared shader material is built once at _ready and replaces the prior
+# StandardMaterial3D damage overlay — both effects share the same overlay slot.
+var _glitch_overlay: ShaderMaterial
+var _death_glitch_value: float = 0.0
+var _ambient_glitch_value: float = 0.0
+
 # Cached Crouch state. Tree authors it as "Crouching" by default; we override
 # the clip once at _ready to "Sneaking" so the crouch read is the lower,
 # weight-forward stalking pose instead of the high resting squat.
 var _crouch_anim_node: AnimationNodeAnimation
 
-# Shared red-tint material overlay applied to all mannequin mesh parts so
-# damage flash reads as a body flush (matches Sophia's single-mesh overlay
-# but distributed across the mannequin's 6 separate pieces).
-var _damage_overlay: StandardMaterial3D
+# All mannequin mesh parts that receive the shared overlay (damage flash +
+# glitch). Six pieces under Model/Rig_Medium/Skeleton3D.
 var _body_meshes: Array[MeshInstance3D] = []
+
+const _GLITCH_SHADER: Shader = preload("res://player/skins/kaykit/death_glitch.gdshader")
 
 
 func _ready() -> void:
@@ -123,17 +139,19 @@ func _ready() -> void:
 			if _dash_anim_node != null:
 				_dash_anim_node.animation = &"Dodge_Forward"
 
-	# Set up damage overlay. The mannequin has 6 separate mesh parts under
-	# Model/Rig_Medium/Skeleton3D; we share one StandardMaterial3D across
-	# all of them so alpha changes flush the whole body in one write.
-	_damage_overlay = StandardMaterial3D.new()
-	_damage_overlay.albedo_color = Color(1.0, 0.12, 0.12, 0.0)
-	_damage_overlay.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_damage_overlay.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	# Combined damage + glitch overlay. One ShaderMaterial shared across all
+	# 6 mannequin parts; both effects drive uniforms on the same shader so we
+	# don't compete for the single material_overlay slot.
+	_glitch_overlay = ShaderMaterial.new()
+	_glitch_overlay.shader = _GLITCH_SHADER
 	_collect_mannequin_meshes(self)
 	for m: MeshInstance3D in _body_meshes:
-		m.material_overlay = _damage_overlay
+		m.material_overlay = _glitch_overlay
 	_apply_part_tints()
+
+	# Stagger the first ambient flicker so a cluster of enemies doesn't
+	# pulse in lockstep when they spawn together.
+	_ambient_flicker_timer = randf_range(2.0, _AMBIENT_FLICKER_INTERVALS.max())
 
 	# Reparent the inspector-placed wheel nodes under runtime BoneAttachment3Ds
 	# so they track the foot bones. keep_global_transform=true means the user's
@@ -270,11 +288,6 @@ func attack() -> void:
 	state_machine.start("EdgeGrab")
 
 
-func die() -> void:
-	# Death_A plays once. No transitions out of Die — body freezes the pawn
-	# via _dying_timer and either queue_frees or respawns (respawn resets
-	# the state machine back to Idle via travel on the next _ready cycle).
-	state_machine.start("Die")
 
 
 func land() -> void:
@@ -310,10 +323,43 @@ func crouch(active: bool) -> void:
 
 func set_damage_tint(value: float) -> void:
 	super(value)
-	if _damage_overlay != null:
-		var c: Color = _damage_overlay.albedo_color
-		c.a = damage_tint
-		_damage_overlay.albedo_color = c
+	if _glitch_overlay != null:
+		_glitch_overlay.set_shader_parameter(&"damage_alpha", damage_tint)
+
+
+func set_glitch_progress(value: float) -> void:
+	_death_glitch_value = clampf(value, 0.0, 1.0)
+	_push_glitch_uniform()
+
+
+func _push_glitch_uniform() -> void:
+	if _glitch_overlay == null:
+		return
+	# The shader takes one combined value — death ramp and ambient blip both
+	# contribute, max() so the louder one wins.
+	var v: float = maxf(_death_glitch_value, _ambient_glitch_value)
+	_glitch_overlay.set_shader_parameter(&"glitch_progress", v)
+
+
+func _process(delta: float) -> void:
+	# Ambient flicker: pulse the glitch overlay 0->1->0 over _AMBIENT_FLICKER_DURATION
+	# every 5/7/13s while alive. _death_glitch_value (driven by the body during
+	# the death sequence) wins via the max() in _push_glitch_uniform.
+	if _ambient_flicker_active:
+		_ambient_flicker_elapsed += delta
+		var t: float = _ambient_flicker_elapsed / _AMBIENT_FLICKER_DURATION
+		# Triangle wave: ramp up to 1.0 at t=0.5, back to 0 at t=1.0.
+		_ambient_glitch_value = 1.0 - absf(t * 2.0 - 1.0) if t < 1.0 else 0.0
+		if t >= 1.0:
+			_ambient_flicker_active = false
+			_ambient_glitch_value = 0.0
+			_ambient_flicker_timer = _AMBIENT_FLICKER_INTERVALS.pick_random()
+		_push_glitch_uniform()
+	else:
+		_ambient_flicker_timer -= delta
+		if _ambient_flicker_timer <= 0.0:
+			_ambient_flicker_active = true
+			_ambient_flicker_elapsed = 0.0
 
 
 func set_skate_mode(active: bool) -> void:

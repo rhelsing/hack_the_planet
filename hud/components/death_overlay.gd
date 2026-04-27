@@ -10,6 +10,9 @@ const TITLE_REVEAL_S := 0.7
 const SUBLINE_REVEAL_S := 0.5
 const HOLD_S := 1.2
 const FADE_OUT_S := 0.5
+## Peak opacity of the overlay. <1.0 keeps the screen-glitch chromatic
+## aberration partially visible behind the card.
+const PEAK_ALPHA := 0.8
 
 @onready var _blackout:      ColorRect     = %Blackout
 @onready var _title_label:   RichTextLabel = %TitleLabel
@@ -60,7 +63,7 @@ func _play() -> void:
 	_subline_label.visible_ratio = 0.0
 
 	var tw := create_tween()
-	tw.tween_property(self, "modulate:a", 1.0, FADE_IN_S)
+	tw.tween_property(self, "modulate:a", PEAK_ALPHA, FADE_IN_S)
 	tw.tween_property(_title_label, "visible_ratio", 1.0, TITLE_REVEAL_S)
 	tw.tween_property(_subline_label, "visible_ratio", 1.0, SUBLINE_REVEAL_S)
 	tw.tween_interval(HOLD_S)

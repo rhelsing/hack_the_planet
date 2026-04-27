@@ -122,6 +122,20 @@ enum FollowMode { PARENTED, DETACHED }
 ## Seconds between the death hit and the checkpoint respawn. Confetti fires
 ## at the start of this window, so the player rises through their own burst.
 @export var death_duration := 0.55
+## Knockback (m/s) applied along the impact direction at the start of a
+## knockback-style death. Used by enemies with uses_knockback_death=true
+## (KayKit). Tune up for a bigger fly-back, down for a quick collapse.
+@export var death_knockback_horizontal := 9.0
+## Vertical lift (m/s) added to the knockback so the body arcs through the air
+## before hitting their back on the ground.
+@export var death_knockback_vertical := 7.0
+## Seconds to ramp the skin's tilt from upright to flat-on-back during the
+## flight. Should be ≤ typical airtime so they're flat by landing.
+@export var death_tilt_duration := 0.4
+## Vertical lift (m) added to the skin once fully laid flat — pivots at the
+## feet, so without lift the body's back clips into the floor. Ramps in with
+## tilt_progress so it's only applied when the body has rotated.
+@export var death_pose_lift := 0.8
 ## Seconds without being hit before HP fully refills. Set high to make damage
 ## sticky, low to make the player resilient. 0 disables regen.
 @export var health_regen_delay := 4.0
@@ -213,6 +227,27 @@ var _attack_hit_enemies: Array[Node] = []
 var _health := 3
 var _dying := false
 var _dying_timer := 0.0
+# Knockback death (uses_knockback_death skins): launch impulse along the
+# impact direction, ramp the skin's tilt 0→PI/2 over death_tilt_duration so
+# they're flat by landing, freeze the AnimationTree on touchdown, hold pose
+# for _DEATH_POSE_HOLD, then spawn the burst + ramp glitch overlay over
+# _DEATH_GLITCH_RAMP, hold the flicker for _DEATH_FLICKER_DURATION, queue_free.
+const _DEATH_POSE_HOLD := 1.0
+const _DEATH_FLICKER_DURATION := 0.6
+const _DEATH_GLITCH_RAMP := 0.15
+const _DEATH_SAFETY_TIMEOUT := 6.0
+## Seconds from the player's death to respawn — fires _finish_death mid-overlay
+## so "CONNECTION TERMINATED" continues animating while the world reloads
+## behind it. Enemies still use _DEATH_SAFETY_TIMEOUT (longer fallback for
+## off-cliff cases where their burst+flicker never completes).
+const _PLAYER_DEATH_DURATION := 2.0
+var _death_burst_done := false
+var _death_glitch_value := 0.0
+var _death_landed := false
+var _death_pose_timer := 0.0
+var _death_flight_time := 0.0
+var _death_impact_dir := Vector3.BACK
+var _death_skin_basis_start := Basis.IDENTITY
 var _regen_timer := 0.0
 var _tint_timer := 0.0
 ## Absolute time (seconds) until which take_hit no-ops. -INF = never invuln.
@@ -259,6 +294,8 @@ const _VOICE_RESPAWN_DELAY: float = 3.0
 @onready var _skin: CharacterSkin = %SophiaSkin
 @onready var _landing_sound: AudioStreamPlayer3D = %LandingSound
 @onready var _jump_sound: AudioStreamPlayer3D = %JumpSound
+@onready var _grind_sparks: GPUParticles3D = %GrindSparks
+@onready var _grind_sound: AudioStreamPlayer3D = %GrindSound
 ## Brain found by type, not by name — lets AI pawns drop in EnemyAIBrain,
 ## NetworkBrain, etc., without the body caring which one.
 @onready var _brain: Brain = _find_first_brain()
@@ -327,8 +364,11 @@ func _ready() -> void:
 		if body != self:
 			return
 		# Falling off the world skips the HP system — it's always terminal.
+		# Pass DOWN as the impact direction — knockback-death skins won't
+		# reach this anyway (kill plane = respawn for player), but the
+		# signature requires it.
 		if not _dying:
-			_start_death()
+			_start_death(Vector3.DOWN)
 	)
 	# enemy_hit_player and flag_reached are game-world events meant for the
 	# human-controlled pawn only — gate on pawn_group so enemy-PlayerBodies
@@ -511,25 +551,92 @@ func _tick_damage_tint(delta: float) -> void:
 	_skin.damage_tint = fraction * damage_tint_max
 
 
-func _start_death() -> void:
+func _start_death(impact_direction: Vector3) -> void:
 	_dying = true
-	_dying_timer = death_duration
-	# Skin's die() picks the real death anim if it has one (KayKit's Death_A);
-	# skins without a death clip inherit the no-op and we fall through to
-	# the jump-rise-pose fallback that was the original Sophia behavior.
-	_skin.die()
-	_skin.jump()
-	# Clear the damage tint so the death rise isn't red — the confetti is
-	# the death visual; the red overlay is strictly for the damaged-but-alive
-	# state leading up to this moment.
 	_skin.damage_tint = 0.0
-	# Pop straight up so the arc reads clearly no matter which way the player
-	# was moving; horizontal motion is zeroed so they don't fly off mid-death.
-	velocity = Vector3(0.0, death_rise_speed, 0.0)
-	# Fire confetti immediately so the player rises up through the burst
-	# instead of poofing only at the peak.
-	_spawn_death_confetti()
+	_death_burst_done = false
+	_death_glitch_value = 0.0
+	if _skin.uses_knockback_death:
+		# Procedural knockback: launch along impact + lift, capture the skin's
+		# current basis to slerp from, let physics carry them. Death tick
+		# detects landing → freezes pose → holds → burst+flicker → poof.
+		var dir: Vector3 = impact_direction
+		dir.y = 0.0
+		_death_impact_dir = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.BACK
+		_death_landed = false
+		_death_pose_timer = 0.0
+		_death_flight_time = 0.0
+		_death_skin_basis_start = _skin.basis if _skin != null else Basis.IDENTITY
+		velocity = _death_impact_dir * death_knockback_horizontal + Vector3.UP * death_knockback_vertical
+		# Hit_A/B reads as the killing-blow recoil during the flight; freeze
+		# locks whatever frame is up when feet touch the ground.
+		_skin.on_hit()
+		_dying_timer = _DEATH_SAFETY_TIMEOUT if dies_permanently else _PLAYER_DEATH_DURATION
+	else:
+		# Legacy path (player/Sophia): pop straight up, immediate confetti —
+		# the rise IS the death visual, then respawn at checkpoint.
+		_dying_timer = death_duration
+		_skin.die()
+		_skin.jump()
+		velocity = Vector3(0.0, death_rise_speed, 0.0)
+		_spawn_death_confetti()
 	died.emit()
+
+
+## Per-frame work for the knockback death sequence. Called from the dying
+## branch of _physics_process for skins with uses_knockback_death = true.
+## Enemies (dies_permanently) burst + flicker after the pose hold and
+## queue_free; the player stays frozen until _DEATH_SAFETY_TIMEOUT triggers
+## respawn (the death overlay + screen glitch carry the player visual).
+func _tick_knockback_death(delta: float) -> void:
+	if not _death_landed:
+		_death_flight_time += delta
+		var tilt_progress: float = clampf(_death_flight_time / death_tilt_duration, 0.0, 1.0)
+		_apply_death_skin_pose(tilt_progress)
+		if _death_flight_time > 0.05 and is_on_floor():
+			_death_landed = true
+			velocity = Vector3.ZERO
+			_skin.freeze_animation()
+			_apply_death_skin_pose(1.0)
+		return
+	_death_pose_timer += delta
+	_apply_death_skin_pose(1.0)
+	if not dies_permanently:
+		# Player path: stay frozen until the safety timeout fires _finish_death.
+		# The death overlay + screen glitch sequence is what the player sees.
+		return
+	# Enemy path: pose hold → confetti burst + glitch flicker → queue_free.
+	if not _death_burst_done and _death_pose_timer >= _DEATH_POSE_HOLD:
+		_death_burst_done = true
+		_spawn_death_confetti()
+	if _death_burst_done:
+		_death_glitch_value = minf(_death_glitch_value + delta / _DEATH_GLITCH_RAMP, 1.0)
+		_skin.set_glitch_progress(_death_glitch_value)
+		if _death_pose_timer >= _DEATH_POSE_HOLD + _DEATH_FLICKER_DURATION:
+			_dying_timer = 0.0
+
+
+## Build the skin basis at `tilt_progress` ∈ [0, 1] from upright (captured
+## at death start) to lying flat on back with head pointed along the impact
+## direction. Slerp in rotation space, re-apply uniform_scale, lift the skin
+## by death_pose_lift × tilt_progress so the body's back rests above ground
+## instead of clipping into it (rotation pivot is at the feet).
+func _apply_death_skin_pose(tilt_progress: float) -> void:
+	if _skin == null:
+		return
+	var head: Vector3 = _death_impact_dir
+	var face: Vector3 = Vector3.UP
+	var right: Vector3 = head.cross(face).normalized()
+	if right.length_squared() < 0.0001:
+		return
+	var t: float = clampf(tilt_progress, 0.0, 1.0)
+	var dead_basis: Basis = Basis(right, head, face)
+	var upright: Basis = _death_skin_basis_start.orthonormalized()
+	var rot: Basis = upright.slerp(dead_basis, t)
+	var s: float = _skin.uniform_scale
+	if not is_equal_approx(s, 1.0):
+		rot = rot.scaled(Vector3.ONE * s)
+	_skin.transform = Transform3D(rot, Vector3(0.0, death_pose_lift * t, 0.0))
 
 
 func _finish_death() -> void:
@@ -551,6 +658,12 @@ func _finish_death() -> void:
 	_invuln_until_time = Time.get_ticks_msec() / 1000.0 + respawn_invuln_duration
 	if _skin != null:
 		_skin.damage_tint = 0.0
+		# Knockback death froze the AnimationTree and rotated the skin onto
+		# its back; reset both so respawn isn't stuck flat in the freeze pose.
+		_skin.unfreeze_animation()
+		_skin.transform = Transform3D.IDENTITY
+		if not is_equal_approx(_skin.uniform_scale, 1.0):
+			_skin.scale = Vector3.ONE * _skin.uniform_scale
 	_skin.idle()
 	respawned.emit()
 	for msg: String in _pending_respawn_messages:
@@ -566,6 +679,10 @@ func _spawn_death_confetti() -> void:
 		return
 	var burst: Node3D = death_burst_scene.instantiate()
 	burst.call("set_direction", Vector3.UP)
+	# Glitch-style enemies (KayKit) override the confetti material so the
+	# burst reads as scrambled debris instead of party confetti.
+	if _skin != null and _skin.confetti_glitch_material != null:
+		burst.call("set_overlay_material", _skin.confetti_glitch_material)
 	get_parent().add_child(burst)
 	burst.global_position = global_position
 
@@ -595,7 +712,7 @@ func take_hit(impact_direction: Vector3, force: float) -> void:
 		_skin.on_hit()
 	health_changed.emit(_health, old_health)
 	if _health <= 0:
-		_start_death()
+		_start_death(impact_direction)
 
 
 func _sweep_attack() -> void:
@@ -664,6 +781,11 @@ func _on_rail_touched(rail: Node, body: Node) -> void:
 	_grind_start_pos = global_position
 	_natural_lean_roll = 0.0
 	_skin.idle()
+	if _grind_sparks != null:
+		_grind_sparks.restart()
+		_grind_sparks.emitting = true
+	if _grind_sound != null:
+		_grind_sound.play()
 
 
 func _on_checkpoint_reached(pos: Vector3) -> void:
@@ -770,17 +892,20 @@ func snap_to_spawn(spawn_xform: Transform3D) -> void:
 ## on Continue drops you at the phone booth, not the level's default spawn),
 ## and current health.
 func get_save_dict() -> Dictionary:
-	return {
+	var d := {
 		"position": [global_position.x, global_position.y, global_position.z],
 		"checkpoint": [_start_position.x, _start_position.y, _start_position.z],
 		"health": _health,
 	}
+	print("[player] get_save_dict pos=%s checkpoint=%s" % [global_position, _start_position])
+	return d
 
 
 ## Applied by SaveService on scene_entered after a Continue. Overrides the
 ## Game._spawn_player teleport so the player resumes exactly where the save
 ## was triggered (checkpoint / flag) with the right checkpoint banked.
 func load_save_dict(d: Dictionary) -> void:
+	print("[player] load_save_dict incoming=%s pre_pos=%s" % [d, global_position])
 	var pos: Variant = d.get("position")
 	if pos is Array and (pos as Array).size() == 3:
 		global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
@@ -795,6 +920,7 @@ func load_save_dict(d: Dictionary) -> void:
 			_health = new_health
 			health_changed.emit(_health, old)
 	velocity = Vector3.ZERO
+	print("[player] load_save_dict applied pos=%s checkpoint=%s" % [global_position, _start_position])
 
 
 func _physics_process(delta: float) -> void:
@@ -821,6 +947,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y += _gravity * delta
 		move_and_slide()
 		_update_follow_camera(delta)
+		if _skin != null and _skin.uses_knockback_death:
+			_tick_knockback_death(delta)
 		if _dying_timer <= 0.0:
 			_finish_death()
 		return
@@ -1081,13 +1209,12 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 	_natural_lean_roll = lerp(_natural_lean_roll, centripetal, lean_factor)
 	_current_lean_pitch = lerp(_current_lean_pitch, 0.0, lean_factor)
 
-	# Fall only when the smoothed NATURAL lean exceeds the threshold
-	# (counter input is ignored for this check).
-	if absf(_natural_lean_roll) > profile.grind_fall_threshold:
-		_grinding = false
-		_grind_rail = null
-		velocity.y += 2.0
-		return
+	# Park sparks at the rail contact point and orient -Z along the travel
+	# tangent so the local +Z emission axis (set in ProcMat) flows backward.
+	if _grind_sparks != null:
+		_grind_sparks.global_position = pf.global_position
+		if absf(tangent.dot(Vector3.UP)) < 0.99:
+			_grind_sparks.look_at(pf.global_position + tangent, Vector3.UP)
 
 	# Player counter-balance: project world-space move intent onto the camera's
 	# right axis so keyboard "A/D" gives the expected screen-relative lean.
@@ -1119,6 +1246,10 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 			velocity += Vector3.UP * (profile.jump_impulse + profile.grind_exit_boost)
 		_grinding = false
 		_grind_rail = null
+		if _grind_sparks != null:
+			_grind_sparks.emitting = false
+		if _grind_sound != null:
+			_grind_sound.stop()
 
 
 ## Dash: velocity impulse along move_direction. Edge-triggered off the
@@ -1237,178 +1368,232 @@ func _register_debug_panel() -> void:
 		func() -> int: return int(follow_mode),
 		func(v: int) -> void:
 			follow_mode = FollowMode.PARENTED if v == 0 else FollowMode.DETACHED
-			_apply_follow_mode())
+			_apply_follow_mode(),
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Follow/angle_smoothing", 0.001, 0.3, 0.001,
 		func() -> float: return angle_smoothing,
-		func(v: float) -> void: angle_smoothing = v)
+		func(v: float) -> void: angle_smoothing = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Follow/position_smoothing", 0.001, 0.3, 0.001,
 		func() -> float: return position_smoothing,
-		func(v: float) -> void: position_smoothing = v)
+		func(v: float) -> void: position_smoothing = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Follow/pivot_offset_y", 0.0, 5.0, 0.05,
 		func() -> float: return pivot_offset.y,
 		func(v: float) -> void:
 			var o := pivot_offset
 			o.y = v
-			pivot_offset = o)
+			pivot_offset = o,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/SpringArm/length", 1.0, 25.0, 0.1,
 		func() -> float: return _spring.spring_length,
-		func(v: float) -> void: _spring.spring_length = v)
+		func(v: float) -> void: _spring.spring_length = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/SpringArm/smooth_rate", 0.5, 30.0, 0.1,
 		func() -> float: return spring_smooth_rate,
-		func(v: float) -> void: spring_smooth_rate = v)
+		func(v: float) -> void: spring_smooth_rate = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/SpringArm/margin", 0.0, 3.0, 0.05,
 		func() -> float: return _spring.margin,
 		func(v: float) -> void:
 			_spring.margin = v
-			spring_margin = v)
+			spring_margin = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/SpringArm/cast_radius", 0.05, 1.0, 0.05,
 		func() -> float: return spring_cast_radius,
 		func(v: float) -> void:
 			spring_cast_radius = v
 			if _spring.shape is SphereShape3D:
-				(_spring.shape as SphereShape3D).radius = v)
+				(_spring.shape as SphereShape3D).radius = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/SpringArm/min_distance", 0.0, 10.0, 0.1,
 		func() -> float: return min_camera_distance,
-		func(v: float) -> void: min_camera_distance = v)
+		func(v: float) -> void: min_camera_distance = v,
+		"player_body.gd")
 	if walk_profile != null:
 		DebugPanel.add_slider("Skin/Lean/walk/forward", -0.5, 0.5, 0.005,
 			func() -> float: return walk_profile.forward_lean_amount,
-			func(v: float) -> void: walk_profile.forward_lean_amount = v)
+			func(v: float) -> void: walk_profile.forward_lean_amount = v,
+			"walk_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/walk/side", -0.15, 0.15, 0.001,
 			func() -> float: return walk_profile.side_lean_amount,
-			func(v: float) -> void: walk_profile.side_lean_amount = v)
+			func(v: float) -> void: walk_profile.side_lean_amount = v,
+			"walk_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/walk/smoothing", 0.5, 20.0, 0.1,
 			func() -> float: return walk_profile.lean_smoothing,
-			func(v: float) -> void: walk_profile.lean_smoothing = v)
+			func(v: float) -> void: walk_profile.lean_smoothing = v,
+			"walk_profile.tres")
 	if skate_profile != null:
 		DebugPanel.add_slider("Movement/skate/max_speed", 1.0, 30.0, 0.1,
 			func() -> float: return skate_profile.max_speed,
-			func(v: float) -> void: skate_profile.max_speed = v)
+			func(v: float) -> void: skate_profile.max_speed = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/accel", 0.5, 100.0, 0.5,
 			func() -> float: return skate_profile.accel,
-			func(v: float) -> void: skate_profile.accel = v)
+			func(v: float) -> void: skate_profile.accel = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/friction", 0.0, 60.0, 0.5,
 			func() -> float: return skate_profile.friction,
-			func(v: float) -> void: skate_profile.friction = v)
+			func(v: float) -> void: skate_profile.friction = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/air_accel_mult", 0.0, 1.0, 0.02,
 			func() -> float: return skate_profile.air_accel_mult,
-			func(v: float) -> void: skate_profile.air_accel_mult = v)
+			func(v: float) -> void: skate_profile.air_accel_mult = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/turn_rate", 0.5, 50.0, 0.1,
 			func() -> float: return skate_profile.turn_rate,
-			func(v: float) -> void: skate_profile.turn_rate = v)
+			func(v: float) -> void: skate_profile.turn_rate = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/jump_impulse", 1.0, 30.0, 0.25,
 			func() -> float: return skate_profile.jump_impulse,
-			func(v: float) -> void: skate_profile.jump_impulse = v)
+			func(v: float) -> void: skate_profile.jump_impulse = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/rotation_speed", 0.5, 30.0, 0.25,
 			func() -> float: return skate_profile.rotation_speed,
-			func(v: float) -> void: skate_profile.rotation_speed = v)
+			func(v: float) -> void: skate_profile.rotation_speed = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/stopping_speed", 0.0, 5.0, 0.05,
 			func() -> float: return skate_profile.stopping_speed,
-			func(v: float) -> void: skate_profile.stopping_speed = v)
+			func(v: float) -> void: skate_profile.stopping_speed = v,
+			"skate_profile.tres")
 		DebugPanel.add_toggle("Movement/skate/face_velocity",
 			func() -> bool: return skate_profile.face_velocity,
-			func(v: bool) -> void: skate_profile.face_velocity = v)
+			func(v: bool) -> void: skate_profile.face_velocity = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/wall_ride_duration", 0.0, 5.0, 0.1,
 			func() -> float: return skate_profile.wall_ride_duration,
-			func(v: float) -> void: skate_profile.wall_ride_duration = v)
+			func(v: float) -> void: skate_profile.wall_ride_duration = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/wall_ride_min_speed", 0.0, 20.0, 0.1,
 			func() -> float: return skate_profile.wall_ride_min_speed,
-			func(v: float) -> void: skate_profile.wall_ride_min_speed = v)
+			func(v: float) -> void: skate_profile.wall_ride_min_speed = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/wall_ride_gravity", 0.0, 1.0, 0.05,
 			func() -> float: return skate_profile.wall_ride_gravity_scale,
-			func(v: float) -> void: skate_profile.wall_ride_gravity_scale = v)
+			func(v: float) -> void: skate_profile.wall_ride_gravity_scale = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/wall_ride_reach", 0.3, 3.0, 0.05,
 			func() -> float: return skate_profile.wall_ride_reach,
-			func(v: float) -> void: skate_profile.wall_ride_reach = v)
+			func(v: float) -> void: skate_profile.wall_ride_reach = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/wall_ride_jump_push", 0.0, 40.0, 0.5,
 			func() -> float: return skate_profile.wall_ride_jump_push,
-			func(v: float) -> void: skate_profile.wall_ride_jump_push = v)
+			func(v: float) -> void: skate_profile.wall_ride_jump_push = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/wall_ride_max_tilt_deg", 0.0, 90.0, 0.5,
 			func() -> float: return skate_profile.wall_ride_max_tilt_deg,
-			func(v: float) -> void: skate_profile.wall_ride_max_tilt_deg = v)
+			func(v: float) -> void: skate_profile.wall_ride_max_tilt_deg = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/grind_speed", 0.0, 30.0, 0.25,
 			func() -> float: return skate_profile.grind_speed,
-			func(v: float) -> void: skate_profile.grind_speed = v)
+			func(v: float) -> void: skate_profile.grind_speed = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/grind_exit_boost", 0.0, 15.0, 0.25,
 			func() -> float: return skate_profile.grind_exit_boost,
-			func(v: float) -> void: skate_profile.grind_exit_boost = v)
+			func(v: float) -> void: skate_profile.grind_exit_boost = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/grind_yaw_offset_deg", -90.0, 90.0, 1.0,
 			func() -> float: return skate_profile.grind_yaw_offset_deg,
-			func(v: float) -> void: skate_profile.grind_yaw_offset_deg = v)
+			func(v: float) -> void: skate_profile.grind_yaw_offset_deg = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/grind_counter_strength", 0.0, 10.0, 0.1,
 			func() -> float: return skate_profile.grind_counter_strength,
-			func(v: float) -> void: skate_profile.grind_counter_strength = v)
+			func(v: float) -> void: skate_profile.grind_counter_strength = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/grind_fall_threshold", 0.1, 12.0, 0.1,
 			func() -> float: return skate_profile.grind_fall_threshold,
-			func(v: float) -> void: skate_profile.grind_fall_threshold = v)
+			func(v: float) -> void: skate_profile.grind_fall_threshold = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Movement/skate/grind_lean_multiplier", 0.0, 10.0, 0.1,
 			func() -> float: return skate_profile.grind_lean_multiplier,
-			func(v: float) -> void: skate_profile.grind_lean_multiplier = v)
+			func(v: float) -> void: skate_profile.grind_lean_multiplier = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Sway/skate/duration", 0.0, 5.0, 0.1,
 			func() -> float: return skate_profile.speedup_duration,
-			func(v: float) -> void: skate_profile.speedup_duration = v)
+			func(v: float) -> void: skate_profile.speedup_duration = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Sway/skate/amplitude", 0.0, 0.5, 0.005,
 			func() -> float: return skate_profile.speedup_amplitude,
-			func(v: float) -> void: skate_profile.speedup_amplitude = v)
+			func(v: float) -> void: skate_profile.speedup_amplitude = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Sway/skate/frequency", 0.2, 8.0, 0.1,
 			func() -> float: return skate_profile.speedup_frequency,
-			func(v: float) -> void: skate_profile.speedup_frequency = v)
+			func(v: float) -> void: skate_profile.speedup_frequency = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Sway/skate/pivot_height", 0.0, 3.0, 0.05,
 			func() -> float: return _skin.lean_pivot_height,
-			func(v: float) -> void: _skin.lean_pivot_height = v)
+			func(v: float) -> void: _skin.lean_pivot_height = v,
+			"skin scene")
 		DebugPanel.add_slider("Skin/Sway/skate/cruise_amplitude", 0.0, 1.0, 0.01,
 			func() -> float: return skate_profile.cruise_sway_amplitude,
-			func(v: float) -> void: skate_profile.cruise_sway_amplitude = v)
+			func(v: float) -> void: skate_profile.cruise_sway_amplitude = v,
+			"skate_profile.tres")
 	if walk_profile != null:
 		DebugPanel.add_slider("Skin/Lean/walk/tilt_height_drop", 0.0, 2.0, 0.02,
 			func() -> float: return walk_profile.tilt_height_drop,
-			func(v: float) -> void: walk_profile.tilt_height_drop = v)
+			func(v: float) -> void: walk_profile.tilt_height_drop = v,
+			"walk_profile.tres")
 	if skate_profile != null:
 		DebugPanel.add_slider("Skin/Lean/skate/tilt_height_drop", 0.0, 2.0, 0.02,
 			func() -> float: return skate_profile.tilt_height_drop,
-			func(v: float) -> void: skate_profile.tilt_height_drop = v)
+			func(v: float) -> void: skate_profile.tilt_height_drop = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/skate/brake_impulse", -0.6, 0.6, 0.02,
 			func() -> float: return skate_profile.brake_impulse_amount,
-			func(v: float) -> void: skate_profile.brake_impulse_amount = v)
+			func(v: float) -> void: skate_profile.brake_impulse_amount = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/skate/brake_decay", 0.5, 15.0, 0.1,
 			func() -> float: return skate_profile.brake_impulse_decay,
-			func(v: float) -> void: skate_profile.brake_impulse_decay = v)
+			func(v: float) -> void: skate_profile.brake_impulse_decay = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/skate/forward", -0.5, 0.5, 0.005,
 			func() -> float: return skate_profile.forward_lean_amount,
-			func(v: float) -> void: skate_profile.forward_lean_amount = v)
+			func(v: float) -> void: skate_profile.forward_lean_amount = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/skate/side", -0.15, 0.15, 0.001,
 			func() -> float: return skate_profile.side_lean_amount,
-			func(v: float) -> void: skate_profile.side_lean_amount = v)
+			func(v: float) -> void: skate_profile.side_lean_amount = v,
+			"skate_profile.tres")
 		DebugPanel.add_slider("Skin/Lean/skate/smoothing", 0.5, 20.0, 0.1,
 			func() -> float: return skate_profile.lean_smoothing,
-			func(v: float) -> void: skate_profile.lean_smoothing = v)
+			func(v: float) -> void: skate_profile.lean_smoothing = v,
+			"skate_profile.tres")
 	DebugPanel.add_slider("Camera/SpringArm/base_pitch_deg", -60.0, 10.0, 0.5,
 		func() -> float: return rad_to_deg(_base_pitch),
-		func(v: float) -> void: _base_pitch = deg_to_rad(v))
+		func(v: float) -> void: _base_pitch = deg_to_rad(v),
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Mouse/pitch_return_delay", 0.0, 3.0, 0.05,
 		func() -> float: return pitch_return_delay,
-		func(v: float) -> void: pitch_return_delay = v)
+		func(v: float) -> void: pitch_return_delay = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Mouse/pitch_return_rate", 0.1, 10.0, 0.1,
 		func() -> float: return pitch_return_rate,
-		func(v: float) -> void: pitch_return_rate = v)
+		func(v: float) -> void: pitch_return_rate = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Camera3D/fov", 30.0, 110.0, 1.0,
 		func() -> float: return _camera.fov,
-		func(v: float) -> void: _camera.fov = v)
+		func(v: float) -> void: _camera.fov = v,
+		"player_body.tscn")
 	DebugPanel.add_slider("Camera/Mouse/x_sensitivity", 0.0, 0.02, 0.0005,
 		func() -> float: return mouse_x_sensitivity,
-		func(v: float) -> void: mouse_x_sensitivity = v)
+		func(v: float) -> void: mouse_x_sensitivity = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Mouse/y_sensitivity", 0.0, 0.02, 0.0005,
 		func() -> float: return mouse_y_sensitivity,
-		func(v: float) -> void: mouse_y_sensitivity = v)
+		func(v: float) -> void: mouse_y_sensitivity = v,
+		"player_body.gd")
 	DebugPanel.add_toggle("Camera/Mouse/invert_y",
 		func() -> bool: return invert_y,
-		func(v: bool) -> void: invert_y = v)
+		func(v: bool) -> void: invert_y = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Mouse/release_delay", 0.0, 5.0, 0.1,
 		func() -> float: return mouse_release_delay,
-		func(v: float) -> void: mouse_release_delay = v)
+		func(v: float) -> void: mouse_release_delay = v,
+		"player_body.gd")
 	DebugPanel.add_slider("Camera/Mouse/blend_time", 0.0, 2.0, 0.05,
 		func() -> float: return mouse_blend_time,
-		func(v: float) -> void: mouse_blend_time = v)
+		func(v: float) -> void: mouse_blend_time = v,
+		"player_body.gd")
 	DebugPanel.add_readout("Debug/h_speed",
 		func() -> String: return "%.1f m/s" % Vector2(velocity.x, velocity.z).length())
 

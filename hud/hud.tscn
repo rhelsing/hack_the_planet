@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" uid="uid://b3hudpowerup01" path="res://hud/components/powerup_row.tscn" id="6_powerup"]
 [ext_resource type="PackedScene" uid="uid://b3deathoverlay1" path="res://hud/components/death_overlay.tscn" id="7_death"]
 [ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="8_theme"]
+[ext_resource type="PackedScene" uid="uid://beaconlayer0001" path="res://hud/components/beacon_layer.tscn" id="9_beacon"]
+[ext_resource type="PackedScene" uid="uid://d1y684jex2xbc" path="res://hud/components/screen_glitch.tscn" id="10_glitch"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_root")
@@ -79,4 +81,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
+[node name="ScreenGlitch" parent="Fullscreen" instance=ExtResource("10_glitch")]
+
 [node name="DeathOverlay" parent="Fullscreen" instance=ExtResource("7_death")]
+
+[node name="BeaconLayer" parent="Fullscreen" instance=ExtResource("9_beacon")]

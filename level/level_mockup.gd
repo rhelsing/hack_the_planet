@@ -18,7 +18,7 @@ extends Node3D
 @export var powerup_label: String = "LOVE"
 
 ## Caption shown on the how-to-use panel after install toast completes.
-@export var howto_caption: String = "PRESS {toggle_skate} TO SKATE"
+@export var howto_caption: String = "You have blades!"
 
 
 func _ready() -> void:

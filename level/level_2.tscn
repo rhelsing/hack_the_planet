@@ -3,8 +3,9 @@
 [ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
 [ext_resource type="PackedScene" path="res://library/interactables/hacking_terminal.tscn" id="2_hackterm"]
 [ext_resource type="PackedScene" path="res://library/interactables/door_locked_hack.tscn" id="3_door"]
-[ext_resource type="PackedScene" path="res://library/interactables/flow_terminal.tscn" id="4_flowterm"]
-[ext_resource type="PackedScene" path="res://library/interactables/password_terminal.tscn" id="5_passterm"]
+[ext_resource type="PackedScene" uid="uid://dflowterm0001" path="res://library/interactables/flow_terminal.tscn" id="4_flowterm"]
+[ext_resource type="PackedScene" uid="uid://dpassterm0001" path="res://library/interactables/password_terminal.tscn" id="5_passterm"]
+[ext_resource type="PackedScene" uid="uid://ft4d2kwlkeke" path="res://level/interactable/crumble_platform/crumble_platform.tscn" id="6_dxks8"]
 
 [node name="LevelMockup" unique_id=1815979861 instance=ExtResource("1_base")]
 level_num = 2
@@ -42,3 +43,12 @@ interactable_id = &"l2_password_terminal"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.25, -20)
 interactable_id = &"l2_password_door"
 requires_flag = &"l2_password_terminal"
+
+[node name="CrumblePlatform" parent="." index="20" unique_id=1814478474 instance=ExtResource("6_dxks8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.014814, -0.62827826, 0.97994447)
+
+[node name="CrumblePlatform2" parent="." index="21" unique_id=1573282554 instance=ExtResource("6_dxks8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.014814, -0.62827826, -4.9903727)
+
+[node name="CrumblePlatform3" parent="." index="22" unique_id=774451219 instance=ExtResource("6_dxks8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.014814, -0.62827826, -11.226084)

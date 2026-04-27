@@ -44,6 +44,7 @@ Walkie="*res://autoload/walkie.gd"
 Companion="*res://autoload/companion.gd"
 VoicePrimer="*res://autoload/voice_primer.gd"
 Glyphs="*res://autoload/glyphs.gd"
+Beacons="*res://autoload/beacons.gd"
 
 [dialogue_manager]
 
@@ -62,7 +63,7 @@ window/stretch/mode="canvas_items"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gdquest_colorpicker_presets/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg")
+enabled=PackedStringArray("res://addons/dialogue_manager/plugin.cfg")
 
 [input]
 
@@ -224,7 +225,7 @@ look_up={
 
 [internationalization]
 
-locale/translations_pot_files=PackedStringArray("res://dialogue/demo.dialogue", "res://dialogue/level_clear.dialogue", "res://dialogue/hub_god.dialogue", "res://dialogue/hub_love.dialogue", "res://dialogue/hub_sex.dialogue", "res://dialogue/hub_secret.dialogue", "res://dialogue/companion.dialogue", "res://dialogue/glitch_2.dialogue", "res://dialogue/dial_tone.dialogue", "res://dialogue/level_1_nyx.dialogue", "res://dialogue/level_3_splice_offer.dialogue", "res://dialogue/hub_post4_splice.dialogue", "res://dialogue/hub_post4_nyx.dialogue")
+locale/translations_pot_files=PackedStringArray("res://dialogue/demo.dialogue", "res://dialogue/level_clear.dialogue", "res://dialogue/hub_god.dialogue", "res://dialogue/hub_love.dialogue", "res://dialogue/hub_sex.dialogue", "res://dialogue/hub_secret.dialogue", "res://dialogue/companion.dialogue", "res://dialogue/glitch_2.dialogue", "res://dialogue/dial_tone.dialogue", "res://dialogue/level_1_nyx.dialogue", "res://dialogue/level_3_splice_offer.dialogue", "res://dialogue/hub_post4_splice.dialogue", "res://dialogue/hub_post4_nyx.dialogue", "res://dialogue/level_1_glitch.dialogue", "res://dialogue/level_1_glitch_2.dialogue", "res://dialogue/level_1_glitch_3.dialogue")
 
 [layer_names]
 

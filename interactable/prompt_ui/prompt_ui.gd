@@ -18,6 +18,9 @@ extends CanvasLayer
 var _sensor: Node = null  # InteractionSensor, found lazily by group
 var _focused: Interactable = null
 var _modal_count: int = 0
+# Dedupe state — only log on transition, not every refresh.
+var _last_logged_visible: int = -1  # -1 unknown, 0 hidden, 1 visible
+var _last_logged_focus: String = "<unset>"
 
 @onready var _label: Label = $Root/PromptLabel
 @onready var _toast: Label = $Root/ToastLabel
@@ -84,17 +87,20 @@ func _on_focus_changed(focused: Interactable) -> void:
 	_refresh()
 
 
-func _on_modal_opened(_id: StringName) -> void:
+func _on_modal_opened(id: StringName) -> void:
 	_modal_count += 1
+	print("[prompt] modal_opened %s -> count=%d" % [id, _modal_count])
 	_refresh()
 
 
-func _on_modal_closed(_id: StringName) -> void:
+func _on_modal_closed(id: StringName) -> void:
 	_modal_count = maxi(_modal_count - 1, 0)
+	print("[prompt] modal_closed %s -> count=%d" % [id, _modal_count])
 	_refresh()
 
 
 func _on_modal_reset() -> void:
+	print("[prompt] modal_reset (was %d)" % _modal_count)
 	_modal_count = 0
 	_refresh()
 
@@ -118,6 +124,14 @@ func _refresh() -> void:
 		_focused = null
 	var should_show := _focused != null and _modal_count == 0
 	_label.visible = should_show
+	# Dedupe: only log on visibility OR focus transitions.
+	var focus_str: String = _focused.name if _focused != null else "<null>"
+	var vis_int: int = 1 if should_show else 0
+	if vis_int != _last_logged_visible or focus_str != _last_logged_focus:
+		_last_logged_visible = vis_int
+		_last_logged_focus = focus_str
+		print("[prompt] refresh visible=%s focus=%s modal_count=%d" % [
+			should_show, focus_str, _modal_count])
 	if not should_show:
 		_label.text = ""
 		return

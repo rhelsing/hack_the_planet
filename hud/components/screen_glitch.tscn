@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://d1y684jex2xbc"]
+
+[ext_resource type="Script" path="res://hud/components/screen_glitch.gd" id="1_script"]
+[ext_resource type="Shader" path="res://menu/transitions/glitch.gdshader" id="2_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glitch"]
+shader = ExtResource("2_shader")
+shader_parameter/alpha = 0.0
+shader_parameter/aberration_max = 0.012
+shader_parameter/jitter_amplitude = 0.04
+
+[node name="ScreenGlitch" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="GlitchRect" type="ColorRect" parent="."]
+unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+material = SubResource("ShaderMaterial_glitch")

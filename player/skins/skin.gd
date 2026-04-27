@@ -70,10 +70,52 @@ func crouch(_active: bool) -> void: pass
 ## Other skins without wheel gear inherit the no-op.
 func set_skate_mode(_active: bool) -> void: pass
 
+## Skins that use the procedural knockback-on-back death sequence (default).
+## PlayerBody: true → launch impulse, ramp tilt to flat, freeze skin on
+## landing, hold, then either burst+poof (enemy) or wait for respawn (player).
+## Set false on a skin that should fall through to the legacy rise + immediate
+## confetti path (no current consumers — kept as an opt-out hatch).
+var uses_knockback_death: bool = true
+
+## Optional ShaderMaterial that overrides the spawned ConfettiBurst's mesh
+## material — used by glitch-style enemies so the burst reads as scrambled
+## debris instead of party confetti.
+var confetti_glitch_material: ShaderMaterial = null
+
 ## Called once by the body at the start of the death sequence. Skins with a
 ## real death animation override to travel their Die state; others inherit
-## the no-op and the body's velocity pop + confetti carry the visual.
+## the no-op and the body's knockback or rise carries the visual.
 func die() -> void: pass
+
+## Stop the skin's AnimationTree so the current pose holds frozen. Generic
+## walk-the-children implementation works for every skin that has an
+## AnimationTree under it (all current ones).
+func freeze_animation() -> void:
+	var tree: AnimationTree = _find_animation_tree(self)
+	if tree != null:
+		tree.active = false
+
+
+## Inverse of freeze_animation. Called by PlayerBody on respawn so the
+## skin starts ticking again before the next idle/move travel.
+func unfreeze_animation() -> void:
+	var tree: AnimationTree = _find_animation_tree(self)
+	if tree != null:
+		tree.active = true
+
+
+func _find_animation_tree(n: Node) -> AnimationTree:
+	if n is AnimationTree:
+		return n as AnimationTree
+	for c: Node in n.get_children():
+		var r: AnimationTree = _find_animation_tree(c)
+		if r != null:
+			return r
+	return null
+
+## Set the glitch overlay intensity (0..1). Skins with a glitch shader
+## overlay override to write their shader's `glitch_progress` uniform.
+func set_glitch_progress(_value: float) -> void: pass
 
 ## Called once on the frame the pawn transitions from airborne to grounded.
 ## Lets skins play a landing impact clip. No-op default.

@@ -69,32 +69,38 @@ func _register_debug_sliders() -> void:
 		func() -> float: return cell_size,
 		func(v: float) -> void:
 			cell_size = v
-			_respawn_city())
+			_respawn_city(),
+		"city_builder.gd")
 	dp.add_slider("City/cell_gap", 0, 20, 0.5,
 		func() -> float: return cell_gap,
 		func(v: float) -> void:
 			cell_gap = v
-			_respawn_city())
+			_respawn_city(),
+		"city_builder.gd")
 	dp.add_slider("City/keep_out_radius", 0, 500, 5,
 		func() -> float: return keep_out_radius,
 		func(v: float) -> void:
 			keep_out_radius = v
-			_respawn_city())
+			_respawn_city(),
+		"city_builder.gd")
 	dp.add_slider("City/max_spawn_radius", 50, 2000, 10,
 		func() -> float: return max_spawn_radius,
 		func(v: float) -> void:
 			max_spawn_radius = v
-			_respawn_city())
+			_respawn_city(),
+		"city_builder.gd")
 	dp.add_slider("City/min_height", 1, 200, 1,
 		func() -> float: return min_height,
 		func(v: float) -> void:
 			min_height = v
-			_respawn_city())
+			_respawn_city(),
+		"city_builder.gd")
 	dp.add_slider("City/max_height", 10, 500, 1,
 		func() -> float: return max_height,
 		func(v: float) -> void:
 			max_height = v
-			_respawn_city())
+			_respawn_city(),
+		"city_builder.gd")
 
 
 ## Clear existing buildings and respawn from scratch. Called when a debug

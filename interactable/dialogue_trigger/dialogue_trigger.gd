@@ -373,5 +373,15 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 		if dust != null:
 			dust.emitting = _saved_dust_emitting
 		actor.set_physics_process(_saved_player_physics)
+		# Reverse the enter-side set_skate_mode(false). The body's profile
+		# was never changed during the cinematic, so we just re-sync the
+		# skin's gear visuals (rollerblade wheels) to whatever the body is
+		# currently using. Without this, wheels stay hidden post-dialogue.
+		var skin_after: Node3D = _find_skin(actor)
+		if skin_after != null and skin_after.has_method(&"set_skate_mode"):
+			var skate_active := false
+			if "_current_profile" in actor and "skate_profile" in actor:
+				skate_active = (actor.get("_current_profile") == actor.get("skate_profile"))
+			skin_after.call(&"set_skate_mode", skate_active)
 	_saved_camera = null
 	_saved_actor = null

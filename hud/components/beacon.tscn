@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dhnuc5e3b6465"]
+
+[ext_resource type="Script" path="res://hud/components/beacon.gd" id="1_beacon"]
+
+[node name="Beacon" type="Node3D"]
+script = ExtResource("1_beacon")

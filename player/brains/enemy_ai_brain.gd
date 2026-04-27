@@ -37,18 +37,36 @@ extends Brain
 @export var attack_vertical_range := 1.5
 ## Seconds between consecutive attack triggers.
 @export var attack_cooldown := 1.6
+## Wind-up phase before the swing fires — the AI slows to wind_up_speed_fraction
+## and holds for this many seconds. This is the player's punish window.
+## 0.0 disables the wind-up (instant attacks).
+@export var wind_up_duration := 0.55
+## Fraction of chase speed maintained during wind-up. 0 = full stop,
+## 0.15 = slow creep (still drifting toward target as they wind up).
+@export_range(0.0, 1.0) var wind_up_speed_fraction := 0.15
 
 @export_group("Ledges")
 @export var turn_at_ledges := true
 @export var ledge_probe_distance := 1.5
-@export var ledge_probe_depth := 1.5
+## Drop depth (m) below the future foot point that still counts as "ground" —
+## walks down stair steps shallower than this, treats anything deeper as a
+## ledge and turns. 0.5 ≈ tall step. Bump up for sloppy stairs that read as
+## ledges; bump down to make enemies skittish around small drops.
+@export var ledge_probe_depth := 0.5
 
-enum State { WANDER, CHASE }
+enum State { WANDER, CHASE, IDLE, WIND_UP }
+
+@export_group("State")
+## Behavior the enemy returns to when no target is in range. WANDER = meander
+## with curiosity rerolls. IDLE = stand in place facing forward. Both react
+## the same to a target entering detection range (→ CHASE).
+@export var starting_state: State = State.WANDER
 
 var _state: State = State.WANDER
 var _direction := Vector3.RIGHT
 var _wander_timer := 0.0
 var _attack_cooldown_timer := 0.0
+var _wind_up_timer := 0.0
 var _target: Node3D
 var _intent := Intent.new()
 
@@ -56,6 +74,7 @@ var _intent := Intent.new()
 func _ready() -> void:
 	_direction = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	_reset_wander_timer()
+	_state = starting_state
 
 
 func tick(body: Node3D, delta: float) -> Intent:
@@ -71,7 +90,11 @@ func tick(body: Node3D, delta: float) -> Intent:
 	match _state:
 		State.CHASE:
 			_intent.move_direction = _chase_direction(body) * chase_speed_fraction
-			_maybe_attack(body)
+			_maybe_start_wind_up(body)
+		State.WIND_UP:
+			_tick_wind_up(body, delta)
+		State.IDLE:
+			_intent.move_direction = Vector3.ZERO
 		_:
 			_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
 
@@ -80,16 +103,16 @@ func tick(body: Node3D, delta: float) -> Intent:
 
 func _update_state(body: Node3D) -> void:
 	if _target == null:
-		_state = State.WANDER
+		_state = starting_state
 		return
 	var distance := _horizontal_distance(body.global_position, _target.global_position)
 	match _state:
-		State.WANDER:
+		State.WANDER, State.IDLE:
 			if distance < detection_radius:
 				_state = State.CHASE
 		State.CHASE:
 			if distance > chase_exit_radius:
-				_state = State.WANDER
+				_state = starting_state
 				_reset_wander_timer()
 
 
@@ -153,7 +176,10 @@ func _horizontal_distance(a: Vector3, b: Vector3) -> float:
 	return sqrt(dx * dx + dz * dz)
 
 
-func _maybe_attack(body: Node3D) -> void:
+## Trigger the wind-up the moment the target enters strike range and the
+## cooldown is ready. From WIND_UP, _tick_wind_up handles the actual swing
+## fire after wind_up_duration elapses.
+func _maybe_start_wind_up(body: Node3D) -> void:
 	if _target == null or _attack_cooldown_timer > 0.0:
 		return
 	var d: float = _horizontal_distance(body.global_position, _target.global_position)
@@ -162,8 +188,27 @@ func _maybe_attack(body: Node3D) -> void:
 	var dy: float = absf(_target.global_position.y - body.global_position.y)
 	if dy > attack_vertical_range:
 		return
-	_intent.attack_pressed = true
-	_attack_cooldown_timer = attack_cooldown
+	if wind_up_duration <= 0.0:
+		# Wind-up disabled — fire immediately (legacy behavior).
+		_intent.attack_pressed = true
+		_attack_cooldown_timer = attack_cooldown
+		return
+	_state = State.WIND_UP
+	_wind_up_timer = wind_up_duration
+
+
+## Slow to a creep facing the target while the wind-up timer ticks down.
+## On expiry, fire the attack and return to CHASE — cooldown gates the
+## next wind-up. The slow phase IS the player's punish window.
+func _tick_wind_up(body: Node3D, delta: float) -> void:
+	_wind_up_timer -= delta
+	# Keep facing/drifting toward the target so they don't visually freeze
+	# in a stale heading if the player sidesteps during the wind-up.
+	_intent.move_direction = _chase_direction(body) * wind_up_speed_fraction
+	if _wind_up_timer <= 0.0:
+		_intent.attack_pressed = true
+		_attack_cooldown_timer = attack_cooldown
+		_state = State.CHASE
 
 
 func _has_ground_ahead(body: Node3D) -> bool:

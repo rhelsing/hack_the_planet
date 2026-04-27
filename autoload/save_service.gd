@@ -114,6 +114,8 @@ func save_to_slot(id: StringName) -> void:
 		"game_state": _game_state_dict(),
 		"player_state": _player_save_dict(),
 	}
+	print("[save] save_to_slot %s level=%s player_state=%s" % [
+		id, current_level, payload["player_state"]])
 	_write_json(_save_path(id), payload)
 	_write_json(_meta_path(id), _make_meta(payload))
 	Events.game_saved.emit(id)
@@ -136,6 +138,8 @@ func load_from_slot(id: StringName) -> void:
 	active_slot = id
 	_apply_game_state(d.get("game_state", {}))
 	_pending_player_state = d.get("player_state", {})
+	print("[save] load slot=%s level=%s pending_player_keys=%s" % [
+		id, current_level, _pending_player_state.keys()])
 	Events.game_loaded.emit(id)
 	_request_scene_load(String(current_level))
 
@@ -169,10 +173,11 @@ func set_current_level(level_id: StringName) -> void:
 
 var _pending_player_state: Dictionary = {}
 
-func _on_checkpoint_reached(_pos: Vector3) -> void:
+func _on_checkpoint_reached(pos: Vector3) -> void:
 	# Autosave goes to the player's chosen slot for this session. If they
 	# never picked one (dev-launching straight into the level with no main-
 	# menu trip), silently skip rather than writing to a pseudo-slot.
+	print("[save] checkpoint_reached pos=%s active_slot=%s" % [pos, active_slot])
 	if active_slot == &"":
 		return
 	save_to_slot(active_slot)
@@ -193,10 +198,22 @@ func _on_scene_entered(scene: Node) -> void:
 	if scene != null and scene.scene_file_path != "res://game.tscn":
 		current_level = _scene_id_for(scene)
 	if _pending_player_state.is_empty() or scene == null:
+		print("[save] scene_entered skip: pending_empty=%s scene=%s" % [
+			_pending_player_state.is_empty(), scene])
 		return
 	var player := scene.get_node_or_null(^"Player")
+	if player == null:
+		# Group fallback — symmetric to _player_save_dict's lookup. Handles
+		# cases where current_scene isn't where the Player lives.
+		for n in get_tree().get_nodes_in_group("player"):
+			if n.has_method(&"load_save_dict"):
+				player = n
+				break
+	print("[save] scene_entered scene=%s player=%s pending_keys=%s" % [
+		scene.scene_file_path, player, _pending_player_state.keys()])
 	if player != null and player.has_method(&"load_save_dict"):
 		player.call(&"load_save_dict", _pending_player_state)
+		print("[save] applied pending player_state")
 	_pending_player_state = {}
 
 
@@ -261,11 +278,26 @@ func _apply_game_state(d: Dictionary) -> void:
 func _player_save_dict() -> Dictionary:
 	var scene := get_tree().current_scene
 	if scene == null:
+		print("[save] _player_save_dict: current_scene=null — returning {}")
 		return {}
 	var player := scene.get_node_or_null(^"Player")
-	if player != null and player.has_method(&"get_save_dict"):
-		return player.call(&"get_save_dict")
-	return {}
+	if player == null:
+		# Fallback: look up via the "player" group, which the PlayerBody adds
+		# itself to. This handles cases where current_scene is the level
+		# (mounted under game.tscn at runtime) and the Player lives at a
+		# different path (e.g., /root/Game/Player while current_scene is Game).
+		for n in get_tree().get_nodes_in_group("player"):
+			if n.has_method(&"get_save_dict"):
+				player = n
+				break
+	if player == null:
+		print("[save] _player_save_dict: no Player found (current_scene=%s sf=%s)" % [
+			scene, scene.scene_file_path])
+		return {}
+	if not player.has_method(&"get_save_dict"):
+		print("[save] _player_save_dict: Player %s lacks get_save_dict" % player)
+		return {}
+	return player.call(&"get_save_dict")
 
 
 func _is_in_gameplay() -> bool:

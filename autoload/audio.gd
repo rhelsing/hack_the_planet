@@ -90,12 +90,34 @@ func play_sfx(id: StringName) -> void:
 
 func play_music(stream: AudioStream, fade_in: float = 0.8) -> void:
 	if stream == null: return
+	# Singleton bus: starting a track stops whichever was playing. Each
+	# new track loops by default — set loop=false on the AudioStream
+	# resource if you ever want a one-shot here.
+	if _music_player.playing and _music_player.stream == stream:
+		return  # already playing this track — don't restart
+	_force_loop(stream)
 	_music_player.stream = stream
 	_music_player.volume_db = -40.0 if fade_in > 0.0 else 0.0
 	_music_player.play()
 	if fade_in > 0.0:
 		var tween := create_tween()
 		tween.tween_property(_music_player, "volume_db", 0.0, fade_in)
+
+
+## Mutates the supplied AudioStream resource so its `loop` (or `loop_mode`)
+## is enabled. Most music files in this project are imported with loop=false
+## by default; rather than re-importing each one, we flip the runtime
+## resource flag here. Idempotent — calling on an already-looping stream
+## is a no-op.
+func _force_loop(stream: AudioStream) -> void:
+	if stream == null: return
+	if "loop" in stream:
+		if not bool(stream.get("loop")):
+			stream.set("loop", true)
+	elif "loop_mode" in stream:
+		# AudioStreamWAV uses loop_mode (enum: 0 disabled, 1 forward, ...).
+		if int(stream.get("loop_mode")) == 0:
+			stream.set("loop_mode", 1)
 
 
 func stop_music(fade_out: float = 1.0) -> void:

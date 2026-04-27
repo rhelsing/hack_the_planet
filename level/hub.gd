@@ -18,6 +18,14 @@ extends Node3D
 # transform onto PlayerSpawn before Game._spawn_player consumes it.
 const FLAG_HUB_VISITED: StringName = &"hub_visited"
 const FLAG_LEVEL_4_COMPLETED: StringName = &"level_4_completed"
+# Set at the end of dialogue/glitch_2.dialogue. Reaching that node requires
+# HandlePicker.pick() (the handle-pick happens in ~stage_pick before the
+# warn → menu → done chain), so this flag implies names are chosen. Used as
+# the ratchet for first_enemies: park the group +20 Y until set, lower on
+# flip, skip the raise entirely on resume once persisted.
+const FLAG_GLITCH2_DONE: StringName = &"glitch2_done"
+const FIRST_ENEMIES_RAISE_Y: float = 20.0
+const FIRST_ENEMIES_LOWER_DURATION: float = 1.5
 
 @export_group("Victory FX")
 @export var victory_specular: float = 14.0
@@ -60,6 +68,35 @@ func _ready() -> void:
 		GameState.set_flag(FLAG_HUB_VISITED, true)
 	if GameState.get_flag(FLAG_LEVEL_4_COMPLETED, false):
 		_enter_victory_state()
+	_setup_first_enemies()
+
+
+# Park the first_enemies group up high until the player finishes the Glitch
+# intro dialogue (which guarantees handle-pick + warning landed). The
+# ratchet is `glitch2_done` — already persisted in GameState — so resuming
+# a save where it's true skips the raise; resuming where it's false reparks
+# the group and rewires the listener.
+func _setup_first_enemies() -> void:
+	var first_enemies := get_node_or_null(^"first_enemies") as Node3D
+	if first_enemies == null:
+		return
+	if GameState.get_flag(FLAG_GLITCH2_DONE, false):
+		return
+	first_enemies.position.y += FIRST_ENEMIES_RAISE_Y
+	Events.flag_set.connect(_on_flag_set_for_first_enemies)
+
+
+func _on_flag_set_for_first_enemies(id: StringName, value: Variant) -> void:
+	if id != FLAG_GLITCH2_DONE or not bool(value):
+		return
+	var first_enemies := get_node_or_null(^"first_enemies") as Node3D
+	if first_enemies == null:
+		return
+	var target_y: float = first_enemies.position.y - FIRST_ENEMIES_RAISE_Y
+	var tw := create_tween()
+	tw.tween_property(first_enemies, ^"position:y", target_y, FIRST_ENEMIES_LOWER_DURATION) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	Events.flag_set.disconnect(_on_flag_set_for_first_enemies)
 
 
 func _enter_victory_state() -> void:
