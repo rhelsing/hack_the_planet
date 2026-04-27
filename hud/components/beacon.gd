@@ -25,9 +25,12 @@ class_name Beacon
 @export var visible_when_flag: StringName = &""
 @export var hide_when_flag: StringName = &""
 
-## Optional voice-line trigger — beacon turns ON when a Companion line
-## from this character ends, matched (case-insensitive substring) against
-## the spoken text. Empty match string = "any line from this character".
+## Optional voice-line trigger — beacon turns ON when a voice line from
+## this character ends, matched (case-insensitive substring) against the
+## spoken text. Empty match string = "any line from this character".
+## Listens to BOTH the Companion bus (in-world voice) and the Walkie bus
+## (radio chatter — DialTone, etc.); whichever fires the matching line
+## first arms the beacon.
 @export var visible_when_voice_ends: StringName = &""
 @export var visible_when_voice_match: String = ""
 
@@ -49,6 +52,8 @@ func _ready() -> void:
 	if visible_when_voice_ends != &"":
 		Companion.line_started.connect(_on_line_started)
 		Companion.line_ended.connect(_on_line_ended)
+		Walkie.line_started.connect(_on_line_started)
+		Walkie.line_ended.connect(_on_line_ended)
 	Beacons.register(self)
 	print("[beacon] ready: %s visible=%s voice_gate=%s flag_gate=%s/%s" % [
 		get_path(), beacon_visible,

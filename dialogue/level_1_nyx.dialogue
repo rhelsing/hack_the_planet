@@ -2,7 +2,8 @@
 
 Nyx: Hey Runner, why are you looking at me like that?
 - Dial tone said you needed help?
-	Nyx: Of course he did. He's a child.
+	Nyx: Of course he did! He's a child.
+	Nyx: This is just where I like to go to think sometimes.
 	=> tail
 - Are you okay?
 	Nyx: Um.. yeah. Why wouldnt I be?
@@ -10,12 +11,22 @@ Nyx: Hey Runner, why are you looking at me like that?
 
 ~ tail
 
-Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl.
+Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
 Nyx: God, I swear going to kill him.
 Nyx: Go on back and tell him great joke. Tell him Nyx says he's a dead man.
 - Head back to the hub.
-	do LevelProgression.advance()
-	=> END
+	=> level_clear
 - I'll hang out here a sec.
 	Nyx: Suit yourself.
+	=> END
+
+~ level_clear
+
+NPC: You did it! Level cleared.
+NPC: What's next?
+- Continue to the hub
+	do LevelProgression.advance()
+	=> END
+- Keep exploring
+	NPC: Suit yourself. I'll be here.
 	=> END
