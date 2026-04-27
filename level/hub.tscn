@@ -14,7 +14,7 @@
 [ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="14_compdlg"]
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="16_warp"]
-[ext_resource type="Script" uid="uid://dji2iovkb8six" path="res://level/elevator.gd" id="17_elevator"]
+[ext_resource type="PackedScene" uid="uid://delevpltf0001" path="res://level/interactable/elevator_platform/elevator_platform.tscn" id="17_elevpltf"]
 [ext_resource type="Resource" uid="uid://cnclpp0hu1d8b" path="res://dialogue/dial_tone.dialogue" id="18_dialtonedlg"]
 [ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="19_animeskin"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
@@ -92,7 +92,7 @@ fog_light_energy = 2.31
 fog_density = 0.0309
 fog_aerial_perspective = 1.0
 fog_sky_affect = 0.242
-fog_height = -10.56
+fog_height = 100.0
 fog_height_density = -0.0649
 volumetric_fog_density = 0.001
 volumetric_fog_albedo = Color(0.21021625, 0.23571473, 0.46857458, 1)
@@ -100,9 +100,6 @@ volumetric_fog_emission = Color(0.05, 0.05, 0.08, 1)
 volumetric_fog_emission_energy = 11.56
 volumetric_fog_gi_inject = 1.26
 volumetric_fog_anisotropy = 0.9
-
-[sub_resource type="BoxShape3D" id="ElevatorCarry"]
-size = Vector3(14.5, 2, 16.4)
 
 [sub_resource type="BoxMesh" id="BoxMesh_c3bbd"]
 size = Vector3(1.2, 1.8, 1.2)
@@ -171,25 +168,14 @@ material_override = ExtResource("2_c07e2")
 use_collision = true
 size = Vector3(15.080139, 1, 19.78363)
 
-[node name="ELEVATOR" type="CSGBox3D" parent="." unique_id=156532977]
+[node name="ELEVATOR" parent="." instance=ExtResource("17_elevpltf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, -32.837395)
-material_override = ExtResource("2_c07e2")
-use_collision = true
 size = Vector3(15.080139, 1, 16.938202)
-script = ExtResource("17_elevator")
 amplitude = 23.0
 rise_duration = 5.0
 peak_pause = 1.0
 fall_duration = 5.0
 trough_pause = 2.0
-
-[node name="CarryZone" type="Area3D" parent="ELEVATOR" unique_id=912636926]
-collision_layer = 0
-monitorable = false
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="ELEVATOR/CarryZone" unique_id=1653699356]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-shape = SubResource("ElevatorCarry")
 
 [node name="first_enemies" type="Node3D" parent="." unique_id=1118078994]
 

@@ -62,10 +62,19 @@ func load_level(path: String) -> void:
 	if settings != null and settings.has_method(&"get_value"):
 		style = String(settings.call(&"get_value", "graphics", "transition_style", "glitch"))
 	var transition: Transition = TransitionScript.from_style(style)
+	# Suppress the interaction prompt for the duration of the swap. Without
+	# this, a stale "[E] enter" lingers on screen through the fade because
+	# the sensor's focused interactable (e.g., the pedestal you just pressed)
+	# is still alive until _mount_level frees the old level — and the prompt
+	# UI gates on modal_count, not focus liveness. PromptUI hides while
+	# modal_count > 0; we restore it after the new scene is mounted and
+	# scene_entered has had a tick to update sensor focus.
+	Events.modal_opened.emit(&"level_transition")
 	await transition.play_out(get_tree())
 	_mount_level(packed)
 	SaveService.set_current_level(StringName(path.get_file().trim_suffix(".tscn")))
 	await transition.play_in(get_tree())
+	Events.modal_closed.emit(&"level_transition")
 
 
 # ── Internals ────────────────────────────────────────────────────────────

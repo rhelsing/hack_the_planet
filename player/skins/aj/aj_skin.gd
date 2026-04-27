@@ -21,10 +21,11 @@ const _FOOT_R_BONE := &"mixamorig_RightFoot"
 @onready var animation_tree: AnimationTree = %AnimationTree
 @onready var state_machine: AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
 @onready var move_tilt_path: String = "parameters/StateMachine/Move/tilt/add_amount"
+@onready var run_speed_path: String = "parameters/StateMachine/Move/RunSpeed/scale"
 
 var _dash_anim_node: AnimationNodeAnimation
 var _edge_anim_node: AnimationNodeAnimation
-const _ATTACK_CLIPS := [&"Punching"]
+const _ATTACK_CLIPS := [&"Mma Kick"]
 
 var _hit_anim_node: AnimationNodeAnimation
 const _HIT_CLIPS := [&"Yelling"]
@@ -66,6 +67,9 @@ func _ready() -> void:
 		"Walking", "Crouched Walking",
 		"Running", "Standard Run",
 		"Talking", "Talking(1)",
+		# Wall-ride pose: looped so we can hold the clip across the wall_ride
+		# duration window without it freezing on the last frame.
+		"Falling Idle",
 		# Victory-state dances loop until the swap timer fires another pick.
 		"Dancing Twerk", "Hip Hop Dancing", "Hip Hop Dancing(1)",
 		"Hip Hop Dancing(2)", "Shuffling", "Silly Dancing", "Wave Hip Hop Dance",
@@ -256,6 +260,14 @@ func idle() -> void:
 		_idle_anim_node.animation = _IDLE_CLIPS[_idle_cycle_index]
 	state_machine.travel("Idle")
 func move() -> void: state_machine.travel("Move")
+
+
+func set_walk_speed_scale(scale: float) -> void:
+	# Drives the AnimationNodeTimeScale wrapping Move so the Run cycle slows
+	# at low gamepad input. Idle/Jump/Fall keep their authored rates.
+	if animation_tree != null:
+		animation_tree.set(run_speed_path, max(0.0, scale))
+
 func fall() -> void: state_machine.travel("Fall")
 func jump() -> void: state_machine.travel("Jump")
 func edge_grab() -> void: state_machine.travel("EdgeGrab")

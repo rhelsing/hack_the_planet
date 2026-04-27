@@ -9,6 +9,12 @@ extends Resource
 ## Random pick at playback — use multiple streams to avoid repetition fatigue.
 @export var streams: Array[AudioStream] = []
 
+## When true, sample() steps through streams in order (A, B, C, A, B, C…)
+## instead of random. Use for short paired cues where strict alternation
+## reads cleaner than the 50% repeat rate of random-from-2 (e.g., coin click).
+@export var strict_alternate: bool = false
+var _alternate_index: int = 0
+
 @export_group("Volume")
 @export_range(-60.0, 24.0) var volume_db_min: float = 0.0
 @export_range(-60.0, 24.0) var volume_db_max: float = 0.0
@@ -26,7 +32,12 @@ extends Resource
 func sample() -> Array:
 	if streams.is_empty():
 		return [null, 0.0, 1.0]
-	var stream := streams[randi() % streams.size()]
+	var stream: AudioStream
+	if strict_alternate:
+		stream = streams[_alternate_index]
+		_alternate_index = (_alternate_index + 1) % streams.size()
+	else:
+		stream = streams[randi() % streams.size()]
 	var vol := randf_range(volume_db_min, volume_db_max)
 	var pitch := randf_range(pitch_min, pitch_max)
 	return [stream, vol, pitch]

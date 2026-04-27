@@ -20,6 +20,9 @@ default_level_scene = ExtResource("8_hub")
 [node name="Player" parent="." unique_id=604819286 instance=ExtResource("1_w0p8v")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.43638, 0, -7.8513)
 skin_scene = ExtResource("99_playerskin")
+walk_footstep_auto_load_dir = "res://audio/sfx/footsteps_keyboard"
+skate_stride_auto_load_dir = "res://audio/sfx/skate_strides"
+death_sound_auto_load_dir = "res://audio/sfx/player_deaths"
 
 [node name="FlagReachedScreen" parent="." unique_id=735049013 instance=ExtResource("19_cpgj4")]
 

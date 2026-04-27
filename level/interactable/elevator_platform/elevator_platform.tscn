@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://delevpltf0001"]
+
+[ext_resource type="Script" path="res://level/interactable/elevator_platform/elevator_platform.gd" id="1_elev"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_carry"]
+size = Vector3(8.0, 0.6, 8.0)
+
+[node name="ElevatorPlatform" type="Node3D"]
+script = ExtResource("1_elev")
+
+[node name="Deck" type="Node3D" parent="."]
+
+[node name="Box" type="CSGBox3D" parent="Deck"]
+use_collision = true
+size = Vector3(8.0, 1.0, 8.0)
+
+[node name="CarryZone" type="Area3D" parent="."]
+collision_layer = 0
+monitorable = false
+
+[node name="Shape" type="CollisionShape3D" parent="CarryZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("BoxShape3D_carry")

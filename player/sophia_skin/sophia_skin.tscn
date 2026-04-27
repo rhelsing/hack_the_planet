@@ -30,6 +30,8 @@ animation = &"Run"
 
 [sub_resource type="AnimationNodeAdd3" id="AnimationNodeAdd3_i8et5"]
 
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_runspeed"]
+
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_mx8fd"]
 graph_offset = Vector2(-362, 27)
 nodes/L/node = SubResource("AnimationNodeAnimation_olyh3")
@@ -40,7 +42,9 @@ nodes/Run/node = SubResource("AnimationNodeAnimation_nf0s3")
 nodes/Run/position = Vector2(-120, 120)
 nodes/tilt/node = SubResource("AnimationNodeAdd3_i8et5")
 nodes/tilt/position = Vector2(80, 160)
-node_connections = [&"output", 0, &"tilt", &"tilt", 0, &"L", &"tilt", 1, &"Run", &"tilt", 2, &"R"]
+nodes/RunSpeed/node = SubResource("AnimationNodeTimeScale_runspeed")
+nodes/RunSpeed/position = Vector2(240, 160)
+node_connections = [&"output", 0, &"RunSpeed", &"RunSpeed", 0, &"tilt", &"tilt", 0, &"L", &"tilt", 1, &"Run", &"tilt", 2, &"R"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ln86s"]
 animation = &"WallSlide"

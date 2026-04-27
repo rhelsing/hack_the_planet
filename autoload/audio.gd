@@ -256,6 +256,7 @@ func _connect_event_reactions() -> void:
 	Events.door_opened.connect(func(_id: StringName) -> void: play_sfx(&"door_open"))
 	Events.puzzle_solved.connect(func(_id: StringName) -> void: play_sfx(&"hack_success"))
 	Events.puzzle_failed.connect(func(_id: StringName) -> void: play_sfx(&"hack_fail"))
+	Events.coin_collected.connect(func(_coin: Node) -> void: play_sfx(&"coin_pickup"))
 
 
 func _apply_volumes_from_settings() -> void:

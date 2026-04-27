@@ -22,6 +22,7 @@ extends Node3D
 @onready var _trigger: Area3D = $TriggerArea
 @onready var _from: Node3D = $FromMarker
 @onready var _to: Node3D = $ToMarker
+@onready var _spawn_sound: AudioStreamPlayer3D = %SpawnSound
 
 var _spawned: bool = false
 var _cooldown_until_msec: int = 0
@@ -43,6 +44,8 @@ func _on_body_entered(body: Node) -> void:
 		return
 	_spawned = true
 	_cooldown_until_msec = Time.get_ticks_msec() + int(retrigger_cooldown * 1000.0)
+	if _spawn_sound != null:
+		_spawn_sound.play()
 	_spawn_glitch_in()
 
 

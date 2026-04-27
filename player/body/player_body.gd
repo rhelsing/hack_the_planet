@@ -169,6 +169,55 @@ enum FollowMode { PARENTED, DETACHED }
 ## Applied on top of the normal lean curve; peaks mid-jostle then decays.
 @export var attack_lunge_pitch := 0.5
 
+@export_group("Footsteps")
+## Pool of footstep sounds played as the body walks. Phase counter advances
+## by (h_speed / max_speed) × cadence each tick; on wrap, picks a random clip
+## (no immediate repeat) and plays it. Walk profile only — skating disables.
+@export var walk_footstep_pool: Array[AudioStream] = []
+## If walk_footstep_pool is empty, auto-load all .wav/.ogg/.mp3 files from
+## this directory at _ready. Lets you swap in a new sample bank by dropping
+## files in instead of wiring 60 inspector slots.
+@export_dir var walk_footstep_auto_load_dir: String = ""
+## Footsteps per second when the body is moving at full max_speed in walk
+## mode. At half speed, half the cadence. Tune to match the visual gait.
+@export var walk_footstep_cadence_at_max: float = 5.0
+## Below this horizontal speed (m/s), no footsteps fire — kills drifting
+## clicks when the body is barely moving.
+@export var walk_footstep_min_speed: float = 0.6
+## dB offset applied to each click. 0 = sample's authored level.
+@export_range(-30.0, 12.0) var walk_footstep_volume_db: float = -2.0
+## Random pitch jitter (±this fraction) per click. 0 = identical pitch.
+@export_range(0.0, 0.5) var walk_footstep_pitch_jitter: float = 0.06
+## Master enable. Off = silent regardless of pool.
+@export var walk_footsteps_enabled: bool = true
+## Floor of the walk-anim time scale at zero input. Pure 0 freezes the
+## animation mid-stride at very low gamepad input — clamping to ~0.35 keeps
+## feet visibly moving while the body crawls.
+@export_range(0.05, 1.0) var walk_anim_min_scale: float = 0.35
+
+@export_group("Skate Strides")
+## Pool of stride sounds played while skating. Phase-driven cadence; with
+## two clips and the no-immediate-repeat picker this reads as strict L/R
+## alternation.
+@export var skate_stride_pool: Array[AudioStream] = []
+@export_dir var skate_stride_auto_load_dir: String = ""
+## Strides per second when moving at full skate max_speed. Skate cadence is
+## typically slower than walk because of the longer push-glide cycle.
+@export var skate_stride_cadence_at_max: float = 2.5
+@export var skate_stride_min_speed: float = 1.5
+@export_range(-30.0, 12.0) var skate_stride_volume_db: float = -2.0
+@export_range(0.0, 0.5) var skate_stride_pitch_jitter: float = 0.04
+@export var skate_strides_enabled: bool = true
+
+@export_group("Death SFX")
+## Pool of one-shot sounds played when this pawn enters _start_death.
+## Empty = silent (default for player). Random clip per death, no immediate
+## repeat. Enemy variants override via inspector or auto-load dir.
+@export var death_sound_pool: Array[AudioStream] = []
+@export_dir var death_sound_auto_load_dir: String = ""
+@export_range(-30.0, 12.0) var death_sound_volume_db: float = 0.0
+@export_range(0.0, 0.5) var death_sound_pitch_jitter: float = 0.05
+
 @export_group("Camera Occlusion")
 ## Smooths SpringArm's instant-snap output into an eased response.
 ## Higher = snappier. ~8 ≈ 95% in 0.37s.
@@ -227,6 +276,20 @@ var _attack_hit_enemies: Array[Node] = []
 var _health := 3
 var _dying := false
 var _dying_timer := 0.0
+# Footstep / death audio runtime state. Pools are resolved at _ready (either
+# from the explicit @export array or the auto-load dir fallback).
+var _walk_footstep_pool_resolved: Array[AudioStream] = []
+var _skate_stride_pool_resolved: Array[AudioStream] = []
+var _death_sound_pool_resolved: Array[AudioStream] = []
+var _footstep_phase: float = 0.0
+var _skate_phase: float = 0.0
+var _last_footstep_idx: int = -1
+var _last_skate_stride_idx: int = -1
+var _last_death_sfx_idx: int = -1
+var _footstep_player_a: AudioStreamPlayer3D
+var _footstep_player_b: AudioStreamPlayer3D
+var _footstep_player_toggle: bool = false
+var _death_sfx_player: AudioStreamPlayer3D
 # Knockback death (uses_knockback_death skins): launch impulse along the
 # impact direction, ramp the skin's tilt 0→PI/2 over death_tilt_duration so
 # they're flat by landing, freeze the AnimationTree on touchdown, hold pose
@@ -322,6 +385,15 @@ func _ready() -> void:
 		var abilities_node := get_node_or_null(^"Abilities")
 		if abilities_node != null:
 			abilities_node.queue_free()
+		# Camera rig is baked into player_body.tscn with `current = true`.
+		# Every enemy / companion variant therefore ships a Camera3D that
+		# would steal the active-camera slot when it enters the tree (last
+		# `current = true` Camera3D wins per Godot's docs). Force it off for
+		# non-player pawns. Without this, swapping levels with enemies in the
+		# new scene yanks the camera away from the player into an enemy POV.
+		var enemy_cam := get_node_or_null(^"%Camera3D") as Camera3D
+		if enemy_cam != null:
+			enemy_cam.current = false
 	# Pick the initial profile. start_in_walk_mode wins over skate_profile
 	# existence so enemies / NPCs can hold both profiles (for a future
 	# power-up toggle) but spawn in walk mode.
@@ -349,6 +421,7 @@ func _ready() -> void:
 	sphere.radius = spring_cast_radius
 	_spring.shape = sphere
 	_spring.margin = spring_margin
+	_setup_pawn_audio()
 	_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
@@ -551,11 +624,166 @@ func _tick_damage_tint(delta: float) -> void:
 	_skin.damage_tint = fraction * damage_tint_max
 
 
+## Build the footstep / death AudioStreamPlayer3D children and resolve the
+## sample pools. Called once at _ready. Pools fall back to scanning the
+## auto-load dir when the explicit @export array is empty — convenient for
+## sample banks with dozens of files.
+func _setup_pawn_audio() -> void:
+	_walk_footstep_pool_resolved = walk_footstep_pool.duplicate()
+	if _walk_footstep_pool_resolved.is_empty() and not walk_footstep_auto_load_dir.is_empty():
+		_walk_footstep_pool_resolved = _load_audio_dir(walk_footstep_auto_load_dir)
+	_skate_stride_pool_resolved = skate_stride_pool.duplicate()
+	if _skate_stride_pool_resolved.is_empty() and not skate_stride_auto_load_dir.is_empty():
+		_skate_stride_pool_resolved = _load_audio_dir(skate_stride_auto_load_dir)
+	_death_sound_pool_resolved = death_sound_pool.duplicate()
+	if _death_sound_pool_resolved.is_empty() and not death_sound_auto_load_dir.is_empty():
+		_death_sound_pool_resolved = _load_audio_dir(death_sound_auto_load_dir)
+	_footstep_player_a = _make_pawn_3d_player()
+	_footstep_player_b = _make_pawn_3d_player()
+	_death_sfx_player = _make_pawn_3d_player()
+
+
+func _make_pawn_3d_player() -> AudioStreamPlayer3D:
+	var p := AudioStreamPlayer3D.new()
+	p.bus = &"SFX"
+	# unit_size 4m: stays loud within ~4m of the pawn, attenuates beyond.
+	# max_distance 25m: fully silent past that — keeps distant pawns quiet.
+	p.unit_size = 4.0
+	p.max_distance = 25.0
+	add_child(p)
+	return p
+
+
+func _load_audio_dir(path: String) -> Array[AudioStream]:
+	var out: Array[AudioStream] = []
+	var dir := DirAccess.open(path)
+	if dir == null:
+		push_warning("PlayerBody: audio auto-load dir missing: %s" % path)
+		return out
+	dir.list_dir_begin()
+	var files: Array[String] = []
+	while true:
+		var f := dir.get_next()
+		if f == "":
+			break
+		if dir.current_is_dir():
+			continue
+		var lower: String = f.to_lower()
+		if lower.ends_with(".wav") or lower.ends_with(".ogg") or lower.ends_with(".mp3"):
+			files.append(f)
+	dir.list_dir_end()
+	files.sort()
+	for f in files:
+		var s := load(path.path_join(f)) as AudioStream
+		if s != null:
+			out.append(s)
+	return out
+
+
+## Drive walk-cycle anim time scale + footstep cadence from the body's actual
+## horizontal speed. Single source of truth: both the visual and the audio
+## scale off `h_speed / max_speed`, so stride length and click rate stay in
+## lockstep automatically. Skating bypasses this entirely.
+func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProfile) -> void:
+	if profile == null or _skin == null:
+		return
+	var in_walk: bool = profile == walk_profile and walk_profile != null
+	if in_walk:
+		var max_speed: float = maxf(profile.max_speed, 0.001)
+		var ratio: float = clampf(h_speed / max_speed, 0.0, 1.0)
+		var anim_scale: float = lerpf(walk_anim_min_scale, 1.0, ratio)
+		if h_speed < walk_footstep_min_speed:
+			# Below the walking threshold the Move state is unlikely to be
+			# active anyway; reset to authored rate so anything that does
+			# play (transitions, idle->move) reads natural.
+			anim_scale = 1.0
+		_skin.set_walk_speed_scale(anim_scale)
+	else:
+		_skin.set_walk_speed_scale(1.0)
+	# --- walk footsteps ---
+	if walk_footsteps_enabled and not _walk_footstep_pool_resolved.is_empty():
+		if not in_walk or _dying or not is_on_floor() or h_speed < walk_footstep_min_speed:
+			# Reset so the next stride starts clean (rising edge fires
+			# immediately below).
+			_footstep_phase = 0.0
+		elif _footstep_phase == 0.0:
+			_play_random_footstep()
+			_footstep_phase = 0.0001
+		else:
+			var max_speed_w: float = maxf(profile.max_speed, 0.001)
+			_footstep_phase += (h_speed / max_speed_w) * walk_footstep_cadence_at_max * delta
+			if _footstep_phase >= 1.0:
+				_footstep_phase -= 1.0
+				_play_random_footstep()
+	# --- skate strides ---
+	var in_skate: bool = profile == skate_profile and skate_profile != null
+	if skate_strides_enabled and not _skate_stride_pool_resolved.is_empty():
+		if not in_skate or _dying or not is_on_floor() or h_speed < skate_stride_min_speed:
+			_skate_phase = 0.0
+		elif _skate_phase == 0.0:
+			_play_random_skate_stride()
+			_skate_phase = 0.0001
+		else:
+			var max_speed_s: float = maxf(profile.max_speed, 0.001)
+			_skate_phase += (h_speed / max_speed_s) * skate_stride_cadence_at_max * delta
+			if _skate_phase >= 1.0:
+				_skate_phase -= 1.0
+				_play_random_skate_stride()
+
+
+func _play_random_footstep() -> void:
+	var n: int = _walk_footstep_pool_resolved.size()
+	if n == 0:
+		return
+	var idx: int = randi() % n
+	if n > 1 and idx == _last_footstep_idx:
+		idx = (idx + 1) % n
+	_last_footstep_idx = idx
+	var p: AudioStreamPlayer3D = _footstep_player_b if _footstep_player_toggle else _footstep_player_a
+	_footstep_player_toggle = not _footstep_player_toggle
+	p.stream = _walk_footstep_pool_resolved[idx]
+	p.volume_db = walk_footstep_volume_db
+	p.pitch_scale = 1.0 + randf_range(-walk_footstep_pitch_jitter, walk_footstep_pitch_jitter)
+	p.play()
+
+
+func _play_random_skate_stride() -> void:
+	var n: int = _skate_stride_pool_resolved.size()
+	if n == 0:
+		return
+	var idx: int = randi() % n
+	if n > 1 and idx == _last_skate_stride_idx:
+		idx = (idx + 1) % n
+	_last_skate_stride_idx = idx
+	var p: AudioStreamPlayer3D = _footstep_player_b if _footstep_player_toggle else _footstep_player_a
+	_footstep_player_toggle = not _footstep_player_toggle
+	p.stream = _skate_stride_pool_resolved[idx]
+	p.volume_db = skate_stride_volume_db
+	p.pitch_scale = 1.0 + randf_range(-skate_stride_pitch_jitter, skate_stride_pitch_jitter)
+	p.play()
+
+
+func _play_random_death_sfx() -> void:
+	var pool: Array[AudioStream] = _death_sound_pool_resolved
+	if pool.is_empty() or _death_sfx_player == null:
+		return
+	var n: int = pool.size()
+	var idx: int = randi() % n
+	if n > 1 and idx == _last_death_sfx_idx:
+		idx = (idx + 1) % n
+	_last_death_sfx_idx = idx
+	_death_sfx_player.stream = pool[idx]
+	_death_sfx_player.volume_db = death_sound_volume_db
+	_death_sfx_player.pitch_scale = 1.0 + randf_range(-death_sound_pitch_jitter, death_sound_pitch_jitter)
+	_death_sfx_player.play()
+
+
 func _start_death(impact_direction: Vector3) -> void:
 	_dying = true
 	_skin.damage_tint = 0.0
 	_death_burst_done = false
 	_death_glitch_value = 0.0
+	_play_random_death_sfx()
 	if _skin.uses_knockback_death:
 		# Procedural knockback: launch along impact + lift, capture the skin's
 		# current basis to slerp from, let physics carry them. Death tick
@@ -1005,6 +1233,10 @@ func _physics_process(delta: float) -> void:
 	_prev_skin_yaw = new_yaw
 	_prev_h_vel = h_vel
 	var speed: float = h_vel.length()
+	# Walk-mode footstep cadence + Run-cycle time scale, both driven by the
+	# same h_speed/max_speed ratio so visuals and audio stay in lockstep. Skip
+	# in skate mode (silent + no time scaling).
+	_tick_walk_audio_visual(delta, speed, profile)
 	# Startup sway: side-to-side rocking for the first couple seconds of motion.
 	var is_moving: bool = speed > 0.5
 	if is_moving and not _was_moving:
@@ -1596,6 +1828,57 @@ func _register_debug_panel() -> void:
 		"player_body.gd")
 	DebugPanel.add_readout("Debug/h_speed",
 		func() -> String: return "%.1f m/s" % Vector2(velocity.x, velocity.z).length())
+	# Footstep tuning — only register on the player pawn so enemy variants
+	# don't spam the panel with N copies of the same controls.
+	if pawn_group == "player":
+		DebugPanel.add_toggle("Footsteps/enabled",
+			func() -> bool: return walk_footsteps_enabled,
+			func(v: bool) -> void: walk_footsteps_enabled = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Footsteps/cadence_at_max", 0.5, 12.0, 0.1,
+			func() -> float: return walk_footstep_cadence_at_max,
+			func(v: float) -> void: walk_footstep_cadence_at_max = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Footsteps/min_speed", 0.0, 4.0, 0.05,
+			func() -> float: return walk_footstep_min_speed,
+			func(v: float) -> void: walk_footstep_min_speed = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Footsteps/volume_db", -30.0, 12.0, 0.5,
+			func() -> float: return walk_footstep_volume_db,
+			func(v: float) -> void: walk_footstep_volume_db = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Footsteps/pitch_jitter", 0.0, 0.5, 0.01,
+			func() -> float: return walk_footstep_pitch_jitter,
+			func(v: float) -> void: walk_footstep_pitch_jitter = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Footsteps/walk_anim_min_scale", 0.05, 1.0, 0.01,
+			func() -> float: return walk_anim_min_scale,
+			func(v: float) -> void: walk_anim_min_scale = v,
+			"player_body.gd")
+		DebugPanel.add_readout("Footsteps/pool_size",
+			func() -> String: return "%d clips" % _walk_footstep_pool_resolved.size())
+		DebugPanel.add_toggle("Skate/strides_enabled",
+			func() -> bool: return skate_strides_enabled,
+			func(v: bool) -> void: skate_strides_enabled = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Skate/cadence_at_max", 0.2, 8.0, 0.05,
+			func() -> float: return skate_stride_cadence_at_max,
+			func(v: float) -> void: skate_stride_cadence_at_max = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Skate/min_speed", 0.0, 6.0, 0.05,
+			func() -> float: return skate_stride_min_speed,
+			func(v: float) -> void: skate_stride_min_speed = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Skate/volume_db", -30.0, 12.0, 0.5,
+			func() -> float: return skate_stride_volume_db,
+			func(v: float) -> void: skate_stride_volume_db = v,
+			"player_body.gd")
+		DebugPanel.add_slider("Skate/pitch_jitter", 0.0, 0.5, 0.01,
+			func() -> float: return skate_stride_pitch_jitter,
+			func(v: float) -> void: skate_stride_pitch_jitter = v,
+			"player_body.gd")
+		DebugPanel.add_readout("Skate/pool_size",
+			func() -> String: return "%d clips" % _skate_stride_pool_resolved.size())
 
 
 func _update_follow_camera(delta: float) -> void:

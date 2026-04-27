@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AudioCue" format=3 uid="uid://by348o0knw7qm"]
+
+[ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
+[ext_resource type="AudioStream" uid="uid://cnrspoqewnf78" path="res://audio/sfx/coin_click_a.mp3" id="2"]
+[ext_resource type="AudioStream" uid="uid://bnn3ej125bies" path="res://audio/sfx/coin_click_b.mp3" id="3"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2"), ExtResource("3")])
+strict_alternate = true
+volume_db_min = -2.0
+volume_db_max = 0.0
+pitch_min = 0.97
+pitch_max = 1.03
+bus = &"SFX"

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cip5gkhohs4k3" path="res://enemy/enemy_spawner.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="2_enemy"]
+[ext_resource type="AudioStream" uid="uid://bgl24bvstc8sg" path="res://audio/sfx/enemy_spawn.mp3" id="3_spawnsfx"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_trigger"]
 size = Vector3(12.640991, 1.0458984, 13.735382)
@@ -18,6 +19,10 @@ shape = SubResource("BoxShape3D_trigger")
 
 [node name="FromMarker" type="Marker3D" parent="." unique_id=1351461392]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0427833, 0.808784, -0.5256212)
+
+[node name="SpawnSound" type="AudioStreamPlayer3D" parent="FromMarker"]
+unique_name_in_owner = true
+stream = ExtResource("3_spawnsfx")
 
 [node name="ToMarker" type="Marker3D" parent="." unique_id=221958491]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.027659, 0, 0)

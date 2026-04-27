@@ -44,6 +44,8 @@ animation = &"Running"
 
 [sub_resource type="AnimationNodeAdd3" id="ANA3_tilt"]
 
+[sub_resource type="AnimationNodeTimeScale" id="ANTS_runspeed"]
+
 [sub_resource type="AnimationNodeBlendTree" id="ABT_move"]
 graph_offset = Vector2(-362, 27)
 nodes/L/node = SubResource("ANA_RunTiltL")
@@ -54,10 +56,12 @@ nodes/Run/node = SubResource("ANA_Run")
 nodes/Run/position = Vector2(-120, 120)
 nodes/tilt/node = SubResource("ANA3_tilt")
 nodes/tilt/position = Vector2(80, 160)
-node_connections = [&"output", 0, &"tilt", &"tilt", 0, &"L", &"tilt", 1, &"Run", &"tilt", 2, &"R"]
+nodes/RunSpeed/node = SubResource("ANTS_runspeed")
+nodes/RunSpeed/position = Vector2(240, 160)
+node_connections = [&"output", 0, &"RunSpeed", &"RunSpeed", 0, &"tilt", &"tilt", 0, &"L", &"tilt", 1, &"Run", &"tilt", 2, &"R"]
 
 [sub_resource type="AnimationNodeAnimation" id="ANA_WallSlide"]
-animation = &"Breathing Idle"
+animation = &"Falling Idle"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="T_start"]
 advance_mode = 2

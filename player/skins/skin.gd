@@ -54,6 +54,12 @@ func edge_grab() -> void: pass
 func wall_slide() -> void: pass
 func attack() -> void: pass
 
+## Drive the walk-cycle playback speed from outside (PlayerBody passes
+## h_speed / max_speed each tick). 1.0 = authored, 0.5 = half-speed feet.
+## No-op default — skins without an AnimationNodeTimeScale wired into their
+## Move state ignore it and play at fixed authored rate.
+func set_walk_speed_scale(_scale: float) -> void: pass
+
 ## Called once on the frame a dash fires. `direction` is the world-space
 ## dash vector (horizontal, y=0). Skins with directional dodge clips use it
 ## to pick forward/back/left/right. No-op default.

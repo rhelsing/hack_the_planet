@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CueRegistry" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="CueRegistry" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://audio/cue_registry.gd" id="1"]
 [ext_resource type="Resource" path="res://audio/cues/door_open.tres" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="Resource" path="res://audio/cues/ui_confirm.tres" id="7"]
 [ext_resource type="Resource" path="res://audio/cues/ui_back.tres" id="8"]
 [ext_resource type="Resource" path="res://audio/cues/ui_type.tres" id="9"]
+[ext_resource type="Resource" uid="uid://b1coinpickupcue" path="res://audio/cues/coin_pickup.tres" id="10"]
 
 [resource]
 script = ExtResource("1")
@@ -21,4 +22,5 @@ cues = {
 &"ui_confirm": ExtResource("7"),
 &"ui_back": ExtResource("8"),
 &"ui_type": ExtResource("9"),
+&"coin_pickup": ExtResource("10"),
 }

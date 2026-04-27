@@ -4,6 +4,7 @@ extends CharacterSkin
 @onready var animation_tree = %AnimationTree
 @onready var state_machine : AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
 @onready var move_tilt_path : String = "parameters/StateMachine/Move/tilt/add_amount"
+@onready var run_speed_path : String = "parameters/StateMachine/Move/RunSpeed/scale"
 
 ## Skin root lift when skates are on — matches the original sophia.tscn
 ## default translation (y=0.13390523). Walk mode drops this to 0 so bare
@@ -78,6 +79,14 @@ func set_skate_mode(active: bool) -> void:
 func _set_run_tilt(value : float):
 	run_tilt = clamp(value, -1.0, 1.0)
 	animation_tree.set(move_tilt_path, run_tilt)
+
+
+func set_walk_speed_scale(scale: float) -> void:
+	# Drives the AnimationNodeTimeScale wrapping the Move blend tree, so the
+	# Run cycle slows/speeds with the body's actual horizontal speed. Only the
+	# Move state is affected — Idle/Jump/Fall continue at authored rate.
+	if animation_tree != null:
+		animation_tree.set(run_speed_path, max(0.0, scale))
 
 func idle():
 	state_machine.travel("Idle")
