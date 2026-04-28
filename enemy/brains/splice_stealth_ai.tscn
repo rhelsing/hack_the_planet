@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cmr6oh62eu5i7"]
+
+[ext_resource type="Script" path="res://player/brains/enemy_ai_brain.gd" id="1_brain"]
+
+[node name="EnemyAIBrain" type="Node"]
+script = ExtResource("1_brain")
+detection_radius = 12.0
+chase_exit_radius = 18.0
+vision_cone_deg = 50.0
+vision_debug_visible = true
+vision_eye_height = 1.0
+suspect_duration = 3.0
+chase_max_duration = 8.0
+crouch_makes_invisible = true
+wander_speed_fraction = 0.25
+chase_speed_fraction = 1.0
+attack_cooldown = 1.2
+wind_up_duration = 0.4

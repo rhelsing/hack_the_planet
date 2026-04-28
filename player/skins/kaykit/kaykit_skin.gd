@@ -94,6 +94,15 @@ var _crouch_anim_node: AnimationNodeAnimation
 # All mannequin mesh parts that receive the shared overlay (damage flash +
 # glitch). Six pieces under Model/Rig_Medium/Skeleton3D.
 var _body_meshes: Array[MeshInstance3D] = []
+# Cached @export tints for set_faction_tint — captured the first time
+# faction sets them, restored when faction returns to amount=0.
+var _faction_tints_captured: bool = false
+var _default_tint_head: Color
+var _default_tint_body: Color
+var _default_tint_arm_left: Color
+var _default_tint_arm_right: Color
+var _default_tint_leg_left: Color
+var _default_tint_leg_right: Color
 
 const _GLITCH_SHADER: Shader = preload("res://player/skins/kaykit/death_glitch.gdshader")
 
@@ -333,13 +342,45 @@ func set_glitch_progress(value: float) -> void:
 
 
 func set_faction_tint(color: Color, amount: float) -> void:
-	# Persistent overlay wash. Lives under the transient damage_alpha and
-	# glitch_progress passes in the shader, so a hit-flush still reads on
-	# top. amount=0 → faction tint invisible (vanilla skin).
-	if _glitch_overlay == null:
+	# Per-part albedo override. amount > 0 → push `color` into all six
+	# Mannequin parts (head, body, arms, legs) and re-apply. amount == 0
+	# → restore the authored per-part tints. The first call caches the
+	# authored values via _captured_default_tints so red→green can revert
+	# cleanly. Overlay shader uniforms left at 0 — pure-color reskin.
+	if amount > 0.0:
+		_capture_default_tints_if_needed()
+		tint_head = color
+		tint_body = color
+		tint_arm_left = color
+		tint_arm_right = color
+		tint_leg_left = color
+		tint_leg_right = color
+	else:
+		_restore_default_tints_if_captured()
+	_apply_part_tints()
+
+
+func _capture_default_tints_if_needed() -> void:
+	if _faction_tints_captured:
 		return
-	_glitch_overlay.set_shader_parameter(&"faction_tint", Vector3(color.r, color.g, color.b))
-	_glitch_overlay.set_shader_parameter(&"faction_amount", clampf(amount, 0.0, 1.0))
+	_faction_tints_captured = true
+	_default_tint_head = tint_head
+	_default_tint_body = tint_body
+	_default_tint_arm_left = tint_arm_left
+	_default_tint_arm_right = tint_arm_right
+	_default_tint_leg_left = tint_leg_left
+	_default_tint_leg_right = tint_leg_right
+
+
+func _restore_default_tints_if_captured() -> void:
+	if not _faction_tints_captured:
+		return
+	tint_head = _default_tint_head
+	tint_body = _default_tint_body
+	tint_arm_left = _default_tint_arm_left
+	tint_arm_right = _default_tint_arm_right
+	tint_leg_left = _default_tint_leg_left
+	tint_leg_right = _default_tint_leg_right
 
 
 func _push_glitch_uniform() -> void:

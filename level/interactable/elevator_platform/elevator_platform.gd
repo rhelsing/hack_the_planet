@@ -44,6 +44,14 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 ## multiple instances so they don't lockstep.
 @export_range(0.0, 1.0) var phase_offset: float = 0.0
 
+@export_group("Gating")
+## Optional GameState flag — if set, the deck stays parked at base Y until
+## this flag flips true (e.g., the hack terminal sets `l2_hack_terminal`).
+## Persists across saves automatically because GameState rehydrates before
+## _ready fires; if the flag was true in the loaded save, motion starts
+## immediately. Empty string = always-on (default for hub elevators).
+@export var enable_when_flag: StringName = &""
+
 @onready var _deck: AnimatableBody3D = $Deck
 @onready var _visual: CSGBox3D = $Deck/Visual
 @onready var _collision: CollisionShape3D = $Deck/CollisionShape3D
@@ -51,6 +59,7 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 var _material: ShaderMaterial = null
 var _deck_base_y: float = 0.0
 var _t: float = 0.0
+var _enabled: bool = true
 
 
 func _ready() -> void:
@@ -59,6 +68,19 @@ func _ready() -> void:
 	_apply_palette()
 	_apply_size()
 	_deck_base_y = _deck.position.y
+	# Flag-gate setup. If enable_when_flag is set, start disabled and listen
+	# for the flag to flip. Save-restore: GameState is rehydrated before
+	# scene mount, so a saved-true flag means we boot already-enabled.
+	if enable_when_flag != &"":
+		_enabled = bool(GameState.get_flag(enable_when_flag, false))
+		print("[elev] %s gate=%s enabled=%s" % [name, enable_when_flag, _enabled])
+		Events.flag_set.connect(_on_flag_set)
+
+
+func _on_flag_set(id: StringName, value: Variant) -> void:
+	if id == enable_when_flag and value:
+		_enabled = true
+		print("[elev] %s enabled by flag %s" % [name, id])
 
 
 func _physics_process(delta: float) -> void:
@@ -67,6 +89,8 @@ func _physics_process(delta: float) -> void:
 	# Setting position on an AnimatableBody3D with sync_to_physics=true
 	# (set in the .tscn) makes the engine compute platform velocity from
 	# the per-frame delta and expose it to riders.
+	if not _enabled:
+		return
 	_t += delta
 	_deck.position.y = _deck_base_y + _offset()
 

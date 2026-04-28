@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="23_xlodn"]
 [ext_resource type="Resource" uid="uid://c8jyiqkr3wt7p" path="res://dialogue/hub_post4_splice.dialogue" id="25_p4splice"]
 [ext_resource type="Resource" uid="uid://cd2w6nvbq4xv8" path="res://dialogue/hub_post4_nyx.dialogue" id="26_p4nyx"]
+[ext_resource type="Script" path="res://level/world_environment_runtime_boost.gd" id="27_envboost"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -71,13 +72,13 @@ ambient_light_sky_contribution = 0.0
 tonemap_mode = 2
 tonemap_exposure = 1.05
 tonemap_white = 0.95
-ssr_enabled = true
+ssr_enabled = false
 ssr_max_steps = 48
-ssao_enabled = true
+ssao_enabled = false
 ssao_radius = 2.0
 ssao_intensity = 1.4
-ssil_enabled = true
-glow_enabled = true
+ssil_enabled = false
+glow_enabled = false
 glow_intensity = 4.73
 glow_strength = 0.54
 glow_bloom = 0.41
@@ -86,7 +87,7 @@ glow_hdr_threshold = 0.26
 glow_hdr_scale = 1.48
 glow_hdr_luminance_cap = 66.26
 glow_map_strength = 1.0
-fog_enabled = true
+fog_enabled = false
 fog_light_color = Color(0, 0, 0, 1)
 fog_light_energy = 2.31
 fog_density = 0.0309
@@ -112,6 +113,7 @@ script = ExtResource("1_script")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=619190011]
 environment = SubResource("Environment_kie8i")
+script = ExtResource("27_envboost")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1170556833]
 transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.29457843, 0.6624412, 0.64704365, 0.16237843, -0.7449616, -47.2295, 26.8832, -28.0205)

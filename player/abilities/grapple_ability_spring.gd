@@ -1,72 +1,52 @@
 class_name GrappleAbilitySpring
 extends Ability
 
-## BACKUP of the asymmetric damped-spring grapple. To revert from the
-## physics-chain version, swap the script on PlayerBody/Abilities/
-## GrappleAbility in player_body.tscn to this file.
-
-## Grapple hook. Walks the "grappleable" group each frame; any target inside
-## MAX_RANGE and within the camera's facing cone shows its prompt label. On
-## grapple_fire, attaches to the best target and drives the player with an
-## asymmetric damped-spring rope. Press jump to release with current velocity.
+## Titanfall-style yank-and-launch grapple. Pulls the player toward the
+## anchor (slightly below it so trajectory arcs UNDER the hook instead of
+## smashing into it), auto-releases at proximity, hands the carried velocity
+## back to PlayerBody. Press jump to release early for trick shots.
 ##
-## Swing model (asymmetric spring — "real rope"):
-##   1. Carry the player's pre-grapple velocity — approach direction becomes
-##      swing direction.
-##   2. Each tick: apply gravity to velocity.
-##   3. If distance > rope_length: apply a spring pull toward the anchor
-##      (magnitude = stiffness × stretch) plus damping on the radial velocity
-##      component. Rope can only pull, not push.
-##   4. If distance <= rope_length: no force applied — rope is slack, player
-##      moves freely.
-##   5. Integrate position from velocity.
-##
-## Dial the feel with rope_stiffness + rope_damping exports:
-##   - High stiffness + damping → near-rigid Verlet feel (snappy, no bounce).
-##   - Low stiffness → bungee (big stretch, overshoot, oscillation).
-##   - Critical damping for stiffness k is ≈ 2·√k; default (200, 20) is
-##     under-damped for a lively swing, tune up for stability.
+## Pull model (constant velocity, no gravity):
+##   1. On fire, compute aim_point = anchor - UP * PULL_AIM_DROP. The drop
+##      bias is what makes the player skim past the hook rather than colliding
+##      with it; release happens just before reaching aim_point.
+##   2. Each tick: aim direction = (aim_point - player).normalized().
+##      Apply velocity = aim_dir * PULL_SPEED. Body's own physics is paused
+##      so this is the only force acting on the player.
+##   3. Auto-release when within RELEASE_DISTANCE of aim_point.
+##   4. On release, hand the carried pull velocity to PlayerBody (+ small
+##      upward kick) so the player launches in the pull direction; gravity
+##      then takes over for a normal arc.
 
 ## How far the aim detector reaches (m). Target beyond this is ignored.
 const MAX_RANGE: float = 25.0
 ## Cosine of the max angle between camera-forward and direction-to-target.
 ## 0.7 ≈ 45° half-cone — forgiving aim.
 const FACING_COS: float = 0.7
-## On grapple-fire, the rope length is set to (distance_to_anchor - PULL_IN).
-## Smaller = less pull-in, longer swing rope. Tune in the inspector if needed.
-const PULL_IN: float = 2.0
-## Hard minimum on rope length so a grapple fired at point-blank range still
-## produces a workable swing instead of collapsing.
-const MIN_ROPE_LENGTH: float = 5.0
-## Downward acceleration applied each tick during swing, m/s². Higher =
-## faster, snappier swing; lower = floaty.
-const SWING_GRAVITY: float = 20.0
-## Upward kick applied on release so letting go at the apex feels like a jump.
+## Upward kick added to the release velocity so a grapple-into-jump feels
+## like it has a little hop on top of the carried pull velocity.
 const RELEASE_UP_KICK: float = 5.0
 
-## Spring stiffness (k). The force pulling you toward the anchor when
-## stretched is stiffness × stretch_meters. Very high (800+) ≈ rigid rope.
-## Low (50) ≈ bungee cord.
-@export var rope_stiffness: float = 200.0
-## Radial damping. Opposes motion along the rope direction (stops oscillation).
-## Critical damping for mass=1 is ≈ 2·√stiffness. Below that, the rope bounces;
-## above, it settles smoothly.
-@export var rope_damping: float = 20.0
-## Safety clamp: if the spring is tuned too softly, the player could stretch
-## the rope absurdly. Cap stretch at this many meters beyond rope_length
-## with a hard Verlet-style clamp so we never tunnel across the map.
-const MAX_STRETCH: float = 4.0
+## Player's pull speed toward the anchor (m/s). Higher = snappier yank.
+## Compare to typical jump apex velocity (~10 m/s) — 30 reads as decisively
+## fast. Bump up for a launchier feel.
+@export var pull_speed: float = 30.0
+## How far below the anchor the player aims for. The pull trajectory ends
+## at (anchor - UP * pull_aim_drop), so the player skims under the hook
+## instead of slamming into it. 1.5 ≈ player's eye-level offset.
+@export var pull_aim_drop: float = 1.5
+## Auto-release proximity (m). When the player gets within this of the aim
+## point, the grapple lets go and hands velocity back to PlayerBody.
+@export var release_distance: float = 2.5
 
 # Aim state — updated each frame from the grappleable scan.
 var _aim_target: Node3D = null
 
-# Swing state — populated on _start_swing, cleared on _release.
+# Pull state — populated on _start_swing, cleared on _release.
 var _swinging: bool = false
 var _anchor: Node3D = null
-var _rope_length: float = 0.0
-## Carried velocity during swing — starts as the player's pre-grapple
-## velocity, accumulates gravity each tick, gets the radial component
-## stripped on constraint hits.
+## Carried velocity during pull — set each tick to (aim_dir * pull_speed)
+## so the value at release is the launch velocity handed back to PlayerBody.
 var _vel: Vector3 = Vector3.ZERO
 var _line_renderer: MeshInstance3D = null
 
@@ -188,47 +168,23 @@ func _start_swing(target: Node3D) -> void:
 
 	_anchor = target
 	_swinging = true
-	var anchor_pos: Vector3 = target.global_position
-
-	# Rope length = current distance minus PULL_IN, clamped to a sane minimum.
-	var offset: Vector3 = body_3d.global_position - anchor_pos
-	var current_distance: float = offset.length()
-	var raw_rope: float = current_distance - PULL_IN
-	var clamped: bool = raw_rope < MIN_ROPE_LENGTH
-	_rope_length = maxf(raw_rope, MIN_ROPE_LENGTH)
-	print("[grapple] fire: anchor=%s player=%s dist=%.2f raw_rope=%.2f clamped=%s rope=%.2f" % [
-		anchor_pos, body_3d.global_position, current_distance, raw_rope, clamped, _rope_length,
+	_vel = Vector3.ZERO  # populated each tick to the active pull velocity
+	print("[grapple] fire: anchor=%s player=%s dist=%.2f" % [
+		target.global_position, body_3d.global_position,
+		(target.global_position - body_3d.global_position).length(),
 	])
 
-	# CARRY the player's approach velocity into the swing — this is the
-	# whole point of Verlet: the direction + speed you came in with becomes
-	# the initial swing direction. No zeroing out.
-	_vel = Vector3.ZERO
-	if body is CharacterBody3D:
-		_vel = (body as CharacterBody3D).velocity
-
-	# If the player is currently farther than rope_length, snap them in
-	# along the rope direction (the "yank" feel). Strip any outward-going
-	# component of velocity so the rope is immediately taut.
-	var offset_dir: Vector3 = offset.normalized() if offset.length_squared() > 0.01 else Vector3.DOWN
-	if offset.length() > _rope_length:
-		body_3d.global_position = anchor_pos + offset_dir * _rope_length
-		var radial: Vector3 = offset_dir
-		var radial_speed: float = _vel.dot(radial)
-		if radial_speed > 0.0:  # moving further from anchor — kill that component
-			_vel -= radial * radial_speed
-
-	# Hand motion over to our Verlet loop. CharacterBody3D's own move_and_slide
-	# would fight the rope constraint if left running.
+	# Hand motion over to our pull loop. CharacterBody3D's own move_and_slide
+	# would fight the constant-velocity pull if left running.
 	body.set_physics_process(false)
 	if body is CharacterBody3D:
 		(body as CharacterBody3D).velocity = Vector3.ZERO
 
 	# With body._physics_process off, PlayerBody's smoothed camera-follow
 	# loop stops running — in DETACHED mode the pivot is a top-level node
-	# and would freeze in world space, detaching from the swinging body.
+	# and would freeze in world space, detaching from the flying body.
 	# Pin the pivot to the body as a plain child for the duration of the
-	# swing so it rides along automatically.
+	# pull so it rides along automatically.
 	_cached_pivot = body.get_node_or_null(^"CameraPivot") as Node3D
 	if _cached_pivot != null:
 		_saved_pivot_top_level = _cached_pivot.top_level
@@ -241,7 +197,7 @@ func _start_swing(target: Node3D) -> void:
 		_cached_pivot.position = pivot_local
 
 	# Spawn the rope-line renderer into the current scene so it can follow
-	# the anchor even if we move between levels (edge case: during swing).
+	# the anchor even if we move between levels (edge case: mid-pull).
 	_line_renderer = _build_line_renderer()
 	get_tree().current_scene.add_child(_line_renderer)
 
@@ -253,40 +209,17 @@ func _tick_swing(delta: float) -> void:
 	var body := _find_body() as Node3D
 	if body == null:
 		return
-
-	# 1. Gravity pulls the velocity down.
-	_vel += Vector3.DOWN * SWING_GRAVITY * delta
-
-	# 2. Asymmetric rope spring: only when stretched beyond rope_length.
-	#    Force = -stiffness · stretch · radial - damping · radial_velocity.
-	#    Radial points anchor→player, so the -radial direction pulls inward.
-	var anchor_pos: Vector3 = _anchor.global_position
-	var offset: Vector3 = body.global_position - anchor_pos
-	var dist: float = offset.length()
-	if dist > _rope_length and dist > 0.001:
-		var radial: Vector3 = offset / dist
-		var stretch: float = dist - _rope_length
-		var radial_speed: float = _vel.dot(radial)
-		var spring_accel: Vector3 = -radial * (rope_stiffness * stretch)
-		var damping_accel: Vector3 = -radial * (rope_damping * radial_speed)
-		_vel += (spring_accel + damping_accel) * delta
-	# else: slack rope, no constraint force.
-
-	# 3. Integrate position.
-	var new_pos: Vector3 = body.global_position + _vel * delta
-
-	# 4. Safety clamp: never let stretch exceed MAX_STRETCH. Catches the case
-	#    where tuning is too soft and the spring can't pull back fast enough.
-	var to_new: Vector3 = new_pos - anchor_pos
-	var max_dist: float = _rope_length + MAX_STRETCH
-	if to_new.length() > max_dist:
-		var clamp_radial: Vector3 = to_new.normalized()
-		new_pos = anchor_pos + clamp_radial * max_dist
-		var radial_speed_clamp: float = _vel.dot(clamp_radial)
-		if radial_speed_clamp > 0.0:
-			_vel -= clamp_radial * radial_speed_clamp
-
-	body.global_position = new_pos
+	# Aim BELOW the anchor by pull_aim_drop so the trajectory carries the
+	# player past/under the hook on release instead of crashing into it.
+	var aim_point: Vector3 = _anchor.global_position - Vector3.UP * pull_aim_drop
+	var to_aim: Vector3 = aim_point - body.global_position
+	var dist: float = to_aim.length()
+	if dist <= release_distance:
+		_release()
+		return
+	var dir: Vector3 = to_aim / dist  # already non-zero; dist > release_distance > 0
+	_vel = dir * pull_speed
+	body.global_position += _vel * delta
 
 
 func _release() -> void:

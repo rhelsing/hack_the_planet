@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://bij84ol81kcts" path="res://level/interactable/kill_plane/kill_plane_3d.tscn" id="5_kill"]
 [ext_resource type="Resource" uid="uid://rr863kaxxb0b" path="res://dialogue/level_clear.dialogue" id="6_clear"]
 [ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="10_b7jw0"]
+[ext_resource type="Script" path="res://level/world_environment_runtime_boost.gd" id="11_envboost"]
 
 [sub_resource type="Curve" id="Curve_kyl5q"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -57,13 +58,13 @@ ambient_light_sky_contribution = 0.13
 ambient_light_energy = 2.69
 tonemap_mode = 2
 tonemap_exposure = 0.78
-ssr_enabled = true
+ssr_enabled = false
 ssr_max_steps = 48
-ssao_enabled = true
+ssao_enabled = false
 ssao_radius = 2.0
 ssao_intensity = 1.4
-ssil_enabled = true
-glow_enabled = true
+ssil_enabled = false
+glow_enabled = false
 glow_intensity = 2.88
 glow_strength = 0.49
 glow_bloom = 0.23
@@ -72,7 +73,7 @@ glow_hdr_threshold = 0.26
 glow_hdr_scale = 1.48
 glow_hdr_luminance_cap = 66.26
 glow_map_strength = 1.0
-fog_enabled = true
+fog_enabled = false
 fog_light_color = Color(0, 0, 0, 1)
 fog_light_energy = 2.31
 fog_density = 0.0309
@@ -94,6 +95,7 @@ script = ExtResource("1_script")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2116284668]
 environment = SubResource("Environment_4v15s")
+script = ExtResource("11_envboost")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=818576006]
 transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.2945784, 0.6624412, 0.64704365, 0.16237842, -0.7449616, -47.2295, 26.8832, -28.0205)

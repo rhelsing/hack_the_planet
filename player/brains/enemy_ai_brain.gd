@@ -18,6 +18,62 @@ extends Brain
 ## "hit the player" behavior for old enemy variants without faction set.
 @export var target_groups: Array[StringName] = [&"player"]
 
+@export_group("Vision Cone")
+## Half-angle in degrees of the FOV cone. 0 = omnidirectional (default,
+## existing swarm behavior). 45 = 90° total cone. Targets outside the
+## cone aren't acquired even within detection_radius.
+@export_range(0.0, 180.0) var vision_cone_deg: float = 0.0
+## Show the vision cone as a translucent fan. Material writes depth via
+## TRANSPARENCY_ALPHA_DEPTH_PRE_PASS so walls properly occlude it (no
+## ghost fan poking through cover). Auto-on for stealth variants.
+@export var vision_debug_visible: bool = false
+## Vertical offset (m) where the cone fan is drawn AND where the slice
+## raycasts originate. The visible fan IS the LOS volume — sharing this
+## height means low cover blocks detection visibly. ~0.9-1.0 = waist
+## (recommended for stealth), 1.4 = chest (sees over short cover).
+@export var vision_eye_height: float = 1.0
+## Seconds for the cone to swivel toward _direction (lerp). 0 = instant
+## snap; higher = smoother turn. ~0.15 reads natural for patrol AI.
+@export_range(0.0, 1.0) var vision_swivel_smoothing: float = 0.15
+
+@export_group("Vision Cone Stealth")
+## When true and the cone is enabled (vision_cone_deg > 0), a crouched
+## target is treated as invisible — the cone won't acquire them.
+## Player crouch state read via PlayerBody._was_crouched (stealth-game
+## sneaking pattern). Off = crouching is irrelevant (still detected).
+@export var crouch_makes_invisible: bool = true
+## Seconds the cone holds in SUSPECT (yellow) before promoting to HOSTILE
+## (red, chase). Player has this long to break LOS / crouch out before
+## they snap into pursuit. 0 = snap immediately (swarm AI default).
+@export var suspect_duration: float = 3.0
+## Maximum seconds in HOSTILE (chase). After this many seconds in CHASE,
+## the brain "tuckers out" and drops back to ALERT then CALM. 0 = never
+## tuckers (chase forever — swarm default).
+@export var chase_max_duration: float = 8.0
+
+@export_group("Vision Cone Colors")
+## Color while no target is in view (calm patrol). Half-transparent.
+@export var color_calm: Color = Color(0.0, 0.85, 0.0, 0.30)
+## Color during the post-CHASE alert window (target was visible, now
+## lost — they're scanning). Lasts `alert_duration` then fades to calm.
+@export var color_alert: Color = Color(0.95, 0.85, 0.0, 0.35)
+## Color while actively chasing (target visible, hostile lock).
+@export var color_hostile: Color = Color(0.95, 0.0, 0.0, 0.40)
+## Seconds the cone stays alert (yellow) after losing the target before
+## relaxing back to calm (green).
+@export var alert_duration: float = 3.0
+## Seconds for the cone color to crossfade between phase changes. 0 =
+## instant pop; ~0.25 reads as a beat of "wait, what?" before locking on.
+@export var color_blend_time: float = 0.25
+
+@export_group("Vision Cone Audio")
+## Played once when transitioning from calm/alert → hostile (target acquired).
+@export var sound_acquire: AudioStream
+## Played once when transitioning from hostile → alert (target lost).
+@export var sound_lose: AudioStream
+## Played once when transitioning from alert → calm (back to patrol).
+@export var sound_relax: AudioStream
+
 @export_group("Speed")
 ## Fraction of body's max_speed used while wandering. 0 = stand still.
 @export_range(0.0, 1.0) var wander_speed_fraction := 0.33
@@ -84,12 +140,44 @@ var _attack_cooldown_timer := 0.0
 var _wind_up_timer := 0.0
 var _target: Node3D
 var _intent := Intent.new()
+# Debug-viz fan mesh. Attached to the body so its transform follows the
+# pawn; rotated each tick to match _direction so the cone points where
+# the brain is looking. Built lazily on first tick when vision_debug_visible.
+var _vision_cone_mesh: MeshInstance3D = null
+# Smoothed yaw the cone tracks toward via lerp_angle each tick. Avoids
+# the snappy direction-flip that happens when the brain rerolls wander.
+var _vision_cone_yaw: float = 0.0
+# Smoothed color tracking _vision_cone_color_target via lerp each tick.
+var _vision_cone_color_current: Color = Color(0.0, 0.85, 0.0, 0.30)
+var _vision_cone_color_target: Color = Color(0.0, 0.85, 0.0, 0.30)
+# Three-phase alert state. Mirrors color: calm (green), alert (yellow,
+# brief post-CHASE scan), hostile (red, in CHASE). Sounds fire on each
+# transition. _alert_timer counts down the alert→calm window.
+enum _AlertPhase { CALM, SUSPECT, HOSTILE, ALERT }
+var _alert_phase: int = _AlertPhase.CALM
+# Used by SUSPECT (counts up to suspect_duration → promote to HOSTILE),
+# HOSTILE (counts up to chase_max_duration → tucker out), and ALERT
+# (counts down to 0 → relax to CALM). Single var, repurposed per phase.
+var _alert_timer: float = 0.0
+# 3D audio player attached to the body for phase-transition sounds.
+# Lazy-built first time we play anything — no allocation cost for
+# enemies that don't have sound exports configured.
+var _vision_audio: AudioStreamPlayer3D = null
+# Per-tick raycast distances for each cone slice. Index i corresponds to
+# angle (-half + step*i) from forward. Drives BOTH the visual fan AND
+# the crouched-target detection check — same source of truth so what
+# you see is what they see. Empty when vision_cone_deg <= 0 (swarm mode).
+const _CONE_SLICES: int = 16
+var _slice_distances: PackedFloat32Array = PackedFloat32Array()
 
 
 func _ready() -> void:
 	_direction = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	_reset_wander_timer()
 	_state = starting_state
+	# Seed yaw so first-frame slice rays + visual point along _direction
+	# instead of swinging from 0 on spawn.
+	_vision_cone_yaw = atan2(_direction.x, _direction.z) + PI
 
 
 func tick(body: Node3D, delta: float) -> Intent:
@@ -99,6 +187,14 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_intent.attack_pressed = false
 	_attack_cooldown_timer = maxf(0.0, _attack_cooldown_timer - delta)
 
+	# Cone yaw + per-slice raycasts run BEFORE alert phase. _can_see_target
+	# (called inside _update_alert_phase) reads _slice_distances; the visual
+	# rebuild reads them too. Single shared source.
+	_update_vision_yaw(delta)
+	_compute_slice_distances(body)
+
+	_update_alert_phase(body, delta)
+	_update_vision_debug(body, delta)
 	_ensure_target(body)
 	_update_state(body)
 
@@ -122,19 +218,65 @@ func tick(body: Node3D, delta: float) -> Intent:
 	return _intent
 
 
-func _update_state(body: Node3D) -> void:
+func _update_state(_body: Node3D) -> void:
+	# Movement state follows the four-phase alert machine: only HOSTILE
+	# drives CHASE; CALM/SUSPECT/ALERT all wander. SUSPECT looks visually
+	# alarmed via the yellow cone but the brain still patrols normally —
+	# the player has those 3 seconds to break LOS or crouch.
 	if _target == null:
 		_state = starting_state
 		return
-	var distance := _horizontal_distance(body.global_position, _target.global_position)
-	match _state:
-		State.WANDER, State.IDLE:
-			if distance < detection_radius:
-				_state = State.CHASE
-		State.CHASE:
-			if distance > chase_exit_radius:
-				_state = starting_state
-				_reset_wander_timer()
+	if _alert_phase == _AlertPhase.HOSTILE:
+		if _state != State.CHASE and _state != State.WIND_UP:
+			_state = State.CHASE
+	else:
+		if _state == State.CHASE or _state == State.WIND_UP:
+			_state = starting_state
+			_reset_wander_timer()
+
+
+# Detection check. Two modes selected by `vision_cone_deg`:
+#   cone == 0 (swarm)    : pure sphere — in range = detected.
+#   cone > 0 (stealth)   : "absolutely impossible without crouching" —
+#     standing target is detected anywhere within `range_cap` (full
+#     sphere, no cone gate). Crouched target must fall inside a slice
+#     whose raycast reached at least the target's distance. The slice
+#     rays ARE the LOS check; visual fan and detection share them.
+# The SUSPECT phase (3s tolerance) handles the noticing delay — this
+# function only reports raw "currently visible" state.
+func _can_see_target(body: Node3D, range_cap: float) -> bool:
+	if _target == null or not is_instance_valid(_target):
+		return false
+	var to_target: Vector3 = _target.global_position - body.global_position
+	var to_target_flat := Vector3(to_target.x, 0.0, to_target.z)
+	var horiz: float = to_target_flat.length()
+	if horiz > range_cap:
+		return false
+	if vision_cone_deg <= 0.0:
+		return true  # swarm: sphere detection, no cone
+	var crouched: bool = "_was_crouched" in _target and bool(_target.get(&"_was_crouched"))
+	if not crouched:
+		return true  # standing inside stealth sphere = absolutely seen
+	# Crouched: must lie inside the cone AND inside the unblocked extent
+	# of whichever slice contains them. A wall touching either bounding
+	# ray of the slice clips the slice short and conceals the target.
+	if horiz < 0.0001 or _slice_distances.size() < 2:
+		return true
+	var to_dir: Vector3 = to_target_flat / horiz
+	var theta_t: float = atan2(to_dir.x, to_dir.z) + PI
+	var a_target: float = angle_difference(_vision_cone_yaw, theta_t)
+	var half_rad: float = deg_to_rad(vision_cone_deg)
+	if absf(a_target) > half_rad:
+		return false  # outside cone arc
+	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
+	var slice_f: float = (a_target + half_rad) / step
+	var f_idx: int = clampi(int(floor(slice_f)), 0, _slice_distances.size() - 1)
+	var c_idx: int = clampi(int(ceil(slice_f)), 0, _slice_distances.size() - 1)
+	# Conservative pick: the shorter of the two bounding rays. If a wall
+	# is on either side of the target's slice, treat as blocked. Matches
+	# how the visual fan visibly shrinks at that slice.
+	var slice_dist: float = minf(_slice_distances[f_idx], _slice_distances[c_idx])
+	return horiz <= slice_dist
 
 
 func _chase_direction(body: Node3D) -> Vector3:
@@ -274,3 +416,205 @@ func _has_ground_ahead(body: Node3D) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [(body as CollisionObject3D).get_rid()] if body is CollisionObject3D else []
 	return not space.intersect_ray(query).is_empty()
+
+
+# ---- Vision-cone debug visualization ------------------------------------
+
+# Four-phase state machine — drives cone color + transition sounds AND
+# whether the brain is in CHASE state for movement. Phases:
+#   CALM (green): no target visible. Wander.
+#   SUSPECT (yellow): target seen, building up. Wander, _alert_timer counts
+#     up. At suspect_duration → HOSTILE.
+#   HOSTILE (red): chasing. _state = CHASE. _alert_timer counts up to
+#     chase_max_duration → ALERT (tuckered out). Or target lost → ALERT.
+#   ALERT (yellow): post-chase look-around. _alert_timer counts down to 0
+#     → CALM.
+# When suspect_duration <= 0, CALM → HOSTILE snaps directly (swarm pattern).
+# When chase_max_duration <= 0, HOSTILE never tuckers (swarm pattern).
+func _update_alert_phase(body: Node3D, delta: float) -> void:
+	var prior: int = _alert_phase
+	# Re-check visibility against the up-to-date target. Use the chase-exit
+	# radius once we're past CALM so target remains "visible" through the
+	# hysteresis window — same as the original swarm behavior.
+	var range_cap: float = chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else detection_radius
+	var visible: bool = _target != null and _can_see_target(body, range_cap)
+	match _alert_phase:
+		_AlertPhase.CALM:
+			if visible:
+				if suspect_duration > 0.0 and vision_cone_deg > 0.0:
+					_alert_phase = _AlertPhase.SUSPECT
+					_alert_timer = 0.0
+				else:
+					_alert_phase = _AlertPhase.HOSTILE
+					_alert_timer = 0.0
+		_AlertPhase.SUSPECT:
+			if not visible:
+				_alert_phase = _AlertPhase.CALM
+			else:
+				_alert_timer += delta
+				if _alert_timer >= suspect_duration:
+					_alert_phase = _AlertPhase.HOSTILE
+					_alert_timer = 0.0
+		_AlertPhase.HOSTILE:
+			_alert_timer += delta
+			var tuckered: bool = chase_max_duration > 0.0 and _alert_timer >= chase_max_duration
+			if not visible or tuckered:
+				_alert_phase = _AlertPhase.ALERT
+				_alert_timer = alert_duration
+		_AlertPhase.ALERT:
+			_alert_timer = maxf(0.0, _alert_timer - delta)
+			if _alert_timer <= 0.0:
+				_alert_phase = _AlertPhase.CALM
+	if prior != _alert_phase:
+		_on_alert_phase_changed(body, prior, _alert_phase)
+
+
+# Phase-transition hook: pick the target color for the cone and play the
+# matching sound. Color crossfades over color_blend_time; sound fires once.
+func _on_alert_phase_changed(body: Node3D, _prior: int, current: int) -> void:
+	match current:
+		_AlertPhase.HOSTILE:
+			_vision_cone_color_target = color_hostile
+			_play_phase_sound(body, sound_acquire)
+		_AlertPhase.SUSPECT:
+			_vision_cone_color_target = color_alert  # yellow buildup
+			# No sound — the player needs the 3s window to be uncertain.
+		_AlertPhase.ALERT:
+			_vision_cone_color_target = color_alert
+			_play_phase_sound(body, sound_lose)
+		_AlertPhase.CALM:
+			_vision_cone_color_target = color_calm
+			_play_phase_sound(body, sound_relax)
+
+
+func _play_phase_sound(body: Node3D, stream: AudioStream) -> void:
+	if stream == null:
+		return
+	if _vision_audio == null or not is_instance_valid(_vision_audio):
+		_vision_audio = AudioStreamPlayer3D.new()
+		_vision_audio.bus = &"SFX"
+		_vision_audio.unit_size = 8.0
+		_vision_audio.max_distance = 30.0
+		body.add_child(_vision_audio)
+	_vision_audio.stream = stream
+	_vision_audio.play()
+
+
+# Smooth the cone yaw toward _direction. Called early in tick() so both
+# the slice raycasts and the visual fan use the same up-to-date yaw.
+func _update_vision_yaw(delta: float) -> void:
+	if vision_cone_deg <= 0.0 and not vision_debug_visible:
+		return
+	var target_yaw: float = atan2(_direction.x, _direction.z) + PI
+	if vision_swivel_smoothing <= 0.0:
+		_vision_cone_yaw = target_yaw
+	else:
+		var k: float = 1.0 - exp(-delta / vision_swivel_smoothing)
+		_vision_cone_yaw = lerp_angle(_vision_cone_yaw, target_yaw, k)
+
+
+# Cast _CONE_SLICES+1 rays from the eye outward at evenly-spaced angles
+# spanning the FOV cone. Each ray is clipped at its first wall hit (or
+# stays at detection_radius if it hits nothing). The resulting array is
+# the single source of truth for both the visible fan AND the crouched-
+# target detection check.
+func _compute_slice_distances(body: Node3D) -> void:
+	if vision_cone_deg <= 0.0:
+		if _slice_distances.size() != 0:
+			_slice_distances.resize(0)
+		return
+	var n: int = _CONE_SLICES + 1
+	if _slice_distances.size() != n:
+		_slice_distances.resize(n)
+	var space := body.get_world_3d().direct_space_state
+	if space == null:
+		for i in range(n):
+			_slice_distances[i] = detection_radius
+		return
+	var origin: Vector3 = body.global_position + Vector3.UP * vision_eye_height
+	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
+	var half_rad: float = deg_to_rad(vision_cone_deg)
+	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
+	var exclude: Array[RID] = []
+	if body is CollisionObject3D:
+		exclude.append((body as CollisionObject3D).get_rid())
+	for i in range(n):
+		var a: float = -half_rad + step * float(i)
+		var dir: Vector3 = forward.rotated(Vector3.UP, a)
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + dir * detection_radius)
+		query.exclude = exclude
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			_slice_distances[i] = detection_radius
+		else:
+			_slice_distances[i] = origin.distance_to(hit.position as Vector3)
+
+
+# Position the fan apex at the eye, crossfade the color, then rebuild the
+# mesh from this tick's slice distances. top_level decouples the mesh
+# from the body's rotation — vertices are emitted in world-aligned local
+# space, transform translates only.
+func _update_vision_debug(body: Node3D, delta: float) -> void:
+	if not vision_debug_visible or vision_cone_deg <= 0.0:
+		if _vision_cone_mesh != null and is_instance_valid(_vision_cone_mesh):
+			_vision_cone_mesh.queue_free()
+			_vision_cone_mesh = null
+		return
+	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
+		_vision_cone_mesh = _build_vision_cone_mesh(body)
+		_vision_cone_color_current = _vision_cone_color_target
+	_vision_cone_mesh.global_position = body.global_position + Vector3.UP * vision_eye_height
+	var ck: float = 1.0
+	if color_blend_time > 0.0:
+		ck = clampf(delta / color_blend_time, 0.0, 1.0)
+	_vision_cone_color_current = _vision_cone_color_current.lerp(_vision_cone_color_target, ck)
+	var mat: StandardMaterial3D = _vision_cone_mesh.material_override as StandardMaterial3D
+	if mat != null:
+		mat.albedo_color = _vision_cone_color_current
+	_rebuild_vision_cone_mesh()
+
+
+func _build_vision_cone_mesh(body: Node3D) -> MeshInstance3D:
+	var inst := MeshInstance3D.new()
+	inst.mesh = ImmediateMesh.new()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color_calm
+	# DEPTH_PRE_PASS lets opaque walls correctly occlude the translucent
+	# fan. Plain alpha lets the fan bleed through cover.
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	inst.material_override = mat
+	body.add_child(inst)
+	inst.top_level = true
+	return inst
+
+
+# Rebuild the fan as one triangle per slice. Each triangle reaches the
+# clipped distance from this tick's slice raycasts — so the visible fan
+# IS the LOS volume, slice-for-slice. Walls clip the cone live.
+func _rebuild_vision_cone_mesh() -> void:
+	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
+		return
+	var mesh := _vision_cone_mesh.mesh as ImmediateMesh
+	if mesh == null:
+		return
+	mesh.clear_surfaces()
+	if _slice_distances.size() < 2:
+		return
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var half_rad: float = deg_to_rad(vision_cone_deg)
+	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
+	var apex := Vector3.ZERO
+	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
+	for i in range(_CONE_SLICES):
+		var a0: float = -half_rad + step * float(i)
+		var a1: float = -half_rad + step * float(i + 1)
+		var dir0: Vector3 = forward.rotated(Vector3.UP, a0)
+		var dir1: Vector3 = forward.rotated(Vector3.UP, a1)
+		var p0: Vector3 = dir0 * _slice_distances[i]
+		var p1: Vector3 = dir1 * _slice_distances[i + 1]
+		mesh.surface_add_vertex(apex)
+		mesh.surface_add_vertex(p0)
+		mesh.surface_add_vertex(p1)
+	mesh.surface_end()

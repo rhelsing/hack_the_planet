@@ -1,0 +1,20 @@
+[gd_scene load_steps=6 format=3 uid="uid://hyhh56bgmm1u"]
+
+[ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_body"]
+[ext_resource type="PackedScene" uid="uid://bcvkveqpeyxw7" path="res://player/skins/kaykit/kaykit_skin.tscn" id="2_skin"]
+[ext_resource type="PackedScene" uid="uid://dsplstealth0001" path="res://enemy/brains/splice_stealth_ai.tscn" id="3_brain"]
+[ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="4_profile"]
+[ext_resource type="PackedScene" uid="uid://dstlthkilltgt01" path="res://enemy/stealth_kill_target/stealth_kill_target.tscn" id="5_skt"]
+
+[node name="EnemyKayKitSpliceStealth" instance=ExtResource("1_body")]
+skin_scene = ExtResource("2_skin")
+brain_scene = ExtResource("3_brain")
+pawn_group = "enemies"
+faction = &"splice_stealth"
+dies_permanently = true
+walk_profile = ExtResource("4_profile")
+start_in_walk_mode = true
+max_health = 1
+death_sound_auto_load_dir = "res://audio/sfx/enemy_deaths"
+
+[node name="StealthKillTarget" parent="." instance=ExtResource("5_skt")]

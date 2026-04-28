@@ -52,6 +52,11 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## conversion to apply, set their `id` to match this. Many zones can share
 ## an id (a single portal flipping enemies in multiple rooms at once).
 @export var convert_zone_id: StringName = &""
+## GameState flag that records whether this portal was activated. Empty =
+## no persistence (re-activates on every load). Set to a unique string
+## like &"l3_control_north" so reloading a level where the portal was
+## already triggered keeps enemies converted + palette yellow.
+@export var persistence_id: StringName = &""
 
 @export_group("SFX")
 @export var activation_sound: AudioStream
@@ -77,6 +82,26 @@ func _ready() -> void:
 	_sfx_player.max_distance = 35.0
 	_deck.add_child(_sfx_player)
 	_trigger.body_entered.connect(_on_body_entered)
+	# Restore prior activation: if the player triggered this portal in a
+	# previous session AND we have a persistence_id, snap to the activated
+	# visual state and replay the conversion so enemies respawn already
+	# converted instead of as their authored faction. GameState looked up
+	# via /root rather than the global identifier so this script compiles
+	# under SceneTree-mode tests (autoloads not registered there).
+	if persistence_id != &"":
+		var gs: Node = get_tree().root.get_node_or_null(^"GameState")
+		if gs != null and bool(gs.call(&"get_flag", persistence_id, false)):
+			_activated = true
+			_set_highlight_color(palette_active)
+			_replay_conversion_on_load.call_deferred()
+
+
+# Wait one physics frame so the ConvertZone's overlapping_bodies query
+# can populate (enemies' physics need a tick to register), then re-run
+# the same conversion the live activation would have. Idempotent.
+func _replay_conversion_on_load() -> void:
+	await get_tree().physics_frame
+	_apply_conversion()
 
 
 func _on_body_entered(body: Node) -> void:
@@ -97,6 +122,13 @@ func _activate() -> void:
 		_sfx_player.stream = activation_sound
 		_sfx_player.play()
 	_apply_conversion()
+	# Persist for save-restore. Empty persistence_id = no save (portal re-
+	# activates on every fresh load, useful for pure-test placements).
+	# Same /root lookup as _ready for SceneTree-mode test compatibility.
+	if persistence_id != &"":
+		var gs: Node = get_tree().root.get_node_or_null(^"GameState")
+		if gs != null:
+			gs.call(&"set_flag", persistence_id, true)
 
 
 func _set_highlight_color(c: Color) -> void:

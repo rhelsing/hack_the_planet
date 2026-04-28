@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://creyaoak533rg"]
+
+[ext_resource type="Script" path="res://enemy/stealth_kill_target/stealth_kill_target.gd" id="1_skt"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_skt"]
+radius = 1.6
+
+[node name="StealthKillTarget" type="Area3D"]
+collision_layer = 512
+collision_mask = 0
+script = ExtResource("1_skt")
+prompt_verb = "hack"
+interactable_id = &"stealth_kill"
+focus_priority = 1.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("SphereShape3D_skt")

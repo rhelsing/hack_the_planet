@@ -101,6 +101,25 @@ func set_faction(new_faction: StringName) -> void:
 	# KayKit (no rig); profile flip is the real mechanical change.
 	if new_faction == &"gold":
 		set_profile_skate()
+	# Per-faction speed + damage buffs. Splice (red) gets 2.5× speed +
+	# one-shot damage; everything else stays vanilla. Read each tick by
+	# the movement target_vel and by _sweep_attack's take_hit call.
+	var buffs: Array = _FACTION_BUFFS.get(new_faction, [1.0, 1]) as Array
+	_faction_speed_mult = float(buffs[0])
+	_faction_attack_damage = int(buffs[1])
+	# Splice extras: invulnerable + zero attack delay. Cache brain defaults
+	# the first time we touch them so a hack-conversion (red→green) can
+	# restore the authored cooldown/wind-up.
+	_faction_invulnerable = (new_faction == &"red")
+	if _brain != null:
+		if "attack_cooldown" in _brain:
+			if _brain_default_attack_cooldown < 0.0:
+				_brain_default_attack_cooldown = float(_brain.attack_cooldown)
+			_brain.attack_cooldown = 0.0 if new_faction == &"red" else _brain_default_attack_cooldown
+		if "wind_up_duration" in _brain:
+			if _brain_default_wind_up < 0.0:
+				_brain_default_wind_up = float(_brain.wind_up_duration)
+			_brain.wind_up_duration = 0.0 if new_faction == &"red" else _brain_default_wind_up
 	# Tint the skin (no-op on skins that haven't implemented set_faction_tint).
 	if _skin != null and _skin.has_method(&"set_faction_tint"):
 		var tint: Array = _FACTION_TINT[new_faction]
@@ -145,25 +164,42 @@ func _initial_faction_from_pawn_group() -> StringName:
 
 # Faction → physics group membership + attack targeting + tint.
 const _FACTION_GROUP: Dictionary = {
-	&"player": &"player",
-	&"green":  &"enemies",
-	&"red":    &"splice_enemies",
-	&"gold":   &"allies",
+	&"player":         &"player",
+	&"green":          &"enemies",
+	&"red":            &"splice_enemies",
+	&"splice_stealth": &"splice_enemies",
+	&"gold":           &"allies",
 }
 const _FACTION_TARGETS: Dictionary = {
-	&"player": [&"enemies", &"splice_enemies", &"allies"],
-	&"green":  [&"player",  &"allies"],
-	&"red":    [&"player",  &"allies"],
-	&"gold":   [&"enemies", &"splice_enemies"],
+	&"player":         [&"enemies", &"splice_enemies", &"allies"],
+	&"green":          [&"player",  &"allies"],
+	&"red":            [&"player",  &"allies"],
+	&"splice_stealth": [&"player",  &"allies"],
+	&"gold":           [&"enemies", &"splice_enemies"],
 }
-# Tint: [Color, amount]. Player + green = no tint; red + gold are visibly
-# colored. Used by §4 — currently the skin's set_faction_tint may no-op
-# until the shader gets the new uniforms; safe to call regardless.
+# Faction → [speed_multiplier, attack_damage]. Multiplied into the body's
+# move_toward target each tick + passed to take_hit on every connecting
+# swing. Splice (red) is the swarm variant: 2.5× speed + 99 damage +
+# invulnerable + zero cooldown. Splice stealth is the patrol variant:
+# normal speed + one-shot kill but killable + cone-of-view AI (configured
+# on the brain, not here).
+const _FACTION_BUFFS: Dictionary = {
+	&"player":         [1.0, 1],
+	&"green":          [1.0, 1],
+	&"red":            [2.5, 99],
+	&"splice_stealth": [1.0, 99],
+	&"gold":           [1.0, 1],
+}
+# Tint: [Color, amount]. amount=0 → skin restores its authored per-part
+# albedo; amount>0 → skin overrides every body part to `color`. Pure RGB
+# values for splice (red) and gold so they read at a glance. Player +
+# green stay vanilla.
 const _FACTION_TINT: Dictionary = {
-	&"player": [Color.WHITE, 0.0],
-	&"green":  [Color.WHITE, 0.0],
-	&"red":    [Color(1.0, 0.18, 0.12), 0.55],
-	&"gold":   [Color(1.0, 0.78, 0.10), 0.55],
+	&"player":         [Color.WHITE, 0.0],
+	&"green":          [Color.WHITE, 0.0],
+	&"red":            [Color(1.0, 0.0, 0.0), 1.0],
+	&"splice_stealth": [Color(0.55, 0.0, 0.45), 1.0],  # purple-red
+	&"gold":           [Color(1.0, 0.78, 0.10), 1.0],
 }
 
 ## If true, death is terminal — the body queue_free()s instead of respawning
@@ -485,6 +521,18 @@ var _last_attack_impact_idx: int = -1
 # plays. Keeps the impact sfx to one play per swing even though
 # _sweep_attack runs every tick of the active window.
 var _attack_impact_played: bool = false
+# Faction-driven runtime tuning. Rewritten by set_faction() from the
+# _FACTION_BUFFS table. Speed mult is multiplied into the move_toward
+# target each tick; attack damage is passed to take_hit on every swing.
+var _faction_speed_mult: float = 1.0
+var _faction_attack_damage: int = 1
+# Splice (red) is unkillable. take_hit early-returns when this is set.
+var _faction_invulnerable: bool = false
+# Cached brain defaults — set on first set_faction call that flips them
+# (so red→green restores the brain's authored cooldown/wind-up). -1.0
+# sentinel = "not captured yet". Applied via the brain's runtime fields.
+var _brain_default_attack_cooldown: float = -1.0
+var _brain_default_wind_up: float = -1.0
 var _footstep_player_a: AudioStreamPlayer3D
 var _footstep_player_b: AudioStreamPlayer3D
 var _footstep_player_toggle: bool = false
@@ -1235,6 +1283,45 @@ func _start_death(impact_direction: Vector3) -> void:
 	died.emit()
 
 
+## Stealth-kill entry point. No knockback launch, no horizontal impulse —
+## the pawn falls over in place: Hit anim plays once, skin tilts to lying-
+## on-back via the existing pose curve, confetti bursts after the hold,
+## queue_free. Intended for behind-the-back hack takedowns from a
+## StealthKillTarget Area3D — see enemy/stealth_kill_target.gd.
+func stealth_kill(impact_direction: Vector3 = Vector3.BACK) -> void:
+	if _dying:
+		return
+	_dying = true
+	if _skin != null:
+		_skin.damage_tint = 0.0
+	_death_burst_done = false
+	_death_glitch_value = 0.0
+	if _skin != null and _skin.uses_knockback_death:
+		var dir: Vector3 = impact_direction
+		dir.y = 0.0
+		_death_impact_dir = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.BACK
+		# Pre-landed: skip the flight phase entirely; pose-hold + tilt starts
+		# now. _tick_knockback_death sees _death_landed = true and goes
+		# straight into the lying-down sequence.
+		_death_landed = true
+		_death_pose_timer = 0.0
+		_death_flight_time = 0.0
+		_death_skin_basis_start = _skin.basis
+		# Zero velocity = falls in place via gravity, no launch.
+		velocity = Vector3.ZERO
+		_skin.on_hit()
+		_dying_timer = _DEATH_SAFETY_TIMEOUT if dies_permanently else _PLAYER_DEATH_DURATION
+	else:
+		# Legacy fallback path (skins without uses_knockback_death) — confetti
+		# + die clip in place. No vertical pop.
+		_dying_timer = death_duration
+		if _skin != null and _skin.has_method(&"die"):
+			_skin.die()
+		velocity = Vector3.ZERO
+		_spawn_death_confetti()
+	died.emit()
+
+
 ## Per-frame work for the knockback death sequence. Called from the dying
 ## branch of _physics_process for skins with uses_knockback_death = true.
 ## Enemies (dies_permanently) burst + flicker after the pose hold and
@@ -1352,15 +1439,20 @@ func _spawn_death_confetti() -> void:
 ## respawns) and enemies (max_health=1, dies_permanently=true → queue_free).
 ## Pawns outside a sweep's attack_target_group are simply never called — no
 ## faction gating needed inside the method.
-func take_hit(impact_direction: Vector3, force: float) -> void:
+func take_hit(impact_direction: Vector3, force: float, damage: int = 1) -> void:
 	if _dying:
+		return
+	# Splice (red) faction is unkillable — eats the hit silently. Hack-
+	# converting them via the L2 terminal flips faction to green which
+	# clears _faction_invulnerable, restoring normal damage handling.
+	if _faction_invulnerable:
 		return
 	# Post-respawn grace window: ignore damage for respawn_invuln_duration
 	# seconds after _finish_death. Fixes the checkpoint death-loop.
 	if Time.get_ticks_msec() / 1000.0 < _invuln_until_time:
 		return
 	var old_health := _health
-	_health -= 1
+	_health -= maxi(damage, 0)
 	_regen_timer = 0.0
 	# Additive knockback: direction-along-impact plus a small vertical pop so
 	# the hit reads kinetically regardless of current motion.
@@ -1443,10 +1535,12 @@ func _sweep_attack() -> void:
 			# to the side confettis sideways, not along the player's facing).
 			var to_enemy := Vector3(dx, 0.0, dz)
 			var impact_dir := to_enemy.normalized() if to_enemy.length_squared() > 0.0001 else _attack_forward
-			# Unified damage dispatch: prefer take_hit (new universal API), fall
-			# back to hit() for legacy enemy/enemy.gd until it's retired.
+			# Unified damage dispatch: prefer take_hit (new universal API, now
+			# 3-arg with damage), fall back to hit() for legacy enemy/enemy.gd
+			# until it's retired. _faction_attack_damage is 1 for everyone
+			# except splice (red, 99 — one-shot kill on max_health=3).
 			if enemy.has_method("take_hit"):
-				enemy.take_hit(impact_dir, attack_knockback)
+				enemy.take_hit(impact_dir, attack_knockback, _faction_attack_damage)
 			elif enemy.has_method("hit"):
 				enemy.hit(impact_dir, attack_knockback)
 			_attack_hit_enemies.append(enemy)
@@ -1833,7 +1927,7 @@ func _physics_process(delta: float) -> void:
 		var crouch_mult := 1.0
 		if intent.crouch_held and is_on_floor():
 			crouch_mult = crouch_speed_multiplier
-		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult
+		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult * _faction_speed_mult
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
 	else:
 		h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)
