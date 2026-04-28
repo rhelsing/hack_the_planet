@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dq0il6ubhpql"
+path="res://.godot/imported/level_3_glitch.dialogue-e449a80ebf4abb850cda5a6b5661e5d8.tres"
+
+[deps]
+
+source_file="res://dialogue/level_3_glitch.dialogue"
+dest_files=["res://.godot/imported/level_3_glitch.dialogue-e449a80ebf4abb850cda5a6b5661e5d8.tres"]
+
+[params]
+
+defaults=true

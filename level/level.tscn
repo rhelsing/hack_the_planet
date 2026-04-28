@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://cnedxfn2pxh2t"]
+[gd_scene format=3 uid="uid://cg4uhklayl3o5"]
 
 [ext_resource type="Shader" uid="uid://cdlt3ujrpad32" path="res://level/sky_with_stars.tres" id="1_hwp5q"]
 [ext_resource type="Texture2D" uid="uid://ca3jtautvrj1u" path="res://level/moon.png" id="2_kb37w"]
@@ -9,13 +9,9 @@
 [ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="11_7jqyl"]
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="12_l5lfc"]
 [ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="13_l5lfc"]
-[ext_resource type="PackedScene" uid="uid://do5ecpqaaqlki" path="res://enemy/enemy_cop_riot.tscn" id="14b_newenemy"]
-[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="14c_enemykaykit"]
-[ext_resource type="PackedScene" uid="uid://do5ucpf8uwlki" path="res://enemy/enemy_sophia.tscn" id="14d_enemysophia"]
-[ext_resource type="Resource" path="res://enemy/enemy_profile.tres" id="14e_enemyprofile"]
+[ext_resource type="PackedScene" uid="uid://bnh4ryeyn3lb7" path="res://enemy/enemy_cop_riot.tscn" id="14b_newenemy"]
+[ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="14e_enemyprofile"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="15_fm1jd"]
-[ext_resource type="PackedScene" uid="uid://bk6y4el5vw0fa" path="res://enemy/enemy_quaternius.tscn" id="15_m5ivw"]
-[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="16_sui6v"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="17_tv7ir"]
 
 [sub_resource type="Curve" id="Curve_k4wis"]
@@ -274,16 +270,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.85294, 9.009345, -20.172
 [node name="Enemy3" parent="." unique_id=110217350 instance=ExtResource("14b_newenemy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.010475, 9.009345, -20.17276)
 
-[node name="Enemy5" parent="." unique_id=829737949 instance=ExtResource("14c_enemykaykit")]
+[node name="Enemy5" parent="." unique_id=829737949 instance=ExtResource("17_tv7ir")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -125.40017, 11.161891, -26.03293)
 
-[node name="Enemy6" parent="." unique_id=255345555 instance=ExtResource("14c_enemykaykit")]
+[node name="Enemy6" parent="." unique_id=255345555 instance=ExtResource("17_tv7ir")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.64326, 9.009345, -11.20569)
 
-[node name="Enemy7" parent="." unique_id=1450016228 instance=ExtResource("14d_enemysophia")]
+[node name="Enemy7" parent="." unique_id=1450016228]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.8008, 9.009345, -11.20569)
 
-[node name="Enemy4" parent="." unique_id=2111817553 instance=ExtResource("14d_enemysophia")]
+[node name="Enemy4" parent="." unique_id=2111817553]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.7546806, 9.009345, -20.17276)
 skate_profile = ExtResource("14e_enemyprofile")
 start_in_walk_mode = false
@@ -316,10 +312,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.096862, 4.4, -23.481585)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -154.57605, 8.962051, -26.209732)
 curve = SubResource("Curve3D_fm1jd")
 
-[node name="EnemyQuaternius" parent="." unique_id=971225218 instance=ExtResource("15_m5ivw")]
+[node name="EnemyQuaternius" parent="." unique_id=971225218]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -96.72542, 8.020947, -9.169363)
 
-[node name="EnemyUniversalFemale" parent="." unique_id=376929938 instance=ExtResource("16_sui6v")]
+[node name="EnemyUniversalFemale" parent="." unique_id=376929938 instance=ExtResource("17_tv7ir")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -88.9477, 8.020947, -15.840105)
 
 [node name="EnemyUniversalMale" parent="." unique_id=242460846 instance=ExtResource("17_tv7ir")]

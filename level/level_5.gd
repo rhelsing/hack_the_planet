@@ -79,6 +79,25 @@ func _ready() -> void:
 		_splice_walking = true
 	# Kick off the scripted line sequence.
 	_play_beats()
+	# Credits roll alongside the corridor walk. Same scroll as the post-L4
+	# hub trigger and the main-menu Credits button. Self-frees on completion
+	# or Esc; the end-card / main-menu transition is independent of this
+	# overlay (end-card's CanvasLayer is layer 100 — credits sit below at 50).
+	_spawn_credits_overlay()
+
+
+func _spawn_credits_overlay() -> void:
+	var packed: PackedScene = load("res://menu/credits.tscn")
+	if packed == null:
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 50
+	add_child(layer)
+	var inst: Node = packed.instantiate()
+	layer.add_child(inst)
+	if inst.has_signal(&"back_requested"):
+		inst.connect(&"back_requested", func() -> void: layer.queue_free(),
+			CONNECT_ONE_SHOT)
 
 
 func _process(delta: float) -> void:

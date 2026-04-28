@@ -53,7 +53,7 @@ func _ready() -> void:
 		failures.append("visit_dialogue should scope by character")
 
 	# ---- Save round-trip ----
-	GameState.add_item(&"floppy_disk")
+	GameState.add_item(&"some_item")
 	GameState.set_flag(&"mainframe_hacked", true)
 	var snapshot: Dictionary = GameState.to_dict()
 	GameState.reset()
@@ -65,7 +65,7 @@ func _ready() -> void:
 		failures.append("reset should clear dialogue_visited")
 
 	GameState.from_dict(snapshot)
-	if not GameState.has_item(&"floppy_disk"):
+	if not GameState.has_item(&"some_item"):
 		failures.append("from_dict should restore inventory")
 	if GameState.get_flag(&"mainframe_hacked") != true:
 		failures.append("from_dict should restore flags")
@@ -94,35 +94,42 @@ func _ready() -> void:
 	if not GameState.has_item(&"plain_string_id"):
 		failures.append("from_dict should coerce String inventory entries to StringName")
 
-	# ---- Counters (HUD-only, per-run; NOT persisted) ----
+	# ---- Coin sets (persisted, set-shaped) ----
 	GameState.reset()
-	if GameState.coin_count != 0:
-		failures.append("reset() should zero coin_count")
-	if GameState.floppy_count != 0:
-		failures.append("reset() should zero floppy_count")
-	# coin_collected bumps coin_count (legacy signal from auto-trigger pickups)
-	Events.coin_collected.emit(null)
-	Events.coin_collected.emit(null)
-	if GameState.coin_count != 2:
-		failures.append("coin_count should bump on Events.coin_collected, got %d" % GameState.coin_count)
-	# Floppy added via add_item bumps floppy_count
-	GameState.add_item(&"floppy_disk")
-	GameState.add_item(&"other_item")
-	if GameState.floppy_count != 1:
-		failures.append("floppy_count should bump only for floppy_disk, got %d" % GameState.floppy_count)
-	# Counters are intentionally NOT serialized — they're per-run / per-level.
+	if GameState.coin_count != 0 or GameState.coin_total != 0:
+		failures.append("reset() should zero coin counters")
+	if not GameState.coins_collected.is_empty() or not GameState.coins_seen.is_empty():
+		failures.append("reset() should clear coin sets")
+	# Manual set mutation simulates coin._ready / collect — without a real
+	# scene tree we can't call register_coin(coin) with a real Node, so
+	# we exercise the dict shape directly.
+	GameState.coins_seen["/root/Level/Coin1"] = true
+	GameState.coins_seen["/root/Level/Coin2"] = true
+	GameState.coins_seen["/root/Level/Coin3"] = true
+	GameState.coin_total = GameState.coins_seen.size()
+	GameState.coins_collected["/root/Level/Coin1"] = true
+	GameState.coin_count = GameState.coins_collected.size()
+	# Round-trip through save: counters should restore from the dict sizes.
 	var snap2: Dictionary = GameState.to_dict()
-	if snap2.has("coin_count") or snap2.has("floppy_count"):
-		failures.append("to_dict should NOT carry counter fields (per-run only)")
-	# Loading from any dict (including one with stale counter fields) must
-	# zero them, so each level starts fresh even after autosave/Continue.
-	var dict_with_stale: Dictionary = {
+	if not snap2.has("coins_collected") or not snap2.has("coins_seen"):
+		failures.append("to_dict should carry coin sets")
+	GameState.reset()
+	GameState.from_dict(snap2)
+	if GameState.coin_count != 1:
+		failures.append("from_dict should restore coin_count from coins_collected.size, got %d" % GameState.coin_count)
+	if GameState.coin_total != 3:
+		failures.append("from_dict should restore coin_total from coins_seen.size, got %d" % GameState.coin_total)
+	if not GameState.coins_collected.has("/root/Level/Coin1"):
+		failures.append("from_dict should restore coins_collected paths")
+	# Old v2 saves had `coin_count` / `floppy_count` as plain ints. Loading
+	# one of those should zero the new sets without erroring.
+	var v2_save: Dictionary = {
 		"version": 2, "inventory": [], "flags": {}, "dialogue_visited": {},
 		"coin_count": 99, "floppy_count": 7,
 	}
-	GameState.from_dict(dict_with_stale)
-	if GameState.coin_count != 0 or GameState.floppy_count != 0:
-		failures.append("from_dict must zero counters even when present in saved dict")
+	GameState.from_dict(v2_save)
+	if GameState.coin_count != 0 or GameState.coin_total != 0:
+		failures.append("v2 saves (no coin sets) should leave counters at 0")
 
 	# ---- Events signal emission (live autoload wiring) ----
 	var received_items: Array = []

@@ -2,12 +2,24 @@
 
 [ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
 [ext_resource type="PackedScene" path="res://interactable/grappleable/grappleable.tscn" id="2_grapple"]
+[ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_w5o0a"]
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="3_companion"]
-[ext_resource type="PackedScene" path="res://player/skins/splice/splice_skin.tscn" id="4_splice_skin"]
+[ext_resource type="PackedScene" uid="uid://dsplskin0001" path="res://player/skins/splice/splice_skin.tscn" id="4_splice_skin"]
 [ext_resource type="Resource" uid="uid://d4bg27weqpuq2" path="res://dialogue/level_3_splice_offer.dialogue" id="5_splice_dlg"]
-
-[sub_resource type="StandardMaterial3D" id="Mat_gap_marker"]
-albedo_color = Color(0.4, 0.08, 0.1, 1)
+[ext_resource type="Script" uid="uid://dolwonf6pfi0h" path="res://level/csg_collider_swap.gd" id="6_csgswap"]
+[ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="7_edsleep"]
+[ext_resource type="PackedScene" uid="uid://dportplt0001" path="res://level/interactable/portal_platform/portal_platform.tscn" id="8_portal"]
+[ext_resource type="PackedScene" uid="uid://ljpmlfpfy0rk" path="res://interactable/walkie_trigger/walkie_trigger.tscn" id="9_walkie"]
+[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="10_station"]
+[ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="11_robot"]
+[ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="13_glitch2dlg"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="14_warp"]
+[ext_resource type="Resource" uid="uid://dq0il6ubhpql" path="res://dialogue/level_3_glitch.dialogue" id="15_l3glitchdlg"]
+[ext_resource type="PackedScene" uid="uid://dretportal01" path="res://interactable/return_portal/return_portal.tscn" id="16_returnportal"]
+[ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="17_b3knk"]
+[ext_resource type="PackedScene" uid="uid://ft4d2kwlkeke" path="res://level/interactable/crumble_platform/crumble_platform.tscn" id="18_b3knk"]
+[ext_resource type="PackedScene" uid="uid://c6800is15rab5" path="res://level/interactable/bouncy_platform/bouncy_platform.tscn" id="19_dhw2c"]
+[ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="20_510pp"]
 
 [node name="LevelMockup" unique_id=141931145 instance=ExtResource("1_base")]
 level_num = 3
@@ -15,28 +27,308 @@ powerup_flag = &"powerup_sex"
 powerup_label = "SEX"
 howto_caption = "AIM AT A HOOK, PRESS {grapple_fire}, {jump} TO LET GO"
 
-[node name="Ground4" parent="." index="5" unique_id=1459023526]
+[node name="Ground7" type="CSGBox3D" parent="." index="3" unique_id=1900286315]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 9.978691)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground8" type="CSGBox3D" parent="." index="4" unique_id=1571059179]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -0.86473465)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground2" parent="." index="5" unique_id=1550871969]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0682411, -0.5, -11.401287)
+
+[node name="Ground3" parent="." index="6" unique_id=548036433]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.07877, 24.554535, -193.69264)
+
+[node name="Ground4" parent="." index="7" unique_id=1459023526]
 visible = false
 
-[node name="Checkpoint2" parent="." index="10" unique_id=57134153]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -3.1251278)
+[node name="Ground5" parent="." index="8" unique_id=122823214]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 27.59312, -353.68262)
 
-[node name="Grapple1" parent="." index="14" unique_id=476836261 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, -7.803675)
+[node name="Checkpoint1" parent="." index="11" unique_id=679718777]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0682411, 0, -11.38242)
 
-[node name="Grapple2" parent="." index="15" unique_id=642734320 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 9, -17.121552)
+[node name="Checkpoint2" parent="." index="12" unique_id=57134153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.07877, 25.054535, -197.47186)
 
-[node name="GapMarker" type="CSGBox3D" parent="." index="16" unique_id=1094077262]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1234565, 15.051175, -13.118965)
-material_override = SubResource("Mat_gap_marker")
-size = Vector3(8, 0.2, 3.8727417)
+[node name="PowerupPickup" parent="." index="13" unique_id=221835442]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.07877, 26.254532, -194.34673)
 
-[node name="Splice" parent="." index="17" unique_id=556500260 instance=ExtResource("3_companion")]
-transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 0.08540964, -28.551924)
+[node name="Grapple1" parent="." index="15" unique_id=476836261 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -152.00063)
+
+[node name="Grapple3" parent="." index="16" unique_id=379913050 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -88.63363)
+
+[node name="Grapple4" parent="." index="17" unique_id=369810128 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -53.324486)
+
+[node name="Grapple5" parent="." index="18" unique_id=985498875 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.53293, 36.78283, -26.1576)
+
+[node name="Grapple6" parent="." index="19" unique_id=340681438 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -159.9351, 36.78283, -26.1576)
+
+[node name="Grapple7" parent="." index="20" unique_id=548703477 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -186.7315, 36.78283, -26.1576)
+
+[node name="Grapple8" parent="." index="21" unique_id=453498086 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.78283, -51.038464)
+
+[node name="Grapple9" parent="." index="22" unique_id=1542291906 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.78283, -69.66736)
+
+[node name="Grapple10" parent="." index="23" unique_id=1565432725 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.78283, -93.6124)
+
+[node name="Grapple11" parent="." index="24" unique_id=1154428835 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 44.87616, -129.38458)
+
+[node name="Grapple12" parent="." index="25" unique_id=1367832024 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 44.87616, -160.56949)
+
+[node name="Grapple13" parent="." index="26" unique_id=1752870134 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.645264, -208.20389)
+
+[node name="Grapple14" parent="." index="27" unique_id=1327886920 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -200.8603, 36.645264, -229.72864)
+
+[node name="Grapple15" parent="." index="28" unique_id=1486096142 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170.71751, 28.145256, -250.84296)
+
+[node name="Grapple16" parent="." index="29" unique_id=2032653777 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -141.81316, 28.145256, -250.84296)
+
+[node name="Grapple2" parent="." index="30" unique_id=642734320 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.957306, 38.78283, -177.98639)
+
+[node name="Splice" parent="." index="31" unique_id=556500260 instance=ExtResource("3_companion")]
+transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 28.17853, -357.75714)
 hide_when_flag = &"refused_splice"
 skin_scene = ExtResource("4_splice_skin")
 dialogue_resource = ExtResource("5_splice_dlg")
-prompt_verb = "talk"
 interactable_id = &"npc_splice_offer"
-auto_interact_on_focus = false
+
+[node name="PortalAlpha1" parent="." index="32" unique_id=2094463888 instance=ExtResource("8_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -179.06776, 38.12951, -134.92235)
+link_id = &"l3_alpha"
+palette_base = Color(0, 0.04, 0.06, 1)
+palette_highlight = Color(0.3, 0.85, 0.95, 1)
+
+[node name="PortalAlpha2" parent="." index="33" unique_id=1484985069 instance=ExtResource("8_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.413664, 28.071827, -136.7956)
+link_id = &"l3_alpha"
+palette_base = Color(0, 0.04, 0.06, 1)
+palette_highlight = Color(0.3, 0.85, 0.95, 1)
+
+[node name="PortalBeta1" parent="." index="34" unique_id=1254587178 instance=ExtResource("8_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.3051, 27.962957, -118.231735)
+link_id = &"l3_beta"
+palette_base = Color(0, 0.04, 0.06, 1)
+palette_highlight = Color(0.3, 0.85, 0.95, 1)
+
+[node name="PortalBeta2" parent="." index="35" unique_id=288564988 instance=ExtResource("8_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -181.29823, 44.63256, -127.418564)
+link_id = &"l3_beta"
+palette_base = Color(0, 0.04, 0.06, 1)
+palette_highlight = Color(0.3, 0.85, 0.95, 1)
+
+[node name="PortalGamma1" parent="." index="36" unique_id=44065169 instance=ExtResource("8_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.478882, 27.129602, -131.70486)
+link_id = &"l3_gamma"
+palette_base = Color(0, 0.04, 0.06, 1)
+palette_highlight = Color(0.3, 0.85, 0.95, 1)
+
+[node name="PortalGamma2" parent="." index="37" unique_id=102743654 instance=ExtResource("8_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100.7253, 27.129602, -192.43694)
+link_id = &"l3_gamma"
+palette_base = Color(0, 0.04, 0.06, 1)
+palette_highlight = Color(0.3, 0.85, 0.95, 1)
+
+[node name="CsgColliderSwap" type="Node" parent="." index="38" unique_id=1477089886]
+script = ExtResource("6_csgswap")
+
+[node name="EnemyDistanceSleep" type="Node" parent="." index="39" unique_id=1429426704]
+script = ExtResource("7_edsleep")
+
+[node name="Glitch" parent="." index="40" unique_id=523605578 instance=ExtResource("3_companion")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -102.024475, 28.39603, -111.87125)
+warp_sfx = ExtResource("14_warp")
+skin_scene = ExtResource("11_robot")
+stations = Array[NodePath]([NodePath("../GlitchStation1")])
+travel_duration = 5.0
+dialogue_resource = ExtResource("15_l3glitchdlg")
+interactable_id = &"npc_glitch_l3"
+
+[node name="GlitchStation1" parent="." index="41" unique_id=1160189420 instance=ExtResource("10_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.134056, 28.39603, -65.405014)
+dialogue_resource = ExtResource("13_glitch2dlg")
+
+[node name="WalkieGlitch" parent="." index="42" unique_id=568644597 instance=ExtResource("9_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 28)
+character = &"Glitch"
+line = "[Glitch L3 walkie placeholder — replace me]"
+
+[node name="WalkieDialTone" parent="." index="43" unique_id=690149048 instance=ExtResource("9_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 31)
+line = "[DialTone L3 walkie placeholder — replace me]"
+
+[node name="WalkieNyx" parent="." index="44" unique_id=229561898 instance=ExtResource("9_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 28)
+character = &"Nyx"
+line = "[Nyx L3 walkie placeholder — replace me]"
+
+[node name="WalkieSplice" parent="." index="45" unique_id=1742868168 instance=ExtResource("9_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 31)
+character = &"Splice"
+line = "[Splice L3 walkie placeholder — replace me]"
+
+[node name="ReturnPortal" parent="." index="46" unique_id=332361385 instance=ExtResource("16_returnportal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 29.09312, -357.7052)
+require_flag = &"level_3_completed"
+interactable_id = &"return_portal_l3"
+
+[node name="Ground6" type="CSGBox3D" parent="." index="47" unique_id=544231927]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.103058, -1.2361307, -25.130781)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="column" type="CSGBox3D" parent="." index="48" unique_id=7425025]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -43.195564, 6.788514, -89.68104)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="column2" type="CSGBox3D" parent="." index="49" unique_id=1674763083]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -35.706715, -2.184432, -61.347908)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="column3" type="CSGBox3D" parent="." index="50" unique_id=1688155891]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -62.039944, -14.497725, -61.347908)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(7, 80.276855, 11)
+
+[node name="big" type="CSGBox3D" parent="." index="51" unique_id=639010703]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -45.342556, -12.475626, -63.88246)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(36.105957, 27, 63.18991)
+material = ExtResource("2_w5o0a")
+
+[node name="column4" type="CSGBox3D" parent="." index="52" unique_id=654285162]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -63.316757, 11.902557, -298.47165)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="column5" type="CSGBox3D" parent="." index="53" unique_id=722683169]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -63.316757, -3.6107616, -246.49316)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="column6" type="CSGBox3D" parent="." index="54" unique_id=327328431]
+transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -63.316757, 3.7259846, -272.9455)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(7, 27, 11)
+
+[node name="big3" type="CSGBox3D" parent="." index="55" unique_id=866442345]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -89.52209, -18.720224, -272.59454)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(84.2229, 49.717285, 63.18991)
+material = ExtResource("2_w5o0a")
+
+[node name="big2" type="CSGBox3D" parent="." index="56" unique_id=1700495078]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -111.213875, -0.55173683, -112.23988)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(36.105957, 50.84778, 45.89818)
+material = ExtResource("2_w5o0a")
+
+[node name="big4" type="CSGBox3D" parent="." index="57" unique_id=180105834]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -211.62592, -0.55173683, -19.54261)
+material_override = ExtResource("2_w5o0a")
+use_collision = true
+size = Vector3(36.105957, 50.84778, 45.89818)
+material = ExtResource("2_w5o0a")
+
+[node name="PhoneBooth" parent="." index="58" unique_id=547259237 instance=ExtResource("17_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.388336, 11.328789, -60.932648)
+
+[node name="PhoneBooth2" parent="." index="59" unique_id=1289857986 instance=ExtResource("17_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.403557, 20.301735, -89.31017)
+
+[node name="PhoneBooth3" parent="." index="60" unique_id=1769276472 instance=ExtResource("17_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.591686, 25.653925, -61.848564)
+
+[node name="PhoneBooth4" parent="." index="61" unique_id=549601935 instance=ExtResource("17_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -208.32515, 25.653925, -12.058533)
+
+[node name="CrumblePlatform" parent="." index="62" unique_id=1923401418 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -342.37042)
+
+[node name="CrumblePlatform2" parent="." index="63" unique_id=4741769 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -330.4769)
+
+[node name="CrumblePlatform3" parent="." index="64" unique_id=1913522714 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -320.01843)
+
+[node name="CrumblePlatform4" parent="." index="65" unique_id=1285278205 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -310.0511)
+
+[node name="CrumblePlatform5" parent="." index="66" unique_id=920535722 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -298.56808)
+
+[node name="CrumblePlatform6" parent="." index="67" unique_id=621717598 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.362755, 28.064878, -298.56808)
+
+[node name="CrumblePlatform7" parent="." index="68" unique_id=977413817 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.739285, 28.064878, -298.56808)
+
+[node name="CrumblePlatform8" parent="." index="69" unique_id=1071829694 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.702858, 28.064878, -298.56808)
+
+[node name="CrumblePlatform9" parent="." index="70" unique_id=105309974 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.281628, 2.9272037, -49.788048)
+
+[node name="CrumblePlatform10" parent="." index="71" unique_id=1064798523 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.281628, 6.3191977, -55.42659)
+
+[node name="BouncyPlatform" parent="." index="72" unique_id=668224222 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.13564, 10.328781, -71.06221)
+
+[node name="BouncyPlatform2" parent="." index="73" unique_id=972797486 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.13564, 14.810482, -80.595955)
+
+[node name="BouncyPlatform3" parent="." index="74" unique_id=186161030 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.549072, 20.114346, -80.595955)
+
+[node name="BouncyPlatform4" parent="." index="75" unique_id=92040743 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.549072, 21.350044, -69.543304)
+
+[node name="Rail" parent="." index="76" unique_id=749221686 instance=ExtResource("20_510pp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.49113, 25.564905, -67.336655)
+
+[node name="BouncyPlatform5" parent="." index="77" unique_id=78352864 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 9.717696, -257.65497)
+
+[node name="BouncyPlatform6" parent="." index="78" unique_id=461125992 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 13.998303, -265.7169)
+
+[node name="BouncyPlatform7" parent="." index="79" unique_id=297554645 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 16.159584, -283.22845)
+
+[node name="BouncyPlatform8" parent="." index="80" unique_id=565224024 instance=ExtResource("19_dhw2c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 20.678907, -291.7791)

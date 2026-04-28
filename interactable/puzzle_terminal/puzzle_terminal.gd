@@ -25,6 +25,12 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## uses the default "not a hacker" text from legacy hacking terminals.
 @export var locked_message: String = "not a hacker"
 
+## Path to a .maze file (authored in tools/maze_editor/) forwarded into the
+## puzzle instance as `maze_path` when interact() fires. Only relevant when
+## `puzzle_scene` is a MazePuzzle; ignored by other puzzle types. Empty =
+## the puzzle scene's own default applies.
+@export_file("*.maze") var maze_path: String = ""
+
 @export_group("Faction Conversion")
 ## On puzzle-solved, every PlayerBody overlapping any ConvertZone with a
 ## matching `convert_zone_id` whose current faction is in this list gets
@@ -39,6 +45,24 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## want the conversion to apply, set their `id` to match this. Many zones
 ## can share an id (covering disjoint rooms a single hack should affect).
 @export var convert_zone_id: StringName = &""
+
+@export_group("Highlight")
+## MeshInstance3D nodes (typically inside the imported GLB) that get a green
+## emissive overlay applied while this terminal is the focused interactable.
+## Empty array = no visual highlight (script-only). Wire each laptop sub-mesh
+## you want to glow (screen, chassis, etc.) by drag/drop in the editor.
+@export var highlight_meshes: Array[NodePath] = []
+## Optional override for the highlight material. null = use the built-in
+## transparent green emissive (see _default_highlight_material).
+@export var highlight_overlay_material: Material
+
+var _default_highlight_cached: Material
+# Cached mesh list for the highlight overlay. Resolved lazily on first
+# set_highlighted() call: explicit `highlight_meshes` paths if any, else
+# every MeshInstance3D descendant of this terminal (drop any GLB and the
+# whole model glows). Cached so repeated focus toggles don't re-walk.
+var _resolved_highlight_meshes: Array[MeshInstance3D] = []
+var _highlight_resolved: bool = false
 
 
 func _ready() -> void:
@@ -90,7 +114,10 @@ func interact(_actor: Node3D) -> void:
 	if puzzle_scene == null:
 		push_warning("PuzzleTerminal %s has no puzzle_scene" % interactable_id)
 		return
-	Puzzles.start(puzzle_scene, interactable_id)
+	var setup: Dictionary = {}
+	if maze_path != "":
+		setup["maze_path"] = maze_path
+	Puzzles.start(puzzle_scene, interactable_id, setup)
 	# Listen for our specific outcome. Plain connect (NOT ONE_SHOT) — a ONE_SHOT
 	# would disconnect on the first puzzle_solved regardless of whether the id
 	# matched us, causing missed self-completions if another puzzle resolves
@@ -104,6 +131,10 @@ func interact(_actor: Node3D) -> void:
 func _on_puzzle_solved(solved_id: StringName) -> void:
 	if solved_id != interactable_id: return
 	GameState.set_flag(interactable_id, true)
+	# Treat puzzle solve as a checkpoint — same hook phone_booth.gd uses.
+	# Without this, the flag lives only in GameState until a phone-booth or
+	# end-of-level autosave; reloads mid-level would lose the hack progress.
+	Events.checkpoint_reached.emit(global_position)
 	if one_shot:
 		collision_layer = 0
 	_apply_faction_conversion()
@@ -167,3 +198,52 @@ func _disconnect_puzzle_signals() -> void:
 		Events.puzzle_solved.disconnect(_on_puzzle_solved)
 	if Events.puzzle_failed.is_connected(_on_puzzle_failed):
 		Events.puzzle_failed.disconnect(_on_puzzle_failed)
+
+
+## InteractionSensor calls this with `on=true` when this terminal becomes the
+## focused interactable, `on=false` when focus drops. Toggles a green emissive
+## overlay on every MeshInstance3D either explicitly listed in
+## `highlight_meshes` or auto-discovered as a descendant of this terminal.
+func set_highlighted(on: bool) -> void:
+	var meshes: Array[MeshInstance3D] = _resolve_highlight_meshes()
+	if meshes.is_empty():
+		return
+	var overlay: Material = highlight_overlay_material if highlight_overlay_material != null else _default_highlight_material()
+	for m: MeshInstance3D in meshes:
+		m.material_overlay = overlay if on else null
+
+
+# Resolve once: explicit NodePaths take priority; if the array is empty,
+# walk descendants and grab every MeshInstance3D — drop any GLB in here
+# and it just glows. Cached so repeated focus toggles don't re-walk.
+func _resolve_highlight_meshes() -> Array[MeshInstance3D]:
+	if _highlight_resolved:
+		return _resolved_highlight_meshes
+	_highlight_resolved = true
+	if not highlight_meshes.is_empty():
+		for path in highlight_meshes:
+			var node: Node = get_node_or_null(path)
+			if node is MeshInstance3D:
+				_resolved_highlight_meshes.append(node as MeshInstance3D)
+	else:
+		_collect_mesh_instances(self, _resolved_highlight_meshes)
+	return _resolved_highlight_meshes
+
+
+func _collect_mesh_instances(node: Node, out: Array[MeshInstance3D]) -> void:
+	if node is MeshInstance3D:
+		out.append(node as MeshInstance3D)
+	for child: Node in node.get_children():
+		_collect_mesh_instances(child, out)
+
+
+func _default_highlight_material() -> Material:
+	if _default_highlight_cached == null:
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(0.1, 1.0, 0.3, 0.35)
+		mat.emission_enabled = true
+		mat.emission = Color(0.2, 1.0, 0.4)
+		mat.emission_energy_multiplier = 1.5
+		_default_highlight_cached = mat
+	return _default_highlight_cached

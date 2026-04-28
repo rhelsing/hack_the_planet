@@ -1,12 +1,14 @@
-[gd_scene load_steps=3 format=3 uid="uid://dportplt0001"]
+[gd_scene load_steps=4 format=3 uid="uid://dportplt0001"]
 
 [ext_resource type="Script" path="res://level/interactable/portal_platform/portal_platform.gd" id="1_portal"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="2_warp"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_trigger"]
 size = Vector3(4.0, 0.6, 4.0)
 
 [node name="PortalPlatform" type="Node3D"]
 script = ExtResource("1_portal")
+warp_sound = ExtResource("2_warp")
 
 [node name="Deck" type="Node3D" parent="."]
 

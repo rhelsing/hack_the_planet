@@ -33,3 +33,10 @@ var dash_pressed: bool = false
 ## doesn't crouch. Effect is a slow-walk speed multiplier; skins with a real
 ## crouch pose can override crouch(active) to show it.
 var crouch_held: bool = false
+
+## Held: when true, the body zeros horizontal velocity this tick — bypassing
+## both the accel branch (move_direction non-zero) and the friction branch
+## (gradual decay). Used by AI brains at ledges where physics-rate friction
+## can't brake a fast pawn (e.g. red 2.5×) before they slide off. Re-evaluated
+## every tick — clears automatically the moment the brain stops requesting it.
+var hard_brake: bool = false

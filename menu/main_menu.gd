@@ -105,7 +105,10 @@ func _on_settings() -> void:
 
 
 func _on_credits() -> void:
-	_push_sub_menu(CREDITS, {})
+	# Main-menu credits are skippable — the player can Esc/Enter back. The
+	# in-game ending overlays leave skippable=false (default) so Esc keeps
+	# its normal "open pause" behavior while credits roll passively.
+	_push_sub_menu(CREDITS, {"skippable": true})
 
 
 func _on_quit() -> void:

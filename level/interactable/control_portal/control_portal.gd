@@ -1,21 +1,19 @@
 extends Node3D
 class_name ControlPortal
 
-## One-shot conversion portal. Step on it (palette tweens grey → yellow),
-## every PlayerBody currently inside the wired ConvertZone whose faction is
-## in `target_factions` flips to `resulting_faction` (default gold). Allies
-## then chase enemies in their detection radius and idle 3m from the player
-## otherwise; the player can punch them dead via the friendly-fire rule on
-## the player faction's attack_target_groups.
+## Stand-on conversion platform. While the player is standing on it, every
+## hostile in the linked ConvertZone gets a one-shot 70% roll: pass → flip
+## to gold (your ally with rollerblades), fail → stay red. Each body rolls
+## at most once ever (re-standing won't re-roll losers). Step off → 1s
+## debounce → every body THIS portal flipped to gold reverts to green
+## permanently. Net effect: red-population siphons toward green over
+## successive stand-on cycles, with a temporary gold-ally posse while
+## standing.
 ##
-## Conversion is zone-wired, NOT radial-from-portal: drop a designer-shaped
-## Area3D (ConvertZone) anywhere in the level the portal "controls". Pawns
-## that enter the zone after activation are NOT auto-converted — this is a
-## one-shot trigger, not a polling field.
+## Conversion is zone-wired, not radial-from-portal: drop a designer-shaped
+## Area3D (ConvertZone) anywhere in the level and link via convert_zone_id.
 
 const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
-# Preload by path so the class_name doesn't need to resolve at parse-time
-# under SceneTree-mode tests (where class_name registries can be empty).
 const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_zone/convert_zone.gd")
 
 @export_group("Color")
@@ -23,15 +21,15 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 	set(value):
 		palette_base = value
 		_apply_palette()
-## Idle (grey) highlight. Tweens to `palette_active` on activation.
+## Idle (grey) highlight. Tweens to `palette_active` while standing on.
 @export var palette_highlight: Color = Color(0.4, 0.4, 0.42, 1.0):
 	set(value):
 		palette_highlight = value
-		if not _activated:
+		if not _engaged:
 			_apply_palette()
-## Active (yellow) highlight. Used after the portal triggers.
+## Active (yellow) highlight. Tweens in on stand, out on revert.
 @export var palette_active: Color = Color(1.0, 0.85, 0.10, 1.0)
-## Seconds for the grey → yellow tween on activation.
+## Seconds for the grey ↔ yellow palette tween.
 @export var activate_duration: float = 0.5
 
 @export_group("Shape")
@@ -41,24 +39,36 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 		_apply_size()
 
 @export_group("Conversion")
-## Factions eligible for conversion. Pawns whose current faction is NOT in
-## this list are ignored — keeps the player from accidentally flipping
-## allies they already converted.
-@export var target_factions: Array[StringName] = [&"green", &"red"]
-## Faction matched pawns get flipped to. Defaults to gold (player allies).
+## Factions eligible for the 70% roll. Pawns whose current faction is NOT
+## in this list are ignored. Default = reds only — greens are already
+## neutral, splice_stealth has its own kill path.
+@export var target_factions: Array[StringName] = [&"red"]
+## Faction matched pawns get flipped to while the player stands. Defaults
+## to gold (your rollerblade ally posse).
 @export var resulting_faction: StringName = &"gold"
+## Faction the gold ones revert to when the player steps off + debounce
+## expires. Defaults to green — the platform permanently downgrades reds
+## to vanilla enemies, even though the gold ally state is temporary.
+@export var revert_faction: StringName = &"green"
+## Conversion-probability floor and ceiling — driven by the player's coin
+## completion ratio. lerp(min, max, GameState.coin_completion_ratio()):
+##   0 coins   → min_conversion_probability  (floor — earn nothing, get
+##               this baseline anyway).
+##   full coins → max_conversion_probability (full power — every red rolls
+##               at this rate).
+## One roll per body ever — losers stay red forever, winners stay gold-
+## then-green. Re-evaluated at engage-time so picking up a coin between
+## stands of the platform raises your odds.
+@export_range(0.0, 1.0) var min_conversion_probability: float = 0.30
+@export_range(0.0, 1.0) var max_conversion_probability: float = 1.0
+## Seconds after the player steps off before reverting golds to green.
+## Re-entering during this window cancels the revert.
+@export var revert_debounce: float = 1.0
 ## ID linking this portal to one or more ConvertZone nodes in the level.
-## Empty (default) = no-op. Drop ConvertZone scenes wherever you want the
-## conversion to apply, set their `id` to match this. Many zones can share
-## an id (a single portal flipping enemies in multiple rooms at once).
 @export var convert_zone_id: StringName = &""
-## GameState flag that records whether this portal was activated. Empty =
-## no persistence (re-activates on every load). Set to a unique string
-## like &"l3_control_north" so reloading a level where the portal was
-## already triggered keeps enemies converted + palette yellow.
-@export var persistence_id: StringName = &""
 
 @export_group("SFX")
+## Played once when the player first steps on (any-time replay disabled).
 @export var activation_sound: AudioStream
 
 @onready var _deck: Node3D = $Deck
@@ -67,8 +77,17 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 @onready var _trigger_shape: CollisionShape3D = $Trigger/Shape
 
 var _material: ShaderMaterial = null
-var _activated: bool = false
+var _engaged: bool = false  # player currently standing on
 var _sfx_player: AudioStreamPlayer3D = null
+# Per-body roll outcomes — sticky for the lifetime of this portal instance.
+# Keyed by NodePath string. Value: true = won the roll (currently or formerly
+# gold), false = lost the roll (stays red forever).
+var _rolled: Dictionary = {}
+# Bodies currently flipped to gold by THIS portal. Cleared on revert.
+var _active_gold: Array[Node] = []
+# Counts down while not engaged + has pending revert. Re-entering trigger
+# clears it without firing the revert.
+var _debounce_timer: float = -1.0
 
 
 func _ready() -> void:
@@ -82,69 +101,61 @@ func _ready() -> void:
 	_sfx_player.max_distance = 35.0
 	_deck.add_child(_sfx_player)
 	_trigger.body_entered.connect(_on_body_entered)
-	# Restore prior activation: if the player triggered this portal in a
-	# previous session AND we have a persistence_id, snap to the activated
-	# visual state and replay the conversion so enemies respawn already
-	# converted instead of as their authored faction. GameState looked up
-	# via /root rather than the global identifier so this script compiles
-	# under SceneTree-mode tests (autoloads not registered there).
-	if persistence_id != &"":
-		var gs: Node = get_tree().root.get_node_or_null(^"GameState")
-		if gs != null and bool(gs.call(&"get_flag", persistence_id, false)):
-			_activated = true
-			_set_highlight_color(palette_active)
-			_replay_conversion_on_load.call_deferred()
+	_trigger.body_exited.connect(_on_body_exited)
 
 
-# Wait one physics frame so the ConvertZone's overlapping_bodies query
-# can populate (enemies' physics need a tick to register), then re-run
-# the same conversion the live activation would have. Idempotent.
-func _replay_conversion_on_load() -> void:
-	await get_tree().physics_frame
-	_apply_conversion()
+func _process(delta: float) -> void:
+	if _debounce_timer < 0.0:
+		return
+	_debounce_timer -= delta
+	if _debounce_timer <= 0.0:
+		_debounce_timer = -1.0
+		_apply_revert()
 
 
 func _on_body_entered(body: Node) -> void:
-	if _activated:
-		return
 	if not body.is_in_group("player"):
 		return
-	_activate()
-
-
-func _activate() -> void:
-	_activated = true
-	# Palette tween grey → yellow. Drives both shader uniforms in step so
-	# the highlight color rises while the base stays dark.
-	var tween := create_tween()
-	tween.tween_method(_set_highlight_color, palette_highlight, palette_active, activate_duration)
+	# Cancel any pending revert — player came back before debounce expired.
+	_debounce_timer = -1.0
+	if _engaged:
+		return
+	_engaged = true
+	_tween_palette(palette_active)
 	if activation_sound != null and _sfx_player != null:
 		_sfx_player.stream = activation_sound
 		_sfx_player.play()
 	_apply_conversion()
-	# Persist for save-restore. Empty persistence_id = no save (portal re-
-	# activates on every fresh load, useful for pure-test placements).
-	# Same /root lookup as _ready for SceneTree-mode test compatibility.
-	if persistence_id != &"":
-		var gs: Node = get_tree().root.get_node_or_null(^"GameState")
-		if gs != null:
-			gs.call(&"set_flag", persistence_id, true)
 
 
-func _set_highlight_color(c: Color) -> void:
-	if _material != null:
-		_material.set_shader_parameter(&"palette_purple", c)
+func _on_body_exited(body: Node) -> void:
+	if not body.is_in_group("player"):
+		return
+	# Tolerate jitter: only react if the player isn't still overlapping the
+	# trigger (multiple shapes / re-entries can fire body_exited spuriously).
+	if _trigger.overlaps_body(body):
+		return
+	if not _engaged:
+		return
+	_engaged = false
+	_tween_palette(palette_highlight)
+	# Schedule the revert if there's anyone to revert. Empty fast-path keeps
+	# the timer dormant so we don't tick _process needlessly.
+	if not _active_gold.is_empty():
+		_debounce_timer = revert_debounce
 
 
-# Walk every ConvertZone matching convert_zone_id, flip every PlayerBody
-# overlapping any of them whose faction is in target_factions to
-# resulting_faction. One-shot — pawns that enter the zone later aren't
-# picked up. Multiple zones can share an id (1 portal → many regions).
+# Walk every ConvertZone matching convert_zone_id, find every PlayerBody
+# overlapping any of them whose faction is in target_factions and which
+# hasn't been rolled before. Roll 70% per body. Pass → flip to gold +
+# remember; fail → mark rolled + skip. Sticky outcomes — re-engagement
+# only catches bodies that weren't in the zone last time.
 func _apply_conversion() -> void:
 	if convert_zone_id == &"":
 		return
 	var seen: Dictionary = {}
 	var zones: Array = _CONVERT_ZONE_SCRIPT.call(&"zones_for", convert_zone_id) as Array
+	var prob: float = lerp(min_conversion_probability, max_conversion_probability, GameState.coin_completion_ratio())
 	for zone in zones:
 		if not (zone is Area3D):
 			continue
@@ -152,13 +163,51 @@ func _apply_conversion() -> void:
 			if seen.has(body):
 				continue
 			seen[body] = true
-			# Duck-type so this script compiles in SceneTree-mode tests
-			# without forcing the PlayerBody class import.
 			if not body.has_method(&"set_faction"):
 				continue
+			var path_key: String = String(body.get_path())
+			if _rolled.has(path_key):
+				continue  # one roll per body ever
 			var current_faction: StringName = StringName(body.get(&"faction"))
-			if current_faction in target_factions:
+			if not (current_faction in target_factions):
+				continue
+			var passed: bool = randf() < prob
+			_rolled[path_key] = passed
+			if passed:
 				body.call(&"set_faction", resulting_faction)
+				_active_gold.append(body)
+
+
+# Debounce expired with the player still off the platform: every body
+# THIS portal flipped to gold reverts to revert_faction (green). Bodies
+# that died / were freed in the interim are skipped.
+func _apply_revert() -> void:
+	for body in _active_gold:
+		if not is_instance_valid(body):
+			continue
+		if not body.has_method(&"set_faction"):
+			continue
+		body.call(&"set_faction", revert_faction)
+	_active_gold.clear()
+
+
+func _tween_palette(target: Color) -> void:
+	var tween := create_tween()
+	tween.tween_method(_set_highlight_color, _current_highlight_color(), target, activate_duration)
+
+
+func _current_highlight_color() -> Color:
+	if _material == null:
+		return palette_highlight
+	var c: Variant = _material.get_shader_parameter(&"palette_purple")
+	if c is Color:
+		return c as Color
+	return palette_highlight
+
+
+func _set_highlight_color(c: Color) -> void:
+	if _material != null:
+		_material.set_shader_parameter(&"palette_purple", c)
 
 
 func _apply_palette() -> void:
@@ -166,7 +215,7 @@ func _apply_palette() -> void:
 		return
 	_material.set_shader_parameter(&"palette_black", palette_base)
 	_material.set_shader_parameter(&"palette_purple",
-		palette_active if _activated else palette_highlight)
+		palette_active if _engaged else palette_highlight)
 
 
 func _apply_size() -> void:

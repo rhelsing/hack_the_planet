@@ -1,29 +1,132 @@
 [gd_scene format=3 uid="uid://d78lnqfymr0c"]
 
 [ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
-[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="2_klklu"]
+[ext_resource type="Script" uid="uid://dolwonf6pfi0h" path="res://level/csg_collider_swap.gd" id="3_csgswap"]
+[ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="4_edsleep"]
+[ext_resource type="PackedScene" uid="uid://hk7q80hdkeke" path="res://level/interactable/control_portal/control_portal.tscn" id="5_portal"]
+[ext_resource type="PackedScene" uid="uid://dconvert00001" path="res://level/interactable/convert_zone/convert_zone.tscn" id="6_zone"]
+[ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="8_companion"]
+[ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="9_nyxskin"]
+[ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="10_animeskin"]
+[ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="11_robot"]
+[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="12_station"]
+[ext_resource type="PackedScene" uid="uid://ljpmlfpfy0rk" path="res://interactable/walkie_trigger/walkie_trigger.tscn" id="13_walkie"]
+[ext_resource type="Resource" uid="uid://c77jhmsa3p8my" path="res://dialogue/level_4_glitch.dialogue" id="14_l4glitch"]
+[ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="15_glitch2dlg"]
+[ext_resource type="Resource" uid="uid://ekqqmwbnrwhs" path="res://dialogue/level_4_nyx.dialogue" id="16_l4nyx"]
+[ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="17_sdk3c"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="17_warp"]
+[ext_resource type="Resource" uid="uid://dqhekf0g70wnn" path="res://dialogue/level_4_dialtone.dialogue" id="18_l4dialtone"]
 
 [node name="LevelMockup" unique_id=798014323 instance=ExtResource("1_base")]
 level_num = 4
 powerup_flag = &"powerup_god"
 powerup_label = "GOD"
-howto_caption = "PRESS {flare_shoot} TO LOB A FLARE"
+howto_caption = "PRESS {flare_shoot} TO BLESS FOES IN 10M"
+
+[node name="Ground" parent="." index="2" unique_id=310043039]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.069214, 60.426105)
+
+[node name="Ground2" parent="." index="3" unique_id=1550871969]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.014729, -4.4849324, 7.3491364)
+
+[node name="Ground3" parent="." index="4" unique_id=548036433]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.651886, -0.5, -44.101097)
 
 [node name="Ground4" parent="." index="5" unique_id=1459023526]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.309692, -0.5, -11.948381)
-size = Vector3(46.349854, 1, 9.029175)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.78706, -17.898941, 36.88523)
+size = Vector3(115.72479, 1, 9.029175)
 
-[node name="EnemyKayKit" parent="." index="14" unique_id=393232028 instance=ExtResource("2_klklu")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.03723, 0.02094651, -9.966829)
+[node name="Ground5" parent="." index="6" unique_id=122823214]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 166.56305, -10.508518, -70.95506)
 
-[node name="EnemyKayKit2" parent="." index="15" unique_id=698306868 instance=ExtResource("2_klklu")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.572585, 0.020946495, -12.545924)
+[node name="PlayerSpawn" parent="." index="8" unique_id=139234302]
+transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, 0, -2.0692139, 59.940693)
 
-[node name="EnemyKayKit3" parent="." index="16" unique_id=1256735301 instance=ExtResource("2_klklu")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.424816, 0.020945564, -12.784127)
+[node name="Checkpoint1" parent="." index="9" unique_id=679718777]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.014729, -3.9849324, 7.368004)
 
-[node name="EnemyKayKit4" parent="." index="17" unique_id=74273975 instance=ExtResource("2_klklu")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.434559, 0.020946503, -11.658459)
+[node name="Checkpoint2" parent="." index="10" unique_id=57134153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.37597, -17.398941, 38.49836)
 
-[node name="EnemyKayKit5" parent="." index="18" unique_id=1551462935 instance=ExtResource("2_klklu")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.8020782, 0.020945542, -11.2952385)
+[node name="PowerupPickup" parent="." index="11" unique_id=221835442]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.302246, -13.824251, 38.361137)
+
+[node name="CsgColliderSwap" type="Node" parent="." index="13" unique_id=794057297]
+script = ExtResource("3_csgswap")
+
+[node name="EnemyDistanceSleep" type="Node" parent="." index="14" unique_id=730636426]
+script = ExtResource("4_edsleep")
+
+[node name="ControlPlatform1" parent="." index="15" unique_id=1807246559 instance=ExtResource("5_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.385357, -6.271326, 17.324898)
+convert_zone_id = &"l4_arena"
+
+[node name="ConvertZone" parent="." index="16" unique_id=1123867091 instance=ExtResource("6_zone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.3, 1, -12)
+id = &"l4_arena"
+
+[node name="Nyx" parent="." index="17" unique_id=1878992773 instance=ExtResource("8_companion")]
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 164.56305, -9.908211, -74.47766)
+skin_scene = ExtResource("9_nyxskin")
+dialogue_resource = ExtResource("16_l4nyx")
+interactable_id = &"npc_nyx_l4"
+
+[node name="DialTone" parent="." index="18" unique_id=1082965759 instance=ExtResource("8_companion")]
+transform = Transform3D(1.52, 0, 0, 0, 1.52, 0, 0, 0, 1.52, 169.59357, -10.239159, -74.47766)
+skin_scene = ExtResource("10_animeskin")
+dialogue_resource = ExtResource("18_l4dialtone")
+interactable_id = &"npc_dialtone_l4"
+
+[node name="Glitch" parent="." index="19" unique_id=298627196 instance=ExtResource("8_companion")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.428053, -3.4542694, 10.306131)
+warp_sfx = ExtResource("17_warp")
+skin_scene = ExtResource("11_robot")
+stations = Array[NodePath]([NodePath("../GlitchStation1")])
+travel_duration = 5.0
+dialogue_resource = ExtResource("14_l4glitch")
+interactable_id = &"npc_glitch_l4"
+
+[node name="GlitchStation1" parent="." index="20" unique_id=1648724607 instance=ExtResource("12_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.5, 36)
+dialogue_resource = ExtResource("15_glitch2dlg")
+
+[node name="WalkieGlitch" parent="." index="21" unique_id=764054831 instance=ExtResource("13_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 28)
+character = &"Glitch"
+line = "[Glitch L4 walkie placeholder — replace me]"
+
+[node name="WalkieDialTone" parent="." index="22" unique_id=591593724 instance=ExtResource("13_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 31)
+line = "[DialTone L4 walkie placeholder — replace me]"
+
+[node name="WalkieNyx" parent="." index="23" unique_id=1296333870 instance=ExtResource("13_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 28)
+character = &"Nyx"
+line = "[Nyx L4 walkie placeholder — replace me]"
+
+[node name="WalkieSplice" parent="." index="24" unique_id=327273763 instance=ExtResource("13_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 31)
+character = &"Splice"
+line = "[Splice L4 walkie placeholder — replace me]"
+
+[node name="big" type="CSGBox3D" parent="." index="25" unique_id=1459464618]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -0.92139053, -22.10795, 25.798363)
+material_override = ExtResource("17_sdk3c")
+use_collision = true
+size = Vector3(36.105957, 32.34082, 63.18991)
+material = ExtResource("17_sdk3c")
+
+[node name="conversion_area_above_here1" type="CSGBox3D" parent="." index="26" unique_id=1014653425]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 33.82915, -26.975956, 25.798363)
+material_override = ExtResource("17_sdk3c")
+use_collision = true
+size = Vector3(36.105957, 20.038086, 63.18991)
+material = ExtResource("17_sdk3c")
+
+[node name="conversion_area_above_here2" type="CSGBox3D" parent="." index="27" unique_id=380652700]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 176.68459, -26.975956, -6.7072105)
+material_override = ExtResource("17_sdk3c")
+use_collision = true
+size = Vector3(36.105957, 20.038086, 128.2014)
+material = ExtResource("17_sdk3c")

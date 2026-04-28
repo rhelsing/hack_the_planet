@@ -71,15 +71,20 @@ func _ready() -> void:
 	# Flag-gate setup. If enable_when_flag is set, start disabled and listen
 	# for the flag to flip. Save-restore: GameState is rehydrated before
 	# scene mount, so a saved-true flag means we boot already-enabled.
+	# Visibility tracks _enabled — the deck (AnimatableBody3D) hosts both
+	# the visual CSGBox and the collider, so hiding it removes the platform
+	# from rendering AND from physics until the gate flips.
 	if enable_when_flag != &"":
 		_enabled = bool(GameState.get_flag(enable_when_flag, false))
-		print("[elev] %s gate=%s enabled=%s" % [name, enable_when_flag, _enabled])
+		_deck.visible = _enabled
+		print("[elev] %s gate=%s enabled=%s visible=%s" % [name, enable_when_flag, _enabled, _enabled])
 		Events.flag_set.connect(_on_flag_set)
 
 
 func _on_flag_set(id: StringName, value: Variant) -> void:
 	if id == enable_when_flag and value:
 		_enabled = true
+		_deck.visible = true
 		print("[elev] %s enabled by flag %s" % [name, id])
 
 

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Maze Editor — Hack The Planet</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+	<h1>maze editor</h1>
+	<div class="controls">
+		<label>cols <input type="number" id="cols" min="3" max="15" value="5"></label>
+		<label>rows <input type="number" id="rows" min="3" max="15" value="5"></label>
+		<fieldset class="mode">
+			<label><input type="radio" name="mode" value="edges" checked> edges</label>
+			<label><input type="radio" name="mode" value="start"> set start</label>
+			<label><input type="radio" name="mode" value="end"> set end</label>
+			<label><input type="radio" name="mode" value="water"> water</label>
+			<label><input type="radio" name="mode" value="oil"> oil</label>
+		</fieldset>
+		<fieldset class="timer">
+			<label><input type="checkbox" id="timed"> timed</label>
+			<label>seconds <input type="number" id="time_seconds" min="5" max="600" value="60" disabled></label>
+		</fieldset>
+		<button id="clear">clear</button>
+		<button id="verify">verify</button>
+		<button id="download" disabled>download .maze</button>
+		<label class="loadbtn">load .maze<input type="file" id="loadfile" accept=".maze,.json,application/json"></label>
+	</div>
+	<div class="status" id="status">set start (perimeter only)</div>
+</header>
+<main>
+	<div id="grid"></div>
+</main>
+<footer>
+	<span>click + drag to paint edges · click perimeter node to set S/E · click cells to place water/oil · separation enforced when markers exist</span>
+</footer>
+<script src="editor.js"></script>
+</body>
+</html>

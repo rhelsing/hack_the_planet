@@ -25,6 +25,8 @@
 [ext_resource type="PackedScene" uid="uid://delevpltf0001" path="res://level/interactable/elevator_platform/elevator_platform.tscn" id="25_gj5ex"]
 [ext_resource type="Resource" uid="uid://cj2apxt4gaokx" path="res://dialogue/level_1_glitch_2.dialogue" id="25_glitchdlg2"]
 [ext_resource type="Resource" uid="uid://b5sqjmfstxxcc" path="res://dialogue/level_1_glitch_3.dialogue" id="26_glitchdlg3"]
+[ext_resource type="Script" path="res://level/csg_collider_swap.gd" id="27_csgswap"]
+[ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="28_edsleep"]
 
 [sub_resource type="BoxShape3D" id="GlitchLiftCarry"]
 size = Vector3(7.5, 2, 8.5)
@@ -143,10 +145,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.03878, 38.679344, -68.840
 
 [node name="PowerupPickup" parent="." index="18" unique_id=221835442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.5902195, 166.35732)
-
-[node name="LevelEndDialogue" parent="." index="19" unique_id=187308304]
-monitoring = false
-monitorable = false
 
 [node name="WalkieTriggerIntro" parent="." index="21" unique_id=1452023600 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -36.48487, 0.33396053, 245.53955)
@@ -642,3 +640,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.986683, 36.624626, -25.47
 [node name="ElevatorPlatform" parent="." index="133" unique_id=468855729 instance=ExtResource("25_gj5ex")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.707695, 44.6271, -22.024652)
 amplitude = 15.0
+
+[node name="CsgColliderSwap" type="Node" parent="."]
+script = ExtResource("27_csgswap")
+
+[node name="EnemyDistanceSleep" type="Node" parent="."]
+script = ExtResource("28_edsleep")

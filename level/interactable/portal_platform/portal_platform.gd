@@ -131,12 +131,58 @@ func _warp(player: Node3D) -> void:
 	if "velocity" in player:
 		player.set(&"velocity", Vector3.ZERO)
 
+	# Brain refs — duck-typed so AI-driven bodies (no PlayerBrain) skip the
+	# camera dance gracefully. Suspend mouse-look during the warp so the
+	# yaw/pitch tweens aren't fought by twitch input.
+	var brain: Node = player.get(&"_brain") if "_brain" in player else null
+	var camera_pivot: Node3D = null
+	var spring_arm: Node3D = null
+	if brain != null:
+		if "camera_pivot" in brain:
+			camera_pivot = brain.get(&"camera_pivot") as Node3D
+		if "spring_arm" in brain:
+			spring_arm = brain.get(&"spring_arm") as Node3D
+		brain.set_process_unhandled_input(false)
+
 	# Sfx + glitch ramp on departure.
 	_play_warp_sound()
 	var skin: Object = player.get(&"_skin") if "_skin" in player else null
 	if skin != null and skin.has_method(&"set_glitch_progress"):
 		var glitch_tween := player.create_tween()
 		glitch_tween.tween_method(skin.set_glitch_progress, 0.0, 1.0, slide_in_duration)
+
+	# Camera lookat — yaw to face the partner deck, pitch to level. Runs in
+	# parallel with the slide-in so the player sees their destination
+	# rotating into view while they fall through the source.
+	#
+	# Compute target yaw via look_at on a leveled point, then read the
+	# resulting local rotation.y. Avoids hand-rolled basis math (and the
+	# sign-flip bug it caused) and is robust to any parent body rotation.
+	if camera_pivot != null and is_instance_valid(_partner):
+		var partner_aim: Vector3 = _partner._deck.global_position
+		var leveled_aim := Vector3(partner_aim.x, camera_pivot.global_position.y, partner_aim.z)
+		var aim_dir: Vector3 = leveled_aim - camera_pivot.global_position
+		if aim_dir.length_squared() > 0.0001:
+			var saved_basis: Basis = camera_pivot.global_basis
+			camera_pivot.look_at(leveled_aim, Vector3.UP)
+			# Flip 180° — this rig's "view direction" is the opposite of what
+			# Node3D.look_at considers forward (camera_pivot's effective face is
+			# +Z, not -Z, due to the SpringArm3D's flipped basis in player_body).
+			var target_yaw: float = camera_pivot.rotation.y + PI
+			camera_pivot.global_basis = saved_basis
+			# Wrap to within ±PI of current so the tween takes the short arc.
+			var current_yaw: float = camera_pivot.rotation.y
+			while target_yaw - current_yaw > PI:
+				target_yaw -= TAU
+			while target_yaw - current_yaw < -PI:
+				target_yaw += TAU
+			var yaw_tween := player.create_tween()
+			yaw_tween.tween_property(camera_pivot, "rotation:y", target_yaw, slide_in_duration) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		if spring_arm != null:
+			var pitch_tween := player.create_tween()
+			pitch_tween.tween_property(spring_arm, "rotation:x", 0.0, slide_in_duration) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 
 	# Slide down through the source deck. Target = a bit below the deck top.
 	var source_top: Vector3 = _deck.global_position
@@ -162,11 +208,13 @@ func _warp(player: Node3D) -> void:
 		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	await slide_out.finished
 
-	# Glitch fade back to 0 + restore physics.
+	# Glitch fade back to 0 + restore physics + mouse-look.
 	if skin != null and skin.has_method(&"set_glitch_progress"):
 		var unglitch := player.create_tween()
 		unglitch.tween_method(skin.set_glitch_progress, 1.0, 0.0, glitch_fade)
 	player.set_physics_process(true)
+	if brain != null:
+		brain.set_process_unhandled_input(true)
 	_is_warping = false
 
 

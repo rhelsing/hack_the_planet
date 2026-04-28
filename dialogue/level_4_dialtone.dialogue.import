@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dqhekf0g70wnn"
+path="res://.godot/imported/level_4_dialtone.dialogue-b92589f7b0e4d0e684b801961030cce8.tres"
+
+[deps]
+
+source_file="res://dialogue/level_4_dialtone.dialogue"
+dest_files=["res://.godot/imported/level_4_dialtone.dialogue-b92589f7b0e4d0e684b801961030cce8.tres"]
+
+[params]
+
+defaults=true

@@ -18,7 +18,7 @@ const ICON_FALLBACK := "??"
 const ICONS := {
 	&"Skate":           {"emoji": "⛸", "text": "SKATE"},
 	&"GrappleAbility":  {"emoji": "🪝", "text": "GRAPPLE"},
-	&"FlareAbility":    {"emoji": "🚨", "text": "FLARE"},
+	&"GodAbility":      {"emoji": "😇", "text": "GOD"},
 	&"HackModeAbility": {"emoji": "🕶", "text": "HACK"},
 }
 

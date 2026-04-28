@@ -11,7 +11,7 @@
 [ext_resource type="Script" path="res://player/abilities/skate_ability.gd" id="8_skate_ability"]
 [ext_resource type="Script" path="res://player/abilities/hack_mode_ability.gd" id="9_hack_ability"]
 [ext_resource type="Script" path="res://player/abilities/grapple_ability_spring.gd" id="10_grapple_ability"]
-[ext_resource type="Script" path="res://player/abilities/flare_ability.gd" id="11_flare_ability"]
+[ext_resource type="Script" path="res://player/abilities/god_ability.gd" id="11_god_ability"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e8pdu"]
 radius = 0.4
@@ -117,7 +117,7 @@ script = ExtResource("10_grapple_ability")
 ability_id = &"GrappleAbility"
 powerup_flag = &"powerup_sex"
 
-[node name="FlareAbility" type="Node" parent="Abilities" unique_id=491220039]
-script = ExtResource("11_flare_ability")
-ability_id = &"FlareAbility"
+[node name="GodAbility" type="Node" parent="Abilities" unique_id=491220039]
+script = ExtResource("11_god_ability")
+ability_id = &"GodAbility"
 powerup_flag = &"powerup_god"

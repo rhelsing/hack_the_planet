@@ -45,11 +45,30 @@ extends Brain
 ## Seconds the cone holds in SUSPECT (yellow) before promoting to HOSTILE
 ## (red, chase). Player has this long to break LOS / crouch out before
 ## they snap into pursuit. 0 = snap immediately (swarm AI default).
+## When the target is crouched, this is multiplied by `crouch_suspect_multiplier`.
 @export var suspect_duration: float = 3.0
 ## Maximum seconds in HOSTILE (chase). After this many seconds in CHASE,
 ## the brain "tuckers out" and drops back to ALERT then CALM. 0 = never
-## tuckers (chase forever — swarm default).
+## tuckers (chase forever — swarm default). Only applies in crouched
+## stealth mode; standing-target HOSTILE never tuckers (matches red).
 @export var chase_max_duration: float = 8.0
+
+@export_group("Stealth Mode")
+## Per-pawn opt-in: apply red-faction aggressive buffs (2.5× speed, 99
+## damage, invulnerable, attack_cooldown=0, wind_up_duration=0) on entry
+## to HOSTILE (chase) state, lift them on exit. Combined with cone vision
+## + faction "splice_stealth", this creates a patrol AI that walks 1×
+## speed while exploring and bursts to red-class lethality the moment it
+## acquires you. Faction stays unchanged — only the gameplay buffs flip.
+@export var aggressive_while_chasing: bool = false
+## When the target is crouched (stealth mode active), the cone's effective
+## range — slice rays AND alert/chase-exit radius — extends by this factor.
+## 2.0 = vigilant enemies spot prone targets twice as far in their forward
+## arc. Standing-mode (sphere) range is unaffected.
+@export var crouch_range_multiplier: float = 2.0
+## SUSPECT-phase duration multiplier when the target is crouched. 0.5 =
+## locks on twice as fast in stealth mode (suspect_duration 3.0 → 1.5s).
+@export var crouch_suspect_multiplier: float = 0.5
 
 @export_group("Vision Cone Colors")
 ## Color while no target is in view (calm patrol). Half-transparent.
@@ -116,6 +135,15 @@ extends Brain
 ## brain idles in place; when farther, it walks toward the subject.
 @export var follow_distance: float = 3.0
 
+@export_group("Jump")
+## Minimum y-delta (target.y - body.y) that triggers a jump. Below this,
+## the brain trusts walking + elevators to handle the height difference.
+## 1.5m matches a single platform step + a comfortable jump apex.
+@export var jump_height_threshold: float = 1.5
+## Seconds between consecutive jump triggers. Stops the brain from
+## hammering the jump button while in mid-air or stuck against a step.
+@export var jump_cooldown: float = 0.4
+
 @export_group("Ledges")
 @export var turn_at_ledges := true
 @export var ledge_probe_distance := 1.5
@@ -124,6 +152,37 @@ extends Brain
 ## ledge and turns. 0.5 ≈ tall step. Bump up for sloppy stairs that read as
 ## ledges; bump down to make enemies skittish around small drops.
 @export var ledge_probe_depth := 0.5
+
+@export_group("Performance")
+## Tick the brain only every Nth physics frame when not actively chasing.
+## 1 = every frame (original behavior). 4 = ~15Hz brain logic, ~75% CPU
+## savings on this brain's per-frame cost. Stealth enemies should set this
+## to 1 so their cone raycasts don't miss a player crossing their FOV.
+## CHASE/HOSTILE state always ticks every frame regardless — pursuit stays
+## responsive. Each instance picks a random offset 0..N-1 at _ready so a
+## cluster of enemies don't all tick on the same frame.
+@export_range(1, 16) var tick_every_n_frames: int = 4
+## Pause the body's AnimationTree when the body is off-screen. Brain logic
+## still ticks (so enemies pursue when behind the camera) but skeleton
+## skinning + state machine evaluation is skipped. Biggest single win for
+## scenes with many enemies — animation/skeleton work tends to dominate.
+@export var pause_animation_offscreen: bool = true
+## Beyond this distance from the target, the AnimationTree advances at
+## anim_rate_mid Hz instead of the engine's full visual rate. The eye
+## can't tell that a guy 25m away is animating at 20Hz instead of 60.
+@export var anim_lod_mid_distance: float = 25.0
+## Beyond this distance, AnimationTree advances at anim_rate_far Hz.
+@export var anim_lod_far_distance: float = 50.0
+## AnimationTree advance rate (Hz) inside anim_lod_mid_distance. 60 = full.
+@export var anim_rate_near: float = 60.0
+## AnimationTree advance rate (Hz) between mid and far distance.
+@export var anim_rate_mid: float = 20.0
+## AnimationTree advance rate (Hz) beyond anim_lod_far_distance.
+@export var anim_rate_far: float = 5.0
+## AABB used to size the off-screen notifier — humanoid-sized. Bumped wide
+## so the notifier registers as visible slightly before the skin appears,
+## hiding the one-frame "frozen pose" pop when transitioning back on-screen.
+const _PERF_NOTIFIER_AABB := AABB(Vector3(-1.0, -0.2, -1.0), Vector3(2.0, 2.4, 2.0))
 
 enum State { WANDER, CHASE, IDLE, WIND_UP }
 
@@ -138,6 +197,7 @@ var _direction := Vector3.RIGHT
 var _wander_timer := 0.0
 var _attack_cooldown_timer := 0.0
 var _wind_up_timer := 0.0
+var _jump_cooldown_timer := 0.0
 var _target: Node3D
 var _intent := Intent.new()
 # Debug-viz fan mesh. Attached to the body so its transform follows the
@@ -169,6 +229,59 @@ var _vision_audio: AudioStreamPlayer3D = null
 # you see is what they see. Empty when vision_cone_deg <= 0 (swarm mode).
 const _CONE_SLICES: int = 16
 var _slice_distances: PackedFloat32Array = PackedFloat32Array()
+# Cached once per real tick. Drives stealth-mode toggles: cone gating in
+# detection, range/suspect multipliers, aggressive-buff flip, cone visual
+# show/hide + flicker. Read from `_target._was_crouched` (PlayerBody).
+var _target_crouched: bool = false
+# Mirrors the body's last applied set_aggressive_buffs() state so we only
+# call across on transitions, not every frame.
+var _aggressive_active: bool = false
+# Effective ranges + SUSPECT threshold for THIS tick. Filled by
+# _refresh_effective_ranges(). When in cone-mode + crouched, range scales
+# by crouch_range_multiplier and suspect by crouch_suspect_multiplier;
+# otherwise these mirror the authored values.
+var _effective_detection_radius: float = 0.0
+var _effective_chase_exit_radius: float = 0.0
+var _effective_suspect_duration: float = 0.0
+# Cone visual alpha multiplier (0..1) applied to the displayed albedo
+# alpha each frame. Hidden when target is standing; flickers ON like a
+# fluorescent bulb on standing→crouched transition; fades to 0 on the
+# reverse. Debounced so rapid crouch toggles don't restart the flicker.
+var _cone_alpha_mult: float = 0.0
+# Flicker pattern playback. Each entry is (state, duration_seconds) where
+# state is 0 (off) or 1 (on). Index advances when timer expires; pattern
+# ends with a steady-on phase (handled by clearing the pattern).
+var _flicker_pattern: Array = []
+var _flicker_index: int = 0
+var _flicker_step_timer: float = 0.0
+# Wallclock at which the most recent flicker began. Used by the debounce
+# check — re-triggers within the window snap to ON without flickering.
+var _last_flicker_started_at: float = -1000.0
+const _FLICKER_DEBOUNCE_SEC: float = 1.0
+
+# ── Debug overlay ────────────────────────────────────────────────────────
+# Global toggle (F3 wired in game.gd). When true, every brain's debug Label3D
+# floats above its pawn showing archetype / state / alert phase / vel /
+# distance to target. Static so a single keystroke flips visibility for all
+# active brains without an autoload.
+static var debug_visible: bool = false
+var _debug_label: Label3D = null
+# Last text written; we only re-assign label.text when something changed so
+# we don't allocate a new string every tick on dozens of pawns.
+var _debug_label_last_text: String = ""
+
+# Performance — lazy-built on first tick because we need the body reference.
+var _perf_setup_done: bool = false
+var _animation_tree: AnimationTree = null
+var _notifier: VisibleOnScreenNotifier3D = null
+# Default true so enemies that spawn already on-screen don't freeze on
+# their first frame waiting for a screen_entered signal that won't come.
+var _on_screen: bool = true
+var _tick_offset: int = 0
+# Accumulates per-frame delta on skipped frames; flushed into the real
+# tick's delta so wander timers / cooldowns track wallclock time accurately.
+var _skip_delta_accum: float = 0.0
+var _anim_advance_accum: float = 0.0
 
 
 func _ready() -> void:
@@ -178,14 +291,51 @@ func _ready() -> void:
 	# Seed yaw so first-frame slice rays + visual point along _direction
 	# instead of swinging from 0 on spawn.
 	_vision_cone_yaw = atan2(_direction.x, _direction.z) + PI
+	# Stagger this brain's tick offset so a cluster spawned together don't
+	# all tick on the same physics frame. Body reference isn't available
+	# yet — the AnimationTree + notifier wiring waits for first tick().
+	_tick_offset = randi() % maxi(tick_every_n_frames, 1)
 
 
 func tick(body: Node3D, delta: float) -> Intent:
+	if not _perf_setup_done:
+		_setup_perf(body)
+		_setup_debug_label(body)
+
+	# Animation runs on its own clock — distance-LOD'd advance + off-screen
+	# pause. Done BEFORE the tick-budgeting gate so animation keeps progressing
+	# every visible frame even when AI logic itself is staggered.
+	_advance_animation_lod(body, delta)
+
+	# Tick budgeting: when not actively chasing, run the brain only every Nth
+	# physics frame. Movement intent persists from the last real tick so the
+	# body keeps walking in its current direction; only the edge flags reset
+	# (so attack/jump don't re-fire on skipped frames).
+	_skip_delta_accum += delta
+	var hostile: bool = _alert_phase == _AlertPhase.HOSTILE
+	var should_tick: bool = hostile or tick_every_n_frames <= 1 or \
+		(Engine.get_physics_frames() + _tick_offset) % tick_every_n_frames == 0
+	if not should_tick:
+		_intent.jump_pressed = false
+		_intent.attack_pressed = false
+		return _intent
+	delta = _skip_delta_accum
+	_skip_delta_accum = 0.0
+
 	# Reset edge flags every tick; only set them true when we fire this frame.
 	_intent.move_direction = Vector3.ZERO
 	_intent.jump_pressed = false
 	_intent.attack_pressed = false
+	_intent.hard_brake = false
 	_attack_cooldown_timer = maxf(0.0, _attack_cooldown_timer - delta)
+	_jump_cooldown_timer = maxf(0.0, _jump_cooldown_timer - delta)
+
+	# Resolve target first so crouch read + effective ranges all operate on
+	# the same up-to-date target reference this tick.
+	_ensure_target(body)
+	_refresh_target_crouched()
+	_refresh_effective_ranges()
+	_advance_cone_alpha(delta)
 
 	# Cone yaw + per-slice raycasts run BEFORE alert phase. _can_see_target
 	# (called inside _update_alert_phase) reads _slice_distances; the visual
@@ -195,8 +345,8 @@ func tick(body: Node3D, delta: float) -> Intent:
 
 	_update_alert_phase(body, delta)
 	_update_vision_debug(body, delta)
-	_ensure_target(body)
 	_update_state(body)
+	_update_debug_label(body)
 
 	match _state:
 		State.CHASE:
@@ -214,6 +364,16 @@ func tick(body: Node3D, delta: float) -> Intent:
 				_intent.move_direction = _follow_direction(body) * chase_speed_fraction
 			else:
 				_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
+
+	# Jump check runs AFTER state's match block so it sees the move_direction
+	# we just computed — gate `length() < 0.01` works correctly only if intent
+	# reflects this tick's choice, not the start-of-tick zero reset.
+	# DISABLED 2026-04-29: naive "target is higher → jump" looks silly when
+	# the pawn jumps in place against a wall it can't clear, and re-jumps
+	# on cooldown forever. Re-enable once `_maybe_jump` checks (a) pawn has
+	# ground above + ahead at landing distance, and (b) abandons after one
+	# failed attempt. Until then sentinels stay grounded.
+	# _maybe_jump(body)
 
 	return _intent
 
@@ -254,8 +414,7 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 		return false
 	if vision_cone_deg <= 0.0:
 		return true  # swarm: sphere detection, no cone
-	var crouched: bool = "_was_crouched" in _target and bool(_target.get(&"_was_crouched"))
-	if not crouched:
+	if not _target_crouched:
 		return true  # standing inside stealth sphere = absolutely seen
 	# Crouched: must lie inside the cone AND inside the unblocked extent
 	# of whichever slice contains them. A wall touching either bounding
@@ -285,11 +444,15 @@ func _chase_direction(body: Node3D) -> Vector3:
 	if to_target.length_squared() < 0.0001:
 		return Vector3.ZERO
 	_direction = to_target.normalized()
-	# Pressing into walls/ledges while chasing — stall instead of flipping,
-	# so the enemy stays aimed at the target.
-	if body.has_method("is_on_wall") and body.is_on_wall():
-		return Vector3.ZERO
+	# Wall handling is deferred to CharacterBody3D.move_and_slide — pushing
+	# into a wall stalls naturally. We previously zeroed intent on is_on_wall
+	# but that flag is direction-agnostic AND sticky when stationary, so the
+	# pawn would freeze and never re-track when the target moved.
 	if turn_at_ledges and body.has_method("is_on_floor") and body.is_on_floor() and not _has_ground_ahead(body):
+		# Friction alone can't brake red (2.5×) within stop-distance of the
+		# ledge probe; flag a hard_brake so the body zeros h_vel this tick.
+		# Self-clears next tick when the brain stops requesting it.
+		_intent.hard_brake = true
 		return Vector3.ZERO
 	return _direction
 
@@ -354,7 +517,15 @@ func _reset_wander_timer() -> void:
 
 func _ensure_target(body: Node3D) -> void:
 	if _target != null and is_instance_valid(_target):
-		return
+		# Validate the cached target still belongs to one of our target
+		# groups — set_faction() rewrites target_groups but doesn't reach
+		# in here to clear _target, so a converted ally would otherwise
+		# keep chasing whatever it was last targeting (often the player).
+		# Dropping the cached target here forces a re-acquire below.
+		for grp in target_groups:
+			if _target.is_in_group(grp):
+				return
+		_target = null
 	var tree := body.get_tree()
 	if tree == null:
 		return
@@ -409,13 +580,94 @@ func _tick_wind_up(body: Node3D, delta: float) -> void:
 		_state = State.CHASE
 
 
+# Jump trigger. Sets intent.jump_pressed when on the floor, off cooldown,
+# AND whatever we're moving toward this tick (chase target if HOSTILE,
+# follow subject otherwise) is meaningfully higher than us. Lets allies
+# climb after the player up steps/elevators and lets chasing sentinels
+# reach platforms above them. Brain doesn't try to verify a landing
+# spot — physics handles it; if they miss, they fall (the body's ledge
+# probe still gates wandering).
+func _maybe_jump(body: Node3D) -> void:
+	if _jump_cooldown_timer > 0.0:
+		return
+	if not (body.has_method("is_on_floor") and body.is_on_floor()):
+		return
+	# Pick the right "towards" subject for this state.
+	var towards: Node3D = null
+	if _state == State.CHASE or _state == State.WIND_UP:
+		towards = _target
+	elif follow_subject_group != &"":
+		towards = _nearest_in_group(body, follow_subject_group)
+	if towards == null or not is_instance_valid(towards):
+		return
+	var dy: float = towards.global_position.y - body.global_position.y
+	if dy < jump_height_threshold:
+		return
+	# Only jump if we're roughly moving toward the subject — no point
+	# hopping in place if the subject is above but we're not actively
+	# closing the distance (e.g. chase already returned ZERO at a ledge).
+	if _intent.move_direction.length() < 0.01:
+		return
+	_intent.jump_pressed = true
+	_jump_cooldown_timer = jump_cooldown
+
+
+func _nearest_in_group(body: Node3D, group: StringName) -> Node3D:
+	var tree := body.get_tree()
+	if tree == null:
+		return null
+	var best: Node3D = null
+	var best_dsq: float = INF
+	for n: Node in tree.get_nodes_in_group(group):
+		if not (n is Node3D):
+			continue
+		var n3d: Node3D = n as Node3D
+		var dsq: float = n3d.global_position.distance_squared_to(body.global_position)
+		if dsq < best_dsq:
+			best_dsq = dsq
+			best = n3d
+	return best
+
+
 func _has_ground_ahead(body: Node3D) -> bool:
+	# Velocity-aware SWEPT probe: a single distant probe overshoots gaps and
+	# lands on the next platform — reporting "ground ahead" when there's
+	# actually a chasm in between (level_4's ~3.6m inter-platform gaps were
+	# the bug that made this a sweep instead of a single ray). Cast a row
+	# of downward probes from `step` ahead up to `lookahead`; if ANY misses,
+	# there's a gap → ledge.
+	#
+	# Lookahead extends by 0.5s of current speed worth of stopping budget so
+	# fast pawns (red 2.5× = 12.5 m/s; or attack-lunge ~20 m/s spike) brake
+	# before the edge instead of sliding past it.
+	var lookahead: float = ledge_probe_distance
+	if body is CharacterBody3D:
+		var v: Vector3 = (body as CharacterBody3D).velocity
+		var horiz_speed: float = sqrt(v.x * v.x + v.z * v.z)
+		lookahead = ledge_probe_distance + horiz_speed * 0.5
 	var space := body.get_world_3d().direct_space_state
-	var from: Vector3 = body.global_position + _direction * ledge_probe_distance
-	var to: Vector3 = from + Vector3.DOWN * ledge_probe_depth
-	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.exclude = [(body as CollisionObject3D).get_rid()] if body is CollisionObject3D else []
-	return not space.intersect_ray(query).is_empty()
+	var exclude: Array[RID] = []
+	if body is CollisionObject3D:
+		exclude.append((body as CollisionObject3D).get_rid())
+	# Step granularity: 0.5m catches level_4's 3.5m+ chasms easily; tighter
+	# than a typical pawn footprint so even narrow gaps register.
+	var step: float = 0.5
+	var n_steps: int = maxi(1, int(ceil(lookahead / step)))
+	# Lift the probe origin slightly above the body so a stationary pawn
+	# resting exactly on the platform's top face still gets a clean hit on
+	# the surface beneath. Without this, body.global_position.y can settle
+	# coplanar with the floor, and rays starting on the surface miss it —
+	# the brain then thinks "no ground" forever and the pawn freezes.
+	var lift: float = 0.1
+	for i in range(1, n_steps + 1):
+		var dist: float = minf(step * float(i), lookahead)
+		var from: Vector3 = body.global_position + _direction * dist + Vector3.UP * lift
+		var to: Vector3 = from + Vector3.DOWN * (ledge_probe_depth + lift)
+		var query := PhysicsRayQueryParameters3D.create(from, to)
+		query.exclude = exclude
+		if space.intersect_ray(query).is_empty():
+			return false
+	return true
 
 
 # ---- Vision-cone debug visualization ------------------------------------
@@ -434,14 +686,19 @@ func _has_ground_ahead(body: Node3D) -> bool:
 func _update_alert_phase(body: Node3D, delta: float) -> void:
 	var prior: int = _alert_phase
 	# Re-check visibility against the up-to-date target. Use the chase-exit
-	# radius once we're past CALM so target remains "visible" through the
-	# hysteresis window — same as the original swarm behavior.
-	var range_cap: float = chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else detection_radius
+	# radius once we're past CALM so the target remains "visible" through
+	# the hysteresis window — same as the original swarm behavior. Effective
+	# values fold in the 2× crouch range multiplier when applicable.
+	var range_cap: float = _effective_chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else _effective_detection_radius
 	var visible: bool = _target != null and _can_see_target(body, range_cap)
+	# Stealth-mode soft windows (SUSPECT delay + tucker-out) only apply
+	# when the target is actually crouching. Standing target → snap to
+	# HOSTILE and stay there (matches red-class aggression).
+	var soft_windows: bool = _target_crouched and vision_cone_deg > 0.0
 	match _alert_phase:
 		_AlertPhase.CALM:
 			if visible:
-				if suspect_duration > 0.0 and vision_cone_deg > 0.0:
+				if soft_windows and _effective_suspect_duration > 0.0:
 					_alert_phase = _AlertPhase.SUSPECT
 					_alert_timer = 0.0
 				else:
@@ -452,12 +709,12 @@ func _update_alert_phase(body: Node3D, delta: float) -> void:
 				_alert_phase = _AlertPhase.CALM
 			else:
 				_alert_timer += delta
-				if _alert_timer >= suspect_duration:
+				if _alert_timer >= _effective_suspect_duration:
 					_alert_phase = _AlertPhase.HOSTILE
 					_alert_timer = 0.0
 		_AlertPhase.HOSTILE:
 			_alert_timer += delta
-			var tuckered: bool = chase_max_duration > 0.0 and _alert_timer >= chase_max_duration
+			var tuckered: bool = soft_windows and chase_max_duration > 0.0 and _alert_timer >= chase_max_duration
 			if not visible or tuckered:
 				_alert_phase = _AlertPhase.ALERT
 				_alert_timer = alert_duration
@@ -471,7 +728,18 @@ func _update_alert_phase(body: Node3D, delta: float) -> void:
 
 # Phase-transition hook: pick the target color for the cone and play the
 # matching sound. Color crossfades over color_blend_time; sound fires once.
-func _on_alert_phase_changed(body: Node3D, _prior: int, current: int) -> void:
+# Also flips aggressive_while_chasing buffs on HOSTILE enter/exit edges so
+# splice_stealth pawns burst to red-class lethality only while pursuing.
+func _on_alert_phase_changed(body: Node3D, prior: int, current: int) -> void:
+	if aggressive_while_chasing and body.has_method(&"set_aggressive_buffs"):
+		var entering_hostile: bool = current == _AlertPhase.HOSTILE
+		var leaving_hostile: bool = prior == _AlertPhase.HOSTILE and current != _AlertPhase.HOSTILE
+		if entering_hostile and not _aggressive_active:
+			body.call(&"set_aggressive_buffs", true)
+			_aggressive_active = true
+		elif leaving_hostile and _aggressive_active:
+			body.call(&"set_aggressive_buffs", false)
+			_aggressive_active = false
 	match current:
 		_AlertPhase.HOSTILE:
 			_vision_cone_color_target = color_hostile
@@ -527,9 +795,11 @@ func _compute_slice_distances(body: Node3D) -> void:
 	if _slice_distances.size() != n:
 		_slice_distances.resize(n)
 	var space := body.get_world_3d().direct_space_state
+	# Use the effective range — doubled when target is crouched (stealth mode).
+	var range_m: float = _effective_detection_radius if _effective_detection_radius > 0.0 else detection_radius
 	if space == null:
 		for i in range(n):
-			_slice_distances[i] = detection_radius
+			_slice_distances[i] = range_m
 		return
 	var origin: Vector3 = body.global_position + Vector3.UP * vision_eye_height
 	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
@@ -541,11 +811,11 @@ func _compute_slice_distances(body: Node3D) -> void:
 	for i in range(n):
 		var a: float = -half_rad + step * float(i)
 		var dir: Vector3 = forward.rotated(Vector3.UP, a)
-		var query := PhysicsRayQueryParameters3D.create(origin, origin + dir * detection_radius)
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + dir * range_m)
 		query.exclude = exclude
 		var hit := space.intersect_ray(query)
 		if hit.is_empty():
-			_slice_distances[i] = detection_radius
+			_slice_distances[i] = range_m
 		else:
 			_slice_distances[i] = origin.distance_to(hit.position as Vector3)
 
@@ -570,7 +840,12 @@ func _update_vision_debug(body: Node3D, delta: float) -> void:
 	_vision_cone_color_current = _vision_cone_color_current.lerp(_vision_cone_color_target, ck)
 	var mat: StandardMaterial3D = _vision_cone_mesh.material_override as StandardMaterial3D
 	if mat != null:
-		mat.albedo_color = _vision_cone_color_current
+		# Multiply the configured alpha by the visibility/flicker mask. 0
+		# while target is standing, 1 while steady-crouched, 0/1 toggles
+		# during the fluorescent flicker window.
+		var c: Color = _vision_cone_color_current
+		c.a *= _cone_alpha_mult
+		mat.albedo_color = c
 	_rebuild_vision_cone_mesh()
 
 
@@ -618,3 +893,224 @@ func _rebuild_vision_cone_mesh() -> void:
 		mesh.surface_add_vertex(p0)
 		mesh.surface_add_vertex(p1)
 	mesh.surface_end()
+
+
+# ---- Performance: animation LOD + off-screen pause + tick staggering -----
+
+func _setup_perf(body: Node3D) -> void:
+	_perf_setup_done = true
+	_animation_tree = _find_animation_tree(body)
+	if _animation_tree != null:
+		# AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL = 2. Switch to
+		# manual so we drive advance() ourselves at the LOD'd rate. Set via
+		# property name to be resilient to enum-rename churn between Godot
+		# minor versions.
+		_animation_tree.set(&"callback_mode_process", 2)
+	if pause_animation_offscreen:
+		_notifier = VisibleOnScreenNotifier3D.new()
+		_notifier.aabb = _PERF_NOTIFIER_AABB
+		body.add_child(_notifier)
+		_notifier.screen_entered.connect(_on_notifier_entered)
+		_notifier.screen_exited.connect(_on_notifier_exited)
+
+
+func _on_notifier_entered() -> void:
+	_on_screen = true
+
+
+func _on_notifier_exited() -> void:
+	_on_screen = false
+
+
+func _find_animation_tree(node: Node) -> AnimationTree:
+	if node is AnimationTree:
+		return node as AnimationTree
+	for c: Node in node.get_children():
+		var r := _find_animation_tree(c)
+		if r != null:
+			return r
+	return null
+
+
+func _advance_animation_lod(body: Node3D, delta: float) -> void:
+	if _animation_tree == null:
+		return
+	if pause_animation_offscreen and not _on_screen:
+		return  # frozen pose off-screen — biggest single CPU/GPU win
+	var d: float = _distance_to_target_or_player(body)
+	var rate: float
+	if d < anim_lod_mid_distance:
+		rate = anim_rate_near
+	elif d < anim_lod_far_distance:
+		rate = anim_rate_mid
+	else:
+		rate = anim_rate_far
+	_anim_advance_accum += delta
+	var step: float = 1.0 / maxf(rate, 0.1)
+	if _anim_advance_accum >= step:
+		_animation_tree.advance(_anim_advance_accum)
+		_anim_advance_accum = 0.0
+
+
+func _distance_to_target_or_player(body: Node3D) -> float:
+	# Prefer the cached _target (set by _ensure_target during chase). Fall
+	# back to the first member of any target_groups so we still LOD even
+	# before the enemy has acquired a target.
+	if _target != null and is_instance_valid(_target):
+		return body.global_position.distance_to(_target.global_position)
+	var tree := body.get_tree()
+	if tree == null:
+		return 0.0
+	for grp in target_groups:
+		for n: Node in tree.get_nodes_in_group(grp):
+			if n is Node3D:
+				return body.global_position.distance_to((n as Node3D).global_position)
+	return 0.0
+
+
+# ---- Stealth dual-mode: crouch-driven aggressive buffs + cone visibility -
+
+# Cache the resolved target's crouch state for this tick. Detects edges
+# (standing↔crouched) and fires the cone-flicker trigger on crouch entry.
+func _refresh_target_crouched() -> void:
+	var prev: bool = _target_crouched
+	if _target == null or not is_instance_valid(_target):
+		_target_crouched = false
+	else:
+		_target_crouched = "_was_crouched" in _target and bool(_target.get(&"_was_crouched"))
+	if prev != _target_crouched:
+		_on_crouch_transition(_target_crouched)
+
+
+# Fold the crouch-mode multipliers into the effective range + suspect
+# values used by detection and the alert state machine. Cone-mode + crouched
+# is the only branch that scales; everything else mirrors the authored
+# values so non-stealth brains behave identically to before.
+func _refresh_effective_ranges() -> void:
+	var stealth_active: bool = vision_cone_deg > 0.0 and _target_crouched
+	if stealth_active:
+		_effective_detection_radius = detection_radius * crouch_range_multiplier
+		_effective_chase_exit_radius = chase_exit_radius * crouch_range_multiplier
+		_effective_suspect_duration = suspect_duration * crouch_suspect_multiplier
+	else:
+		_effective_detection_radius = detection_radius
+		_effective_chase_exit_radius = chase_exit_radius
+		_effective_suspect_duration = suspect_duration
+
+
+# Advance _cone_alpha_mult one tick. Standing target → fade to 0 over
+# ~0.15s. Crouched target → walk the flicker pattern if active, otherwise
+# steady at 1.0. Flicker pattern is set up by _on_crouch_transition().
+func _advance_cone_alpha(delta: float) -> void:
+	if _target_crouched:
+		if _flicker_pattern.is_empty():
+			_cone_alpha_mult = 1.0
+			return
+		_flicker_step_timer -= delta
+		if _flicker_step_timer > 0.0:
+			return
+		_flicker_index += 1
+		if _flicker_index >= _flicker_pattern.size():
+			_flicker_pattern.clear()
+			_cone_alpha_mult = 1.0
+			return
+		var step: Array = _flicker_pattern[_flicker_index] as Array
+		_cone_alpha_mult = float(step[0])
+		_flicker_step_timer = float(step[1])
+		return
+	# Standing — kill any in-flight flicker, fade to 0.
+	if not _flicker_pattern.is_empty():
+		_flicker_pattern.clear()
+	var fade_rate: float = 1.0 / 0.15  # 0.15s fade-out
+	_cone_alpha_mult = maxf(0.0, _cone_alpha_mult - fade_rate * delta)
+
+
+# Crouch edge handler. Standing→crouched fires a fluorescent flicker on
+# the cone fan, debounced so rapid crouch toggling doesn't restart the
+# pattern (within the debounce window the cone snaps to ON instead).
+# Crouched→standing is handled by the fade in _advance_cone_alpha.
+func _on_crouch_transition(now_crouched: bool) -> void:
+	if not now_crouched:
+		return
+	var t: float = _wallclock_seconds()
+	if t - _last_flicker_started_at < _FLICKER_DEBOUNCE_SEC:
+		# Within debounce window: snap on, no flicker.
+		_flicker_pattern.clear()
+		_cone_alpha_mult = 1.0
+		return
+	_last_flicker_started_at = t
+	# Pattern: [alpha, duration_sec]. Reads as a fluorescent tube struggling
+	# to ignite — fast bursts, irregular gaps, settles to steady ON when
+	# the pattern array empties.
+	_flicker_pattern = [
+		[1.0, 0.05],
+		[0.0, 0.05],
+		[1.0, 0.04],
+		[0.0, 0.08],
+		[1.0, 0.06],
+		[0.0, 0.03],
+		[1.0, 0.10],
+		[0.0, 0.04],
+	]
+	_flicker_index = 0
+	_cone_alpha_mult = float((_flicker_pattern[0] as Array)[0])
+	_flicker_step_timer = float((_flicker_pattern[0] as Array)[1])
+
+
+func _wallclock_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+# ── Debug overlay ────────────────────────────────────────────────────────
+
+# Lazy-build the floating Label3D that summarizes brain state above this
+# pawn. Only built once per brain (stored on `_debug_label`); visibility
+# tracks the static `debug_visible` flag.
+func _setup_debug_label(body: Node3D) -> void:
+	if _debug_label != null and is_instance_valid(_debug_label):
+		return
+	_debug_label = Label3D.new()
+	_debug_label.position = Vector3(0, 2.4, 0)
+	_debug_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	# DISABLED depth test so the label punches through walls — what we want
+	# for debug — and we read the text from any angle.
+	_debug_label.no_depth_test = true
+	_debug_label.font_size = 28
+	_debug_label.outline_size = 6
+	_debug_label.modulate = Color(1, 1, 1, 1)
+	_debug_label.outline_modulate = Color(0, 0, 0, 1)
+	_debug_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_debug_label.visible = debug_visible
+	body.add_child(_debug_label)
+
+
+# Refresh the debug label text + visibility. Cheap when hidden (early-out).
+# Text is recomputed every tick but only re-assigned when it actually
+# changed, so transient labels don't churn the renderer.
+func _update_debug_label(body: Node3D) -> void:
+	if _debug_label == null:
+		return
+	if _debug_label.visible != debug_visible:
+		_debug_label.visible = debug_visible
+	if not debug_visible:
+		return
+	var arch: String = "STEALTH" if vision_cone_deg > 0.0 else "SWARM"
+	var faction: String = String(body.get(&"faction")) if "faction" in body else "?"
+	var state_names: Array[String] = ["WANDER", "CHASE", "IDLE", "WIND_UP"]
+	var phase_names: Array[String] = ["CALM", "SUSPECT", "HOSTILE", "ALERT"]
+	var state_str: String = state_names[_state] if _state >= 0 and _state < state_names.size() else "?"
+	var phase_str: String = phase_names[_alert_phase] if _alert_phase >= 0 and _alert_phase < phase_names.size() else "?"
+	var v: Vector3 = (body as CharacterBody3D).velocity if body is CharacterBody3D else Vector3.ZERO
+	var speed: float = sqrt(v.x * v.x + v.z * v.z)
+	var dist_str: String = "--"
+	if _target != null and is_instance_valid(_target):
+		dist_str = "%.1f" % body.global_position.distance_to(_target.global_position)
+	# Stealth cares about phase + chase timer; swarm just shows state + vel.
+	var text: String
+	if vision_cone_deg > 0.0:
+		text = "[%s] %s\n%s / %s\nv=%.1f d=%s" % [arch, faction, state_str, phase_str, speed, dist_str]
+	else:
+		text = "[%s] %s\n%s\nv=%.1f d=%s" % [arch, faction, state_str, speed, dist_str]
+	if text != _debug_label_last_text:
+		_debug_label.text = text
+		_debug_label_last_text = text

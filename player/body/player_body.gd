@@ -101,25 +101,13 @@ func set_faction(new_faction: StringName) -> void:
 	# KayKit (no rig); profile flip is the real mechanical change.
 	if new_faction == &"gold":
 		set_profile_skate()
-	# Per-faction speed + damage buffs. Splice (red) gets 2.5× speed +
-	# one-shot damage; everything else stays vanilla. Read each tick by
-	# the movement target_vel and by _sweep_attack's take_hit call.
-	var buffs: Array = _FACTION_BUFFS.get(new_faction, [1.0, 1]) as Array
-	_faction_speed_mult = float(buffs[0])
-	_faction_attack_damage = int(buffs[1])
-	# Splice extras: invulnerable + zero attack delay. Cache brain defaults
-	# the first time we touch them so a hack-conversion (red→green) can
-	# restore the authored cooldown/wind-up.
-	_faction_invulnerable = (new_faction == &"red")
-	if _brain != null:
-		if "attack_cooldown" in _brain:
-			if _brain_default_attack_cooldown < 0.0:
-				_brain_default_attack_cooldown = float(_brain.attack_cooldown)
-			_brain.attack_cooldown = 0.0 if new_faction == &"red" else _brain_default_attack_cooldown
-		if "wind_up_duration" in _brain:
-			if _brain_default_wind_up < 0.0:
-				_brain_default_wind_up = float(_brain.wind_up_duration)
-			_brain.wind_up_duration = 0.0 if new_faction == &"red" else _brain_default_wind_up
+	# Apply per-faction buffs. Red gets the aggressive package (2.5× speed,
+	# 2× damage, invulnerable, zero attack cooldown + wind-up); other
+	# factions get their normal entry from the table. The brain on a
+	# stealth-splice pawn calls set_aggressive_buffs() directly to flip in
+	# and out of red-style aggression based on player crouch state, without
+	# touching faction membership.
+	set_aggressive_buffs(new_faction == &"red")
 	# Tint the skin (no-op on skins that haven't implemented set_faction_tint).
 	if _skin != null and _skin.has_method(&"set_faction_tint"):
 		var tint: Array = _FACTION_TINT[new_faction]
@@ -128,6 +116,43 @@ func set_faction(new_faction: StringName) -> void:
 	Events.faction_changed.emit(self, new_faction)
 	if prior_faction != new_faction:
 		print("[faction] %s: %s → %s" % [get_path(), prior_faction, new_faction])
+
+
+## Apply / remove the red-faction aggressive package independent of faction
+## membership. When active: 2.5× speed, 2× damage, invulnerable, zero attack
+## cooldown + wind-up — same patches set_faction("red") applies. When
+## inactive: restore the current faction's natural buffs from the table.
+##
+## Stealth-splice enemies call this from the brain to mimic red whenever the
+## player is standing, then drop back to vulnerable cone-gated stealth-mode
+## the moment the player crouches. The pawn's faction stays "splice_stealth"
+## throughout — only the gameplay buffs flip.
+##
+## Guard: never deactivates on a red-faction pawn (set_faction is the source
+## of truth for permanent red enemies; flipping them off here would un-buff
+## a normal red kaykit).
+func set_aggressive_buffs(active: bool) -> void:
+	if not active and faction == &"red":
+		return
+	# Active uses red's buff entry; inactive restores the current faction's.
+	var buffs_key: StringName = &"red" if active else faction
+	var buffs: Array = _FACTION_BUFFS.get(buffs_key, [1.0, 1]) as Array
+	_faction_speed_mult = float(buffs[0])
+	_faction_attack_damage = int(buffs[1])
+	# Invulnerable while aggressive, OR if the underlying faction is red /
+	# splice_stealth. Splice_stealth is always invulnerable to take_hit;
+	# the only kill path is StealthKillTarget's backstab, which calls
+	# stealth_kill() directly and bypasses take_hit (and therefore invuln).
+	_faction_invulnerable = active or faction == &"red" or faction == &"splice_stealth"
+	if _brain != null:
+		if "attack_cooldown" in _brain:
+			if _brain_default_attack_cooldown < 0.0:
+				_brain_default_attack_cooldown = float(_brain.attack_cooldown)
+			_brain.attack_cooldown = 0.0 if active else _brain_default_attack_cooldown
+		if "wind_up_duration" in _brain:
+			if _brain_default_wind_up < 0.0:
+				_brain_default_wind_up = float(_brain.wind_up_duration)
+			_brain.wind_up_duration = 0.0 if active else _brain_default_wind_up
 
 
 ## Map pawn_group → default faction for backwards compat. Used by _ready
@@ -186,7 +211,7 @@ const _FACTION_TARGETS: Dictionary = {
 const _FACTION_BUFFS: Dictionary = {
 	&"player":         [1.0, 1],
 	&"green":          [1.0, 1],
-	&"red":            [2.5, 99],
+	&"red":            [1.0, 99],
 	&"splice_stealth": [1.0, 99],
 	&"gold":           [1.0, 1],
 }
@@ -1918,7 +1943,12 @@ func _physics_process(delta: float) -> void:
 	var accel_now := profile.accel * air_mult
 	var friction_now := profile.friction * air_mult
 
-	if move_direction.length() > 0.01:
+	if intent.hard_brake:
+		# Brain requested instant horizontal stop — bypasses both accel and
+		# friction branches. Used by AI at ledges where friction-rate decay
+		# can't stop a fast pawn (e.g. red 2.5×) before sliding off.
+		h_vel = Vector3.ZERO
+	elif move_direction.length() > 0.01:
 		var h_dir := h_vel.normalized() if h_vel.length() > 0.1 else move_direction
 		var steered := h_dir.slerp(move_direction, clamp(profile.turn_rate * delta, 0.0, 1.0))
 		# Crouch / sneak slows the player in EITHER profile (the post-hacking

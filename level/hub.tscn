@@ -23,8 +23,8 @@
 [ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="21_robot"]
 [ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="23_xlodn"]
 [ext_resource type="Resource" uid="uid://c8jyiqkr3wt7p" path="res://dialogue/hub_post4_splice.dialogue" id="25_p4splice"]
-[ext_resource type="Resource" uid="uid://cd2w6nvbq4xv8" path="res://dialogue/hub_post4_nyx.dialogue" id="26_p4nyx"]
-[ext_resource type="Script" path="res://level/world_environment_runtime_boost.gd" id="27_envboost"]
+[ext_resource type="Resource" uid="uid://dgu1ynx0ibads" path="res://dialogue/hub_nyx.dialogue" id="26_hubnyxdlg"]
+[ext_resource type="Script" uid="uid://bg1lwgnbjspsi" path="res://level/world_environment_runtime_boost.gd" id="27_envboost"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -72,13 +72,9 @@ ambient_light_sky_contribution = 0.0
 tonemap_mode = 2
 tonemap_exposure = 1.05
 tonemap_white = 0.95
-ssr_enabled = false
 ssr_max_steps = 48
-ssao_enabled = false
 ssao_radius = 2.0
 ssao_intensity = 1.4
-ssil_enabled = false
-glow_enabled = false
 glow_intensity = 4.73
 glow_strength = 0.54
 glow_bloom = 0.41
@@ -87,7 +83,6 @@ glow_hdr_threshold = 0.26
 glow_hdr_scale = 1.48
 glow_hdr_luminance_cap = 66.26
 glow_map_strength = 1.0
-fog_enabled = false
 fog_light_color = Color(0, 0, 0, 1)
 fog_light_energy = 2.31
 fog_density = 0.0309
@@ -170,14 +165,10 @@ material_override = ExtResource("2_c07e2")
 use_collision = true
 size = Vector3(15.080139, 1, 19.78363)
 
-[node name="ELEVATOR" parent="." instance=ExtResource("17_elevpltf")]
+[node name="ELEVATOR" parent="." unique_id=1817768757 instance=ExtResource("17_elevpltf")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -12.393469, -32.837395)
 size = Vector3(15.080139, 1, 16.938202)
 amplitude = 23.0
-rise_duration = 5.0
-peak_pause = 1.0
-fall_duration = 5.0
-trough_pause = 2.0
 
 [node name="first_enemies" type="Node3D" parent="." unique_id=1118078994]
 
@@ -228,7 +219,7 @@ interactable_id = &"pedestal_2"
 [node name="PedestalSex" parent="." unique_id=502467274 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.069511, 11.150833, -69.8302)
 level_num = 3
-ready_tint = Color(0.7495762, 0.22929168, 0.9761173, 1)
+ready_tint = Color(0.8899328, 0.1569745, 0.7048536, 1)
 require_flag = &"level_3_unlocked"
 interactable_id = &"pedestal_3"
 
@@ -292,8 +283,9 @@ skin_scene = ExtResource("21_c3bbd")
 dialogue_resource = ExtResource("25_p4splice")
 interactable_id = &"npc_post4_splice"
 
-[node name="Nyx" parent="postL4Show" unique_id=1285406458 instance=ExtResource("13_companion")]
+[node name="Nyx" parent="." unique_id=1285406458 instance=ExtResource("13_companion")]
 transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -31.39301, 11.206046, -60.313766)
+visible_when_flag = &"level_1_completed"
 skin_scene = ExtResource("23_xlodn")
-dialogue_resource = ExtResource("26_p4nyx")
+dialogue_resource = ExtResource("26_hubnyxdlg")
 interactable_id = &"npc_post4_nyx"

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bm5qgtec353by"]
 
 [ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
-[ext_resource type="PackedScene" path="res://library/interactables/hacking_terminal.tscn" id="2_hackterm"]
+[ext_resource type="PackedScene" uid="uid://r4ed0j7155go" path="res://library/interactables/hacking_terminal.tscn" id="2_hackterm"]
 [ext_resource type="PackedScene" uid="uid://ft4d2kwlkeke" path="res://level/interactable/crumble_platform/crumble_platform.tscn" id="6_dxks8"]
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="7_vl510"]
 [ext_resource type="PackedScene" uid="uid://delevpltf0001" path="res://level/interactable/elevator_platform/elevator_platform.tscn" id="8_fvot5"]
@@ -9,6 +9,20 @@
 [ext_resource type="PackedScene" uid="uid://dconvert00001" path="res://level/interactable/convert_zone/convert_zone.tscn" id="9_fvot5"]
 [ext_resource type="PackedScene" uid="uid://hyhh56bgmm1u" path="res://enemy/enemy_kaykit_splice_stealth.tscn" id="9_rgj0g"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="10_rgj0g"]
+[ext_resource type="Script" uid="uid://dolwonf6pfi0h" path="res://level/csg_collider_swap.gd" id="11_csgswap"]
+[ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="12_edsleep"]
+[ext_resource type="PackedScene" uid="uid://c6800is15rab5" path="res://level/interactable/bouncy_platform/bouncy_platform.tscn" id="22_3c4pw"]
+[ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="23_fpfi6"]
+[ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="50_companion"]
+[ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="51_nyxskin"]
+[ext_resource type="Resource" uid="uid://c7j3k3fkugyut" path="res://dialogue/level_2_nyx.dialogue" id="52_l2nyxdlg"]
+[ext_resource type="PackedScene" uid="uid://dhnuc5e3b6465" path="res://hud/components/beacon.tscn" id="53_beacon"]
+[ext_resource type="PackedScene" uid="uid://ljpmlfpfy0rk" path="res://interactable/walkie_trigger/walkie_trigger.tscn" id="54_walkie"]
+[ext_resource type="PackedScene" uid="uid://cl7vbg0871ke" path="res://level/interactable/companion_npc/companion_station.tscn" id="55_station"]
+[ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="56_robot"]
+[ext_resource type="Resource" uid="uid://cnn8tv0osg2m4" path="res://dialogue/companion.dialogue" id="57_compdlg"]
+[ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="58_glitch2dlg"]
+[ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="59_warp"]
 
 [node name="LevelMockup" unique_id=1815979861 instance=ExtResource("1_base")]
 level_num = 2
@@ -17,7 +31,7 @@ powerup_label = "SECRET"
 howto_caption = "FIND A HACK TERMINAL AND PRESS {interact}"
 
 [node name="Ground" parent="." index="2" unique_id=310043039]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.04386, 32.607445, 2.3491669)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.094465256, -1.2175503, 21.914768)
 
 [node name="Ground3" parent="." index="4" unique_id=548036433]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.2361307, 0.65408325)
@@ -30,7 +44,7 @@ size = Vector3(19.161682, 1, 13.673279)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -157.15706, 70.62198, 28.91706)
 
 [node name="PlayerSpawn" parent="." index="8" unique_id=139234302]
-transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, -61.04386, 33.75487, 1.8637543)
+transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, 0.094465256, -0.07012367, 21.429356)
 
 [node name="Checkpoint2" parent="." index="10" unique_id=57134153]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -24362.775, -10.335255)
@@ -38,233 +52,233 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -24362.775, -10.335255)
 [node name="PowerupPickup" parent="." index="11" unique_id=221835442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.424747, 51.39068, 65.698425)
 
-[node name="LevelEndDialogue" parent="." index="12" unique_id=187308304]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6836205, 29.003067, 30.104969)
-
-[node name="EndMarker" parent="LevelEndDialogue" index="1" unique_id=147019349]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -153.72787, 43.330643, 1.4111443)
-
-[node name="HackTerminal" parent="." index="14" unique_id=60983618 instance=ExtResource("2_hackterm")]
-transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -41.698, 33.515285, 7.952879)
+[node name="HackTerminal" parent="." index="13" unique_id=60983618 instance=ExtResource("2_hackterm")]
+transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -41.698, 33.22149, 7.952879)
 one_shot = false
+maze_path = "res://puzzle/maze/mazes/l2_hack_terminal.maze"
 convert_zone_id = &"l2_splice"
 interactable_id = &"l2_hack_terminal"
 
-[node name="CrumblePlatform4" parent="." index="15" unique_id=1840225822 instance=ExtResource("6_dxks8")]
+[node name="CrumblePlatform4" parent="." index="14" unique_id=1840225822 instance=ExtResource("6_dxks8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.036926, 41.35761, 38.264465)
 size = Vector3(6, 1, 6)
 
-[node name="CrumblePlatform6" parent="." index="16" unique_id=780504982 instance=ExtResource("6_dxks8")]
+[node name="CrumblePlatform6" parent="." index="15" unique_id=780504982 instance=ExtResource("6_dxks8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.036926, 46.496326, 50.551735)
 size = Vector3(6, 1, 6)
 
-[node name="CrumblePlatform2" parent="." index="17" unique_id=1573282554 instance=ExtResource("6_dxks8")]
+[node name="CrumblePlatform2" parent="." index="16" unique_id=1573282554 instance=ExtResource("6_dxks8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.08679, 37.590015, 25.324879)
 size = Vector3(6, 1, 6)
 
-[node name="CrumblePlatform3" parent="." index="18" unique_id=774451219 instance=ExtResource("6_dxks8")]
+[node name="CrumblePlatform3" parent="." index="17" unique_id=774451219 instance=ExtResource("6_dxks8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -52.31553, 35.94094, 13.55901)
 size = Vector3(6, 1, 6)
 
-[node name="column" type="CSGBox3D" parent="." index="19" unique_id=1445245976]
+[node name="column" type="CSGBox3D" parent="." index="18" unique_id=1445245976]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -29.092508, 6.788514, -63.896175)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="column2" type="CSGBox3D" parent="." index="20" unique_id=1030979168]
+[node name="column2" type="CSGBox3D" parent="." index="19" unique_id=1030979168]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -21.603657, -2.184432, -35.563046)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="column3" type="CSGBox3D" parent="." index="21" unique_id=446093514]
+[node name="column3" type="CSGBox3D" parent="." index="20" unique_id=446093514]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -47.936886, -14.497725, -35.563046)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(7, 80.276855, 11)
 
-[node name="column4" type="CSGBox3D" parent="." index="22" unique_id=124750387]
+[node name="column4" type="CSGBox3D" parent="." index="21" unique_id=124750387]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -50.993748, -3.0172539, 6.116233)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(7, 71.67444, 42.136475)
 
-[node name="column8" type="CSGBox3D" parent="." index="23" unique_id=1765527261]
+[node name="column8" type="CSGBox3D" parent="." index="22" unique_id=1765527261]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -55.000404, 10.476372, 74.847786)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(7, 116.37207, 41.95294)
 
-[node name="column10" type="CSGBox3D" parent="." index="24" unique_id=495596155]
+[node name="column10" type="CSGBox3D" parent="." index="23" unique_id=495596155]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -70.54354, 10.476372, 41.99075)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(79.44751, 116.37207, 11)
 
-[node name="column11" type="CSGBox3D" parent="." index="25" unique_id=2120378632]
+[node name="column11" type="CSGBox3D" parent="." index="24" unique_id=2120378632]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -29.508247, 10.476372, 41.99075)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(79.44751, 116.37207, 11)
 
-[node name="column9" type="CSGBox3D" parent="." index="26" unique_id=1947565000]
+[node name="column9" type="CSGBox3D" parent="." index="25" unique_id=1947565000]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -54.03173, 8.862778, 65.803986)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(10.211426, 80.276855, 11)
 
-[node name="column12" type="CSGBox3D" parent="." index="27" unique_id=1095025196]
+[node name="column12" type="CSGBox3D" parent="." index="26" unique_id=1095025196]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -54.03173, 61.186737, 65.803986)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(10.211426, 1.5668945, 11)
 
-[node name="column14" type="CSGBox3D" parent="." index="28" unique_id=139995671]
+[node name="column14" type="CSGBox3D" parent="." index="27" unique_id=139995671]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -85.79035, 75.86978, 65.79766)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(10.211426, 8.553101, 2.2138672)
 
-[node name="column15" type="CSGBox3D" parent="." index="29" unique_id=1387950921]
+[node name="column15" type="CSGBox3D" parent="." index="28" unique_id=1387950921]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -89.18327, 75.86978, 69.8859)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(2.057129, 8.553101, 9.026367)
 
-[node name="column16" type="CSGBox3D" parent="." index="30" unique_id=134498859]
+[node name="column16" type="CSGBox3D" parent="." index="29" unique_id=134498859]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -105.26029, 75.86978, 65.21631)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(11.419922, 8.553101, 1.8129883)
 
-[node name="column18" type="CSGBox3D" parent="." index="31" unique_id=1725666265]
+[node name="column18" type="CSGBox3D" parent="." index="30" unique_id=1725666265]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -105.26029, 75.86978, 49.416866)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(11.419922, 8.553101, 1.8129883)
 
-[node name="column19" type="CSGBox3D" parent="." index="32" unique_id=714934939]
+[node name="column19" type="CSGBox3D" parent="." index="31" unique_id=714934939]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -98.19998, 71.052505, 49.416866)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(11.419922, 7.408264, 1.8129883)
 
-[node name="column20" type="CSGBox3D" parent="." index="33" unique_id=1330464100]
+[node name="column20" type="CSGBox3D" parent="." index="32" unique_id=1330464100]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -101.74165, 71.052505, 42.196426)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(3.7910156, 7.408264, 8.921265)
 
-[node name="column17" type="CSGBox3D" parent="." index="34" unique_id=390438239]
+[node name="column17" type="CSGBox3D" parent="." index="33" unique_id=390438239]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -101.638336, 75.86978, 69.8859)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(2.057129, 8.553101, 9.026367)
 
-[node name="column13" type="CSGBox3D" parent="." index="35" unique_id=611546834]
+[node name="column13" type="CSGBox3D" parent="." index="34" unique_id=611546834]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -64.25597, 65.25995, 65.803986)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(10.211426, 1.5668945, 11)
 
-[node name="big" type="CSGBox3D" parent="." index="36" unique_id=1198404942]
+[node name="big" type="CSGBox3D" parent="." index="35" unique_id=1198404942]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -31.239498, -12.475626, -38.097595)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(36.105957, 27, 63.18991)
 material = ExtResource("7_vl510")
 
-[node name="big2" type="CSGBox3D" parent="." index="37" unique_id=1996396650]
+[node name="big2" type="CSGBox3D" parent="." index="36" unique_id=1996396650]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -51.89797, -2.9756603, 43.868458)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(36.105957, 63.25537, 78.919174)
 material = ExtResource("7_vl510")
 
-[node name="big3" type="CSGBox3D" parent="." index="38" unique_id=1158074752]
+[node name="big3" type="CSGBox3D" parent="." index="37" unique_id=1158074752]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -92.08337, 18.102379, 58.957943)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(36.105957, 106.23364, 52.75109)
 material = ExtResource("7_vl510")
 
-[node name="big5" type="CSGBox3D" parent="." index="39" unique_id=120067121]
+[node name="big5" type="CSGBox3D" parent="." index="38" unique_id=120067121]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -131.01907, 18.034416, 37.519596)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(42.60132, 106.09772, 9.8529625)
 material = ExtResource("7_vl510")
 
-[node name="big6" type="CSGBox3D" parent="." index="40" unique_id=180141978]
+[node name="big6" type="CSGBox3D" parent="." index="39" unique_id=180141978]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -178.69604, 18.034416, 83.92885)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(42.60132, 106.09772, 9.8529625)
 material = ExtResource("7_vl510")
 
-[node name="big7" type="CSGBox3D" parent="." index="41" unique_id=1410771368]
+[node name="big7" type="CSGBox3D" parent="." index="40" unique_id=1410771368]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -155.27534, 18.034416, 60.666107)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(16.305542, 106.09772, 56.238983)
 material = ExtResource("7_vl510")
 
-[node name="big9" type="CSGBox3D" parent="." index="42" unique_id=1715497418]
-transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -181.18312, 70.92711, 57.12198)
+[node name="big9" type="CSGBox3D" parent="." index="41" unique_id=1715497418]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -297.98108, 70.92711, 57.12198)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(44.451492, 2.081253, 56.238983)
 material = ExtResource("7_vl510")
 
-[node name="column21" type="CSGBox3D" parent="." index="43" unique_id=943365434]
+[node name="column21" type="CSGBox3D" parent="." index="42" unique_id=943365434]
 transform = Transform3D(0.042694997, 0, 0.99908817, 0, 1, 0, -0.99908817, 0, 0.042694997, -210.16663, 75.86978, 55.231255)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(31.363525, 8.553101, 2.2138672)
 
-[node name="column22" type="CSGBox3D" parent="." index="44" unique_id=1699058208]
+[node name="column27" type="CSGBox3D" parent="." index="43" unique_id=2124967872]
+transform = Transform3D(0.042694997, 0, 0.99908817, 0, 1, 0, -0.99908817, 0, 0.042694997, -226.19019, 79.976944, 58.73346)
+material_override = ExtResource("7_vl510")
+use_collision = true
+size = Vector3(59.64447, 2.5997925, 48.00769)
+
+[node name="column28" type="CSGBox3D" parent="." index="44" unique_id=1512033580]
+transform = Transform3D(0.042694997, 0, 0.99908817, 0, 1, 0, -0.99908817, 0, 0.042694997, -96.3959, 79.976944, 58.73346)
+material_override = ExtResource("7_vl510")
+use_collision = true
+size = Vector3(59.64447, 2.5997925, 48.00769)
+
+[node name="column22" type="CSGBox3D" parent="." index="45" unique_id=1699058208]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -230.0881, 75.86978, 65.21631)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(11.419922, 8.553101, 1.8129883)
 
-[node name="column23" type="CSGBox3D" parent="." index="45" unique_id=1026271237]
+[node name="column23" type="CSGBox3D" parent="." index="46" unique_id=1026271237]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -232.1913, 67.98413, 49.42373)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(11.419922, 24.324402, 6.019409)
 
-[node name="column24" type="CSGBox3D" parent="." index="46" unique_id=37504188]
+[node name="column24" type="CSGBox3D" parent="." index="47" unique_id=37504188]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -216.39728, 71.052505, 44.66494)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(20.923828, 7.408264, 1.8129883)
 
-[node name="column25" type="CSGBox3D" parent="." index="47" unique_id=1774817500]
+[node name="column25" type="CSGBox3D" parent="." index="48" unique_id=1774817500]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -220.90591, 71.51152, 41.424473)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(3.7910156, 7.408264, 8.921265)
 
-[node name="column26" type="CSGBox3D" parent="." index="48" unique_id=1573834691]
+[node name="column26" type="CSGBox3D" parent="." index="49" unique_id=1573834691]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -219.45274, 75.86978, 77.81366)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(2.057129, 8.553101, 23.053223)
 
-[node name="big4" type="CSGBox3D" parent="." index="49" unique_id=1635320391]
+[node name="big4" type="CSGBox3D" parent="." index="50" unique_id=1635320391]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -218.68434, -2.338295, 60.87205)
 material_override = ExtResource("7_vl510")
 use_collision = true
 size = Vector3(36.105957, 147.11499, 56.57933)
-material = ExtResource("7_vl510")
-
-[node name="big8" type="CSGBox3D" parent="." index="50" unique_id=633291623]
-transform = Transform3D(-0.91927236, -0.37978384, 0.10345361, -0.38176984, 0.9242573, 0.0006524162, -0.09586555, -0.038895674, -0.9946342, -245.33612, -67.90064, 49.16091)
-material_override = ExtResource("7_vl510")
-use_collision = true
-size = Vector3(248.69666, 147.11499, 56.57933)
 material = ExtResource("7_vl510")
 
 [node name="PhoneBooth" parent="." index="51" unique_id=547259237 instance=ExtResource("8_vir0n")]
@@ -341,6 +355,7 @@ faction = &"red"
 [node name="ElevatorPlatform" parent="." index="70" unique_id=1275687264 instance=ExtResource("8_fvot5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.541435, 29.152025, 67.04286)
 amplitude = 30.0
+enable_when_flag = &"l2_hack_terminal"
 
 [node name="EnemyKayKitSpliceStealth" parent="." index="71" unique_id=714251767 instance=ExtResource("9_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92.657776, 71.24014, 50.345325)
@@ -358,47 +373,85 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -206.73581, 71.24014, 40.0234
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -232.30315, 71.24014, 37.424835)
 
 [node name="EnemyKayKitSpliceStealth5" parent="." index="76" unique_id=367264123 instance=ExtResource("9_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -205.58707, 71.24014, 76.02973)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -154.79997, 71.24014, 37.618454)
 
-[node name="EnemyKayKitSpliceStealth6" parent="." index="77" unique_id=433823812 instance=ExtResource("9_rgj0g")]
+[node name="EnemyKayKitSpliceStealth7" parent="." index="77" unique_id=1854390055 instance=ExtResource("9_rgj0g")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -180.8638, 71.24014, 85.48329)
+
+[node name="EnemyKayKitSpliceStealth6" parent="." index="78" unique_id=433823812 instance=ExtResource("9_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -228.97366, 71.24014, 72.974106)
 
-[node name="EnemyKayKit14" parent="." index="78" unique_id=1521035544 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -168.79173, 43.124115, 44.878647)
-faction = &"red"
+[node name="CsgColliderSwap" type="Node" parent="." index="79" unique_id=1953359541]
+script = ExtResource("11_csgswap")
 
-[node name="EnemyKayKit15" parent="." index="79" unique_id=874237085 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170.46944, 43.110977, 60.94803)
-faction = &"red"
+[node name="EnemyDistanceSleep" type="Node" parent="." index="80" unique_id=1663466057]
+script = ExtResource("12_edsleep")
 
-[node name="EnemyKayKit16" parent="." index="80" unique_id=459284493 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -182.31093, 38.067513, 56.725548)
-faction = &"red"
+[node name="Nyx" parent="." index="81" unique_id=1272419520 instance=ExtResource("50_companion")]
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -314.544, 72, 31)
+skin_scene = ExtResource("51_nyxskin")
+dialogue_resource = ExtResource("52_l2nyxdlg")
+interactable_id = &"npc_nyx_l2"
 
-[node name="EnemyKayKit17" parent="." index="81" unique_id=937007514 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -192.41093, 33.127785, 37.96311)
-faction = &"red"
+[node name="Beacon" parent="Nyx" index="5" unique_id=1852752831 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+label = "NYX"
 
-[node name="EnemyKayKit18" parent="." index="82" unique_id=740910620 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -194.14534, 33.34256, 60.001827)
-faction = &"red"
+[node name="Glitch" parent="." index="82" unique_id=1023687106 instance=ExtResource("50_companion")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 33.5, 5)
+warp_sfx = ExtResource("59_warp")
+skin_scene = ExtResource("56_robot")
+stations = Array[NodePath]([NodePath("../GlitchStation1")])
+travel_duration = 5.0
+dialogue_resource = ExtResource("57_compdlg")
+interactable_id = &"npc_glitch_l2"
 
-[node name="EnemyKayKit19" parent="." index="83" unique_id=580233410 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -175.36893, 41.40233, 68.18573)
-faction = &"red"
+[node name="GlitchStation1" parent="." index="83" unique_id=2142582136 instance=ExtResource("55_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65, 33.5, 11)
+dialogue_resource = ExtResource("58_glitch2dlg")
 
-[node name="EnemyKayKit20" parent="." index="84" unique_id=1196574172 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -180.87758, 37.948822, 39.909393)
-faction = &"red"
+[node name="WalkieGlitch" parent="." index="84" unique_id=1498615537 instance=ExtResource("54_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -68, 33.5, 14)
+character = &"Glitch"
+line = "[Glitch L2 walkie placeholder — replace me]"
 
-[node name="EnemyKayKit21" parent="." index="85" unique_id=1841481059 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -215.65912, 23.158058, 28.05682)
-faction = &"red"
+[node name="WalkieDialTone" parent="." index="85" unique_id=1066109123 instance=ExtResource("54_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64, 33.5, 14)
+line = "[DialTone L2 walkie placeholder — replace me]"
 
-[node name="EnemyKayKit22" parent="." index="86" unique_id=1935475151 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -253.0056, 8.007409, 32.69747)
-faction = &"red"
+[node name="WalkieNyx" parent="." index="86" unique_id=2047040334 instance=ExtResource("54_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 33.5, 14)
+character = &"Nyx"
+line = "[Nyx L2 walkie placeholder — replace me]"
 
-[node name="EnemyKayKit23" parent="." index="87" unique_id=560828924 instance=ExtResource("10_rgj0g")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -284.64865, -4.994479, 32.708244)
-faction = &"red"
+[node name="WalkieSplice" parent="." index="87" unique_id=1150556450 instance=ExtResource("54_walkie")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56, 33.5, 14)
+character = &"Splice"
+line = "[Splice L2 walkie placeholder — replace me]"
+
+[node name="CrumblePlatform" parent="." index="88" unique_id=1421910894 instance=ExtResource("6_dxks8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -244.53706, 69.87263, 39.134182)
+
+[node name="CrumblePlatform5" parent="." index="89" unique_id=558188453 instance=ExtResource("6_dxks8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -254.39087, 69.87263, 39.134182)
+
+[node name="CrumblePlatform7" parent="." index="90" unique_id=728667075 instance=ExtResource("6_dxks8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -267.396, 69.87263, 39.134182)
+
+[node name="BouncyPlatform" parent="." index="91" unique_id=546291861 instance=ExtResource("22_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.296864, 1.524374, -27.727177)
+
+[node name="BouncyPlatform2" parent="." index="92" unique_id=1829772824 instance=ExtResource("22_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.608366, 7.4550066, -27.727177)
+
+[node name="BouncyPlatform3" parent="." index="93" unique_id=1017774284 instance=ExtResource("22_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.608366, 12.3901205, -41.68517)
+
+[node name="BouncyPlatform4" parent="." index="94" unique_id=97151275 instance=ExtResource("22_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.422516, 15.789865, -54.16941)
+
+[node name="Rail" parent="." index="95" unique_id=606984661 instance=ExtResource("23_fpfi6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.6973, 21.743326, -64.619446)
+
+[node name="Rail2" parent="." index="96" unique_id=575955918 instance=ExtResource("23_fpfi6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.031357, 26.132175, -33.47561)

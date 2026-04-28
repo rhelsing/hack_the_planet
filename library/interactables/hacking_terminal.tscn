@@ -1,43 +1,35 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://r4ed0j7155go"]
 
-[ext_resource type="Script" path="res://interactable/puzzle_terminal/puzzle_terminal.gd" id="1"]
-[ext_resource type="PackedScene" path="res://puzzle/hacking/hacking_puzzle.tscn" id="2"]
+[ext_resource type="Script" uid="uid://cuq8io8lknuxn" path="res://interactable/puzzle_terminal/puzzle_terminal.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://dmazepuzzle001" path="res://puzzle/maze/maze_puzzle.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://bn8fgui0oc5we" path="res://level/interactable/laptop/sci_fi_laptop.glb" id="3"]
 
-[sub_resource type="BoxShape3D" id="1"]
-size = Vector3(1.0, 1.2, 0.8)
+[sub_resource type="SphereShape3D" id="1"]
+radius = 4.0
 
-[sub_resource type="StandardMaterial3D" id="2"]
-albedo_color = Color(0.1, 0.1, 0.12, 1)
-metallic = 0.4
-roughness = 0.6
+[sub_resource type="BoxShape3D" id="2"]
+size = Vector3(1.8194275, 1.7880981, 2.131372)
 
-[sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.1, 0.8, 0.3, 1)
-emission_enabled = true
-emission = Color(0.2, 1.0, 0.4, 1)
-emission_energy_multiplier = 0.8
-
-[node name="HackingTerminal" type="Area3D"]
+[node name="HackingTerminal" type="Area3D" unique_id=816224979]
 collision_layer = 512
 collision_mask = 0
 script = ExtResource("1")
+puzzle_scene = ExtResource("2")
+target_factions = Array[StringName]([&"red"])
 prompt_verb = "hack"
 interactable_id = &"terminal_lobby"
-puzzle_scene = ExtResource("2")
-one_shot = true
-target_factions = Array[StringName]([&"red"])
-resulting_faction = &"green"
+detection_range_override = 4.0
+omnidirectional = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=730259745]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3569336, 0.50175774, 0.05088663)
 shape = SubResource("1")
 
-[node name="Chassis" type="CSGBox3D" parent="."]
-use_collision = false
-size = Vector3(1.0, 1.2, 0.8)
-material = SubResource("2")
+[node name="Laptop" parent="." unique_id=1608060878 instance=ExtResource("3")]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.6904888, -0.13517654, 0)
 
-[node name="Screen" type="CSGBox3D" parent="."]
-use_collision = false
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0.41)
-size = Vector3(0.7, 0.5, 0.02)
-material = SubResource("3")
+[node name="Body" type="StaticBody3D" parent="." unique_id=1217910012]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Body" unique_id=577905923]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.057144165, 0.31181127, -0.23558354)
+shape = SubResource("2")

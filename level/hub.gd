@@ -126,8 +126,10 @@ func _enter_victory_state() -> void:
 		# player skin uses — keeps the choreography synchronized in vibe.
 		# Splice MAY be hidden by his own `hide_when_flag = "refused_splice"`
 		# guard if the player took the betray-Splice branch; the call is a
-		# no-op then because the node is detached.
-		for path in [^"postL4Show/Splice", ^"postL4Show/Nyx"]:
+		# no-op then because the node is detached. Nyx lives at the hub root
+		# now (revealed post-L1 via visible_when_flag), not under postL4Show —
+		# we still wire her into the dance loop on victory entry.
+		for path in [^"postL4Show/Splice", ^"Nyx"]:
 			var npc := get_node_or_null(path)
 			if npc != null and npc.has_method(&"enter_dance_loop"):
 				npc.call(&"enter_dance_loop", victory_player_dance_clips)
@@ -136,6 +138,24 @@ func _enter_victory_state() -> void:
 	# flip the flag and hand it the clip list. Skin auto-exits the dance
 	# the moment the player moves.
 	_set_player_idle_dance(true)
+	# Credits roll on every post-L4 hub entry — overlays the victory state
+	# without blocking gameplay. Self-frees on scroll completion or Esc.
+	_spawn_credits_overlay()
+
+
+func _spawn_credits_overlay() -> void:
+	var packed: PackedScene = load("res://menu/credits.tscn")
+	if packed == null:
+		return
+	var layer := CanvasLayer.new()
+	# Below pause_menu (layer 100) so pause renders on top; above HUD.
+	layer.layer = 50
+	add_child(layer)
+	var inst: Node = packed.instantiate()
+	layer.add_child(inst)
+	if inst.has_signal(&"back_requested"):
+		inst.connect(&"back_requested", func() -> void: layer.queue_free(),
+			CONNECT_ONE_SHOT)
 
 
 func _exit_tree() -> void:

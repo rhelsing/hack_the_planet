@@ -10,6 +10,11 @@ func _init() -> void:
 	var failures: Array[String] = []
 
 	var brain := EnemyAIBrain.new()
+	# Disable perf gating before _ready so this contract test ticks every
+	# frame (production brains stagger 1-in-N which would make a single
+	# tick non-deterministic for the wander assertion).
+	brain.tick_every_n_frames = 1
+	brain.pause_animation_offscreen = false
 	brain._ready()  # manual _ready since we're not in a full tree
 
 	# Use a bare Node3D as the body stub — EnemyAIBrain uses body for

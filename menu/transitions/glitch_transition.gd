@@ -18,7 +18,9 @@ func play_out(host: SceneTree) -> Signal:
 	_mat.set_shader_parameter(&"alpha", 0.0)
 	# SINE+IN_OUT: gradual ramp into the glitch — the world distorts smoothly
 	# rather than slamming in. Symmetric with play_in for a back-and-forth feel.
-	var tw := host.create_tween()
+	# Tween bound to _canvas (PROCESS_MODE_ALWAYS) so it ticks even when the
+	# tree is paused — needed for in-puzzle fail effects.
+	var tw := _canvas.create_tween()
 	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_method(_set_alpha, 0.0, 1.0, DURATION)
 	tw.finished.connect(func() -> void: finished.emit(), CONNECT_ONE_SHOT)
@@ -34,8 +36,9 @@ func play_in(host: SceneTree) -> Signal:
 		return finished
 	_mat.set_shader_parameter(&"alpha", 1.0)
 	# SINE+IN_OUT: gradual ramp out — the new scene reassembles smoothly
-	# instead of snapping. Mirror of play_out's curve.
-	var tw := host.create_tween()
+	# instead of snapping. Mirror of play_out's curve. Tween bound to
+	# _canvas so play_in keeps running even if the caller queue_freed mid-fade.
+	var tw := _canvas.create_tween()
 	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_method(_set_alpha, 1.0, 0.0, DURATION)
 	tw.finished.connect(func() -> void:

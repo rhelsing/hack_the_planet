@@ -1,0 +1,78 @@
+~ start
+
+if GameState.get_flag("level_4_completed", false)
+	=> stage_post_4
+elif GameState.get_flag("level_3_completed", false)
+	=> stage_post_3
+elif GameState.get_flag("level_2_completed", false)
+	=> stage_post_2
+elif GameState.get_flag("level_1_completed", false)
+	=> stage_post_1
+
+# Pre-L1 fallback. Visibility is gated on level_1_completed via
+# visible_when_flag so this branch shouldn't be reachable in normal play.
+=> END
+
+# ── Post Level 1 ─────────────────────────────────────────────────────────
+
+~ stage_post_1
+
+Nyx: [stub] Post-L1 line for Nyx — placeholder.
+=> END
+
+# ── Post Level 2 ─────────────────────────────────────────────────────────
+
+~ stage_post_2
+
+Nyx: [stub] Post-L2 line for Nyx — placeholder.
+=> END
+
+# ── Post Level 3 ─────────────────────────────────────────────────────────
+
+~ stage_post_3
+
+Nyx: [stub] Post-L3 line for Nyx — placeholder.
+=> END
+
+# ── Post Level 4 — perimeter party (copied from hub_post4_nyx.dialogue) ──
+
+~ stage_post_4
+
+if GameState.get_flag("hub_post4_nyx_celebrated", false)
+	=> celebrated
+
+Nyx: There you are. Took your sweet time.
+Nyx: We're throwing a perimeter party. Splice gets to watch from the inside.
+=> menu
+
+~ menu
+
+- You're really dancing in front of him.
+	=> dancing
+- He's quarantined for good?
+	=> quarantine
+- I'm out.
+	=> done
+
+~ dancing
+
+Nyx: We absolutely are.
+Nyx: He spent a year in the static planning this. He gets to see us happy. That's the bit.
+=> menu
+
+~ quarantine
+
+Nyx: For now. Forever's a luxury we don't get on this grid.
+Nyx: But for now? Yes. He's boxed.
+=> menu
+
+~ done
+
+Nyx: Go pick a song. Earned it.
+do GameState.set_flag("hub_post4_nyx_celebrated", true)
+=> END
+
+~ celebrated
+
+Nyx: Back for round two? Splice still hates this. Stay as long as you want.
+=> menu

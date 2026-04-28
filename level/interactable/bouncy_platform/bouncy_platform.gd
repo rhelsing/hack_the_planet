@@ -259,9 +259,12 @@ func _apply_size() -> void:
 func _on_body_entered(body: Node) -> void:
 	if _carried_body != null:
 		return  # mid-squash already; ignore secondary entries.
-	if not body.is_in_group("player"):
-		return
-	if not (body is Node3D):
+	# Any CharacterBody3D bounces — player AND sentinels. Drop them on a
+	# bouncy platform (or lure them onto one mid-chase) and they fly. The
+	# timed-boost path is gated by has_method("suppress_jump_for") below,
+	# so AI-driven bodies that lack player input simply skip the boost
+	# window and keep the base launch.
+	if not (body is CharacterBody3D):
 		return
 	_carried_body = body as Node3D
 	_original_parent = body.get_parent()

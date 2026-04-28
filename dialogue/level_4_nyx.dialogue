@@ -1,0 +1,9 @@
+~ start
+
+Nyx: [L4 Nyx placeholder] You did it. Splice is finished, we're free.
+- Take me back home.
+	do LevelProgression.advance()
+	=> END
+- Stay a moment.
+	Nyx: [L4 Nyx placeholder] Take all the time you need.
+	=> END

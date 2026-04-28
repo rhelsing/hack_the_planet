@@ -53,7 +53,12 @@ func _find_puzzle_instance() -> Node:
 	return null
 
 
-func start(puzzle_scene: PackedScene, puzzle_id: StringName = &"") -> void:
+## setup_data is forwarded to the puzzle instance by setting each key as a
+## property on the root node BEFORE add_child (so values land before _ready
+## fires). Puzzles that need per-instance config (e.g. MazePuzzle's
+## `maze_path`) just declare matching `var` fields and read them in _ready;
+## puzzles that don't pass {} (default) and ignore it.
+func start(puzzle_scene: PackedScene, puzzle_id: StringName = &"", setup_data: Dictionary = {}) -> void:
 	if _active:
 		push_warning("Puzzles.start ignored — a puzzle is already active: %s" % _active_id)
 		return
@@ -77,6 +82,11 @@ func start(puzzle_scene: PackedScene, puzzle_id: StringName = &"") -> void:
 		push_error("Puzzles.start: scene root must emit `finished(success)`, got %s" % instance.get_class())
 		_reset_on_error(instance)
 		return
+
+	# Inject setup data — each key becomes a property on the puzzle root.
+	# Node.set is silent on missing properties; we treat that as opt-in.
+	for key: String in setup_data:
+		instance.set(key, setup_data[key])
 
 	# Pause the player's mouse capture (cursor needed for UI if any).
 	_capture_player_mouse(false)

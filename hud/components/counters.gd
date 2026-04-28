@@ -1,13 +1,15 @@
 extends VBoxContainer
-## Emoji + number counters for coins and floppies, plus an icon strip for
-## keys. Reads counts from GameState (schema v2 — interactables_dev) and
-## subscribes to the events that bump them so we can animate the row on
-## each increment.
+## Emoji + number counter for coins, plus an icon strip for keys and a
+## walkie comm chip. Reads counts from GameState and subscribes to the
+## events that bump them so we can animate the row on each increment.
 
 const POP_SCALE := 1.18
 const POP_S := 0.15
 
-const FLOPPY_ITEM_ID := &"floppy_disk"
+## Coin-row emoji. Defaults to 💾 (floppy disks — what they actually look
+## like in-world). Inspector-editable so future re-skins (soda can, gold
+## bar, whatever) are a one-field change without touching the .tscn.
+@export var coin_emoji: String = "💾"
 
 # Walkie / companion comm chip — appears on the HUD once the player has been
 # registered (Glitch's pick beat grants this). Pulses whenever a Walkie or
@@ -31,9 +33,8 @@ const KEY_COLORS := {
 const KEY_COLOR_FALLBACK := Color(0, 1, 1)  # accent_cyan
 
 @onready var _coin_row:   HBoxContainer = %CoinRow
+@onready var _coin_icon:  Label         = %CoinIcon
 @onready var _coin_label: Label         = %CoinLabel
-@onready var _floppy_row:   HBoxContainer = %FloppyRow
-@onready var _floppy_label: Label         = %FloppyLabel
 @onready var _keys_row:   HBoxContainer = %KeysRow
 @onready var _walkie_row:  HBoxContainer = %WalkieRow
 @onready var _walkie_icon: Label         = %WalkieIcon
@@ -44,6 +45,8 @@ var _walkie_pulse_tween: Tween
 
 
 func _ready() -> void:
+	# Apply the configured emoji once. Future swaps just change the export.
+	_coin_icon.text = coin_emoji
 	Events.coin_collected.connect(_on_coin_collected)
 	Events.item_added.connect(_on_item_added)
 	Events.item_removed.connect(_on_item_removed)
@@ -65,10 +68,7 @@ func _on_coin_collected(_coin: Node) -> void:
 
 
 func _on_item_added(id: StringName) -> void:
-	if id == FLOPPY_ITEM_ID:
-		_refresh_floppies()
-		_pop(_floppy_row)
-	elif id == WALKIE_ITEM_ID:
+	if id == WALKIE_ITEM_ID:
 		_refresh_walkie()
 		_pop(_walkie_row)
 	elif String(id).ends_with(KEY_ID_SUFFIX):
@@ -80,9 +80,7 @@ func _on_item_added(id: StringName) -> void:
 
 
 func _on_item_removed(id: StringName) -> void:
-	if id == FLOPPY_ITEM_ID:
-		_refresh_floppies()
-	elif id == WALKIE_ITEM_ID:
+	if id == WALKIE_ITEM_ID:
 		_refresh_walkie()
 	elif String(id).ends_with(KEY_ID_SUFFIX):
 		_refresh_keys()
@@ -92,7 +90,6 @@ func _on_item_removed(id: StringName) -> void:
 
 func _refresh() -> void:
 	_refresh_coins()
-	_refresh_floppies()
 	_refresh_keys()
 	_refresh_walkie()
 
@@ -124,14 +121,15 @@ func _on_walkie_line_ended() -> void:
 
 func _refresh_coins() -> void:
 	var n := _read_count(&"coin_count")
-	_coin_label.text = "%d" % n
-	_coin_row.visible = n > 0
-
-
-func _refresh_floppies() -> void:
-	var n := _read_count(&"floppy_count")
-	_floppy_label.text = "%d" % n
-	_floppy_row.visible = n > 0
+	var total := _read_count(&"coin_total")
+	# Show #/total once any coin has registered; fall back to bare count if
+	# no coin has entered the scene yet (defensive — shouldn't happen mid-
+	# gameplay because coin._ready registers before any pickup can fire).
+	if total > 0:
+		_coin_label.text = "%d / %d" % [n, total]
+	else:
+		_coin_label.text = "%d" % n
+	_coin_row.visible = total > 0 or n > 0
 
 
 func _refresh_keys() -> void:

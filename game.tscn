@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://b1p1lnectvs25" path="res://game.gd" id="1_1il7v"]
 [ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_w0p8v"]
-[ext_resource type="PackedScene" uid="uid://cnedxfn2pxh2t" path="res://level/level.tscn" id="7_2frud"]
 [ext_resource type="PackedScene" path="res://level/hub.tscn" id="8_hub"]
 [ext_resource type="PackedScene" uid="uid://bxg6oejpaitdt" path="res://level/interactable/flag/flag_reached_screen.tscn" id="19_cpgj4"]
 [ext_resource type="PackedScene" uid="uid://b3pausemenu0001" path="res://menu/pause_menu.tscn" id="21_pause"]
@@ -27,9 +26,6 @@ attack_kick_auto_load_dir = "res://audio/sfx/attack_kicks"
 attack_impact_auto_load_dir = "res://audio/sfx/attack_impacts"
 
 [node name="FlagReachedScreen" parent="." unique_id=735049013 instance=ExtResource("19_cpgj4")]
-
-[node name="Level" parent="." unique_id=138582475 instance=ExtResource("7_2frud")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 31.4)
 
 [node name="PromptUI" parent="." instance=ExtResource("22_prompt")]
 

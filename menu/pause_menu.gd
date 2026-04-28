@@ -17,6 +17,7 @@ const SAVE_SLOTS   := "res://menu/save_slots.tscn"
 @onready var _save_btn:    Button = %SaveBtn
 @onready var _load_btn:    Button = %LoadBtn
 @onready var _settings_btn:Button = %SettingsBtn
+@onready var _checkpoint_btn: Button = %LastCheckpointBtn
 @onready var _to_main_btn: Button = %ToMainBtn
 @onready var _quit_btn:    Button = %QuitBtn
 
@@ -37,6 +38,7 @@ func _wire_buttons() -> void:
 	_save_btn.pressed.connect(_on_save)
 	_load_btn.pressed.connect(_on_load)
 	_settings_btn.pressed.connect(_on_settings)
+	_checkpoint_btn.pressed.connect(_on_last_checkpoint)
 	_to_main_btn.pressed.connect(_on_to_main)
 	_quit_btn.pressed.connect(_on_quit_desktop)
 
@@ -54,6 +56,7 @@ func _on_paused_changed(is_paused: bool) -> void:
 func _open() -> void:
 	_capture_mouse(false)
 	_refresh_save_enabled()
+	_refresh_checkpoint_enabled()
 	_resume_btn.grab_focus()
 	Events.menu_opened.emit(&"pause")
 
@@ -78,6 +81,15 @@ func _capture_mouse(capture: bool) -> void:
 	Input.mouse_mode = (
 		Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE
 	)
+
+
+func _refresh_checkpoint_enabled() -> void:
+	# "Last Checkpoint" is a full reload of the active slot — autosaves fire
+	# on Events.checkpoint_reached, so the slot's snapshot IS the checkpoint
+	# state. Same gating as Save: needs an active slot.
+	var ss := get_tree().root.get_node_or_null(^"SaveService")
+	var has_slot: bool = ss != null and bool(ss.call(&"has_active_slot"))
+	_checkpoint_btn.disabled = not has_slot
 
 
 func _refresh_save_enabled() -> void:
@@ -120,6 +132,21 @@ func _on_load() -> void:
 
 func _on_settings() -> void:
 	_push_sub_menu(SETTINGS, {})
+
+
+func _on_last_checkpoint() -> void:
+	# Reload the active slot — same code path as main menu's Continue, just
+	# sourced from active_slot (the slot the player is mid-session in) rather
+	# than most_recent_slot. Autosaves fire on every checkpoint, so the slot
+	# already holds the last-checkpoint state. Unpause first so the load
+	# isn't operating on a paused tree.
+	var pc := get_tree().root.get_node_or_null(^"PauseController")
+	if pc != null and pc.has_method(&"set_paused"):
+		pc.call(&"set_paused", false)
+	var ss := get_tree().root.get_node_or_null(^"SaveService")
+	if ss == null or not bool(ss.call(&"has_active_slot")):
+		return
+	ss.call(&"load_from_slot", ss.active_slot)
 
 
 func _on_to_main() -> void:

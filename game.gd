@@ -20,6 +20,9 @@ var _current_level: Node3D = null
 # Busy guard: a second load_level() call while one is in progress is dropped
 # (with a push_warning) instead of stacking transitions and racing _mount_level.
 var _is_loading: bool = false
+# F12 dev-toggle return state. Populated when entering sentinel_test from
+# another level (path + player position). Cleared on return.
+var _f12_return: Dictionary = {}
 
 
 func _ready() -> void:
@@ -45,6 +48,16 @@ func _input(event: InputEvent) -> void:
 			get_viewport().mode != Window.MODE_FULLSCREEN else
 			Window.MODE_WINDOWED
 		)
+	# Dev hotkeys for sentinel iteration. F12 toggles to/from the sentinel
+	# test scene (stashes prior level + player position on entry, restores
+	# both on exit). F3 toggles the per-pawn debug overlay.
+	if event is InputEventKey and event.pressed and not event.echo:
+		var key := (event as InputEventKey).keycode
+		if key == KEY_F12:
+			_toggle_sentinel_test()
+		elif key == KEY_F3:
+			EnemyAIBrain.debug_visible = not EnemyAIBrain.debug_visible
+			print("[sentinel] debug overlay = %s" % EnemyAIBrain.debug_visible)
 
 
 ## Public API — LevelProgression + hub pedestals call this to swap levels.
@@ -123,6 +136,49 @@ func _threaded_load_with_ui(path: String) -> PackedScene:
 
 # ── Internals ────────────────────────────────────────────────────────────
 
+# F12 round-trip into the sentinel test scene. Three cases:
+#  - Not in test → stash current level + player position, jump to test.
+#  - In test WITH stash → pop the stash and restore exact spot.
+#  - In test WITHOUT stash (e.g. booted straight into it) → fall back to
+#    hub at its PlayerSpawn marker (near DialTone), so F12 always has a
+#    sensible "back" destination.
+func _toggle_sentinel_test() -> void:
+	const TEST_PATH: String = "res://sentinel/sentinel_test.tscn"
+	const HUB_PATH: String = "res://level/hub.tscn"
+	var current_path: String = ""
+	if _current_level != null and is_instance_valid(_current_level):
+		current_path = _current_level.scene_file_path
+	var player: Node3D = get_node_or_null(^"Player") as Node3D
+	if current_path == TEST_PATH:
+		if not _f12_return.is_empty():
+			var stash: Dictionary = _f12_return
+			_f12_return = {}
+			await LevelProgression.goto_path(stash.get("path", ""))
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			if p != null and stash.has("position"):
+				p.global_position = stash["position"]
+			print("[F12] returned to %s" % stash.get("path", ""))
+		else:
+			# No stash — drop into hub at its PlayerSpawn marker.
+			await LevelProgression.goto_path(HUB_PATH)
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			var spawn: Node3D = null
+			if _current_level != null and is_instance_valid(_current_level):
+				spawn = _current_level.get_node_or_null(^"PlayerSpawn") as Node3D
+			if p != null and spawn != null:
+				p.global_position = spawn.global_position
+			print("[F12] no stash — teleported to hub PlayerSpawn")
+		return
+	# Entering: stash if we have a level + player to remember.
+	if player != null and current_path != "":
+		_f12_return = {
+			"path": current_path,
+			"position": player.global_position,
+		}
+	LevelProgression.goto_path(TEST_PATH)
+	print("[F12] entered sentinel_test (return stashed=%s)" % not _f12_return.is_empty())
+
+
 func _resolve_initial_level() -> PackedScene:
 	var cur: StringName = SaveService.current_level
 	# Treat empty OR the shell's own id ("game") as unset — we never mount
@@ -154,6 +210,12 @@ func _mount_level(packed: PackedScene) -> void:
 		# camera goes with the player and the new level mounts to a grey
 		# void with no Player. See sync_up: 2026-04-26 regression.
 		_rescue_pawns_from(old)
+		# Defensively wipe every sentinel-class pawn anywhere in the tree
+		# before the swap. Enemies in elevator carry-zones or bouncy decks
+		# can get reparented out of the level chain and would otherwise
+		# survive into the new level (falling from the sky at the old world
+		# coords). Player is in the "player" group, never in these.
+		_free_sentinels()
 		remove_child(old)
 		old.queue_free()
 	var new_level := packed.instantiate() as Node3D
@@ -176,6 +238,20 @@ func _rescue_pawns_from(level: Node) -> void:
 		if n is Node3D and level.is_ancestor_of(n):
 			print("[game] rescue: reparenting %s out of doomed level %s" % [n.name, level.name])
 			n.reparent(self, true)
+
+
+## Free every sentinel-class pawn (any node in `enemies`, `splice_enemies`,
+## or `allies`) before the level swap. Catches enemies that escaped the
+## level subtree via elevator/bouncy reparent — they'd otherwise persist
+## into the new level. Player is never in these groups (it's in "player").
+## Companion NPCs (DialTone, Glitch, etc. in hub) aren't in these groups
+## either, so they re-instantiate fresh with the new level.
+func _free_sentinels() -> void:
+	var groups: Array[StringName] = [&"enemies", &"splice_enemies", &"allies"]
+	for grp in groups:
+		for n in get_tree().get_nodes_in_group(grp):
+			if is_instance_valid(n):
+				n.queue_free()
 
 
 func _spawn_player(level: Node) -> void:

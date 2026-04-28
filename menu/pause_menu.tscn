@@ -58,6 +58,10 @@ label = "Load"
 unique_name_in_owner = true
 label = "Settings"
 
+[node name="LastCheckpointBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Last Checkpoint"
+
 [node name="ToMainBtn" parent="Root/Center/Column/ButtonsRoot" instance=ExtResource("2_btn")]
 unique_name_in_owner = true
 label = "Quit to Main Menu"

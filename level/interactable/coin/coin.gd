@@ -15,7 +15,18 @@ var _collect_start_pos := Vector3.ZERO
 
 
 func _ready() -> void:
+	# Permanence: if this coin's path is in the persisted collected-set,
+	# it was picked up in this or an earlier session. Vanish silently
+	# without registering or arming — the HUD's coin_total / coin_count
+	# already reflect this coin via the loaded sets.
+	if GameState.is_coin_collected(self):
+		queue_free()
+		return
 	body_entered.connect(_on_body_entered)
+	# Register with the global tally so the HUD denominator (#/total) and
+	# completion ratio reflect every authored coin in the session. Path-
+	# deduped — re-entering a level doesn't double-count.
+	GameState.register_coin(self)
 
 
 func _process(delta: float) -> void:
