@@ -39,12 +39,30 @@ func _on_line_started(character: String, text: String) -> void:
 	_cancel_tweens()
 	_apply_portrait(character)
 	_name_label.text = character.to_upper()
+	# Per-character name color from the VoicePortraits registry — keeps
+	# the walkie chip in sync with the dialogue balloon's speaker color.
+	# Falls back to the theme default when no color is registered.
+	if _portraits != null and _portraits.has_method(&"has_color") \
+			and bool(_portraits.call(&"has_color", character)):
+		var c: Color = _portraits.call(&"get_color", character) as Color
+		_name_label.add_theme_color_override(&"font_color", c)
+	else:
+		_name_label.remove_theme_color_override(&"font_color")
 	_text_label.text = ""
 	_root.visible = true
 	var fade := create_tween()
 	fade.tween_property(_root, "modulate:a", 1.0, fade_duration)
+	# Apply emphasis-marker conversion (**bold**/*italic*) — same converter
+	# the dialogue balloon uses, so the subtitles match the balloon style.
+	# Speaker color drives the **bold** span tint via VoicePortraits.
+	var color_hex: String = ""
+	if _portraits != null and _portraits.has_method(&"has_color") \
+			and bool(_portraits.call(&"has_color", character)):
+		var c: Color = _portraits.call(&"get_color", character) as Color
+		color_hex = "#" + c.to_html(false)
+	var formatted: String = TextEmphasis.format_for_display(text, color_hex)
 	# Typewrite via visible_ratio.
-	_text_label.text = text
+	_text_label.text = formatted
 	_text_label.visible_ratio = 0.0
 	_typewrite_tween = create_tween()
 	var duration: float = max(0.4, float(text.length()) / typewrite_speed)

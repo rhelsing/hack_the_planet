@@ -5,7 +5,7 @@ extends Node3D
 ## values get pushed into the child PowerupPickup so a single tscn can be
 ## reused 4 times with different inspector-set configs.
 ##
-## See docs/level_progression.md Phase 7.
+## See story/level_progression.md Phase 7.
 
 ## 1..4. Determines which level_N_completed flag advance() sets.
 @export var level_num: int = 1
@@ -44,6 +44,13 @@ func _ready() -> void:
 	# flag so the controller's L1 / keyboard's R becomes inert until the
 	# next level boundary clears it.
 	_set_player_skate_lock(level_num == 1)
+	# Music: if a story override is currently in control (e.g. level-2 dust-
+	# motions cue), level 3+ snaps back to the default rotation. No-op when
+	# music is already on the playlist or has been explicitly stopped.
+	if level_num >= 3:
+		var audio: Node = get_node_or_null(^"/root/Audio")
+		if audio != null and audio.has_method(&"resume_default_playlist_if_overridden"):
+			audio.call(&"resume_default_playlist_if_overridden")
 
 
 func _exit_tree() -> void:

@@ -30,19 +30,29 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -280.0
-offset_top = -220.0
-offset_right = 280.0
-offset_bottom = 140.0
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 240.0
 theme = ExtResource("2_theme")
 theme_override_styles/panel = SubResource("Panel")
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 theme_override_constants/separation = 16
 
-[node name="Image" type="TextureRect" parent="Panel/VBox"]
+[node name="MediaWrap" type="AspectRatioContainer" parent="Panel/VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 240)
+custom_minimum_size = Vector2(0, 400)
+ratio = 1.7777778
+size_flags_horizontal = 3
+
+[node name="Video" type="VideoStreamPlayer" parent="Panel/VBox/MediaWrap"]
+unique_name_in_owner = true
+expand = true
+visible = false
+
+[node name="Image" type="TextureRect" parent="Panel/VBox/MediaWrap"]
+unique_name_in_owner = true
 expand_mode = 1
 stretch_mode = 5
 
@@ -54,7 +64,8 @@ autowrap_mode = 2
 theme = ExtResource("2_theme")
 
 [node name="Hint" type="Label" parent="Panel/VBox"]
-text = "[any key to continue]"
+unique_name_in_owner = true
+text = ""
 horizontal_alignment = 1
 modulate = Color(0.7, 0.7, 0.7, 1)
 theme = ExtResource("2_theme")

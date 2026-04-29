@@ -26,6 +26,7 @@
 [ext_resource type="Resource" uid="uid://djo8tmq4weohs" path="res://dialogue/glitch_2.dialogue" id="58_glitch2dlg"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="59_warp"]
 [ext_resource type="Resource" uid="uid://bqgoadmxxuq8y" path="res://dialogue/level_2_glitch.dialogue" id="60_l2glitchdlg"]
+[ext_resource type="AudioStream" uid="uid://cmkxnqaxjfjvi" path="res://audio/music/dust_motions.mp3" id="61_dustmotions"]
 
 [sub_resource type="Curve3D" id="Curve3D_iugbs"]
 resource_local_to_scene = true
@@ -458,7 +459,7 @@ script = ExtResource("11_csgswap")
 script = ExtResource("12_edsleep")
 
 [node name="Nyx" parent="." index="87" unique_id=1272419520 instance=ExtResource("50_companion")]
-transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -314.544, 72, 49.303806)
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -314.544, 72, 56.77431)
 visible_when_flag = &"l2_terminal_3"
 skin_scene = ExtResource("51_nyxskin")
 dialogue_resource = ExtResource("52_l2nyxdlg")
@@ -553,8 +554,9 @@ require_flag = &""
 [node name="Nyx3" parent="." index="108" unique_id=1109282511 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -41.997135, 33.569866, -18.763172)
 character = &"Nyx"
-line = "Runner, something is wrong! We are seeing a rogue signal."
+line = "Runner, something is wrong! We are seeing a rogue sentinel."
 require_flag = &""
+music_loop = ExtResource("61_dustmotions")
 
 [node name="Nyx4" parent="." index="109" unique_id=1337046534 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -44.886158, 34.003185, 4.0391345)
@@ -570,7 +572,7 @@ require_flag = &""
 [node name="Nyx7" parent="." index="111" unique_id=803060109 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 30.412884, 33.760468)
 character = &"Nyx"
-line = "Oh God. This isnt good."
+line = "Oh God. This isn't good."
 require_flag = &""
 
 [node name="Nyx8" parent="." index="112" unique_id=2112023856 instance=ExtResource("54_walkie")]
@@ -580,7 +582,7 @@ require_flag = &""
 
 [node name="Nyx5" parent="." index="113" unique_id=638732535 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -23.919643, 10.109025, -37.633957)
-line = "Kicking sentinel butt is my favorite past time"
+line = "Kicking sentinel butt is the best, isn't it?"
 require_flag = &""
 
 [node name="EnemySpawner15" parent="." index="114" unique_id=96146603 instance=ExtResource("24_fpfi6")]
@@ -634,3 +636,26 @@ transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0
 use_collision = true
 size = Vector3(8, 20.194336, 8.774902)
 material = ExtResource("26_xr530")
+
+[node name="dialtone_talking_splice" parent="." index="128" unique_id=1015246128 instance=ExtResource("54_walkie")]
+transform = Transform3D(4.094627, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 41.610558, 66.09217)
+line = "Glad you cleared those runner. It looks like someone we haven't seen in a while has resurfaced and is hacking the sentinels in a way we have never seen before. We think it's Splice. If it is, we need to get you out of there quick. We are working on it. Stay safe."
+require_flag = &""
+
+[node name="EnemySpawner3" parent="." index="130" unique_id=582643967 instance=ExtResource("24_fpfi6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -292.38852, 71.967735, 48.030693)
+
+[node name="EnemySpawner4" parent="." index="131" unique_id=651853538 instance=ExtResource("24_fpfi6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -292.5397, 71.967735, 42.46225)
+
+[node name="EnemySpawner5" parent="." index="132" unique_id=21891871 instance=ExtResource("24_fpfi6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -286.9725, 71.967735, 47.330208)
+
+[node name="EnemySpawner6" parent="." index="133" unique_id=1922717170 instance=ExtResource("24_fpfi6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -281.6411, 71.967735, 41.835075)
+
+[node name="splice_musing_1" parent="." index="134" unique_id=1260040209 instance=ExtResource("54_walkie")]
+transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -159.71008, 71.95591, 58.543922)
+character = &"Splice"
+line = "The mouse looking for the cheese will often find the **trap** instead."
+require_flag = &""

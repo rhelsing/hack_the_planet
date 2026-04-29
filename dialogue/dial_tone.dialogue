@@ -108,26 +108,22 @@ DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
 
 ~ stage_post_1
 
-DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
+DialTone: Ha — look who's back!
 Nyx: How many times have you pulled that same stunt, really? Does it not get old for you?
 DialTone: Never gets old.
-Nyx: God.
+Nyx: It does. Trust me.
 => post_1_menu
 
 ~ post_1_menu
 
-- Onward.
+- So whats next?
 	=> post_1_done
-- Want to explain yourself?
+- So what was that about?
 	=> post_1_explain
-- She said you're a dead man.
-	=> post_1_threat
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
-	=> post_1_messenger
 
 ~ post_1_messenger
 
-DialTone: Oh, *those*. Yeah. Spent a few weeks just lurking.
+DialTone: Oh, **those**. Yeah. Spent a few weeks just lurking.
 Nyx: That's a habit, by the way. The lurking.
 DialTone: You had a particular flavor — kept asking what nobody else was asking.
 Nyx: Takes one to know one.
@@ -136,45 +132,23 @@ do GameState.set_flag("dialtone_messenger_thread", 2)
 
 ~ post_1_explain
 
-DialTone: She tell you? Never stuck. Never *been* stuck. Sharpest node on the grid — the Gibson doesn't lock *her* out.
+DialTone: She tell you? Never stuck. Never **been** stuck. Sharpest node on the grid — the Gibson doesn't lock **her** out.
 Nyx: He's stalling.
-DialTone: I wanted to watch her lose it. She HATES getting rescued. Comedy gold.
-Nyx: Comedy.
-DialTone: And you got a hell of a story to ride in on. Call it even.
-Nyx: It is not even.
-- Ha. You owe me.
-	=> post_1_owe
-- She said you're a dead man.
-	=> post_1_threat
+DialTone: I wanted to see her face.
+Nyx: Hope it was worth it.
+DialTone: Worth every bit.
 - Whatever. Onward.
 	=> post_1_done
-
-~ post_1_owe
-
-DialTone: Yeah, yeah. I owe you. Real thing next time — runner's promise.
-Nyx: He said that to me. Thirteen times.
-DialTone: Twelve.
-- Tell me she's coming for you.
-	=> post_1_threat
-- Got it.
-	=> post_1_done
-
-~ post_1_threat
-
-DialTone: She always says that. I'm statistically immortal at this point.
-Nyx: One day, statistically.
-- Got it.
-	=> post_1_done
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
+	=> post_1_messenger
 
 ~ post_1_done
 
 DialTone: Alright — got the next ping queued. Softball, this time. Real one.
-Nyx: It's a milk run. Pile of files sitting behind a lazy sentinel layer.
 DialTone: Snag them, jack out, meet us back here.
-Nyx: Fifteen minutes. Twenty if you sightsee.
 DialTone: Prove your mettle. Get on the board.
-Nyx: And don't fall off anything.
-DialTone: You won't. Easiest hop on the grid.
+DialTone: Easiest hop on the grid.
+Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
 => END
 
@@ -183,67 +157,109 @@ do GameState.set_flag("level_2_unlocked", true)
 ~ stage_post_2
 
 DialTone: {{HandlePicker.chosen_name()}}. You made it back.
+Nyx: We made you make it back.
+DialTone: We did. We did.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
+DialTone: And he tipped his hand. He's hunting something.
+DialTone: A power-up. The kind that opens a door to the next door.
+DialTone: If he gets all the way down? Root. After that the grid is his and the rest of us are gone.
+Nyx: Hackers as a thing — done.
+DialTone: So we find it first.
 => post_2_menu
 
 ~ post_2_menu
 
-- Onward.
-	=> post_2_done
+- So what's the plan?
+	=> post_2_plan
 - Who is Splice?
 	=> post_2_who
-- How did he get into the sentinels?
-	=> post_2_how
 - You weren't expecting him.
 	=> post_2_admit
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] About those boards…
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
 	=> post_2_messenger
 
-~ post_2_messenger
+~ post_2_plan
 
-DialTone: neon-archive. The 0xCirca threads, mostly. You were under a different handle then.
-DialTone: That's where I knew. The way you walked at a question other people ran from.
-do GameState.set_flag("dialtone_messenger_thread", 3)
-=> post_2_done
+DialTone: Three ways to look. Three of us looking.
+DialTone: We split. Stay synced on the channel. First one to spot it pings, we converge.
+DialTone: Your portal's queued behind us.
+do GameState.set_flag("level_3_unlocked", true)
+Nyx: He'll be hunting too. Move fast. Read the room.
+- What am I looking for?
+	=> post_2_target
+- Why split?
+	=> post_2_why_split
+- I'm in.
+	=> post_2_done
+
+~ post_2_target
+
+DialTone: A signature. Something that doesn't fit the sector it's in.
+DialTone: A file. A routing trick. A door that wasn't there yesterday.
+DialTone: You'll know.
+- Vague.
+	Nyx: He gets vaguer when he doesn't know.
+	DialTone: I genuinely don't know what shape it'll take.
+	=> post_2_done
+- Got it.
+	=> post_2_done
+
+~ post_2_why_split
+
+DialTone: Three nodes, three angles. He can only watch one at a time.
+DialTone: He'll guess wrong on at least one of us.
+Nyx: Hopefully two.
+- Got it.
+	=> post_2_done
 
 ~ post_2_who
 
-DialTone: Black-hat. Used to run with Nyx, back before. Got pushed off the grid for things even *we* don't do.
-DialTone: Anything else?
-- How did he get into the sentinels?
-	=> post_2_how
-- You weren't expecting him.
-	=> post_2_admit
+DialTone: Black-hat. Exiled.
+Nyx: He used to run with us.
+DialTone: Run is putting it lightly.
+- Pull that thread.
+	=> post_2_who_ex
 - Onward.
 	=> post_2_done
 
-~ post_2_how
+~ post_2_who_ex
 
-DialTone: Sentinels are old code. He found a backdoor. Or made one.
-DialTone: Either way — they listen to him now.
-DialTone: Anything else?
-- Who is Splice?
-	=> post_2_who
-- You weren't expecting him.
-	=> post_2_admit
+DialTone: He was hers.
+Nyx: Was. Past tense.
+DialTone: She'd rather we didn't.
+Nyx: I'd rather we didn't.
+DialTone: Short version — bad call. She knows. He didn't take being told no.
+Nyx: Moving on.
+- Sorry I asked.
+	=> post_2_done
 - Onward.
 	=> post_2_done
 
 ~ post_2_admit
 
-DialTone: Yeah. He's been quiet for a year. Now he's not. Don't love it.
-DialTone: Anything else?
-- Who is Splice?
-	=> post_2_who
-- How did he get into the sentinels?
-	=> post_2_how
+DialTone: Yeah. He's been quiet for a year. I thought we had longer.
+Nyx: We didn't.
+- And the prank?
+	DialTone: ...the prank was for when we had longer.
+	=> post_2_done
 - Onward.
 	=> post_2_done
 
+~ post_2_messenger
+
+DialTone: The boards. Yeah.
+DialTone: Honestly? You can clearly run with the best of them.
+DialTone: If you want in, you're in.
+Nyx: He's been waiting to say that one.
+DialTone: A little.
+do GameState.set_flag("dialtone_messenger_thread", 3)
+=> post_2_done
+
 ~ post_2_done
 
-DialTone: Next sector's primed. Something waiting at the bottom if you reach it. Don't slow down.
+DialTone: We move when you do.
+DialTone: Catch up at the next portal when we have it.
 do GameState.set_flag("level_3_unlocked", true)
 => END
 

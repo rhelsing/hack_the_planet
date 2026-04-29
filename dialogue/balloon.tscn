@@ -170,13 +170,13 @@ autoplay = &"progress"
 [node name="PortraitRect" type="TextureRect" parent="Balloon" unique_name_in_owner=true]
 visible = false
 layout_mode = 1
-anchor_left = 0.0
+anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 0.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 30.0
+offset_left = -190.0
 offset_top = -410.0
-offset_right = 230.0
+offset_right = 10.0
 offset_bottom = -210.0
 mouse_filter = 2
 expand_mode = 1

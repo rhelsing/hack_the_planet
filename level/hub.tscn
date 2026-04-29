@@ -25,6 +25,7 @@
 [ext_resource type="Resource" uid="uid://c8jyiqkr3wt7p" path="res://dialogue/hub_post4_splice.dialogue" id="25_p4splice"]
 [ext_resource type="Resource" uid="uid://dgu1ynx0ibads" path="res://dialogue/hub_nyx.dialogue" id="26_hubnyxdlg"]
 [ext_resource type="Script" uid="uid://bg1lwgnbjspsi" path="res://level/world_environment_runtime_boost.gd" id="27_envboost"]
+[ext_resource type="PackedScene" uid="uid://dmotes0001" path="res://level/fx/floating_motes/floating_motes.tscn" id="28_motes"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]

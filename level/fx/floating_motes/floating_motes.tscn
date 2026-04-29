@@ -1,0 +1,53 @@
+[gd_scene load_steps=7 format=3 uid="uid://dmotes0001"]
+
+[ext_resource type="Script" path="res://level/fx/floating_motes/floating_motes.gd" id="1_script"]
+
+[sub_resource type="Curve" id="Curve_alpha"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.2, 1), 0.0, 0.0, 0, 0, Vector2(0.8, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_alpha")
+
+[sub_resource type="ParticleProcessMaterial" id="Mat_motes"]
+emission_shape = 3
+emission_box_extents = Vector3(8, 4, 8)
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_min = 0.05
+initial_velocity_max = 0.25
+gravity = Vector3(0, 0.02, 0)
+damping_min = 0.05
+damping_max = 0.2
+scale_min = 0.4
+scale_max = 1.2
+color = Color(0.7, 0.95, 1, 1)
+alpha_curve = SubResource("CurveTexture_alpha")
+turbulence_enabled = true
+turbulence_noise_strength = 0.5
+turbulence_noise_scale = 1.5
+turbulence_noise_speed = Vector3(0.05, 0.1, 0.05)
+
+[sub_resource type="StandardMaterial3D" id="Mat_quad"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.65, 0.92, 1, 1)
+emission_enabled = true
+emission = Color(0.65, 0.92, 1, 1)
+emission_energy_multiplier = 1.5
+billboard_mode = 1
+billboard_keep_scale = true
+
+[sub_resource type="QuadMesh" id="Mesh_quad"]
+material = SubResource("Mat_quad")
+size = Vector2(0.08, 0.08)
+
+[node name="FloatingMotes" type="GPUParticles3D"]
+amount = 80
+lifetime = 8.0
+preprocess = 4.0
+local_coords = false
+visibility_aabb = AABB(-30, -10, -30, 60, 30, 60)
+process_material = SubResource("Mat_motes")
+draw_pass_1 = SubResource("Mesh_quad")
+script = ExtResource("1_script")

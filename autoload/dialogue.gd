@@ -31,6 +31,7 @@ const CONFIG_PATH: String = "user://tts_config.tres"
 const REPO_CONFIG_PATH: String = "res://dialogue/tts_config.tres"
 const VOICES_PATH: String = "res://dialogue/voices.tres"
 const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
+const TtsText: GDScript = preload("res://autoload/tts_text.gd")
 # eleven_flash_v2_5 — ~75ms latency, right for game NPC dialogue. Trade off vs
 # eleven_multilingual_v2 (higher quality, ~400ms) and eleven_v3 (best quality,
 # highest latency). Change here to re-voice — cache filename doesn't include
@@ -358,7 +359,7 @@ func _maybe_dispatch_next_tts() -> void:
 		"xi-api-key: " + _api_key,
 	]
 	var body: String = JSON.stringify({
-		"text": next["text"],
+		"text": TtsText.for_eleven_labs(next["text"]),
 		"model_id": ELEVEN_MODEL_ID,
 		"voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
 	})

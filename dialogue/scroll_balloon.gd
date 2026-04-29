@@ -256,11 +256,13 @@ func apply_dialogue_line() -> void:
 		]
 	_apply_portrait(dialogue_line.character)
 
-	# P3: convert *asterisk* spans to BBCode italic so the live label shows
-	# narration in italics. Safe to mutate dialogue_line.text — it's a fresh
-	# object per line; the TTS side reads the raw text directly from the
-	# plugin's got_dialogue signal, not from this object.
-	dialogue_line.text = _format_italics_for_display(dialogue_line.text)
+	# P3: convert emphasis markers to BBCode for the live label.
+	#   **word** → [b][color=<speaker>]WORD[/color][/b]
+	#   *word*   → [i]word[/i]
+	# Safe to mutate dialogue_line.text — it's a fresh object per line;
+	# the TTS side reads raw text from the plugin's got_dialogue signal.
+	dialogue_line.text = TextEmphasis.format_for_display(
+		dialogue_line.text, _speaker_color(dialogue_line.character))
 
 	dialogue_label.hide()
 	dialogue_label.dialogue_line = dialogue_line
@@ -371,10 +373,9 @@ func _append_line_to_log(line: DialogueLine) -> void:
 	var speaker: String = str(line.character) if line.character else ""
 	var text: String = str(line.text) if line.text else ""
 	if text.is_empty(): return
-	# Apply the same italic conversion used by the live label so log and live
-	# are visually consistent. Already-converted text is idempotent (no bare
-	# asterisks remain to match).
-	text = _format_italics_for_display(text)
+	# Apply the same emphasis conversion as the live label so log and live
+	# are visually consistent. Speaker color drives the bold-span tint.
+	text = TextEmphasis.format_for_display(text, _speaker_color(speaker))
 	var color := _speaker_color(speaker)
 	var bbcode: String
 	if speaker.is_empty():
@@ -427,6 +428,14 @@ func _response_buttons() -> Array:
 
 
 func _speaker_color(name: String) -> String:
+	# Prefer the centralized VoicePortraits registry so dialogue, walkie,
+	# and beacons all draw from the same per-character color. The local
+	# SPEAKER_COLORS dict above is now a fallback for characters not
+	# registered there (e.g. test placeholders like "Grit" / "Me").
+	if _portraits != null and _portraits.has_method(&"has_color") \
+			and bool(_portraits.call(&"has_color", name)):
+		var c: Color = _portraits.call(&"get_color", name) as Color
+		return "#" + c.to_html(false)
 	return SPEAKER_COLORS.get(name, DEFAULT_SPEAKER_COLOR)
 
 
@@ -444,12 +453,9 @@ func _apply_portrait(character: String) -> void:
 		portrait_rect.visible = false
 
 
-## Converts `*text*` spans to BBCode `[i]text[/i]` for display. The TTS
-## pipeline strips the literal `*` chars but voices the whole line in the
-## speaker's voice (WYSIWYG) — see autoload/dialogue.gd._on_line_shown.
-static func _format_italics_for_display(raw: String) -> String:
-	var re := RegEx.create_from_string("\\*([^*]+)\\*")
-	return re.sub(raw, "[i]$1[/i]", true)
+# Emphasis conversion (`**word**` / `*word*`) lives in TextEmphasis
+# (dialogue/text_emphasis.gd) so the walkie subtitle and the dialogue
+# balloon share one converter. Color comes from _speaker_color() above.
 
 
 # P4 — skill-check visual styling -----------------------------------------

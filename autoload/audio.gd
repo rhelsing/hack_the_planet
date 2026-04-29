@@ -10,6 +10,21 @@ extends Node
 
 const REGISTRY_PATH: String = "res://audio/cue_registry.tres"
 
+## Default music rotation. First entry is the locked opener (always plays at
+## the start of each cycle); the rest shuffle. Single source of truth so
+## menu, levels, and "resume after override" all use the same list.
+const DEFAULT_MUSIC_PATHS := [
+	"res://audio/music/hackers_theme.mp3",
+	"res://audio/music/one_love.mp3",
+	"res://audio/music/dnb.mp3",
+	"res://audio/music/dopo_goto_disc3.mp3",
+	"res://audio/music/dopo_goto_disc3_01.mp3",
+	"res://audio/music/dopo_goto_disc3_02.mp3",
+	"res://audio/music/interpersonal_arbitrage.mp3",
+	"res://audio/music/this_is_me_letting_you_go.mp3",
+	"res://audio/music/for_new_drugs.mp3",
+]
+
 const BUS_MASTER: StringName = &"Master"
 const BUS_MUSIC: StringName = &"Music"
 const BUS_SFX: StringName = &"SFX"
@@ -38,6 +53,27 @@ var _walkie_player: AudioStreamPlayer
 var _companion_player: AudioStreamPlayer
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_next: int = 0
+
+## Music playlist state. Three modes:
+##   1. Single-track loop  — `play_music(stream)`. Force-loops the stream
+##      (`_music_player.finished` never fires).
+##   2. Playlist           — `play_playlist([s1, s2, ...])`. Each track plays
+##      un-looped; `finished` advances to the next. Wraps when list ends.
+##   3. One-shot interrupt — `play_oneshot_music(stream)`. Plays once over
+##      whatever was current; on `finished` returns to the playlist (or
+##      stays silent if no playlist was active).
+var _playlist: Array[AudioStream] = []
+var _playlist_idx: int = 0
+var _playlist_shuffle: bool = false
+## When true, _playlist[0] is pinned — it always plays at the start of each
+## cycle and is excluded from shuffling. Useful for an "intro" or signature
+## opening track that should bookend every rotation.
+var _playlist_lock_first: bool = false
+var _oneshot_active: bool = false
+## True while a single-track override (play_music) is replacing an active
+## playlist. resume_default_playlist_if_overridden() reads this to decide
+## whether to swap back to the default rotation.
+var _playlist_overridden: bool = false
 
 ## Emitted when a walkie line finishes playing (natural end OR stop_walkie()).
 ## Walkie autoload uses this to advance its FIFO queue.
@@ -90,9 +126,14 @@ func play_sfx(id: StringName) -> void:
 
 func play_music(stream: AudioStream, fade_in: float = 0.8) -> void:
 	if stream == null: return
-	# Singleton bus: starting a track stops whichever was playing. Each
-	# new track loops by default — set loop=false on the AudioStream
-	# resource if you ever want a one-shot here.
+	# Single-track loop: replaces whatever was playing. If a playlist was
+	# active, mark _playlist_overridden so a later resume_default_playlist
+	# call knows to swap back. The playlist itself is cleared because the
+	# new track owns the bus indefinitely.
+	if not _playlist.is_empty():
+		_playlist_overridden = true
+	_playlist.clear()
+	_oneshot_active = false
 	if _music_player.playing and _music_player.stream == stream:
 		return  # already playing this track — don't restart
 	_force_loop(stream)
@@ -102,6 +143,131 @@ func play_music(stream: AudioStream, fade_in: float = 0.8) -> void:
 	if fade_in > 0.0:
 		var tween := create_tween()
 		tween.tween_property(_music_player, "volume_db", 0.0, fade_in)
+
+
+## Start a sequenced playlist. Each track plays un-looped; when one finishes,
+## the next starts. The list wraps to index 0 when it reaches the end (so
+## `play_playlist([...])` plays "forever" rotating through). Set
+## `shuffle = true` to randomize order each cycle. Set `lock_first = true`
+## to pin `streams[0]` as the cycle opener — it always plays at index 0,
+## and shuffling only affects `streams[1..end]`.
+##
+## Example:
+##     # Intro track plays first, the other 3 shuffle each rotation.
+##     Audio.play_playlist([intro, song_a, song_b, song_c], 0.8, true, true)
+##
+## A one-shot interrupt (play_oneshot_music) returns to the next playlist
+## track when it finishes.
+func play_playlist(streams: Array, fade_in: float = 0.8,
+		shuffle: bool = false, lock_first: bool = false) -> void:
+	if streams.is_empty():
+		stop_music(0.5)
+		return
+	_playlist = []
+	for s in streams:
+		if s is AudioStream:
+			_playlist.append(s)
+	if _playlist.is_empty():
+		return
+	_playlist_shuffle = shuffle
+	_playlist_lock_first = lock_first
+	_shuffle_playlist_if_needed()
+	_playlist_idx = 0
+	_oneshot_active = false
+	_playlist_overridden = false
+	_play_track_no_loop(_playlist[_playlist_idx], fade_in)
+
+
+## Convenience: start the project-wide default playlist. Locks the first
+## track (signature opener), shuffles the rest. Single source of truth lives
+## in DEFAULT_MUSIC_PATHS at the top of this file.
+func play_default_playlist(fade_in: float = 1.5) -> void:
+	var streams: Array = []
+	for path: String in DEFAULT_MUSIC_PATHS:
+		if ResourceLoader.exists(path):
+			var s: Resource = load(path)
+			if s is AudioStream:
+				streams.append(s)
+	if streams.is_empty():
+		return
+	play_playlist(streams, fade_in, true, true)
+
+
+## Resume the default playlist iff a single-track override (play_music) is
+## currently in control. Used by level scripts to "snap back" to the regular
+## music rotation after a story override (e.g. dust-motions interlude that
+## ran from a level-2 walkie until level-3 starts). No-op if music is
+## already playing the playlist or has been explicitly stopped.
+func resume_default_playlist_if_overridden(fade_in: float = 1.0) -> void:
+	if not _playlist_overridden:
+		return
+	play_default_playlist(fade_in)
+
+
+# Reshuffle the playlist's tail if shuffling is enabled. With `lock_first`,
+# index 0 stays pinned and only [1..end] is shuffled. Called once at start
+# and again whenever the playlist wraps so each cycle is freshly randomized.
+func _shuffle_playlist_if_needed() -> void:
+	if not _playlist_shuffle or _playlist.size() <= 1:
+		return
+	if _playlist_lock_first:
+		var first: AudioStream = _playlist[0]
+		var rest: Array = _playlist.slice(1)
+		rest.shuffle()
+		_playlist = [first]
+		for s: Variant in rest:
+			_playlist.append(s)
+	else:
+		_playlist.shuffle()
+
+
+## Interrupt with a single un-looped track. When it finishes, the playlist
+## resumes from its next track. If no playlist is active, music goes silent
+## after the one-shot ends.
+##
+## Use this for victory stings, post-cutscene cues, ambient one-offs.
+func play_oneshot_music(stream: AudioStream, fade_in: float = 0.5) -> void:
+	if stream == null: return
+	_oneshot_active = true
+	_play_track_no_loop(stream, fade_in)
+
+
+# Plays `stream` with looping disabled so `finished` will fire and our
+# playlist/one-shot advancer can react. Duplicates the resource so we don't
+# mutate a shared AudioStream's loop flag for callers using play_music on
+# the same MP3.
+func _play_track_no_loop(stream: AudioStream, fade_in: float) -> void:
+	if stream == null: return
+	var s: AudioStream = stream.duplicate()
+	if "loop" in s:
+		s.set("loop", false)
+	elif "loop_mode" in s:
+		s.set("loop_mode", 0)
+	_music_player.stream = s
+	_music_player.volume_db = -40.0 if fade_in > 0.0 else 0.0
+	_music_player.play()
+	if fade_in > 0.0:
+		var tween := create_tween()
+		tween.tween_property(_music_player, "volume_db", 0.0, fade_in)
+
+
+# `_music_player.finished` callback. Only fires for un-looped tracks
+# (single-track loop mode never reaches it). Advances the playlist or
+# resumes from a one-shot.
+func _on_music_finished() -> void:
+	if _oneshot_active:
+		_oneshot_active = false
+		if _playlist.is_empty():
+			return
+		_play_track_no_loop(_playlist[_playlist_idx], 0.4)
+		return
+	if _playlist.is_empty():
+		return
+	_playlist_idx += 1
+	if _playlist_idx >= _playlist.size():
+		_playlist_idx = 0
+		_shuffle_playlist_if_needed()
+	_play_track_no_loop(_playlist[_playlist_idx], 0.4)
 
 
 ## Mutates the supplied AudioStream resource so its `loop` (or `loop_mode`)
@@ -121,6 +287,11 @@ func _force_loop(stream: AudioStream) -> void:
 
 
 func stop_music(fade_out: float = 1.0) -> void:
+	# Clear playlist + one-shot + override state so we don't bounce back
+	# into music right after the caller asked for silence.
+	_playlist.clear()
+	_oneshot_active = false
+	_playlist_overridden = false
 	if fade_out <= 0.0:
 		_music_player.stop()
 		return
@@ -241,6 +412,10 @@ func _load_registry() -> void:
 
 func _create_players() -> void:
 	_music_player = _make_player(BUS_MUSIC)
+	# Hook playlist advance + one-shot return on natural track end. Looped
+	# (single-track loop mode) tracks never fire `finished`, so this is a
+	# no-op for the legacy play_music path.
+	_music_player.finished.connect(_on_music_finished)
 	_ambience_player = _make_player(BUS_AMBIENCE)
 	_dialogue_player = _make_player(BUS_DIALOGUE)
 	# Serial dialogue playback — `finished` advances the queue.

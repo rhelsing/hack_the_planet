@@ -22,6 +22,7 @@ signal line_ended
 
 const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
 const ELEVEN_MODEL_ID: String = "eleven_flash_v2_5"
+const TtsText: GDScript = preload("res://autoload/tts_text.gd")
 
 var verbose: bool = true
 
@@ -103,7 +104,7 @@ func _dispatch_if_idle() -> void:
 		"xi-api-key: " + Dialogue._api_key,
 	]
 	var body: String = JSON.stringify({
-		"text": resolved_text,
+		"text": TtsText.for_eleven_labs(resolved_text),
 		"model_id": ELEVEN_MODEL_ID,
 		"voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
 	})

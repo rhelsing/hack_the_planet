@@ -214,7 +214,7 @@ const _FACTION_TARGETS: Dictionary = {
 const _FACTION_BUFFS: Dictionary = {
 	&"player":         [1.0, 1],
 	&"green":          [1.0, 1],
-	&"red":            [1.0, 99],
+	&"red":            [2.8, 99],
 	&"splice_stealth": [1.0, 99],
 	&"gold":           [1.0, 1],
 }

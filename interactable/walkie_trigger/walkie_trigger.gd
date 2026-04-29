@@ -16,6 +16,12 @@ extends Area3D
 ## If non-empty, fired state persists via GameState.set_flag(persist_flag, true).
 ## Prevents re-firing across saves. Empty = in-memory only.
 @export var persist_flag: StringName = &""
+## Optional music override. When set, on trigger fire calls Audio.play_music
+## (force-loops the stream) — the song plays until something else takes over
+## (typically Audio.resume_default_playlist_if_overridden() called from a
+## later level's _ready). Used for story-beat scoring like the level-2
+## "something is wrong" cue → dust-motions track until level 3 starts.
+@export var music_loop: AudioStream = null
 
 var _fired: bool = false
 
@@ -44,4 +50,8 @@ func _on_body_entered(body: Node) -> void:
 	_fired = true
 	if persist_flag != &"":
 		GameState.set_flag(persist_flag, true)
+	if music_loop != null:
+		var audio: Node = get_node_or_null(^"/root/Audio")
+		if audio != null and audio.has_method(&"play_music"):
+			audio.call(&"play_music", music_loop, 1.0)
 	Walkie.speak(String(character), line)

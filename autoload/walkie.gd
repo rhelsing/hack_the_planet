@@ -25,6 +25,7 @@ signal line_ended
 
 const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
 const ELEVEN_MODEL_ID: String = "eleven_flash_v2_5"
+const TtsText: GDScript = preload("res://autoload/tts_text.gd")
 
 ## Toggle logs via `Walkie.verbose = false`.
 var verbose: bool = true
@@ -120,8 +121,11 @@ func _dispatch_if_idle() -> void:
 		"Content-Type: application/json",
 		"xi-api-key: " + Dialogue._api_key,
 	]
+	# Strip + uppercase emphasis markers (`*word*` / `**word**`) before
+	# they hit ElevenLabs — same transform the dialogue + companion paths
+	# use so spoken emphasis matches the on-screen subtitle WYSIWYG.
 	var body: String = JSON.stringify({
-		"text": resolved_text,
+		"text": TtsText.for_eleven_labs(resolved_text),
 		"model_id": ELEVEN_MODEL_ID,
 		"voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
 	})

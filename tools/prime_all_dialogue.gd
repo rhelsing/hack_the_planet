@@ -18,6 +18,7 @@ extends Node
 
 const ELEVEN_API_URL: String = "https://api.elevenlabs.io/v1/text-to-speech/%s"
 const ELEVEN_MODEL_ID: String = "eleven_flash_v2_5"
+const TtsText: GDScript = preload("res://autoload/tts_text.gd")
 const REQUEST_GAP_SEC: float = 0.4
 const DIALOGUE_DIR: String = "res://dialogue"
 const LEVEL_DIRS: Array[String] = ["res://level"]
@@ -264,7 +265,7 @@ func _drain_next() -> void:
 		"Accept: audio/mpeg",
 	]
 	var body: Dictionary = {
-		"text": next.text,
+		"text": TtsText.for_eleven_labs(next.text),
 		"model_id": ELEVEN_MODEL_ID,
 	}
 	var json: String = JSON.stringify(body)

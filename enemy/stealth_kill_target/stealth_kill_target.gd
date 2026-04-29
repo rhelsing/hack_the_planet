@@ -97,12 +97,21 @@ func can_interact(actor: Node3D) -> bool:
 		print("[skt-dbg] FAIL super.can_interact (requires_key=%s requires_flag=%s) actor=%s" % [
 			requires_key, requires_flag, actor])
 		return false
-	# Global gates: powerup + alive. is_locked() calls this with actor=null;
-	# we want "no powerup" → locked, "in front of enemy" → just hidden.
+	# Global gates: powerup + alive + crouch. is_locked() calls this with
+	# actor=null; we treat the null-actor case as "unlocked" so the
+	# (locked) suffix never shows on stealth pawns — these only exist in
+	# levels where the player has the ability. The crouch gate fires
+	# only when there's a real actor (E-press attempt): standing players
+	# can see the prompt but can't activate it.
 	if required_powerup != &"":
 		var has_powerup: bool = bool(GameState.get_flag(required_powerup, false))
 		if not has_powerup:
 			print("[skt-dbg] FAIL powerup '%s' not set actor=%s" % [required_powerup, actor])
+			return false
+	if actor != null and "_was_crouched" in actor:
+		var crouched: bool = bool(actor.get(&"_was_crouched"))
+		if not crouched:
+			print("[skt-dbg] FAIL not crouched actor=%s" % actor)
 			return false
 	var pawn: Node3D = get_parent() as Node3D
 	if pawn == null or not is_instance_valid(pawn):

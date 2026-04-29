@@ -14,9 +14,8 @@ const GAME_SCENE    := "res://game.tscn"
 ## Intro cinematic shown only on New Game (not Continue / Load). Plays
 ## after the slot is picked, before the SceneLoader transitions in.
 const INTRO_VIDEO_PATH := "res://cutscenes/intro_movie.ogv"
-## Menu background music. Swap for any of the imported tracks under
-## audio/music/ — size_of_life_*.mp3, song1/2, disco_music, etc. — to taste.
-const MENU_MUSIC_PATH := "res://audio/music/hackers_theme.mp3"
+## Music playlist lives in Audio autoload (Audio.DEFAULT_MUSIC_PATHS) so it's
+## shared with the level-3 resume hook. Edit there to add/remove tracks.
 
 @onready var _buttons_root: Control = %ButtonsRoot
 @onready var _continue_btn: Button  = %ContinueBtn
@@ -48,12 +47,9 @@ func _ready() -> void:
 func _start_menu_music() -> void:
 	# Audio autoload owns playback; guarded for the --script test mode.
 	var audio := get_tree().root.get_node_or_null(^"Audio")
-	if audio == null or not audio.has_method(&"play_music"):
+	if audio == null or not audio.has_method(&"play_default_playlist"):
 		return
-	if not ResourceLoader.exists(MENU_MUSIC_PATH):
-		return
-	var stream := load(MENU_MUSIC_PATH)
-	audio.call(&"play_music", stream, 1.5)
+	audio.call(&"play_default_playlist", 1.5)
 
 
 func _wire_buttons() -> void:

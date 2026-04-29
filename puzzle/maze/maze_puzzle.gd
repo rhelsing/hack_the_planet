@@ -20,15 +20,27 @@ extends "res://puzzle/puzzle.gd"
 const MazeData = preload("res://puzzle/maze/maze_data.gd")
 
 const _COLOR_EDGE: Color = Color(1, 1, 1, 0.8)
-const _COLOR_TRAIL: Color = Color(1, 1, 1, 0.95)
-const _COLOR_CURSOR: Color = Color(1, 1, 1, 1)
-const _COLOR_HALO: Color = Color(1, 1, 1, 0.25)
-const _COLOR_START: Color = Color(0.35, 1.0, 0.65, 1.0)
-const _COLOR_END: Color = Color(1.0, 0.42, 0.42, 1.0)
+# Trail / cursor / end are all the same magenta — the player "draws" the
+# magenta into the end ring as they solve. Matches the game's grapple +
+# portal-pair palette so the puzzle feels like part of the world, not a
+# bolted-on Witness clone.
+const _COLOR_TRAIL: Color = Color(0.95, 0.35, 0.85, 0.95)
+const _COLOR_CURSOR: Color = Color(0.98, 0.5, 0.92, 1.0)
+const _COLOR_HALO: Color = Color(0.95, 0.35, 0.85, 0.35)
+# Cyan start vs magenta end — game palette + colorblind-distinct pair.
+# Shape redundancy preserved (start = filled disc, end = open ring) so the
+# distinction lands even with a desaturated display.
+const _COLOR_START: Color = Color(0.4, 0.95, 1.0, 1.0)
+const _COLOR_END: Color = Color(0.95, 0.35, 0.85, 1.0)
+# Timer keeps universal warm/cool grammar (green = ok, red = bad) — separate
+# UX channel from start/end, so the player reads "time left" instantly.
 const _COLOR_TIMER_FULL: Color = Color(0.35, 1.0, 0.65, 1.0)
 const _COLOR_TIMER_LOW: Color = Color(1.0, 0.42, 0.42, 1.0)
-const _COLOR_WATER: Color = Color(0.30, 0.62, 1.0, 1.0)   # blue circle
-const _COLOR_OIL: Color = Color(0.70, 0.53, 1.0, 1.0)     # purple square
+# Bright blue circle vs bright orange square — Witness's high-contrast
+# complementary pair, in cleaner saturated values that sit on the dimmed
+# background without going muddy.
+const _COLOR_WATER: Color = Color(0.2, 0.55, 1.0, 1.0)
+const _COLOR_OIL: Color = Color(1.0, 0.6, 0.15, 1.0)
 const _COLOR_FAIL: Color = Color(1.0, 0.22, 0.28, 1.0)    # red flash on conflict markers
 const _MARKER_RADIUS: float = 9.0
 const _MARKER_SQUARE_SIZE: float = 16.0

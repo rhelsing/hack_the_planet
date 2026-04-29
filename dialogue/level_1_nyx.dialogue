@@ -9,7 +9,9 @@ Nyx: Umm.. why are you looking at me like that?
 	=> tail
 - Are you okay?
 	Nyx: Um.. yeah. Why wouldn't I be?
-	=> tail
+	- DialTone..
+		Nyx: Oh not this again!
+		=> tail
 
 ~ tail
 

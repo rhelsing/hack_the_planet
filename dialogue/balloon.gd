@@ -170,7 +170,7 @@ func apply_dialogue_line() -> void:
 	balloon.grab_focus()
 
 	character_label.visible = not dialogue_line.character.is_empty()
-	character_label.text = tr(dialogue_line.character, "dialogue")
+	character_label.text = _color_wrap(dialogue_line.character, tr(dialogue_line.character, "dialogue"))
 	_apply_portrait(dialogue_line.character)
 
 	dialogue_label.hide()
@@ -292,6 +292,18 @@ func _dim_visited_responses() -> void:
 	if total_count > 0:
 		print("[balloon] dim pass: %d/%d responses dimmed for character '%s'" %
 			[dimmed_count, total_count, character])
+
+
+## Wrap a label string in BBCode `[color]` tags from the VoicePortraits
+## registry. Returns plain text when no color is registered for that
+## character, so unregistered speakers fall back to default font color.
+func _color_wrap(character: String, label_text: String) -> String:
+	if _portraits == null or not _portraits.has_method(&"has_color"):
+		return label_text
+	if not bool(_portraits.call(&"has_color", character)):
+		return label_text
+	var c: Color = _portraits.call(&"get_color", character) as Color
+	return "[color=#%s]%s[/color]" % [c.to_html(false), label_text]
 
 
 ## Swap the upper-left portrait to match the current speaker. Hides the rect

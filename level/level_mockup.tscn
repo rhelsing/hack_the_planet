@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://bij84ol81kcts" path="res://level/interactable/kill_plane/kill_plane_3d.tscn" id="5_kill"]
 [ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="10_b7jw0"]
 [ext_resource type="Script" path="res://level/world_environment_runtime_boost.gd" id="11_envboost"]
+[ext_resource type="PackedScene" uid="uid://dmotes0001" path="res://level/fx/floating_motes/floating_motes.tscn" id="12_motes"]
 
 [sub_resource type="Curve" id="Curve_kyl5q"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -156,3 +157,8 @@ material_override = ExtResource("4_rk00k")
 use_collision = true
 size = Vector3(2000, 1, 2000)
 script = ExtResource("10_b7jw0")
+
+[node name="FloatingMotes" parent="." instance=ExtResource("12_motes")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+amount = 80
+visibility_aabb = AABB(-12, -10, -40, 24, 20, 80)

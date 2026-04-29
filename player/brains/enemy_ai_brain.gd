@@ -70,11 +70,21 @@ extends Brain
 ## SUSPECT-phase duration multiplier when the target is crouched. 1.0 =
 ## no crouch effect on the SUSPECT timer.
 @export var crouch_suspect_multiplier: float = 1.0
-## Inner cone radius (m) where detection skips SUSPECT and snaps directly
-## to HOSTILE. 0 = no inner zone (entire cone routes through SUSPECT).
-## >0 = two-zone perception (outer SUSPECT yellow, inner HOSTILE red);
-## scales by `crouch_range_multiplier` alongside detection_radius.
+## Inner radius (m) of the close-up zone. Scales with crouch_range_multiplier
+## alongside detection_radius. Behavior depends on stance:
+##   Standing — inside this radius routes straight to HOSTILE (no SUSPECT
+##     grace; the sphere is the danger).
+##   Crouched — inside this radius runs SUSPECT with the SHORT timer
+##     `hostile_zone_suspect_duration` (close-up but still beatable if
+##     the player breaks LOS quickly).
+## 0 = no inner zone; everything visible routes through the regular
+## SUSPECT delay.
 @export var hostile_zone_radius: float = 0.0
+## SUSPECT timer (seconds) when the crouched target is inside the inner
+## zone. Effectively a "they almost see you, you have a beat to break LOS"
+## window — much shorter than the regular `suspect_duration`. 0 = snap to
+## HOSTILE even in crouch (use sparingly; that's standing-tier punishing).
+@export var hostile_zone_suspect_duration: float = 0.5
 
 @export_group("Vision Cone Colors")
 ## Color while no target is in view (calm patrol). Half-transparent.
@@ -441,16 +451,16 @@ func _update_state(_body: Node3D) -> void:
 			_reset_wander_timer()
 
 
-# Detection check. Two modes selected by `vision_cone_deg`:
-#   cone == 0 (swarm)  : pure sphere — in range = detected.
-#   cone > 0 (stealth) : cone arc + line-of-sight via per-slice
-#     raycasts, ALWAYS — regardless of crouch. Crouch instead shrinks
-#     the cone reach (via crouch_range_multiplier on the caller's
-#     range_cap). The slice rays ARE the LOS check; visual fan and
-#     detection share them.
+# Detection check.
+#   cone == 0 (swarm)        : pure sphere — in range = detected.
+#   cone > 0 + standing      : pure sphere too — splice "hears" the
+#       player anywhere within range_cap. The cone is purely a visual
+#       state indicator at this point, not a detection gate.
+#   cone > 0 + crouched      : cone arc + line-of-sight via per-slice
+#       raycasts. Crouching is the only way to slip out of detection.
 # Reports raw "currently visible" state — the alert state machine
-# (with its SUSPECT delay and hostile_zone_radius shortcut) decides
-# what to do with that signal.
+# (SUSPECT delay + hostile_zone_radius close-up shortcut) decides what
+# to do with that signal.
 func _can_see_target(body: Node3D, range_cap: float) -> bool:
 	if _target == null or not is_instance_valid(_target):
 		return false
@@ -461,7 +471,9 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 		return false
 	if vision_cone_deg <= 0.0:
 		return true  # swarm: sphere detection, no cone
-	# Cone path: must lie inside the FOV arc AND inside the unblocked
+	if not _target_crouched:
+		return true  # standing inside the cone's range_cap — sphere catches you
+	# Crouched: must lie inside the FOV arc AND inside the unblocked
 	# extent of whichever slice contains them.
 	if horiz < 0.0001 or _slice_distances.size() < 2:
 		return true
@@ -952,25 +964,37 @@ func _has_ground_ahead(body: Node3D) -> bool:
 # When chase_max_duration <= 0, HOSTILE never tuckers (swarm pattern).
 func _update_alert_phase(body: Node3D, delta: float) -> void:
 	var prior: int = _alert_phase
-	# Re-check visibility against the up-to-date target. Use the chase-exit
-	# radius once we're past CALM so the target remains "visible" through
-	# the hysteresis window. Effective values fold in the crouch range
-	# multiplier (cone shrinks when target crouches).
 	var range_cap: float = _effective_chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else _effective_detection_radius
 	var visible: bool = _target != null and _can_see_target(body, range_cap)
-	# Hostile-zone shortcut: when the target is inside the inner cone
-	# radius (< _effective_hostile_radius), skip SUSPECT and snap to
-	# HOSTILE. Outside the inner zone but inside the cone's outer band:
-	# normal SUSPECT delay (yellow → red after suspect_duration).
+	# Distance check for the hostile-zone (close-up) shortcut. Behavior
+	# differs by stance:
+	#   Standing inside hostile_zone   → snap to HOSTILE (no SUSPECT).
+	#   Crouched inside hostile_zone   → SUSPECT with the SHORT timer
+	#       (hostile_zone_suspect_duration). Quick fuse, but breakable.
+	#   Crouched outside hostile_zone  → SUSPECT with the regular
+	#       _effective_suspect_duration timer.
+	#   Standing outside hostile_zone but inside detection_radius →
+	#       SUSPECT with regular timer (the "they hear you" outer band).
+	# Swarm enemies (vision_cone_deg <= 0) snap to HOSTILE on any visible.
 	var inside_hostile_zone: bool = false
 	if visible and _effective_hostile_radius > 0.0 and _target != null:
 		var to_t: Vector3 = _target.global_position - body.global_position
 		to_t.y = 0.0
 		inside_hostile_zone = to_t.length() < _effective_hostile_radius
+	# Effective SUSPECT timer for THIS tick. Picked by stance + zone.
+	var suspect_window: float
+	if vision_cone_deg <= 0.0:
+		suspect_window = 0.0  # swarm: snap immediately
+	elif inside_hostile_zone and not _target_crouched:
+		suspect_window = 0.0  # standing close-up: no grace
+	elif inside_hostile_zone and _target_crouched:
+		suspect_window = hostile_zone_suspect_duration  # crouched close-up: short fuse
+	else:
+		suspect_window = _effective_suspect_duration  # outer band: regular delay
 	match _alert_phase:
 		_AlertPhase.CALM:
 			if visible:
-				if inside_hostile_zone or _effective_suspect_duration <= 0.0 or vision_cone_deg <= 0.0:
+				if suspect_window <= 0.0:
 					_alert_phase = _AlertPhase.HOSTILE
 					_alert_timer = 0.0
 				else:
@@ -979,12 +1003,13 @@ func _update_alert_phase(body: Node3D, delta: float) -> void:
 		_AlertPhase.SUSPECT:
 			if not visible:
 				_alert_phase = _AlertPhase.CALM
-			elif inside_hostile_zone:
+			elif suspect_window <= 0.0:
+				# Player walked into the standing-close zone mid-suspect: snap.
 				_alert_phase = _AlertPhase.HOSTILE
 				_alert_timer = 0.0
 			else:
 				_alert_timer += delta
-				if _alert_timer >= _effective_suspect_duration:
+				if _alert_timer >= suspect_window:
 					_alert_phase = _AlertPhase.HOSTILE
 					_alert_timer = 0.0
 		_AlertPhase.HOSTILE:
@@ -1095,13 +1120,12 @@ func _compute_slice_distances(body: Node3D) -> void:
 			_slice_distances[i] = origin.distance_to(hit.position as Vector3)
 
 
-# Position the fan apex at the eye and rebuild the two-zone mesh from
-# this tick's slice distances. Cone is always visible whenever
-# vision_debug_visible is true — it's a static perception readout, not a
-# fade-in-on-detect cue. Inner zone (red, hostile_zone_radius) and outer
-# zone (yellow, detection_radius) are separate surfaces with their own
-# materials; phase color tweens are no longer applied to the fan itself.
-func _update_vision_debug(body: Node3D, _delta: float) -> void:
+# Position the fan apex at the eye, crossfade the alert-phase color, and
+# rebuild the mesh from this tick's slice distances. The cone is always
+# visible whenever vision_debug_visible is true — it's a state readout
+# for the splice (green CALM → yellow SUSPECT → red HOSTILE → yellow
+# ALERT → green CALM). Single-surface, single-color, phase-tweened.
+func _update_vision_debug(body: Node3D, delta: float) -> void:
 	if not vision_debug_visible or vision_cone_deg <= 0.0:
 		if _vision_cone_mesh != null and is_instance_valid(_vision_cone_mesh):
 			_vision_cone_mesh.queue_free()
@@ -1109,53 +1133,39 @@ func _update_vision_debug(body: Node3D, _delta: float) -> void:
 		return
 	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
 		_vision_cone_mesh = _build_vision_cone_mesh(body)
+		_vision_cone_color_current = _vision_cone_color_target
 	_vision_cone_mesh.global_position = body.global_position + Vector3.UP * vision_eye_height
+	# Smooth phase-color crossfade. _vision_cone_color_target is set in
+	# _on_alert_phase_changed; here we ease into it.
+	var ck: float = 1.0
+	if color_blend_time > 0.0:
+		ck = clampf(delta / color_blend_time, 0.0, 1.0)
+	_vision_cone_color_current = _vision_cone_color_current.lerp(_vision_cone_color_target, ck)
+	var mat: StandardMaterial3D = _vision_cone_mesh.material_override as StandardMaterial3D
+	if mat != null:
+		mat.albedo_color = _vision_cone_color_current
 	_rebuild_vision_cone_mesh()
 
 
 func _build_vision_cone_mesh(body: Node3D) -> MeshInstance3D:
 	var inst := MeshInstance3D.new()
 	inst.mesh = ImmediateMesh.new()
-	# No material_override — each surface in _rebuild_vision_cone_mesh is
-	# painted with its own zone-specific material via surface_begin(...,
-	# material). DEPTH_PRE_PASS on each material lets walls correctly
-	# occlude the translucent fan.
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color_calm
+	# DEPTH_PRE_PASS lets opaque walls correctly occlude the translucent
+	# fan. Plain alpha lets the fan bleed through cover.
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	inst.material_override = mat
 	body.add_child(inst)
 	inst.top_level = true
 	return inst
 
 
-# Build (once) and return the cached zone material. Inner = hostile (red).
-# Outer = suspect (yellow). Static colors — the alert-phase color tween
-# is no longer applied to the fan; the fan is a perception readout, not
-# a state indicator.
-func _hostile_zone_material() -> Material:
-	if _hostile_zone_material_cached == null:
-		_hostile_zone_material_cached = _make_zone_material(color_hostile)
-	return _hostile_zone_material_cached
-
-
-func _suspect_zone_material() -> Material:
-	if _suspect_zone_material_cached == null:
-		_suspect_zone_material_cached = _make_zone_material(color_alert)
-	return _suspect_zone_material_cached
-
-
-func _make_zone_material(c: Color) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = c
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	return mat
-
-
-# Rebuild the fan as TWO concentric zones, both clipped per-slice by the
-# this tick's wall raycasts:
-#   Inner (red) : 0 → min(slice_dist, hostile_radius). Triangles share apex.
-#   Outer (yel) : hostile_radius → min(slice_dist, detection_radius). Quads.
-# When hostile_zone_radius == 0, the inner zone covers the full cone and
-# the outer is empty (legacy single-zone behavior).
+# Rebuild the fan as one triangle per slice, reaching to the slice's
+# wall-clipped distance. Single surface — color comes from material_override
+# which is phase-tweened in _update_vision_debug.
 func _rebuild_vision_cone_mesh() -> void:
 	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
 		return
@@ -1165,54 +1175,21 @@ func _rebuild_vision_cone_mesh() -> void:
 	mesh.clear_surfaces()
 	if _slice_distances.size() < 2:
 		return
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half_rad: float = deg_to_rad(vision_cone_deg)
 	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
 	var apex := Vector3.ZERO
 	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
-	# When hostile_zone_radius is 0 (or negative), treat the entire cone
-	# as the inner zone — single-color red fan to maintain backward compat.
-	var hostile_r: float = _effective_hostile_radius if _effective_hostile_radius > 0.0 else _effective_detection_radius
-	# Inner zone (hostile / red).
-	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _hostile_zone_material())
 	for i in range(_CONE_SLICES):
 		var a0: float = -half_rad + step * float(i)
 		var a1: float = -half_rad + step * float(i + 1)
 		var dir0: Vector3 = forward.rotated(Vector3.UP, a0)
 		var dir1: Vector3 = forward.rotated(Vector3.UP, a1)
-		var d0: float = minf(_slice_distances[i], hostile_r)
-		var d1: float = minf(_slice_distances[i + 1], hostile_r)
+		var p0: Vector3 = dir0 * _slice_distances[i]
+		var p1: Vector3 = dir1 * _slice_distances[i + 1]
 		mesh.surface_add_vertex(apex)
-		mesh.surface_add_vertex(dir0 * d0)
-		mesh.surface_add_vertex(dir1 * d1)
-	mesh.surface_end()
-	# Outer zone (suspect / yellow). Skip when no outer band exists.
-	if _effective_detection_radius <= hostile_r:
-		return
-	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _suspect_zone_material())
-	for i in range(_CONE_SLICES):
-		var a0: float = -half_rad + step * float(i)
-		var a1: float = -half_rad + step * float(i + 1)
-		var dir0: Vector3 = forward.rotated(Vector3.UP, a0)
-		var dir1: Vector3 = forward.rotated(Vector3.UP, a1)
-		var d0_in: float = minf(_slice_distances[i], hostile_r)
-		var d1_in: float = minf(_slice_distances[i + 1], hostile_r)
-		var d0_out: float = minf(_slice_distances[i], _effective_detection_radius)
-		var d1_out: float = minf(_slice_distances[i + 1], _effective_detection_radius)
-		# Slice fully clipped inside the inner zone (wall closer than
-		# hostile_r) — no outer-band geometry for it.
-		if d0_out <= d0_in and d1_out <= d1_in:
-			continue
-		var p0_in: Vector3 = dir0 * d0_in
-		var p1_in: Vector3 = dir1 * d1_in
-		var p0_out: Vector3 = dir0 * d0_out
-		var p1_out: Vector3 = dir1 * d1_out
-		# Quad split into two triangles.
-		mesh.surface_add_vertex(p0_in)
-		mesh.surface_add_vertex(p0_out)
-		mesh.surface_add_vertex(p1_out)
-		mesh.surface_add_vertex(p0_in)
-		mesh.surface_add_vertex(p1_out)
-		mesh.surface_add_vertex(p1_in)
+		mesh.surface_add_vertex(p0)
+		mesh.surface_add_vertex(p1)
 	mesh.surface_end()
 
 

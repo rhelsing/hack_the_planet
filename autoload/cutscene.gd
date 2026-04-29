@@ -59,7 +59,12 @@ func show_image(path: String, duration: float = 3.0) -> void:
 ## it left off. Awaits the video's natural end (default duration=-1) or a
 ## fixed duration if specified. Format must be Theora/Vorbis (.ogv) — Godot
 ## 4's only native video stream codec.
-func show_video(path: String, duration: float = -1.0) -> void:
+##
+## `post_delay` (seconds) holds the await before returning so the next
+## dialogue beat doesn't step on the moment. The overlay is already gone
+## by the time the timer ticks — the silence happens against the live
+## scene, balloon hidden via the mutation hide-cooldown.
+func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0) -> void:
 	if _canvas != null:
 		push_warning("Cutscene.show_video: cutscene already active, ignoring %s" % path)
 		return
@@ -96,6 +101,8 @@ func show_video(path: String, duration: float = -1.0) -> void:
 
 	Audio.resume_music()
 	_cleanup()
+	if post_delay > 0.0:
+		await get_tree().create_timer(post_delay, true).timeout
 
 
 func _cleanup() -> void:

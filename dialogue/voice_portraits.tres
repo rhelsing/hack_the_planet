@@ -16,3 +16,9 @@ portraits = {
 "Nyx": ExtResource("5_nyx"),
 "Splice": ExtResource("6_splice")
 }
+colors = {
+"DialTone": Color(0.6, 0.8, 1.0, 1.0),
+"Glitch": Color(1.0, 0.53, 0.33, 1.0),
+"Nyx": Color(1.0, 0.93, 0.4, 1.0),
+"Splice": Color(1.0, 0.4, 0.4, 1.0)
+}

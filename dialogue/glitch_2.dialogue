@@ -14,16 +14,16 @@ Glitch: Right now, you are an anomaly.
 Glitch: Pick a handle.
 - {{HandlePicker.option(0)}}
 	do HandlePicker.pick(0)
-	do Cutscene.show_video("res://cutscenes/pixel.ogv")
+	do Cutscene.show_video("res://cutscenes/pixel.ogv", -1.0, 1.0)
 - {{HandlePicker.option(1)}}
 	do HandlePicker.pick(1)
-	do Cutscene.show_video("res://cutscenes/neon.ogv")
+	do Cutscene.show_video("res://cutscenes/neon.ogv", -1.0, 1.0)
 - {{HandlePicker.option(2)}}
 	do HandlePicker.pick(2)
-	do Cutscene.show_video("res://cutscenes/cipher.ogv")
+	do Cutscene.show_video("res://cutscenes/cipher.ogv", -1.0, 1.0)
 - {{HandlePicker.option(3)}}
 	do HandlePicker.pick(3)
-	do Cutscene.show_video("res://cutscenes/byte.ogv")
+	do Cutscene.show_video("res://cutscenes/byte.ogv", -1.0, 1.0)
 Glitch: {{HandlePicker.reaction()}}
 => warn
 

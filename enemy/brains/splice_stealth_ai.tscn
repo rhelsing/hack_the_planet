@@ -13,6 +13,7 @@ suspect_duration = 3.0
 chase_max_duration = 8.0
 crouch_makes_invisible = true
 hostile_zone_radius = 20.0
+hostile_zone_suspect_duration = 0.5
 nav_mode = 0
 aggressive_while_chasing = false
 wander_speed_fraction = 0.25

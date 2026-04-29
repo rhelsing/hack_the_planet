@@ -17,14 +17,139 @@ elif GameState.get_flag("level_1_completed", false)
 
 ~ stage_post_1
 
-Nyx: [stub] Post-L1 line for Nyx — placeholder.
+Nyx: Quick word. Off-channel.
+Nyx: I pulled your trace. He'll round it down.
+Nyx: I'm not going to.
+=> post_1_menu
+
+~ post_1_menu
+
+- Why off-channel?
+	=> post_1_alone
+- You pulled my trace?
+	=> post_1_score
+- What do you want?
+	=> post_1_dare
+- See you on the wire.
+	=> post_1_done
+
+~ post_1_alone
+
+Nyx: He gets smugger when there's an audience.
+Nyx: This is just for me.
+=> post_1_menu
+
+~ post_1_score
+
+Nyx: I pull everyone's trace.
+Nyx: Don't read into it.
+=> post_1_menu
+
+~ post_1_dare
+
+Nyx: He picked you. He's calling it casting.
+Nyx: I want him to be wrong.
+- Wrong about what?
+	Nyx: About you being easy to read.
+	=> post_1_menu
+- Why?
+	Nyx: He's smug enough already.
+	=> post_1_menu
+
+~ post_1_done
+
+Nyx: Mm. We'll see.
 => END
 
 # ── Post Level 2 ─────────────────────────────────────────────────────────
 
 ~ stage_post_2
 
-Nyx: [stub] Post-L2 line for Nyx — placeholder.
+Nyx: You got a second?
+Nyx: Off-channel. He doesn't need to hear this part.
+=> post_2_menu
+
+~ post_2_menu
+
+- What's up?
+	=> post_2_main
+- You did the saving this time.
+	=> post_2_save
+- Tell me about Splice.
+	=> post_2_splice
+
+~ post_2_main
+
+Nyx: His plan's a good plan. It's also more dangerous than the last two.
+Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
+- Are you telling me to log out?
+	Nyx: I'm telling you you can.
+	=> post_2_choice
+- Would you?
+	Nyx: I can't. He's mine to deal with.
+	Nyx: That's not the same as you.
+	=> post_2_choice
+- Not logging out.
+	=> post_2_stay
+
+~ post_2_save
+
+Nyx: Anyone would have needed pulling out of that. Don't make it a thing.
+- You make it sound routine.
+	Nyx: It's not routine.
+	Nyx: You're not the first runner I've yanked off a hot wire. Won't be the last.
+	Nyx: ...probably.
+	=> post_2_menu
+- Thanks anyway.
+	Nyx: Mm.
+	=> post_2_menu
+
+~ post_2_splice
+
+Nyx: Of course. Everyone wants to ask about Splice.
+Nyx: What do you want to know.
+- Who was he to you?
+	=> post_2_ex
+- What's he actually after?
+	=> post_2_what
+- Why does he scare you?
+	=> post_2_scare
+
+~ post_2_ex
+
+Nyx: He was the smartest person I'd ever met.
+Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
+Nyx: I didn't. That's mine.
+- Does he still listen to you?
+	Nyx: He never did. He performed listening.
+	=> post_2_splice
+- Got it.
+	=> post_2_menu
+
+~ post_2_what
+
+Nyx: Power. He's convinced he's owed it.
+Nyx: He's not wrong about being wronged. He is wrong about what to do with it.
+- Got it.
+	=> post_2_menu
+
+~ post_2_scare
+
+Nyx: He doesn't scare me. I scare me — for ever signing off on him.
+Nyx: He just confirms the read.
+- Got it.
+	=> post_2_menu
+
+~ post_2_choice
+
+Nyx: Whatever you decide, I won't take it personally.
+Nyx: Just decide on purpose.
+=> END
+
+~ post_2_stay
+
+Nyx: Then catch up. Portal's behind him.
+Nyx: Don't fall off anything.
 => END
 
 # ── Post Level 3 ─────────────────────────────────────────────────────────
