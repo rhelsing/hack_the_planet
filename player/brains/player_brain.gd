@@ -173,23 +173,19 @@ func tick(_body: Node3D, delta: float) -> Intent:
 		world_dir = world_dir.normalized() * mag
 
 	# Crouch / sneak — entire mechanic is gated on the hacking power-up. Until
-	# the player owns it, Ctrl / R3 / Shift / slow-stick are all inert. Once
-	# owned, three activation paths feed the same crouch_held wire (which
-	# drives Crouching Idle / Crouched Walking via the existing state machine):
-	#   1. Crouch action (Ctrl key, R3 stick click) — held.
-	#   2. Sneak toggle (Shift key) — sticky.
-	#   3. Auto-sneak — controller stick below `sneak_stick_threshold`.
+	# the player owns it, Ctrl / Shift / L3 are all inert. Once owned, two
+	# activation paths feed the same crouch_held wire (which drives Crouching
+	# Idle / Crouched Walking via the existing state machine):
+	#   1. Crouch action (Ctrl key) — held.
+	#   2. Sneak toggle (Shift key, L3 stick click) — sticky.
+	# (The legacy "stick magnitude below sneak_stick_threshold" auto-sneak
+	# was removed — slow walking no longer triggers crouch on gamepad.)
 	var crouch_held: bool = false
 	var ability_owned: bool = sneak_required_flag.is_empty() or GameState.get_flag(sneak_required_flag, false)
 	if ability_owned:
 		if Input.is_action_just_pressed("sneak_toggle"):
 			_sneak_toggle = not _sneak_toggle
-		var sneak_active: bool = _sneak_toggle
-		if last_device == "gamepad":
-			var stick_mag: float = raw_axis.length()
-			if stick_mag > 0.0 and stick_mag < sneak_stick_threshold:
-				sneak_active = true
-		crouch_held = Input.is_action_pressed("crouch") or sneak_active
+		crouch_held = Input.is_action_pressed("crouch") or _sneak_toggle
 
 	_intent.move_direction = world_dir
 	_intent.jump_pressed = Input.is_action_just_pressed("jump")

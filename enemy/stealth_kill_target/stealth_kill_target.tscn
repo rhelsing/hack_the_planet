@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://enemy/stealth_kill_target/stealth_kill_target.gd" id="1_skt"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_skt"]
-radius = 1.6
+radius = 4.0
 
 [node name="StealthKillTarget" type="Area3D"]
 collision_layer = 512
@@ -11,7 +11,10 @@ collision_mask = 0
 script = ExtResource("1_skt")
 prompt_verb = "hack"
 interactable_id = &"stealth_kill"
+detection_range_override = 4.0
+omnidirectional = true
 focus_priority = 1.5
+required_powerup = &""
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)

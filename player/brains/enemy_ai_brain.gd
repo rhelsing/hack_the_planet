@@ -61,14 +61,20 @@ extends Brain
 ## speed while exploring and bursts to red-class lethality the moment it
 ## acquires you. Faction stays unchanged — only the gameplay buffs flip.
 @export var aggressive_while_chasing: bool = false
-## When the target is crouched (stealth mode active), the cone's effective
-## range — slice rays AND alert/chase-exit radius — extends by this factor.
-## 2.0 = vigilant enemies spot prone targets twice as far in their forward
-## arc. Standing-mode (sphere) range is unaffected.
-@export var crouch_range_multiplier: float = 2.0
-## SUSPECT-phase duration multiplier when the target is crouched. 0.5 =
-## locks on twice as fast in stealth mode (suspect_duration 3.0 → 1.5s).
-@export var crouch_suspect_multiplier: float = 0.5
+## When the target is crouched, the cone's effective range — slice rays
+## AND alert/chase-exit radius AND hostile-zone radius — multiply by this
+## factor. <1 = crouch SHRINKS the cone (stealth is the safer mode).
+## >1 = crouch makes the pawn more vigilant. Default 0.5 = crouch halves
+## the cone so the player can sneak past.
+@export var crouch_range_multiplier: float = 0.5
+## SUSPECT-phase duration multiplier when the target is crouched. 1.0 =
+## no crouch effect on the SUSPECT timer.
+@export var crouch_suspect_multiplier: float = 1.0
+## Inner cone radius (m) where detection skips SUSPECT and snaps directly
+## to HOSTILE. 0 = no inner zone (entire cone routes through SUSPECT).
+## >0 = two-zone perception (outer SUSPECT yellow, inner HOSTILE red);
+## scales by `crouch_range_multiplier` alongside detection_radius.
+@export var hostile_zone_radius: float = 0.0
 
 @export_group("Vision Cone Colors")
 ## Color while no target is in view (calm patrol). Half-transparent.
@@ -97,7 +103,7 @@ extends Brain
 ## Fraction of body's max_speed used while wandering. 0 = stand still.
 @export_range(0.0, 1.0) var wander_speed_fraction := 0.33
 ## Fraction of body's max_speed used while chasing. 1.0 = full speed.
-@export_range(0.0, 1.0) var chase_speed_fraction := 1.0
+@export_range(0.0, 5.0) var chase_speed_fraction := 1.0
 
 @export_group("Wander")
 @export var min_wander_interval := 1.0
@@ -281,7 +287,12 @@ var _aggressive_active: bool = false
 # otherwise these mirror the authored values.
 var _effective_detection_radius: float = 0.0
 var _effective_chase_exit_radius: float = 0.0
+var _effective_hostile_radius: float = 0.0
 var _effective_suspect_duration: float = 0.0
+# Cached materials for the two-zone cone visual. Created lazily on first
+# rebuild so brains that don't render the fan don't pay for them.
+var _hostile_zone_material_cached: StandardMaterial3D = null
+var _suspect_zone_material_cached: StandardMaterial3D = null
 # Cone visual alpha multiplier (0..1) applied to the displayed albedo
 # alpha each frame. Hidden when target is standing; flickers ON like a
 # fluorescent bulb on standing→crouched transition; fades to 0 on the
@@ -374,7 +385,8 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_ensure_target(body)
 	_refresh_target_crouched()
 	_refresh_effective_ranges()
-	_advance_cone_alpha(delta)
+	# (Cone is always on now — no _advance_cone_alpha / flicker; the
+	# fan's static red+yellow zones are baked into the visual rebuild.)
 
 	# Cone yaw + per-slice raycasts run BEFORE alert phase. _can_see_target
 	# (called inside _update_alert_phase) reads _slice_distances; the visual
@@ -430,14 +442,15 @@ func _update_state(_body: Node3D) -> void:
 
 
 # Detection check. Two modes selected by `vision_cone_deg`:
-#   cone == 0 (swarm)    : pure sphere — in range = detected.
-#   cone > 0 (stealth)   : "absolutely impossible without crouching" —
-#     standing target is detected anywhere within `range_cap` (full
-#     sphere, no cone gate). Crouched target must fall inside a slice
-#     whose raycast reached at least the target's distance. The slice
-#     rays ARE the LOS check; visual fan and detection share them.
-# The SUSPECT phase (3s tolerance) handles the noticing delay — this
-# function only reports raw "currently visible" state.
+#   cone == 0 (swarm)  : pure sphere — in range = detected.
+#   cone > 0 (stealth) : cone arc + line-of-sight via per-slice
+#     raycasts, ALWAYS — regardless of crouch. Crouch instead shrinks
+#     the cone reach (via crouch_range_multiplier on the caller's
+#     range_cap). The slice rays ARE the LOS check; visual fan and
+#     detection share them.
+# Reports raw "currently visible" state — the alert state machine
+# (with its SUSPECT delay and hostile_zone_radius shortcut) decides
+# what to do with that signal.
 func _can_see_target(body: Node3D, range_cap: float) -> bool:
 	if _target == null or not is_instance_valid(_target):
 		return false
@@ -448,11 +461,8 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 		return false
 	if vision_cone_deg <= 0.0:
 		return true  # swarm: sphere detection, no cone
-	if not _target_crouched:
-		return true  # standing inside stealth sphere = absolutely seen
-	# Crouched: must lie inside the cone AND inside the unblocked extent
-	# of whichever slice contains them. A wall touching either bounding
-	# ray of the slice clips the slice short and conceals the target.
+	# Cone path: must lie inside the FOV arc AND inside the unblocked
+	# extent of whichever slice contains them.
 	if horiz < 0.0001 or _slice_distances.size() < 2:
 		return true
 	var to_dir: Vector3 = to_target_flat / horiz
@@ -465,9 +475,6 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 	var slice_f: float = (a_target + half_rad) / step
 	var f_idx: int = clampi(int(floor(slice_f)), 0, _slice_distances.size() - 1)
 	var c_idx: int = clampi(int(ceil(slice_f)), 0, _slice_distances.size() - 1)
-	# Conservative pick: the shorter of the two bounding rays. If a wall
-	# is on either side of the target's slice, treat as blocked. Matches
-	# how the visual fan visibly shrinks at that slice.
 	var slice_dist: float = minf(_slice_distances[f_idx], _slice_distances[c_idx])
 	return horiz <= slice_dist
 
@@ -724,36 +731,74 @@ func _nav_smart(body: Node3D) -> void:
 	else:
 		towards_dir = _direction
 	var dy: float = towards.global_position.y - body.global_position.y
-	# Drop-down: chase already braked at a ledge AND target is below us.
-	# If the drop is safe, override the brake and let the body walk off.
-	if _intent.hard_brake and dy < -smart_drop_threshold:
+	# Detect ledge ourselves — _chase_direction sets hard_brake in chase
+	# state, but follow mode (gold allies) goes through _follow_direction
+	# which doesn't probe ledges. Without this self-check golds walk
+	# straight off cliffs.
+	var probe_dir: Vector3 = _direction if _intent.move_direction.length() > 0.01 else towards_dir
+	var prior_direction: Vector3 = _direction
+	_direction = probe_dir
+	var ground_ahead: bool = _has_ground_ahead(body)
+	_direction = prior_direction
+	var at_ledge: bool = not ground_ahead
+	# CASE 1 — Drop-down: at a ledge with target below threshold.
+	if at_ledge and dy < -smart_drop_threshold:
 		if _drop_attempted_target != towards:
 			if _smart_drop_landing_safe(body, towards, towards_dir):
 				_intent.hard_brake = false
 				_intent.move_direction = towards_dir * chase_speed_fraction
 				_drop_attempted_target = null
 				return
-			else:
-				_drop_attempted_target = towards
-	# Jump-up: target above by threshold + arc lands on a real surface.
+			_drop_attempted_target = towards
+		_intent.hard_brake = true
+		_intent.move_direction = Vector3.ZERO
+		return
+	# CASE 2 — Jump-up: target above threshold (any position, not just ledge).
 	if dy >= jump_height_threshold:
-		if _intent.move_direction.length() < 0.01:
-			return
-		if _jump_cooldown_timer > 0.0:
-			return
-		if _jump_attempted_target == towards:
-			return
-		if _smart_jump_arc_lands(body, towards, towards_dir):
-			_intent.jump_pressed = true
-			_jump_cooldown_timer = jump_cooldown
-			_jump_attempted_target = towards
-		else:
-			_jump_attempted_target = towards  # cached failed arc check
+		_try_jump(body, towards, towards_dir, at_ledge)
+		return
+	# CASE 3 — Same-level gap: at a ledge with target roughly same Y, jump
+	# across if the arc lands on the far side. Only fires AT a ledge so
+	# sentinels don't randomly hop on flat ground.
+	if at_ledge and absf(dy) < jump_height_threshold:
+		_try_jump(body, towards, towards_dir, at_ledge)
+		return
+	# CASE 4 — Default: ledge with no jump/drop path. Brake. Catches
+	# follow-mode allies that would otherwise walk off.
+	if at_ledge:
+		_intent.hard_brake = true
+		_intent.move_direction = Vector3.ZERO
+	# Within reach — clear caches.
+	_jump_attempted_target = null
+	if dy >= -smart_drop_threshold:
+		_drop_attempted_target = null
+
+
+# Shared jump trigger for jump-up and same-level cases. Validates the arc,
+# fires intent.jump_pressed if reachable, caches failure if not. When at
+# a ledge AND the jump can't reach, brake instead of standing on air.
+func _try_jump(body: Node3D, towards: Node3D, towards_dir: Vector3, at_ledge: bool) -> void:
+	if _jump_cooldown_timer > 0.0:
+		if at_ledge:
+			_intent.hard_brake = true
+			_intent.move_direction = Vector3.ZERO
+		return
+	if _jump_attempted_target == towards:
+		if at_ledge:
+			_intent.hard_brake = true
+			_intent.move_direction = Vector3.ZERO
+		return
+	if _smart_jump_arc_lands(body, towards, towards_dir):
+		_intent.jump_pressed = true
+		_jump_cooldown_timer = jump_cooldown
+		_jump_attempted_target = towards
+		_intent.hard_brake = false
+		_intent.move_direction = towards_dir * chase_speed_fraction
 	else:
-		# Reached parity OR target moved within reach — clear caches.
-		_jump_attempted_target = null
-		if dy >= -smart_drop_threshold:
-			_drop_attempted_target = null
+		_jump_attempted_target = towards
+		if at_ledge:
+			_intent.hard_brake = true
+			_intent.move_direction = Vector3.ZERO
 
 
 # Probe whether a jump from current state lands on solid ground. Estimate
@@ -771,9 +816,15 @@ func _smart_jump_arc_lands(body: Node3D, towards: Node3D, dir: Vector3) -> bool:
 	if body is CharacterBody3D:
 		var v: Vector3 = (body as CharacterBody3D).velocity
 		horiz_speed = sqrt(v.x * v.x + v.z * v.z)
-	# Min reach for low-velocity pawns (e.g. wind-up creep) — they still
-	# jump from a near-stop.
-	horiz_speed = maxf(horiz_speed, 2.0)
+	# Floor estimate at max_speed × 0.5 — sentinel jumping from a standing
+	# start (e.g. just braked at a ledge) accelerates from 0 to max_speed
+	# during the air time. Average horizontal speed mid-jump ≈ max/2 in
+	# that case. If they're already going faster than that, use the
+	# actual speed.
+	var max_speed: float = 5.0
+	if profile != null and "max_speed" in profile:
+		max_speed = float(profile.max_speed)
+	horiz_speed = maxf(horiz_speed, max_speed * 0.5)
 	var reach: float = horiz_speed * air_time * smart_jump_safety_factor
 	var apex: float = (jump_v * jump_v) / (2.0 * gravity_y)
 	var landing: Vector3 = body.global_position + dir * reach + Vector3.UP * apex
@@ -784,9 +835,22 @@ func _smart_jump_arc_lands(body: Node3D, towards: Node3D, dir: Vector3) -> bool:
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
 		return false
+	# Filter wall-grazes: a ray hitting the SIDE of a platform's collision
+	# returns a hit with a near-horizontal normal. Floor surfaces have an
+	# upward-pointing normal (y ≈ 1.0). 0.5 cutoff = at least 60° from
+	# vertical, allowing slight slopes but rejecting walls.
+	var hit_normal: Vector3 = hit.normal as Vector3
+	if hit_normal.y < 0.5:
+		return false
+	# Landing must be NEAR the target's Y — within 1m above or below.
+	# Looser rules (any surface between body and target) caused sentinels
+	# to jump onto whatever "lower" platform was in arc range — typically
+	# elevators at base position — and call that progress. They never
+	# actually reached the target's elevation, just landed somewhere
+	# random and got stuck.
 	var hit_y: float = (hit.position as Vector3).y
-	return hit_y > body.global_position.y - 0.1 \
-		and hit_y <= towards.global_position.y + 1.0
+	var target_y: float = towards.global_position.y
+	return absf(hit_y - target_y) <= 1.0
 
 
 # Probe whether walking off the ledge in `dir` lands on a safe surface
@@ -804,6 +868,10 @@ func _smart_drop_landing_safe(body: Node3D, towards: Node3D, dir: Vector3) -> bo
 		query.exclude = [(body as CollisionObject3D).get_rid()]
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
+		return false
+	# Same wall-rejection as the jump-arc probe: only floors count.
+	var hit_normal: Vector3 = hit.normal as Vector3
+	if hit_normal.y < 0.5:
 		return false
 	var hit_y: float = (hit.position as Vector3).y
 	# Landing must be near target's Y (so we land where target is, not in
@@ -886,26 +954,34 @@ func _update_alert_phase(body: Node3D, delta: float) -> void:
 	var prior: int = _alert_phase
 	# Re-check visibility against the up-to-date target. Use the chase-exit
 	# radius once we're past CALM so the target remains "visible" through
-	# the hysteresis window — same as the original swarm behavior. Effective
-	# values fold in the 2× crouch range multiplier when applicable.
+	# the hysteresis window. Effective values fold in the crouch range
+	# multiplier (cone shrinks when target crouches).
 	var range_cap: float = _effective_chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else _effective_detection_radius
 	var visible: bool = _target != null and _can_see_target(body, range_cap)
-	# Stealth-mode soft windows (SUSPECT delay + tucker-out) only apply
-	# when the target is actually crouching. Standing target → snap to
-	# HOSTILE and stay there (matches red-class aggression).
-	var soft_windows: bool = _target_crouched and vision_cone_deg > 0.0
+	# Hostile-zone shortcut: when the target is inside the inner cone
+	# radius (< _effective_hostile_radius), skip SUSPECT and snap to
+	# HOSTILE. Outside the inner zone but inside the cone's outer band:
+	# normal SUSPECT delay (yellow → red after suspect_duration).
+	var inside_hostile_zone: bool = false
+	if visible and _effective_hostile_radius > 0.0 and _target != null:
+		var to_t: Vector3 = _target.global_position - body.global_position
+		to_t.y = 0.0
+		inside_hostile_zone = to_t.length() < _effective_hostile_radius
 	match _alert_phase:
 		_AlertPhase.CALM:
 			if visible:
-				if soft_windows and _effective_suspect_duration > 0.0:
-					_alert_phase = _AlertPhase.SUSPECT
+				if inside_hostile_zone or _effective_suspect_duration <= 0.0 or vision_cone_deg <= 0.0:
+					_alert_phase = _AlertPhase.HOSTILE
 					_alert_timer = 0.0
 				else:
-					_alert_phase = _AlertPhase.HOSTILE
+					_alert_phase = _AlertPhase.SUSPECT
 					_alert_timer = 0.0
 		_AlertPhase.SUSPECT:
 			if not visible:
 				_alert_phase = _AlertPhase.CALM
+			elif inside_hostile_zone:
+				_alert_phase = _AlertPhase.HOSTILE
+				_alert_timer = 0.0
 			else:
 				_alert_timer += delta
 				if _alert_timer >= _effective_suspect_duration:
@@ -913,7 +989,7 @@ func _update_alert_phase(body: Node3D, delta: float) -> void:
 					_alert_timer = 0.0
 		_AlertPhase.HOSTILE:
 			_alert_timer += delta
-			var tuckered: bool = soft_windows and chase_max_duration > 0.0 and _alert_timer >= chase_max_duration
+			var tuckered: bool = chase_max_duration > 0.0 and _alert_timer >= chase_max_duration
 			if not visible or tuckered:
 				_alert_phase = _AlertPhase.ALERT
 				_alert_timer = alert_duration
@@ -1019,11 +1095,13 @@ func _compute_slice_distances(body: Node3D) -> void:
 			_slice_distances[i] = origin.distance_to(hit.position as Vector3)
 
 
-# Position the fan apex at the eye, crossfade the color, then rebuild the
-# mesh from this tick's slice distances. top_level decouples the mesh
-# from the body's rotation — vertices are emitted in world-aligned local
-# space, transform translates only.
-func _update_vision_debug(body: Node3D, delta: float) -> void:
+# Position the fan apex at the eye and rebuild the two-zone mesh from
+# this tick's slice distances. Cone is always visible whenever
+# vision_debug_visible is true — it's a static perception readout, not a
+# fade-in-on-detect cue. Inner zone (red, hostile_zone_radius) and outer
+# zone (yellow, detection_radius) are separate surfaces with their own
+# materials; phase color tweens are no longer applied to the fan itself.
+func _update_vision_debug(body: Node3D, _delta: float) -> void:
 	if not vision_debug_visible or vision_cone_deg <= 0.0:
 		if _vision_cone_mesh != null and is_instance_valid(_vision_cone_mesh):
 			_vision_cone_mesh.queue_free()
@@ -1031,42 +1109,53 @@ func _update_vision_debug(body: Node3D, delta: float) -> void:
 		return
 	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
 		_vision_cone_mesh = _build_vision_cone_mesh(body)
-		_vision_cone_color_current = _vision_cone_color_target
 	_vision_cone_mesh.global_position = body.global_position + Vector3.UP * vision_eye_height
-	var ck: float = 1.0
-	if color_blend_time > 0.0:
-		ck = clampf(delta / color_blend_time, 0.0, 1.0)
-	_vision_cone_color_current = _vision_cone_color_current.lerp(_vision_cone_color_target, ck)
-	var mat: StandardMaterial3D = _vision_cone_mesh.material_override as StandardMaterial3D
-	if mat != null:
-		# Multiply the configured alpha by the visibility/flicker mask. 0
-		# while target is standing, 1 while steady-crouched, 0/1 toggles
-		# during the fluorescent flicker window.
-		var c: Color = _vision_cone_color_current
-		c.a *= _cone_alpha_mult
-		mat.albedo_color = c
 	_rebuild_vision_cone_mesh()
 
 
 func _build_vision_cone_mesh(body: Node3D) -> MeshInstance3D:
 	var inst := MeshInstance3D.new()
 	inst.mesh = ImmediateMesh.new()
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color_calm
-	# DEPTH_PRE_PASS lets opaque walls correctly occlude the translucent
-	# fan. Plain alpha lets the fan bleed through cover.
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	inst.material_override = mat
+	# No material_override — each surface in _rebuild_vision_cone_mesh is
+	# painted with its own zone-specific material via surface_begin(...,
+	# material). DEPTH_PRE_PASS on each material lets walls correctly
+	# occlude the translucent fan.
 	body.add_child(inst)
 	inst.top_level = true
 	return inst
 
 
-# Rebuild the fan as one triangle per slice. Each triangle reaches the
-# clipped distance from this tick's slice raycasts — so the visible fan
-# IS the LOS volume, slice-for-slice. Walls clip the cone live.
+# Build (once) and return the cached zone material. Inner = hostile (red).
+# Outer = suspect (yellow). Static colors — the alert-phase color tween
+# is no longer applied to the fan; the fan is a perception readout, not
+# a state indicator.
+func _hostile_zone_material() -> Material:
+	if _hostile_zone_material_cached == null:
+		_hostile_zone_material_cached = _make_zone_material(color_hostile)
+	return _hostile_zone_material_cached
+
+
+func _suspect_zone_material() -> Material:
+	if _suspect_zone_material_cached == null:
+		_suspect_zone_material_cached = _make_zone_material(color_alert)
+	return _suspect_zone_material_cached
+
+
+func _make_zone_material(c: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = c
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return mat
+
+
+# Rebuild the fan as TWO concentric zones, both clipped per-slice by the
+# this tick's wall raycasts:
+#   Inner (red) : 0 → min(slice_dist, hostile_radius). Triangles share apex.
+#   Outer (yel) : hostile_radius → min(slice_dist, detection_radius). Quads.
+# When hostile_zone_radius == 0, the inner zone covers the full cone and
+# the outer is empty (legacy single-zone behavior).
 func _rebuild_vision_cone_mesh() -> void:
 	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
 		return
@@ -1076,21 +1165,54 @@ func _rebuild_vision_cone_mesh() -> void:
 	mesh.clear_surfaces()
 	if _slice_distances.size() < 2:
 		return
-	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
 	var half_rad: float = deg_to_rad(vision_cone_deg)
 	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
 	var apex := Vector3.ZERO
 	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
+	# When hostile_zone_radius is 0 (or negative), treat the entire cone
+	# as the inner zone — single-color red fan to maintain backward compat.
+	var hostile_r: float = _effective_hostile_radius if _effective_hostile_radius > 0.0 else _effective_detection_radius
+	# Inner zone (hostile / red).
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _hostile_zone_material())
 	for i in range(_CONE_SLICES):
 		var a0: float = -half_rad + step * float(i)
 		var a1: float = -half_rad + step * float(i + 1)
 		var dir0: Vector3 = forward.rotated(Vector3.UP, a0)
 		var dir1: Vector3 = forward.rotated(Vector3.UP, a1)
-		var p0: Vector3 = dir0 * _slice_distances[i]
-		var p1: Vector3 = dir1 * _slice_distances[i + 1]
+		var d0: float = minf(_slice_distances[i], hostile_r)
+		var d1: float = minf(_slice_distances[i + 1], hostile_r)
 		mesh.surface_add_vertex(apex)
-		mesh.surface_add_vertex(p0)
-		mesh.surface_add_vertex(p1)
+		mesh.surface_add_vertex(dir0 * d0)
+		mesh.surface_add_vertex(dir1 * d1)
+	mesh.surface_end()
+	# Outer zone (suspect / yellow). Skip when no outer band exists.
+	if _effective_detection_radius <= hostile_r:
+		return
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _suspect_zone_material())
+	for i in range(_CONE_SLICES):
+		var a0: float = -half_rad + step * float(i)
+		var a1: float = -half_rad + step * float(i + 1)
+		var dir0: Vector3 = forward.rotated(Vector3.UP, a0)
+		var dir1: Vector3 = forward.rotated(Vector3.UP, a1)
+		var d0_in: float = minf(_slice_distances[i], hostile_r)
+		var d1_in: float = minf(_slice_distances[i + 1], hostile_r)
+		var d0_out: float = minf(_slice_distances[i], _effective_detection_radius)
+		var d1_out: float = minf(_slice_distances[i + 1], _effective_detection_radius)
+		# Slice fully clipped inside the inner zone (wall closer than
+		# hostile_r) — no outer-band geometry for it.
+		if d0_out <= d0_in and d1_out <= d1_in:
+			continue
+		var p0_in: Vector3 = dir0 * d0_in
+		var p1_in: Vector3 = dir1 * d1_in
+		var p0_out: Vector3 = dir0 * d0_out
+		var p1_out: Vector3 = dir1 * d1_out
+		# Quad split into two triangles.
+		mesh.surface_add_vertex(p0_in)
+		mesh.surface_add_vertex(p0_out)
+		mesh.surface_add_vertex(p1_out)
+		mesh.surface_add_vertex(p0_in)
+		mesh.surface_add_vertex(p1_out)
+		mesh.surface_add_vertex(p1_in)
 	mesh.surface_end()
 
 
@@ -1182,19 +1304,17 @@ func _refresh_target_crouched() -> void:
 
 
 # Fold the crouch-mode multipliers into the effective range + suspect
-# values used by detection and the alert state machine. Cone-mode + crouched
-# is the only branch that scales; everything else mirrors the authored
-# values so non-stealth brains behave identically to before.
+# values used by detection and the alert state machine. Cone-mode +
+# crouched is the only branch that scales; everything else mirrors the
+# authored values so non-stealth brains behave identically to before.
 func _refresh_effective_ranges() -> void:
 	var stealth_active: bool = vision_cone_deg > 0.0 and _target_crouched
-	if stealth_active:
-		_effective_detection_radius = detection_radius * crouch_range_multiplier
-		_effective_chase_exit_radius = chase_exit_radius * crouch_range_multiplier
-		_effective_suspect_duration = suspect_duration * crouch_suspect_multiplier
-	else:
-		_effective_detection_radius = detection_radius
-		_effective_chase_exit_radius = chase_exit_radius
-		_effective_suspect_duration = suspect_duration
+	var range_mult: float = crouch_range_multiplier if stealth_active else 1.0
+	var suspect_mult: float = crouch_suspect_multiplier if stealth_active else 1.0
+	_effective_detection_radius = detection_radius * range_mult
+	_effective_chase_exit_radius = chase_exit_radius * range_mult
+	_effective_hostile_radius = hostile_zone_radius * range_mult
+	_effective_suspect_duration = suspect_duration * suspect_mult
 
 
 # Advance _cone_alpha_mult one tick. Standing target → fade to 0 over

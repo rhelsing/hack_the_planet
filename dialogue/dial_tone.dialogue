@@ -109,6 +109,9 @@ DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
 ~ stage_post_1
 
 DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
+Nyx: How many times have you pulled that same stunt, really? Does it not get old for you?
+DialTone: Never gets old.
+Nyx: God.
 => post_1_menu
 
 ~ post_1_menu
@@ -124,16 +127,21 @@ DialTone: Ha — look who's back. {{HandlePicker.chosen_name()}}, the runner.
 
 ~ post_1_messenger
 
-DialTone: Oh, *those*. Yeah.
-DialTone: Spent a few weeks just lurking. You had a particular flavor — kept asking what nobody else was asking.
+DialTone: Oh, *those*. Yeah. Spent a few weeks just lurking.
+Nyx: That's a habit, by the way. The lurking.
+DialTone: You had a particular flavor — kept asking what nobody else was asking.
+Nyx: Takes one to know one.
 do GameState.set_flag("dialtone_messenger_thread", 2)
 => post_1_done
 
 ~ post_1_explain
 
-DialTone: She tell you? She was never stuck. Never been stuck. Sharpest node on the grid — the Gibson doesn't lock *her* out.
-DialTone: I just wanted to watch her lose it. She HATES getting rescued.
-DialTone: And you got to ride a good story in. Call it even.
+DialTone: She tell you? Never stuck. Never *been* stuck. Sharpest node on the grid — the Gibson doesn't lock *her* out.
+Nyx: He's stalling.
+DialTone: I wanted to watch her lose it. She HATES getting rescued. Comedy gold.
+Nyx: Comedy.
+DialTone: And you got a hell of a story to ride in on. Call it even.
+Nyx: It is not even.
 - Ha. You owe me.
 	=> post_1_owe
 - She said you're a dead man.
@@ -144,6 +152,8 @@ DialTone: And you got to ride a good story in. Call it even.
 ~ post_1_owe
 
 DialTone: Yeah, yeah. I owe you. Real thing next time — runner's promise.
+Nyx: He said that to me. Thirteen times.
+DialTone: Twelve.
 - Tell me she's coming for you.
 	=> post_1_threat
 - Got it.
@@ -152,12 +162,19 @@ DialTone: Yeah, yeah. I owe you. Real thing next time — runner's promise.
 ~ post_1_threat
 
 DialTone: She always says that. I'm statistically immortal at this point.
+Nyx: One day, statistically.
 - Got it.
 	=> post_1_done
 
 ~ post_1_done
 
-DialTone: Channel's clear. Next ping just dropped — real job this time. Swear on my uptime.
+DialTone: Alright — got the next ping queued. Softball, this time. Real one.
+Nyx: It's a milk run. Pile of files sitting behind a lazy sentinel layer.
+DialTone: Snag them, jack out, meet us back here.
+Nyx: Fifteen minutes. Twenty if you sightsee.
+DialTone: Prove your mettle. Get on the board.
+Nyx: And don't fall off anything.
+DialTone: You won't. Easiest hop on the grid.
 do GameState.set_flag("level_2_unlocked", true)
 => END
 
@@ -166,6 +183,8 @@ do GameState.set_flag("level_2_unlocked", true)
 ~ stage_post_2
 
 DialTone: {{HandlePicker.chosen_name()}}. You made it back.
+DialTone: The good news is you are officially a hacker.
+DialTone: The bad news is Splice is on your trail.
 => post_2_menu
 
 ~ post_2_menu

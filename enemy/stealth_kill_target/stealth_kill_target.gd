@@ -25,10 +25,66 @@ extends Interactable
 @export var required_powerup: StringName = &"powerup_secret"
 
 
+## Cached MeshInstance3D list, walked from the parent pawn at first
+## set_highlighted() call. Drop the kill target inside any pawn skin
+## tree and the whole pawn glows on focus.
+var _resolved_highlight_meshes: Array[MeshInstance3D] = []
+var _highlight_resolved: bool = false
+
+
 func _ready() -> void:
 	super._ready()
 	if prompt_verb == "interact":
 		prompt_verb = "hack"
+
+
+## InteractionSensor calls this with on=true when this target becomes the
+## focused interactable. We paint a translucent blue-green emissive overlay
+## on every MeshInstance3D in the parent pawn so the player has the same
+## "in range" affordance the puzzle terminals use.
+func set_highlighted(on: bool) -> void:
+	var meshes: Array[MeshInstance3D] = _resolve_highlight_meshes()
+	if meshes.is_empty():
+		return
+	var overlay: Material = _highlight_overlay_material()
+	for m: MeshInstance3D in meshes:
+		m.material_overlay = overlay if on else null
+
+
+# First-call walk of the parent pawn's subtree — collects every
+# MeshInstance3D descendant. Cached so repeated focus toggles don't re-walk.
+func _resolve_highlight_meshes() -> Array[MeshInstance3D]:
+	if _highlight_resolved:
+		return _resolved_highlight_meshes
+	_highlight_resolved = true
+	var pawn: Node = get_parent()
+	if pawn == null:
+		return _resolved_highlight_meshes
+	_collect_mesh_instances(pawn, _resolved_highlight_meshes)
+	return _resolved_highlight_meshes
+
+
+func _collect_mesh_instances(node: Node, out: Array[MeshInstance3D]) -> void:
+	if node is MeshInstance3D:
+		out.append(node as MeshInstance3D)
+	for child: Node in node.get_children():
+		_collect_mesh_instances(child, out)
+
+
+# Blue-green emissive overlay. Same shape as PuzzleTerminal's default
+# highlight but tuned cyan-leaning so the player can tell hacked-pawn
+# (target) from hacked-terminal at a glance if the two ever coexist.
+static var _highlight_material_cached: Material = null
+static func _highlight_overlay_material() -> Material:
+	if _highlight_material_cached == null:
+		var mat := StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(0.1, 0.9, 0.7, 0.35)
+		mat.emission_enabled = true
+		mat.emission = Color(0.2, 1.0, 0.7)
+		mat.emission_energy_multiplier = 1.5
+		_highlight_material_cached = mat
+	return _highlight_material_cached
 
 
 # Powerup gate + behind-the-back gate. The base Interactable.can_interact

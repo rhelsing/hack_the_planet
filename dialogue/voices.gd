@@ -1,7 +1,7 @@
 class_name VoiceMap
 extends Resource
 
-## Maps dialogue-character names (e.g. "Glitch", "Sophia", "Narrator") to
+## Maps dialogue-character names (e.g. "Glitch", "Sophia", "DialTone") to
 ## ElevenLabs voice IDs. Edit the .tres in the Inspector or this file to
 ## add/change voices. See docs/interactables.md §9.3.
 ##
@@ -105,7 +105,6 @@ extends Resource
 @export var voices: Dictionary = {
 	"Grit": "N2lVS1w4EtoT3dr4eOWO",          # Callum (formerly "Troll")
 	"Me": "EXAVITQu4vr4xnSDxMaL",            # Sarah
-	"Narrator": "JBFqnCBsd6RMkjVDRZzb",      # George
 	"Sophia": "hpp4J3VqNfWAUOO0d1Us",        # Bella
 	"Frog": "CwhRBWXzGAHq8TQ4Fs17",          # Roger
 	"Squirrel": "pNInz6obpgDQGcFmaJgB",      # Adam

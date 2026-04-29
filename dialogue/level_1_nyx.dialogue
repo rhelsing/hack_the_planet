@@ -15,10 +15,10 @@ Nyx: Umm.. why are you looking at me like that?
 
 Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
 Nyx: God, I swear I'm going to kill him!
-Nyx: Go on back and tell him great joke. Tell him Nyx says he's a dead man.
+Nyx: We are gonna have to go have a talk with him.
 - Head back to the hub.
 	do LevelProgression.advance()
 	=> END
 - I'll hang out here a sec.
-	Nyx: Suit yourself.
+	Nyx: Suit yourself. Don't take too long.
 	=> END

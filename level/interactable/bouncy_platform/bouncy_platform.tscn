@@ -1,22 +1,32 @@
-[gd_scene load_steps=4 format=3 uid="uid://dbouncyplt0001"]
+[gd_scene load_steps=5 format=3 uid="uid://c6800is15rab5"]
 
-[ext_resource type="Script" path="res://level/interactable/bouncy_platform/bouncy_platform.gd" id="1_bplat"]
+[ext_resource type="Script" uid="uid://biyj56nd1e5yw" path="res://level/interactable/bouncy_platform/bouncy_platform.gd" id="1_bplat"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_carry"]
-size = Vector3(4.0, 0.6, 4.0)
+resource_local_to_scene = true
+size = Vector3(6.9866943, 0.74384767, 7.0494385)
 
-[node name="BouncyPlatform" type="Node3D"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_body"]
+resource_local_to_scene = true
+size = Vector3(7, 1, 7)
+
+[node name="BouncyPlatform" type="Node3D" unique_id=1780514145]
 script = ExtResource("1_bplat")
 bounce_sound_auto_load_dir = "res://audio/sfx/bounces"
 
-[node name="Deck" type="Node3D" parent="."]
+[node name="Deck" type="Node3D" parent="." unique_id=295307939]
 
-[node name="Box" type="CSGBox3D" parent="Deck"]
-use_collision = true
-size = Vector3(4.0, 1.0, 4.0)
+[node name="Box" type="CSGBox3D" parent="Deck" unique_id=906902794]
+use_collision = false
+size = Vector3(7, 1, 7)
 
-[node name="CarryZone" type="Area3D" parent="."]
+[node name="Body" type="StaticBody3D" parent="Deck"]
 
-[node name="Shape" type="CollisionShape3D" parent="CarryZone"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+[node name="BodyShape" type="CollisionShape3D" parent="Deck/Body"]
+shape = SubResource("BoxShape3D_body")
+
+[node name="CarryZone" type="Area3D" parent="." unique_id=1570977626]
+
+[node name="Shape" type="CollisionShape3D" parent="CarryZone" unique_id=292632464]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.011300564, 0.7280762, 0.015930176)
 shape = SubResource("BoxShape3D_carry")

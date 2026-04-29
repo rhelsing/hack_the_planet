@@ -10,6 +10,7 @@ extends CanvasLayer
 
 const VISITED_DIM: Color = Color(0.5, 0.5, 0.5, 1.0)
 const EXIT_TEXT: String = "End the conversation"
+const PORTRAITS_PATH: String = "res://dialogue/voice_portraits.tres"
 
 
 ## The dialogue resource
@@ -80,9 +81,18 @@ var mutation_cooldown: Timer = Timer.new()
 ## Indicator to show that player can progress dialogue.
 @onready var progress: Polygon2D = %Progress
 
+## Per-speaker portrait, anchored upper-left of the balloon. Same registry
+## as the walkie HUD (voice_portraits.tres) — bigger size for the in-balloon
+## variant. Hidden when no portrait is registered for the current speaker.
+@onready var portrait_rect: TextureRect = %PortraitRect
+
+var _portraits: Resource  # VoicePortraits
+
 
 func _ready() -> void:
 	balloon.hide()
+	if ResourceLoader.exists(PORTRAITS_PATH):
+		_portraits = load(PORTRAITS_PATH)
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -161,6 +171,7 @@ func apply_dialogue_line() -> void:
 
 	character_label.visible = not dialogue_line.character.is_empty()
 	character_label.text = tr(dialogue_line.character, "dialogue")
+	_apply_portrait(dialogue_line.character)
 
 	dialogue_label.hide()
 	dialogue_label.dialogue_line = dialogue_line
@@ -281,6 +292,20 @@ func _dim_visited_responses() -> void:
 	if total_count > 0:
 		print("[balloon] dim pass: %d/%d responses dimmed for character '%s'" %
 			[dimmed_count, total_count, character])
+
+
+## Swap the upper-left portrait to match the current speaker. Hides the rect
+## entirely if no portrait is registered (e.g. an unrecognised character).
+func _apply_portrait(character: String) -> void:
+	var tex: Texture2D = null
+	if _portraits != null and _portraits.has_method(&"get_portrait"):
+		tex = _portraits.call(&"get_portrait", character) as Texture2D
+	if tex != null:
+		portrait_rect.texture = tex
+		portrait_rect.visible = true
+	else:
+		portrait_rect.texture = null
+		portrait_rect.visible = false
 
 
 #endregion

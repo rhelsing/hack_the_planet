@@ -1,21 +1,21 @@
-[gd_scene load_steps=3 format=3 uid="uid://dctlportal0001"]
+[gd_scene format=3 uid="uid://hk7q80hdkeke"]
 
-[ext_resource type="Script" path="res://level/interactable/control_portal/control_portal.gd" id="1_ctrlp"]
+[ext_resource type="Script" uid="uid://bei2qgm5udmqp" path="res://level/interactable/control_portal/control_portal.gd" id="1_ctrlp"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_trigger"]
-size = Vector3(4.0, 0.6, 4.0)
+size = Vector3(6.9682007, 0.6, 6.933838)
 
-[node name="ControlPortal" type="Node3D"]
+[node name="ControlPortal" type="Node3D" unique_id=1894314890]
 script = ExtResource("1_ctrlp")
 
-[node name="Deck" type="Node3D" parent="."]
+[node name="Deck" type="Node3D" parent="." unique_id=908191422]
 
-[node name="Box" type="CSGBox3D" parent="Deck"]
+[node name="Box" type="CSGBox3D" parent="Deck" unique_id=1508229173]
 use_collision = true
-size = Vector3(4.0, 0.4, 4.0)
+size = Vector3(7, 0.4, 7)
 
-[node name="Trigger" type="Area3D" parent="."]
+[node name="Trigger" type="Area3D" parent="." unique_id=159970507]
 
-[node name="Shape" type="CollisionShape3D" parent="Trigger"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+[node name="Shape" type="CollisionShape3D" parent="Trigger" unique_id=411209703]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0440979, 0.5, -0.07385254)
 shape = SubResource("BoxShape3D_trigger")

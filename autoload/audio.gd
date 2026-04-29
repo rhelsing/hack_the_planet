@@ -164,7 +164,6 @@ func play_ambience(stream: AudioStream, fade_in: float = 1.5) -> void:
 ## against it. See §8.1.
 ##
 ## Dialogue plays SERIALLY — each call enqueues, plays when previous finishes.
-## Enables character+narrator interleaving within one line (P4.5).
 var _dialogue_queue: Array[AudioStream] = []
 
 func play_dialogue(stream: AudioStream) -> void:

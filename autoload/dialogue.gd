@@ -132,65 +132,22 @@ func _on_line_shown(line: Object) -> void:
 	Events.dialogue_line_shown.emit(StringName(character), text)
 
 	# CRITICAL (2026-04-22 fix): stop any in-flight / queued dialogue audio
-	# before queueing the new line's segments. Without this, clicking past a
-	# line while it's still speaking leaves the old audio playing over the
+	# before queueing the new line's TTS request. Without this, clicking past
+	# a line while it's still speaking leaves the old audio playing over the
 	# new one — you hear line A's tail mixed with line B.
 	Audio.stop_dialogue()
 
-	# P4.5: segment the line into alternating character/narrator chunks
-	# based on `*asterisk*` spans. Non-italic = character voice, italic =
-	# Narrator voice. Segment the TEMPLATE so each segment retains its tokens
-	# for VoicePrimer; resolve per-segment for the actual TTS call.
-	var is_pure_narrator := character.is_empty() or character.to_upper() == "NARRATOR"
-	if is_pure_narrator:
-		var narrator_template := _strip_italic_spans(template) if template.contains("*") else template
-		if narrator_template.strip_edges().is_empty(): return
-		var narrator_text := LineLocalizer.resolve(narrator_template)
-		_log("  segments: [NARRATOR whole-line] %s" % narrator_text)
-		speak_line("Narrator", narrator_text)
-		VoicePrimer.enqueue_siblings("Narrator", narrator_template, narrator_text)
-		return
-
-	var segments := _segment_line(template, character)
-	_log("  segments built (%d):" % segments.size())
-	for seg: Dictionary in segments:
-		var seg_resolved: String = LineLocalizer.resolve(seg.text)
-		_log("    [%s] %s" % [seg.speaker, seg_resolved])
-		speak_line(seg.speaker, seg_resolved)
-		VoicePrimer.enqueue_siblings(seg.speaker, seg.text, seg_resolved)
-
-
-## Splits a line into alternating segments:
-##   "Hello. *scratches.* World."  →
-##     [{speaker=character, text="Hello."},
-##      {speaker="Narrator",  text="scratches."},
-##      {speaker=character, text="World."}]
-##
-## Empty/whitespace-only segments dropped.
-static func _segment_line(text: String, character: String) -> Array:
-	var out: Array = []
-	var re := RegEx.create_from_string("\\*([^*]+)\\*")
-	var pos: int = 0
-	for m: RegExMatch in re.search_all(text):
-		var before: String = text.substr(pos, m.get_start() - pos).strip_edges()
-		if not before.is_empty():
-			out.append({"speaker": character, "text": before})
-		var italic: String = m.get_string(1).strip_edges()
-		if not italic.is_empty():
-			out.append({"speaker": "Narrator", "text": italic})
-		pos = m.get_end()
-	var tail: String = text.substr(pos).strip_edges()
-	if not tail.is_empty():
-		out.append({"speaker": character, "text": tail})
-	return out
-
-
-## Removes `*italic*` spans from text. Kept as public helper for callers that
-## want plain text without narration beats. Not used by TTS anymore — we now
-## segment the line and voice italics via the Narrator.
-static func _strip_italic_spans(text: String) -> String:
-	var re := RegEx.create_from_string("\\*[^*]+\\*")
-	return re.sub(text, "", true).strip_edges()
+	# WYSIWYG TTS: send the entire visible line in the speaker's own voice.
+	# `*asterisks*` render as italic on screen (scroll_balloon converts them
+	# to BBCode `[i]…[/i]`) but we strip the literal `*` chars from the TTS
+	# payload so ElevenLabs doesn't try to pronounce them. No per-span voice
+	# routing — the speaker reads everything.
+	var tts_template := template.replace("*", "")
+	var tts_text := LineLocalizer.resolve(tts_template)
+	if tts_text.strip_edges().is_empty(): return
+	_log("  speak: [%s] %s" % [character, tts_text])
+	speak_line(character, tts_text)
+	VoicePrimer.enqueue_siblings(character, tts_template, tts_text)
 
 
 # ---- Public API ---------------------------------------------------------

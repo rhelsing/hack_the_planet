@@ -56,6 +56,13 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## transparent green emissive (see _default_highlight_material).
 @export var highlight_overlay_material: Material
 
+@export_group("Gating")
+## When non-empty, the terminal hides itself + disables collision until
+## this GameState flag flips true. Used to chain terminals (terminal B
+## stays invisible until terminal A is hacked). Listens to Events.flag_set
+## so the reveal happens live, not just on _ready.
+@export var visible_when_flag: StringName = &""
+
 var _default_highlight_cached: Material
 # Cached mesh list for the highlight overlay. Resolved lazily on first
 # set_highlighted() call: explicit `highlight_meshes` paths if any, else
@@ -84,6 +91,28 @@ func _ready() -> void:
 		_replay_faction_conversion_on_load.call_deferred()
 	else:
 		print("[hack] %s _ready: flag NOT set — terminal idle" % interactable_id)
+	# Visibility gate: hide + disable collision until the gate flag flips.
+	# Listener stays alive across saves because Events is an autoload.
+	if visible_when_flag != &"":
+		_apply_visibility_gate()
+		Events.flag_set.connect(_on_visibility_flag_set)
+
+
+func _apply_visibility_gate() -> void:
+	var unlocked: bool = bool(GameState.get_flag(visible_when_flag, false))
+	visible = unlocked
+	# Drop collision_layer so the InteractionSensor stops scoring us; restore
+	# to 512 (the layer the terminal uses for E-press detection) on unlock.
+	collision_layer = 512 if unlocked else 0
+
+
+func _on_visibility_flag_set(id: StringName, value: Variant) -> void:
+	if id != visible_when_flag:
+		return
+	if not bool(value):
+		return
+	visible = true
+	collision_layer = 512
 
 
 # Deferred-call entry: waits one physics frame so PlayerBody _ready has

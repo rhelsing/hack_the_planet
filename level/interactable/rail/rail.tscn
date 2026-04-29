@@ -3,11 +3,13 @@
 [ext_resource type="Script" path="res://level/interactable/rail/rail.gd" id="1_rail"]
 
 [sub_resource type="Curve3D" id="Curve3D_rail"]
+resource_local_to_scene = true
+bake_interval = 0.01
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 5),
-"tilts": PackedFloat32Array(0, 0)
+"points": PackedVector3Array(5.478533, -4.156269, -3.7195778, -5.478533, 4.156269, 3.7195778, 14.211575, -5.380192, -3.5125885, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107906, -0.33913422, 0.3004532, 4.3858585, -1.3129692, -1.2682991, -4.3858585, 1.3129692, 1.2682991, -20.376099, -0.65176773, 5.5906296),
+"tilts": PackedFloat32Array(0, 0, 0)
 }
-point_count = 2
+point_count = 3
 
 [sub_resource type="BoxShape3D" id="Box_detect"]
 size = Vector3(0.8, 1.0, 6.0)
@@ -20,6 +22,7 @@ roughness = 0.25
 [node name="Rail" type="Path3D"]
 curve = SubResource("Curve3D_rail")
 script = ExtResource("1_rail")
+grab_pad = 0.4
 
 [node name="Area3D" type="Area3D" parent="."]
 

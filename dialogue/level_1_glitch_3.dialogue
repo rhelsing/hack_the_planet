@@ -1,21 +1,5 @@
 ~ start
 
-Glitch: Like I said. Here's your chance.
-Glitch: Rail, wall, rail. In that order.
-- On it.
-	=> done
-- Walk me through it again?
-	=> recap
-
-~ recap
-
-Glitch: Hit the rail with speed. Ride it. When it ends, you should be moving fast enough to wall-ride the next one. Pop off into the gap.
-Glitch: Don't think too hard.
-- Got it.
-	=> done
-
-~ done
-
 Glitch: See you around.
 do GameState.set_flag("glitch_chance_done", true)
 => END

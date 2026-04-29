@@ -70,6 +70,7 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 
 @onready var _deck: Node3D = $Deck
 @onready var _box: CSGBox3D = $Deck/Box
+@onready var _body_shape: CollisionShape3D = $Deck/Body/BodyShape
 @onready var _carry_zone: Area3D = $CarryZone
 @onready var _carry_shape: CollisionShape3D = $CarryZone/Shape
 
@@ -248,6 +249,15 @@ func _apply_palette() -> void:
 func _apply_size() -> void:
 	if _box != null:
 		_box.size = size
+	# Hand-authored StaticBody3D / BoxShape3D collider sized to match the
+	# visible box. Replaces the prefab's old reliance on CSG auto-collision
+	# (which was being baked once by csg_collider_swap.gd at level _ready
+	# and then frozen — leading to size mismatches when the platform was
+	# resized in the inspector). The shape resource is local-to-scene so
+	# resizing one instance never bleeds into others.
+	if _body_shape != null and _body_shape.shape is BoxShape3D:
+		var body_box: BoxShape3D = _body_shape.shape as BoxShape3D
+		body_box.size = size
 	if _carry_shape != null and _carry_shape.shape is BoxShape3D:
 		var carry_box: BoxShape3D = _carry_shape.shape as BoxShape3D
 		# Thin slab sitting just above the deck top so landing-from-above

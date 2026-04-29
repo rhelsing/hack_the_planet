@@ -25,16 +25,35 @@
 [ext_resource type="PackedScene" uid="uid://delevpltf0001" path="res://level/interactable/elevator_platform/elevator_platform.tscn" id="25_gj5ex"]
 [ext_resource type="Resource" uid="uid://cj2apxt4gaokx" path="res://dialogue/level_1_glitch_2.dialogue" id="25_glitchdlg2"]
 [ext_resource type="Resource" uid="uid://b5sqjmfstxxcc" path="res://dialogue/level_1_glitch_3.dialogue" id="26_glitchdlg3"]
-[ext_resource type="Script" path="res://level/csg_collider_swap.gd" id="27_csgswap"]
+[ext_resource type="Script" uid="uid://dolwonf6pfi0h" path="res://level/csg_collider_swap.gd" id="27_csgswap"]
 [ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="28_edsleep"]
 
 [sub_resource type="BoxShape3D" id="GlitchLiftCarry"]
 size = Vector3(7.5, 2, 8.5)
 
-[sub_resource type="Curve3D" id="Curve3D_b2ana"]
+[sub_resource type="Curve3D" id="Curve3D_1rq3w"]
+resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
-"points": PackedVector3Array(5.478533, -4.156269, -3.7195778, -5.478533, 4.156269, 3.7195778, 14.211575, -5.380192, -3.5125885, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107906, -0.33913422, 0.3004532, 4.3858585, -1.3129692, -1.2682991, -4.3858585, 1.3129692, 1.2682991, -20.376099, -0.65176773, 5.5906296),
+"points": PackedVector3Array(5.478533, -4.156269, -3.7195778, -5.478533, 4.156269, 3.7195778, 14.620575, -2.8400145, 2.8638878, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107906, -0.33913422, 0.3004532, 4.3858585, -1.3129692, -1.2682991, -4.3858585, 1.3129692, 1.2682991, -23.118103, -3.090499, 5.7519608),
+"tilts": PackedFloat32Array(0, 0, 0)
+}
+point_count = 3
+
+[sub_resource type="Curve3D" id="Curve3D_172kb"]
+resource_local_to_scene = true
+bake_interval = 0.01
+_data = {
+"points": PackedVector3Array(3.8812294, -1.9726467, 1.6164017, -3.8812294, 1.9726467, -1.6164017, 34.131397, 10.397879, -0.6612282, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107906, -0.33913422, 0.3004532, 4.3858585, -1.3129692, -1.2682991, -4.3858585, 1.3129692, 1.2682991, -20.376099, -0.65176773, 5.5906296),
+"tilts": PackedFloat32Array(0, 0, 0)
+}
+point_count = 3
+
+[sub_resource type="Curve3D" id="Curve3D_56pii"]
+resource_local_to_scene = true
+bake_interval = 0.01
+_data = {
+"points": PackedVector3Array(5.478533, -4.156269, -3.7195778, -5.478533, 4.156269, 3.7195778, 7.2786713, -1.8700294, -0.036548615, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107906, -0.33913422, 0.3004532, 4.3858585, -1.3129692, -1.2682991, -4.3858585, 1.3129692, 1.2682991, -17.297699, -0.65176773, 5.110607),
 "tilts": PackedFloat32Array(0, 0, 0)
 }
 point_count = 3
@@ -146,114 +165,107 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.03878, 38.679344, -68.840
 [node name="PowerupPickup" parent="." index="18" unique_id=221835442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.5902195, 166.35732)
 
-[node name="WalkieTriggerIntro" parent="." index="21" unique_id=1452023600 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro" parent="." index="20" unique_id=1452023600 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -36.48487, 0.33396053, 245.53955)
 line = "You're in. Signal's bouncing. Watch out for Sentinels. My sensors are showing they are crawling in that sector. I'm triangulating Nyx's location. Be on the lookout but I should have her coordinates for you soon."
 require_flag = &""
 
-[node name="WalkieTriggerIntro3" parent="." index="22" unique_id=1589605069 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro3" parent="." index="21" unique_id=1589605069 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -43.91132, 8.698025, 207.72353)
 line = "Yeah so I forgot to mention.. The orange ones are bouncy."
 require_flag = &""
 
-[node name="WalkieTriggerIntro4" parent="." index="23" unique_id=753024947 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro4" parent="." index="22" unique_id=753024947 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 8.698025, 127.47084)
 line = "I see the hot shot has blades now. I have to admit - I'm jealous. I didn't get those for a month."
 require_flag = &""
 
-[node name="WalkieTriggerIntro5" parent="." index="24" unique_id=175229872 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro5" parent="." index="23" unique_id=175229872 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 11.094522, 24.566835)
 line = "Wow look at you go. Honestly, you're him."
 require_flag = &""
 
-[node name="WalkieTriggerIntro7" parent="." index="25" unique_id=241515978 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro7" parent="." index="24" unique_id=241515978 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -62.10861, 37.101547, -72.20322)
 line = "Runner. Nyx is in your vicinity! Wiring her location to you now!"
 require_flag = &""
 
-[node name="WalkieTriggerIntro6" parent="." index="26" unique_id=1689101184 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro6" parent="." index="25" unique_id=1689101184 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 23.959856, 1.8293638)
 character = &"Glitch"
-line = "To be quite honest, I am even a bit impressed."
+line = "Even I am a bit impressed"
 require_flag = &""
 
-[node name="WalkieTriggerIntro2" parent="." index="27" unique_id=1095229215 instance=ExtResource("2_walkie")]
+[node name="WalkieTriggerIntro2" parent="." index="26" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "Ah I see you've started collecting the Floppies - a vital currency here in the Gibson. Try not to spend it all in one place."
+line = "I've see you started collecting the floppies. The more you collect, the greater your mods. If you don't collect enough, weak sauce. That's all I will say for now."
 require_flag = &""
 
-[node name="Nyx" parent="." index="28" unique_id=1420528326 instance=ExtResource("3_companion")]
+[node name="Nyx" parent="." index="27" unique_id=1420528326 instance=ExtResource("3_companion")]
 transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -66.69823, 62.42845, -97.31536)
 skin_scene = ExtResource("4_nyxskin")
 dialogue_resource = ExtResource("5_nyxdlg")
 interactable_id = &"npc_nyx_l1"
 
-[node name="Beacon" parent="Nyx" instance=ExtResource("24_beacon")]
+[node name="Beacon" parent="Nyx" index="5" unique_id=411332985 instance=ExtResource("24_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+color = Color(1, 0.85, 0.1, 1)
 label = "NYX"
 visible_when_voice_ends = &"DialTone"
 visible_when_voice_match = "Wiring her location"
 
-[node name="Sketchfab_Scene" parent="." index="29" unique_id=1841058684 instance=ExtResource("6_l1g64")]
+[node name="Sketchfab_Scene" parent="." index="28" unique_id=1841058684 instance=ExtResource("6_l1g64")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.54162884, 0.025441548, 24.468964)
 
-[node name="CSGPolygon3D9" type="CSGPolygon3D" parent="." index="30" unique_id=1147997265]
-transform = Transform3D(-0.9983156, 0, 0.058016997, 0, 1, 0, -0.058016997, 0, -0.9983156, -57.490074, 36.637592, -32.9683)
-material_override = ExtResource("7_skxlf")
-use_collision = true
-polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
-depth = 4.0
-material = ExtResource("8_hdc4k")
-
-[node name="CSGBox3D8" type="CSGBox3D" parent="." index="31" unique_id=255759769]
+[node name="CSGBox3D8" type="CSGBox3D" parent="." index="29" unique_id=255759769]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -66.158066, 49.61811, -95.03306)
 use_collision = true
 size = Vector3(8, 25.487183, 10)
 material = ExtResource("7_skxlf")
 
-[node name="CSGBox3D13" type="CSGBox3D" parent="." index="32" unique_id=939575667]
+[node name="CSGBox3D13" type="CSGBox3D" parent="." index="30" unique_id=939575667]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -58.94418, 51.190777, -44.231808)
 use_collision = true
 size = Vector3(8, 29, 21.730957)
 material = ExtResource("7_skxlf")
 
-[node name="CSGBox3D15" type="CSGBox3D" parent="." index="33" unique_id=945981167]
+[node name="CSGBox3D15" type="CSGBox3D" parent="." index="31" unique_id=945981167]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -71.02231, 51.190777, -61.287155)
 use_collision = true
 size = Vector3(8, 29, 21.730957)
 material = ExtResource("7_skxlf")
 
-[node name="CSGBox3D14" type="CSGBox3D" parent="." index="34" unique_id=1246910935]
+[node name="CSGBox3D14" type="CSGBox3D" parent="." index="32" unique_id=1246910935]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -70.51873, 51.190777, -20.917168)
 use_collision = true
 size = Vector3(8, 29, 21.617188)
 material = ExtResource("7_skxlf")
 
-[node name="CSGBox3D16" type="CSGBox3D" parent="." index="35" unique_id=647221267]
+[node name="CSGBox3D16" type="CSGBox3D" parent="." index="33" unique_id=647221267]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, 16.238811, -11, 139.07593)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="CSGBox3D9" type="CSGBox3D" parent="." index="36" unique_id=2086335269]
+[node name="CSGBox3D9" type="CSGBox3D" parent="." index="34" unique_id=2086335269]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -61.23659, -5.5, 119.32869)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="CSGBox3D17" type="CSGBox3D" parent="." index="37" unique_id=603997057]
-transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -61.23659, -5.5, 87.33409)
+[node name="CSGBox3D17" type="CSGBox3D" parent="." index="35" unique_id=603997057]
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -60.471214, -5.5, 69.20736)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
-size = Vector3(7, 27, 11)
+size = Vector3(17.150635, 27, 18.933533)
 
-[node name="CSGBox3D20" type="CSGBox3D" parent="." index="38" unique_id=1730190333]
+[node name="CSGBox3D20" type="CSGBox3D" parent="." index="36" unique_id=1730190333]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -61.23659, -2.159689, 2.6421356)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(7, 45.055664, 11)
 
-[node name="CSGBox3D12" type="CSGBox3D" parent="." index="39" unique_id=293646453]
+[node name="CSGBox3D12" type="CSGBox3D" parent="." index="37" unique_id=293646453]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -63.80393, 23.124626, -56.493237)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
@@ -266,37 +278,13 @@ material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="CSGBox3D10" type="CSGBox3D" parent="." index="40" unique_id=1651418183]
-transform = Transform3D(-0.015953371, -0.97780734, -0.20889804, -0.0140732, 0.20912352, -0.977788, 0.99977386, -0.012659147, -0.0170971, -59.887817, 10.57969, 141.4016)
-material_override = ExtResource("8_hdc4k")
-use_collision = true
-size = Vector3(23.566284, 1, 20.623108)
-
-[node name="CSGBox3D19" type="CSGBox3D" parent="." index="41" unique_id=1068415606]
-transform = Transform3D(-0.014763975, -0.99150836, -0.129202, -0.015316331, 0.12942512, -0.9914708, 0.99977386, -0.012659147, -0.0170971, -58.445827, 11.396574, 39.75802)
-material_override = ExtResource("8_hdc4k")
-use_collision = true
-size = Vector3(28.536377, 1, 32.173096)
-
-[node name="CSGBox3D11" type="CSGBox3D" parent="." index="42" unique_id=325904816]
-transform = Transform3D(0.0032637815, 0.9655539, -0.26018286, 0, 0.26018423, 0.965559, 0.9999947, -0.0031513737, 0.00084918446, -68.575165, 10.554458, 126.99175)
-material_override = ExtResource("8_hdc4k")
-use_collision = true
-size = Vector3(20.464844, 1, 22.63385)
-
-[node name="CSGBox3D18" type="CSGBox3D" parent="." index="43" unique_id=755319153]
-transform = Transform3D(0.0032637815, 0.9655539, -0.26018286, 0, 0.26018423, 0.965559, 0.9999947, -0.0031513737, 0.00084918446, -70.62336, 14.207227, 75.71041)
-material_override = ExtResource("8_hdc4k")
-use_collision = true
-size = Vector3(24.246307, 1, 28.852295)
-
-[node name="CSGBox3D2" type="CSGBox3D" parent="." index="44" unique_id=465908130]
+[node name="CSGBox3D2" type="CSGBox3D" parent="." index="38" unique_id=465908130]
 transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -52.574486, -9.500001, 168.09119)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(10, 19, 22)
 
-[node name="CSGCombiner3D" type="CSGCombiner3D" parent="." index="45" unique_id=951025796]
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="." index="39" unique_id=951025796]
 transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -83.58085, 0, 166.19238)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
@@ -320,7 +308,7 @@ polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
 depth = 4.0
 material = ExtResource("8_hdc4k")
 
-[node name="CSGCombiner" type="CSGCombiner3D" parent="." index="46" unique_id=1929890545]
+[node name="CSGCombiner" type="CSGCombiner3D" parent="." index="40" unique_id=1929890545]
 transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -83.58085, 0, 166.19238)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
@@ -338,7 +326,7 @@ polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
 depth = 4.0
 material = ExtResource("8_hdc4k")
 
-[node name="CSGCombiner3D2" type="CSGCombiner3D" parent="." index="47" unique_id=1333636942]
+[node name="CSGCombiner3D2" type="CSGCombiner3D" parent="." index="41" unique_id=1333636942]
 transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -83.58085, 0, 166.19238)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
@@ -356,293 +344,297 @@ polygon = PackedVector2Array(0, 0, 3, 2, 3, 0)
 depth = 4.0
 material = ExtResource("8_hdc4k")
 
-[node name="PhoneBooth" parent="." index="48" unique_id=2131362854 instance=ExtResource("9_4h366")]
+[node name="PhoneBooth" parent="." index="42" unique_id=2131362854 instance=ExtResource("9_4h366")]
 transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -65.73639, 5.999999, 159.24742)
 
-[node name="Rail" parent="." index="49" unique_id=276568573 instance=ExtResource("10_aive4")]
-transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -61.385662, 13.871343, 105.160484)
-curve = SubResource("Curve3D_b2ana")
-grab_pad = 0.4
-
-[node name="Rail3" parent="." index="50" unique_id=1768677000 instance=ExtResource("10_aive4")]
-transform = Transform3D(0.00084736943, 0.9657087, -0.25962675, -0.0031518622, 0.25962812, 0.96570355, 0.9999947, 0, 0.0032637815, -61.385662, 9.235506, 62.878105)
-curve = SubResource("Curve3D_b2ana")
-grab_pad = 0.4
-
-[node name="Rail4" parent="." index="51" unique_id=582858566 instance=ExtResource("10_aive4")]
-transform = Transform3D(-0.109486006, -0.8537689, 0.50901043, -0.7002218, -0.29720566, -0.64912117, 0.7054802, -0.42748988, -0.5652877, -65.15989, 9.235506, 24.828712)
-curve = SubResource("Curve3D_b2ana")
-grab_pad = 0.4
-
-[node name="PhoneBooth2" parent="." index="52" unique_id=1795716640 instance=ExtResource("9_4h366")]
+[node name="PhoneBooth2" parent="." index="43" unique_id=1795716640 instance=ExtResource("9_4h366")]
 transform = Transform3D(-0.8879679, 0, 0.45990548, 0, 1, 0, -0.45990548, 0, -0.8879679, -58.54159, 8.000001, 119.70475)
 
-[node name="PhoneBooth3" parent="." index="53" unique_id=1546087795 instance=ExtResource("9_4h366")]
+[node name="PhoneBooth3" parent="." index="44" unique_id=1546087795 instance=ExtResource("9_4h366")]
 transform = Transform3D(-0.8879679, 0, 0.45990548, 0, 1, 0, -0.45990548, 0, -0.8879679, -58.54159, 20.529442, -1.8516846)
 
-[node name="Coin" parent="." index="54" unique_id=1783642324 instance=ExtResource("11_hdc4k")]
+[node name="Coin" parent="." index="45" unique_id=1783642324 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.52757, 0.438404, 170.4093)
 
-[node name="Coin2" parent="." index="55" unique_id=291870870 instance=ExtResource("11_hdc4k")]
+[node name="Coin2" parent="." index="46" unique_id=291870870 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.26308, 0.55349994, 170.92781)
 
-[node name="Coin3" parent="." index="56" unique_id=1507823496 instance=ExtResource("11_hdc4k")]
+[node name="Coin3" parent="." index="47" unique_id=1507823496 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.8651, 2.4384048, 171.01093)
 
-[node name="Coin4" parent="." index="57" unique_id=1762503612 instance=ExtResource("11_hdc4k")]
+[node name="Coin4" parent="." index="48" unique_id=1762503612 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.640198, 4.4384046, 170.6394)
 
-[node name="Coin5" parent="." index="58" unique_id=16393232 instance=ExtResource("11_hdc4k")]
+[node name="Coin5" parent="." index="49" unique_id=16393232 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.457783, 6.1461754, 159.96812)
 
-[node name="Coin6" parent="." index="59" unique_id=1218027379 instance=ExtResource("11_hdc4k")]
+[node name="Coin6" parent="." index="50" unique_id=1218027379 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.69181, 8.146176, 149.25545)
 
-[node name="Coin7" parent="." index="60" unique_id=549136699 instance=ExtResource("11_hdc4k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.02204, 10.5865755, 141.57803)
+[node name="Coin7" parent="." index="51" unique_id=549136699 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.84819, 10.5865755, 141.57803)
 
-[node name="Coin8" parent="." index="61" unique_id=1421348940 instance=ExtResource("11_hdc4k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.99499, 10.360572, 135.75536)
+[node name="Coin8" parent="." index="52" unique_id=1421348940 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.596592, 10.772482, 135.75536)
 
-[node name="Coin9" parent="." index="62" unique_id=250811305 instance=ExtResource("11_hdc4k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.56487, 10.468003, 131.84431)
+[node name="Coin9" parent="." index="53" unique_id=250811305 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.74947, 11.638785, 90.23569)
 
-[node name="Coin10" parent="." index="63" unique_id=512861423 instance=ExtResource("11_hdc4k")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.66844, 10.778346, 125.73356)
+[node name="Coin10" parent="." index="54" unique_id=512861423 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.01651, 11.949128, 84.12493)
 
-[node name="Coin11" parent="." index="64" unique_id=975972586 instance=ExtResource("11_hdc4k")]
+[node name="Coin11" parent="." index="55" unique_id=975972586 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.020943, 1.8218462, 177.37718)
 
-[node name="need_rollerblades" parent="." index="65" unique_id=198651728 instance=ExtResource("12_4h366")]
+[node name="need_rollerblades" parent="." index="56" unique_id=198651728 instance=ExtResource("12_4h366")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 4.348541, -62.60135, 3.8437142, 132.523)
 voice_character = &"Glitch"
 voice_line = "Why don't you come see me? You seem to be doing something silly."
 one_shot = true
 
-[node name="EnemyKayKit" parent="." index="66" unique_id=568514464 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit" parent="." index="57" unique_id=568514464 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.84158, -4.196447, 221.54832)
 
-[node name="EnemyKayKit2" parent="." index="67" unique_id=2100812110 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit2" parent="." index="58" unique_id=2100812110 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.735897, -4.196448, 213.10141)
 
-[node name="EnemyKayKit3" parent="." index="68" unique_id=128400311 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit3" parent="." index="59" unique_id=128400311 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.60825, -4.1964474, 220.11696)
 
-[node name="EnemyKayKit4" parent="." index="69" unique_id=1465233931 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit4" parent="." index="60" unique_id=1465233931 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -31.04147, -4.196448, 231.3932)
 
-[node name="Coin12" parent="." index="70" unique_id=1909691609 instance=ExtResource("11_hdc4k")]
+[node name="Coin12" parent="." index="61" unique_id=1909691609 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.06599, -4.07122, 234.73386)
 
-[node name="Coin13" parent="." index="71" unique_id=1416602935 instance=ExtResource("11_hdc4k")]
+[node name="Coin13" parent="." index="62" unique_id=1416602935 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.56789, -4.07122, 239.97328)
 
-[node name="Coin14" parent="." index="72" unique_id=245759154 instance=ExtResource("11_hdc4k")]
+[node name="Coin14" parent="." index="63" unique_id=245759154 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.064213, -4.07122, 230.98643)
 
-[node name="Coin15" parent="." index="73" unique_id=1600935601 instance=ExtResource("11_hdc4k")]
+[node name="Coin15" parent="." index="64" unique_id=1600935601 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.957985, -4.071219, 217.4662)
 
-[node name="EnemyKayKit5" parent="." index="74" unique_id=812182651 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit5" parent="." index="65" unique_id=812182651 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.71006, 4.10047, 190.73602)
 
-[node name="EnemyKayKit6" parent="." index="75" unique_id=177225501 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit6" parent="." index="66" unique_id=177225501 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.33421, 4.100471, 189.60416)
 
-[node name="EnemyKayKit7" parent="." index="76" unique_id=80037031 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit7" parent="." index="67" unique_id=80037031 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.914715, 4.100469, 197.22719)
 
-[node name="EnemyKayKit8" parent="." index="77" unique_id=550906019 instance=ExtResource("16_pgrap")]
+[node name="EnemyKayKit8" parent="." index="68" unique_id=550906019 instance=ExtResource("16_pgrap")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.173813, 4.100471, 194.86765)
 
-[node name="Coin16" parent="." index="78" unique_id=1142757790 instance=ExtResource("11_hdc4k")]
+[node name="Coin16" parent="." index="69" unique_id=1142757790 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.692368, 8.146176, 121.01214)
 
-[node name="BouncyPlatform" parent="." index="79" unique_id=1865404956 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform" parent="." index="70" unique_id=1865404956 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.17814, -4.8228517, 213.66563)
 
-[node name="BouncyPlatform2" parent="." index="80" unique_id=931356739 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.64082, 0.64319134, 213.66563)
+[node name="BouncyPlatform2" parent="." index="71" unique_id=931356739 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.125122, 0.64319134, 213.66563)
 
-[node name="BouncyPlatform3" parent="." index="81" unique_id=1868365190 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform3" parent="." index="72" unique_id=1868365190 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.337093, 6.4431887, 208.53386)
 
-[node name="GlitchStation1" parent="." index="82" unique_id=304176901 instance=ExtResource("22_station")]
+[node name="GlitchStation1" parent="." index="73" unique_id=304176901 instance=ExtResource("22_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87.464264, 11.052332, 167.0114)
 dialogue_resource = ExtResource("25_glitchdlg2")
 advance_flag = &"glitch_grind_done"
 
-[node name="GlitchStation2" parent="." index="83" unique_id=1637347321 instance=ExtResource("22_station")]
+[node name="GlitchStation2" parent="." index="74" unique_id=1637347321 instance=ExtResource("22_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.628735, 8.5, 116.71659)
 dialogue_resource = ExtResource("26_glitchdlg3")
 
-[node name="EnemySpawner" parent="." index="84" unique_id=1105610096 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner" parent="." index="75" unique_id=1105610096 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.27088, 0.5288861, 167.20042)
 
-[node name="EnemySpawner2" parent="." index="85" unique_id=96146603 instance=ExtResource("24_sb0gx")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.558994, 8, 85.87245)
+[node name="EnemySpawner2" parent="." index="76" unique_id=96146603 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.558994, 8, 68.60848)
 
-[node name="BouncyPlatform4" parent="." index="86" unique_id=1720854663 instance=ExtResource("17_7fchg")]
+[node name="EnemySpawner36" parent="." index="77" unique_id=1832556874 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.758324, 8, 68.60848)
+
+[node name="EnemySpawner37" parent="." index="78" unique_id=699455663 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.758324, 8, 63.962936)
+
+[node name="BouncyPlatform4" parent="." index="79" unique_id=1720854663 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -49.18189, 18.889969, 1.9598943)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform5" parent="." index="87" unique_id=448109292 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.253464, 22.38807, 0.24906552)
-size = Vector3(10, 1, 10)
+[node name="BouncyPlatform5" parent="." index="80" unique_id=448109292 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.253464, 22.38807, -1.4560865)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform9" parent="." index="88" unique_id=422630105 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform9" parent="." index="81" unique_id=422630105 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.82228, 40.41702, -39.19512)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform10" parent="." index="89" unique_id=1335730497 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform10" parent="." index="82" unique_id=1335730497 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.82228, 43.435463, -32.046814)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform11" parent="." index="90" unique_id=1124889781 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform11" parent="." index="83" unique_id=1124889781 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86.452675, 59.619984, -13.898603)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform13" parent="." index="91" unique_id=1867714509 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform13" parent="." index="84" unique_id=1867714509 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.20525, 63.227642, -36.518936)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform14" parent="." index="92" unique_id=1333650124 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform14" parent="." index="85" unique_id=1333650124 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.586044, 63.227642, -31.532185)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform15" parent="." index="93" unique_id=2004421616 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform15" parent="." index="86" unique_id=2004421616 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.20525, 63.227642, -53.652206)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform16" parent="." index="94" unique_id=793822050 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform16" parent="." index="87" unique_id=793822050 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.586044, 63.227642, -74.979515)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform17" parent="." index="95" unique_id=1254159845 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform17" parent="." index="88" unique_id=1254159845 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.586044, 63.227642, -84.04094)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform12" parent="." index="96" unique_id=505418945 instance=ExtResource("17_7fchg")]
+[node name="BouncyPlatform12" parent="." index="89" unique_id=505418945 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.59171, 62.236652, -10.643464)
-size = Vector3(10, 1, 10)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform6" parent="." index="97" unique_id=500242044 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.353382, 26.895378, -8.102819)
-size = Vector3(10, 1, 10)
+[node name="BouncyPlatform6" parent="." index="90" unique_id=500242044 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.353382, 26.895378, -8.306149)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform7" parent="." index="98" unique_id=1893885377 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.353382, 30.383162, -15.604457)
-size = Vector3(10, 1, 10)
+[node name="BouncyPlatform7" parent="." index="91" unique_id=1893885377 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.353382, 30.383162, -15.796889)
+size = Vector3(7, 1, 7)
 
-[node name="BouncyPlatform8" parent="." index="99" unique_id=2072654066 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.353382, 33.382645, -24.191738)
-size = Vector3(10, 1, 10)
+[node name="BouncyPlatform8" parent="." index="92" unique_id=2072654066 instance=ExtResource("17_7fchg")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.353382, 33.382645, -25.89689)
+size = Vector3(7, 1, 7)
 
-[node name="EnemySpawner3" parent="." index="100" unique_id=718592541 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner3" parent="." index="93" unique_id=718592541 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.93486, 36.624626, -35.617283)
 
-[node name="EnemySpawner4" parent="." index="101" unique_id=136460593 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner4" parent="." index="94" unique_id=136460593 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.975807, 36.624626, -37.280937)
 
-[node name="EnemySpawner5" parent="." index="102" unique_id=658169647 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner5" parent="." index="95" unique_id=658169647 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.92393, 36.624626, -32.927868)
 
-[node name="EnemySpawner18" parent="." index="103" unique_id=1245933901 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner18" parent="." index="96" unique_id=1245933901 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -67.93486, 65.503685, -43.05299)
 
-[node name="EnemySpawner19" parent="." index="104" unique_id=409416500 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner19" parent="." index="97" unique_id=409416500 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.975807, 65.503685, -44.71665)
 
-[node name="EnemySpawner20" parent="." index="105" unique_id=1574690741 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner20" parent="." index="98" unique_id=1574690741 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.92393, 65.503685, -40.363575)
 
-[node name="EnemySpawner21" parent="." index="106" unique_id=681397878 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner21" parent="." index="99" unique_id=681397878 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.595108, 65.503685, -43.05299)
 
-[node name="EnemySpawner22" parent="." index="107" unique_id=1314076404 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner22" parent="." index="100" unique_id=1314076404 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.636055, 65.503685, -44.71665)
 
-[node name="EnemySpawner23" parent="." index="108" unique_id=516846443 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner23" parent="." index="101" unique_id=516846443 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.584175, 65.503685, -40.363575)
 
-[node name="EnemySpawner24" parent="." index="109" unique_id=1040196820 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner24" parent="." index="102" unique_id=1040196820 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.72467, 65.503685, -61.5398)
 
-[node name="EnemySpawner25" parent="." index="110" unique_id=1821723030 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner25" parent="." index="103" unique_id=1821723030 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.76562, 65.503685, -63.203457)
 
-[node name="EnemySpawner26" parent="." index="111" unique_id=264635561 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner26" parent="." index="104" unique_id=264635561 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.71374, 65.503685, -58.850384)
 
-[node name="EnemySpawner27" parent="." index="112" unique_id=1255867130 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner27" parent="." index="105" unique_id=1255867130 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.38492, 65.503685, -61.5398)
 
-[node name="EnemySpawner28" parent="." index="113" unique_id=619379108 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner28" parent="." index="106" unique_id=619379108 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.425865, 65.503685, -63.203457)
 
-[node name="EnemySpawner29" parent="." index="114" unique_id=537420894 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner29" parent="." index="107" unique_id=537420894 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.373985, 65.503685, -58.850384)
 
-[node name="EnemySpawner30" parent="." index="115" unique_id=1194325361 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner30" parent="." index="108" unique_id=1194325361 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.72467, 65.503685, -21.557308)
 
-[node name="EnemySpawner31" parent="." index="116" unique_id=266639099 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner31" parent="." index="109" unique_id=266639099 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.76562, 65.503685, -23.220966)
 
-[node name="EnemySpawner32" parent="." index="117" unique_id=1046790123 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner32" parent="." index="110" unique_id=1046790123 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.71374, 65.503685, -18.867893)
 
-[node name="EnemySpawner33" parent="." index="118" unique_id=78668609 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner33" parent="." index="111" unique_id=78668609 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -70.38492, 65.503685, -21.557308)
 
-[node name="EnemySpawner34" parent="." index="119" unique_id=1634096227 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner34" parent="." index="112" unique_id=1634096227 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -66.425865, 65.503685, -23.220966)
 
-[node name="EnemySpawner35" parent="." index="120" unique_id=1489839868 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner35" parent="." index="113" unique_id=1489839868 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.373985, 65.503685, -18.867893)
 
-[node name="EnemySpawner9" parent="." index="121" unique_id=143705344 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner9" parent="." index="114" unique_id=143705344 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.433033, 36.624626, -54.309612)
 
-[node name="EnemySpawner10" parent="." index="122" unique_id=78793860 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner10" parent="." index="115" unique_id=78793860 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.47398, 36.624626, -55.973267)
 
-[node name="EnemySpawner11" parent="." index="123" unique_id=1582840304 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner11" parent="." index="116" unique_id=1582840304 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.4221, 36.624626, -51.620197)
 
-[node name="EnemySpawner12" parent="." index="124" unique_id=489852944 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner12" parent="." index="117" unique_id=489852944 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.433033, 36.624626, -75.97351)
 
-[node name="EnemySpawner13" parent="." index="125" unique_id=1321789380 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner13" parent="." index="118" unique_id=1321789380 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.47398, 36.624626, -77.63717)
 
-[node name="EnemySpawner14" parent="." index="126" unique_id=1709288358 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner14" parent="." index="119" unique_id=1709288358 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.4221, 36.624626, -73.2841)
 
-[node name="EnemySpawner15" parent="." index="127" unique_id=698976862 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner15" parent="." index="120" unique_id=698976862 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.14815, 36.624626, -75.97351)
 
-[node name="EnemySpawner16" parent="." index="128" unique_id=1118842336 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner16" parent="." index="121" unique_id=1118842336 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.18909, 36.624626, -77.63717)
 
-[node name="EnemySpawner17" parent="." index="129" unique_id=876353510 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner17" parent="." index="122" unique_id=876353510 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -68.13721, 36.624626, -73.2841)
 
-[node name="EnemySpawner6" parent="." index="130" unique_id=330154943 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner6" parent="." index="123" unique_id=330154943 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.214664, 36.624626, -33.11416)
 
-[node name="EnemySpawner7" parent="." index="131" unique_id=1819039530 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner7" parent="." index="124" unique_id=1819039530 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.44673, 36.624626, -27.407375)
 
-[node name="EnemySpawner8" parent="." index="132" unique_id=1744593281 instance=ExtResource("24_sb0gx")]
+[node name="EnemySpawner8" parent="." index="125" unique_id=1744593281 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.986683, 36.624626, -25.471113)
 
-[node name="ElevatorPlatform" parent="." index="133" unique_id=468855729 instance=ExtResource("25_gj5ex")]
+[node name="ElevatorPlatform" parent="." index="126" unique_id=468855729 instance=ExtResource("25_gj5ex")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.707695, 44.6271, -22.024652)
+size = Vector3(7, 1, 7)
 amplitude = 15.0
 
-[node name="CsgColliderSwap" type="Node" parent="."]
+[node name="CsgColliderSwap" type="Node" parent="." index="127" unique_id=1481040347]
 script = ExtResource("27_csgswap")
 
-[node name="EnemyDistanceSleep" type="Node" parent="."]
+[node name="EnemyDistanceSleep" type="Node" parent="." index="128" unique_id=649529126]
 script = ExtResource("28_edsleep")
+
+[node name="Rail" parent="." index="129" unique_id=1687920998 instance=ExtResource("10_aive4")]
+transform = Transform3D(0.06400982, 0, 0.99794924, 0, 1, 0, -0.99794924, 0, 0.06400982, -65.059616, 11.744306, 88.640564)
+curve = SubResource("Curve3D_1rq3w")
+
+[node name="Rail2" parent="." index="130" unique_id=1437553195 instance=ExtResource("10_aive4")]
+transform = Transform3D(0.013717893, 0, 0.9999059, 0, 1, 0, -0.9999059, 0, 0.013717893, -61.86731, 10.599958, 39.953575)
+curve = SubResource("Curve3D_172kb")
+
+[node name="Rail3" parent="." index="131" unique_id=1254054247 instance=ExtResource("10_aive4")]
+transform = Transform3D(0.15407237, 0, 0.9880596, 0, 1, 0, -0.9880596, 0, 0.15407237, -63.464203, 10.483322, 131.7774)
+curve = SubResource("Curve3D_56pii")

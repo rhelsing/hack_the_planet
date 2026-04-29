@@ -71,6 +71,17 @@ const _INPUT_DEADZONE: float = 0.18
 # higher = sticks to the entry axis. 0.4 means a stick deflection of >~22°
 # off the entry axis counts as a turn.
 const _TURN_BIAS_THRESHOLD: float = 0.4
+# Pre-press input buffer (Witness-grace #1). Press = an axis crossing this
+# magnitude from below. Buffered direction wins over turn-bias / dominant
+# at the next junction commit if still fresh.
+const _AXIS_PRESS_THRESHOLD: float = 0.5
+const _BUFFER_DURATION: float = 0.15  # seconds the buffer stays valid
+# Mid-edge turn-out (Witness-grace #2). When perpendicular input dominates
+# AND forward intent is weak, drive the cursor back to path[-1] at the
+# perp magnitude rate so the next loop iteration enters the new direction.
+# Same gesture as Witness's mouse-pulled-perpendicular cursor retreat.
+const _PERP_TURN_THRESHOLD: float = 0.6     # min perp magnitude to count
+const _PERP_TURN_FORWARD_GATE: float = 0.3  # max forward alignment to allow turn-out
 # Sentinel — "no active edge" (cursor sitting on a node). Coordinates are
 # negative so they can never collide with a real grid node.
 const _NO_NEIGHBOR: Vector2i = Vector2i(-99, -99)
@@ -149,6 +160,12 @@ var _failing: bool = false                  # in fail-flash + glitch sequence
 var _conflict_cells: Array = []             # Array[Vector2i] — cells in mixed regions
 var _fail_t0: float = 0.0                   # secs (msec/1000) when fail flash started
 var _last_device: String = ""
+
+# Pre-press input buffer state. _prev_input keeps last frame's vector to
+# detect rising-edge axis presses; _buffered_dir is the latest such press.
+var _prev_input: Vector2 = Vector2.ZERO
+var _buffered_dir: Vector2i = Vector2i.ZERO
+var _buffered_dir_time: float = 0.0
 
 # Last-5s warning glitch state — owns its own canvas so the puzzle can free
 # without taking the visual with it.
@@ -320,6 +337,10 @@ func _process(delta: float) -> void:
 	_refresh_instructions()
 	# Continuous input → continuous cursor motion.
 	var input_v: Vector2 = _read_input()
+	# Capture rising-edge presses BEFORE deadzone gate — even brief
+	# pre-presses that the user releases before the next junction get
+	# buffered for the upcoming commit.
+	_detect_input_press_edges(input_v)
 	var magnitude: float = input_v.length()
 	if magnitude < _INPUT_DEADZONE:
 		_set_sliding(false)
@@ -376,6 +397,26 @@ func _set_sliding(on: bool) -> void:
 		_slide_player.stop()
 
 
+# Detect rising-edge axis presses and buffer them. A press = an axis
+# crossing _AXIS_PRESS_THRESHOLD from below. The buffer holds the latest
+# pressed cardinal direction with a timestamp, so a player who taps a
+# turn just before reaching a junction still gets the turn at commit time.
+# Cleared on consumption (in _try_enter_edge_from_tip) or by time expiry.
+func _detect_input_press_edges(input_v: Vector2) -> void:
+	var px: float = absf(_prev_input.x)
+	var py: float = absf(_prev_input.y)
+	var ax: float = absf(input_v.x)
+	var ay: float = absf(input_v.y)
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if px < _AXIS_PRESS_THRESHOLD and ax >= _AXIS_PRESS_THRESHOLD:
+		_buffered_dir = Vector2i(int(signf(input_v.x)), 0)
+		_buffered_dir_time = now
+	if py < _AXIS_PRESS_THRESHOLD and ay >= _AXIS_PRESS_THRESHOLD:
+		_buffered_dir = Vector2i(0, int(signf(input_v.y)))
+		_buffered_dir_time = now
+	_prev_input = input_v
+
+
 # Combined input vector: ui_* (arrows + D-pad + left-stick axis) AND
 # move_* (WASD + left-stick axis). Same axes overlap on the gamepad — clamp
 # the sum to keep magnitude in [-1, 1]. y is screen-down-positive.
@@ -405,7 +446,24 @@ func _step_cursor(input_unit: Vector2, distance: float) -> void:
 		var here: Vector2i = _path[_path.size() - 1]
 		var edge_vec: Vector2 = Vector2(_active_neighbor - here)  # cardinal unit
 		var aligned: float = input_unit.dot(edge_vec)
-		if aligned > 1.0e-4:
+		var perp_mag: float = absf(input_unit.cross(edge_vec))
+		# Mid-edge turn-out (Witness-grace #2): if the player is pushing
+		# perpendicular hard with weak forward intent, treat the perp
+		# magnitude as a retreat force toward path[-1] so the next loop
+		# iteration can enter the new direction. Single gesture.
+		if perp_mag > _PERP_TURN_THRESHOLD and aligned > -0.05 and aligned < _PERP_TURN_FORWARD_GATE:
+			var step: float = perp_mag * distance
+			var capacity: float = _cursor_t
+			if step <= capacity + 1.0e-6:
+				_cursor_t = maxf(_cursor_t - step, 0.0)
+				if _cursor_t <= 1.0e-6:
+					_cursor_t = 0.0
+					_active_neighbor = _NO_NEIGHBOR
+				return
+			_cursor_t = 0.0
+			distance -= capacity / perp_mag
+			_active_neighbor = _NO_NEIGHBOR
+		elif aligned > 1.0e-4:
 			# Forward toward _active_neighbor.
 			var step: float = aligned * distance
 			var capacity: float = 1.0 - _cursor_t
@@ -426,7 +484,7 @@ func _step_cursor(input_unit: Vector2, distance: float) -> void:
 			distance -= capacity / -aligned
 			_active_neighbor = _NO_NEIGHBOR
 		else:
-			# Perpendicular input — can't turn mid-edge.
+			# Truly idle perpendicular (below turn-out threshold) — no motion.
 			return
 
 
@@ -434,28 +492,74 @@ func _is_at_tip() -> bool:
 	return _active_neighbor == _NO_NEIGHBOR
 
 
-# Pick the dominant axis of input_unit and try to enter the edge from
-# path[-1] in that direction. Honors no-cross and allows the predecessor
-# (backtrack). Returns true if an edge was entered (and _active_neighbor /
-# _cursor_t are now set), false if blocked.
+# Try to enter an edge from path[-1] using the player's input. Builds a
+# small priority list of candidate cardinal directions and tries each in
+# turn — the first that maps to an open + no-cross-safe edge wins. The
+# priority order encodes the "junction grace" rule: when leaving an edge,
+# perpendicular input above _TURN_BIAS_THRESHOLD is preferred over
+# continuing straight (so diagonal stick at junctions reads as a turn,
+# not as "keep going"). If no priority candidate is valid, falls back to
+# the dominant axis, then the off-axis. Returns true if an edge was
+# entered (and _active_neighbor / _cursor_t are now set), false if blocked.
 func _try_enter_edge_from_tip(input_unit: Vector2) -> bool:
-	var dir: Vector2i
-	if absf(input_unit.x) >= absf(input_unit.y):
-		dir = Vector2i(int(signf(input_unit.x)), 0)
-	else:
-		dir = Vector2i(0, int(signf(input_unit.y)))
-	if dir == Vector2i.ZERO:
-		return false
 	var here: Vector2i = _path[_path.size() - 1]
+	var entry: Vector2i = _entry_dir()
+	var ax: float = absf(input_unit.x)
+	var ay: float = absf(input_unit.y)
+	var x_dir: Vector2i = Vector2i.ZERO
+	var y_dir: Vector2i = Vector2i.ZERO
+	if ax > 0.0:
+		x_dir = Vector2i(int(signf(input_unit.x)), 0)
+	if ay > 0.0:
+		y_dir = Vector2i(0, int(signf(input_unit.y)))
+	# Priority list — pre-press buffer (Witness-grace #1) wins highest, then
+	# turn-bias (perpendicular intent at junction), then dominant input axis,
+	# then off-axis as last resort.
+	var candidates: Array[Vector2i] = []
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if _buffered_dir != Vector2i.ZERO and (now - _buffered_dir_time) < _BUFFER_DURATION \
+			and _buffered_dir != entry:
+		candidates.append(_buffered_dir)
+	if entry.x != 0 and ay >= _TURN_BIAS_THRESHOLD and y_dir != Vector2i.ZERO:
+		if not (y_dir in candidates):
+			candidates.append(y_dir)
+	if entry.y != 0 and ax >= _TURN_BIAS_THRESHOLD and x_dir != Vector2i.ZERO:
+		if not (x_dir in candidates):
+			candidates.append(x_dir)
+	var dom: Vector2i = x_dir if ax >= ay else y_dir
+	var off: Vector2i = y_dir if ax >= ay else x_dir
+	if dom != Vector2i.ZERO and not (dom in candidates):
+		candidates.append(dom)
+	if off != Vector2i.ZERO and not (off in candidates):
+		candidates.append(off)
+	for d: Vector2i in candidates:
+		if _try_enter_dir(here, d):
+			# Consume the buffer iff it was the winner — keeps a held
+			# direction from re-firing at every node.
+			if d == _buffered_dir:
+				_buffered_dir = Vector2i.ZERO
+			return true
+	return false
+
+
+# Direction of the last committed edge (path[-2] → path[-1]). Zero when
+# the trail is just the start node (no entry edge yet).
+func _entry_dir() -> Vector2i:
+	if _path.size() < 2:
+		return Vector2i.ZERO
+	return _path[_path.size() - 1] - _path[_path.size() - 2]
+
+
+# Validate an open edge from `here` in `dir`, honoring backtrack-allowed
+# and strict no-cross. Sets active edge state on success.
+func _try_enter_dir(here: Vector2i, dir: Vector2i) -> bool:
 	var candidate: Vector2i = here + dir
 	if not _data.has_edge(here, candidate):
 		return false
-	# Backtrack permitted — the predecessor is the only revisitable node.
 	if _path.size() >= 2 and _path[_path.size() - 2] == candidate:
 		_active_neighbor = candidate
 		_cursor_t = 0.0
 		return true
-	# Strict no-cross: any other revisit is blocked.
 	if candidate in _path:
 		return false
 	_active_neighbor = candidate

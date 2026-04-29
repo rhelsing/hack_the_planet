@@ -23,6 +23,16 @@ extends Interactable
 ## Start node name inside the .dialogue file (matches `~ start` convention).
 @export var dialogue_start: String = "start"
 
+@export_group("Redirect")
+## Optional. If set, and `redirect_unless_flag` is currently false, pressing
+## interact on this trigger forwards to `redirect_target.interact(actor)`
+## instead of opening this trigger's own dialogue. Used for "talk to NPC A
+## first" gates: e.g. talking to Nyx pre-DialTone routes to DialTone.
+@export var redirect_target: NodePath
+## GameState flag that, when true, disables the redirect (this trigger plays
+## its own dialogue normally). Empty = no redirect.
+@export var redirect_unless_flag: String = ""
+
 @export_group("Cinematic Entry")
 ## Marker3D child node where the player walks to before dialogue starts.
 ## Leave empty = no walk.
@@ -145,6 +155,15 @@ func _exit_tree() -> void:
 
 
 func interact(actor: Node3D) -> void:
+	# Redirect gate: if configured and the unlock flag isn't set yet, forward
+	# this interaction to another trigger entirely. Cinematic + dialogue all
+	# fire from the redirect target, so the player walks to *that* NPC.
+	if not redirect_unless_flag.is_empty() and not GameState.get_flag(redirect_unless_flag, false):
+		var target := get_node_or_null(redirect_target) as DialogueTrigger
+		if target != null:
+			target.interact(actor)
+			return
+		push_warning("DialogueTrigger %s redirect_target invalid: %s" % [interactable_id, redirect_target])
 	if dialogue_resource == null:
 		push_warning("DialogueTrigger %s has no dialogue_resource" % interactable_id)
 		return

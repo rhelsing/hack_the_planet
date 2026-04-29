@@ -9,7 +9,6 @@ accel = 18.0
 friction = 24.0
 air_accel_mult = 0.5
 turn_rate = 12.0
-jump_impulse = 10.0
 rotation_speed = 8.0
 stopping_speed = 0.5
 face_velocity = true

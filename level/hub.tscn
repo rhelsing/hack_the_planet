@@ -289,3 +289,5 @@ visible_when_flag = &"level_1_completed"
 skin_scene = ExtResource("23_xlodn")
 dialogue_resource = ExtResource("26_hubnyxdlg")
 interactable_id = &"npc_post4_nyx"
+redirect_target = NodePath("../Ground/DialTone")
+redirect_unless_flag = "level_2_unlocked"

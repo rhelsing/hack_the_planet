@@ -1,23 +1,23 @@
-[gd_scene load_steps=4 format=3 uid="uid://dportplt0001"]
+[gd_scene format=3 uid="uid://dportplt0001"]
 
-[ext_resource type="Script" path="res://level/interactable/portal_platform/portal_platform.gd" id="1_portal"]
+[ext_resource type="Script" uid="uid://cocr4wtciykgt" path="res://level/interactable/portal_platform/portal_platform.gd" id="1_portal"]
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="2_warp"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_trigger"]
-size = Vector3(4.0, 0.6, 4.0)
+size = Vector3(7.052246, 0.6, 6.9367676)
 
-[node name="PortalPlatform" type="Node3D"]
+[node name="PortalPlatform" type="Node3D" unique_id=1422042768]
 script = ExtResource("1_portal")
 warp_sound = ExtResource("2_warp")
 
-[node name="Deck" type="Node3D" parent="."]
+[node name="Deck" type="Node3D" parent="." unique_id=1589602940]
 
-[node name="Box" type="CSGBox3D" parent="Deck"]
+[node name="Box" type="CSGBox3D" parent="Deck" unique_id=1106505330]
 use_collision = true
-size = Vector3(4.0, 0.3, 4.0)
+size = Vector3(7, 0.3, 7)
 
-[node name="Trigger" type="Area3D" parent="."]
+[node name="Trigger" type="Area3D" parent="." unique_id=608309140]
 
-[node name="Shape" type="CollisionShape3D" parent="Trigger"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+[node name="Shape" type="CollisionShape3D" parent="Trigger" unique_id=1834836095]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.029541016, 0.45, -0.018432617)
 shape = SubResource("BoxShape3D_trigger")

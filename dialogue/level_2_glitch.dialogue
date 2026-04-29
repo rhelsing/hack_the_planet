@@ -1,0 +1,28 @@
+~ start
+
+if GameState.get_flag("level_2_glitch_briefed", false)
+	=> stage_revisit
+
+Glitch: That was pretty intense back there.
+Glitch: So I bet you are wondering how these new abilities work.
+- Please?
+	=> abilities
+
+~ abilities
+
+Glitch: You now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that splice has modified.
+Glitch: The second ability and the one you must use now is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
+Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
+Glitch: It's times like this that I'm glad I'm not a sentinel.
+- Got it.
+	=> done
+
+~ done
+
+do GameState.set_flag("level_2_glitch_briefed", true)
+=> END
+
+~ stage_revisit
+
+Glitch: Good luck. Stay low.
+=> END

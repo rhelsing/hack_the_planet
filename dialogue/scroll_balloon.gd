@@ -10,14 +10,13 @@ extends CanvasLayer
 
 const VISITED_DIM: Color = Color(0.5, 0.5, 0.5, 1.0)
 const EXIT_TEXT: String = "End the conversation"
+const PORTRAITS_PATH: String = "res://dialogue/voice_portraits.tres"
 
 ## Per-character speaker colors used for the log entries and the current
 ## CharacterLabel. Add entries as new speakers enter the game.
 const SPEAKER_COLORS := {
 	"Grit": "#E4C57A",
 	"Me": "#6AD9FF",
-	"Narrator": "#888888",
-	"NARRATOR": "#888888",
 }
 const DEFAULT_SPEAKER_COLOR := "#E0E0E0"
 const YOU_CHOICE_COLOR := "#8FA08F"
@@ -105,6 +104,13 @@ var mutation_cooldown: Timer = Timer.new()
 @onready var _scroll: ScrollContainer = %ScrollContainer
 @onready var _log: VBoxContainer = %LogContainer
 
+## Per-speaker portrait, anchored upper-left of the balloon. Same registry
+## as the walkie HUD (voice_portraits.tres). Hidden when no portrait is
+## registered for the current speaker.
+@onready var portrait_rect: TextureRect = %PortraitRect
+
+var _portraits: Resource  # VoicePortraits
+
 ## True for exactly one setter dispatch when the response handler has already
 ## logged the previous line. Prevents double-logging.
 var _skip_next_snapshot: bool = false
@@ -118,6 +124,8 @@ var _auto_scroll_frames: int = 0
 
 func _ready() -> void:
 	balloon.hide()
+	if ResourceLoader.exists(PORTRAITS_PATH):
+		_portraits = load(PORTRAITS_PATH)
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -246,6 +254,7 @@ func apply_dialogue_line() -> void:
 			_speaker_color(dialogue_line.character),
 			tr(dialogue_line.character, "dialogue").to_upper(),
 		]
+	_apply_portrait(dialogue_line.character)
 
 	# P3: convert *asterisk* spans to BBCode italic so the live label shows
 	# narration in italics. Safe to mutate dialogue_line.text — it's a fresh
@@ -368,8 +377,9 @@ func _append_line_to_log(line: DialogueLine) -> void:
 	text = _format_italics_for_display(text)
 	var color := _speaker_color(speaker)
 	var bbcode: String
-	if speaker.is_empty() or speaker.to_upper() == "NARRATOR":
-		# Pure narrator line — italicize the whole thing regardless of asterisks.
+	if speaker.is_empty():
+		# Unattributed line (no `Speaker:` prefix in the .dialogue file). Render
+		# italic so it reads as scene direction; no speaker tag.
 		bbcode = "[color=%s][i]%s[/i][/color]" % [color, text]
 	else:
 		bbcode = "[color=%s][b]%s:[/b][/color] %s" % [color, speaker.to_upper(), text]
@@ -420,9 +430,23 @@ func _speaker_color(name: String) -> String:
 	return SPEAKER_COLORS.get(name, DEFAULT_SPEAKER_COLOR)
 
 
-## Converts `*text*` spans to BBCode `[i]text[/i]`. The TTS pipeline strips
-## the same spans so italic narration is displayed but not voiced — see
-## autoload/dialogue.gd._strip_italic_spans.
+## Swap the upper-left portrait to match the current speaker. Hides the rect
+## entirely if no portrait is registered (e.g. an unrecognised character).
+func _apply_portrait(character: String) -> void:
+	var tex: Texture2D = null
+	if _portraits != null and _portraits.has_method(&"get_portrait"):
+		tex = _portraits.call(&"get_portrait", character) as Texture2D
+	if tex != null:
+		portrait_rect.texture = tex
+		portrait_rect.visible = true
+	else:
+		portrait_rect.texture = null
+		portrait_rect.visible = false
+
+
+## Converts `*text*` spans to BBCode `[i]text[/i]` for display. The TTS
+## pipeline strips the literal `*` chars but voices the whole line in the
+## speaker's voice (WYSIWYG) — see autoload/dialogue.gd._on_line_shown.
 static func _format_italics_for_display(raw: String) -> String:
 	var re := RegEx.create_from_string("\\*([^*]+)\\*")
 	return re.sub(raw, "[i]$1[/i]", true)

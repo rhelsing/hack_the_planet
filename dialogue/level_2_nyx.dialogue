@@ -1,7 +1,7 @@
 ~ start
 
-Nyx: Hey {{HandlePicker.chosen_name()}},
-Nyx: I guess I'm the one actually saving you this time.
+Nyx: Hey {{HandlePicker.chosen_name()}}, it's good to see you in one piece!
+Nyx: I guess I'm the one actually saving YOU this time!
 Nyx: Let's get out of here before Splice warps in.
 do LevelProgression.advance()
 => END
