@@ -19,7 +19,6 @@
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="17_b3knk"]
 [ext_resource type="PackedScene" uid="uid://ft4d2kwlkeke" path="res://level/interactable/crumble_platform/crumble_platform.tscn" id="18_b3knk"]
 [ext_resource type="PackedScene" uid="uid://c6800is15rab5" path="res://level/interactable/bouncy_platform/bouncy_platform.tscn" id="19_dhw2c"]
-[ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="20_510pp"]
 
 [node name="LevelMockup" unique_id=141931145 instance=ExtResource("1_base")]
 level_num = 3
@@ -61,103 +60,145 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.07877, 25.054535, -197.4
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.07877, 26.254532, -194.34673)
 
 [node name="Grapple1" parent="." index="15" unique_id=476836261 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -152.00063)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 34.55159, -163.73471)
 
-[node name="Grapple3" parent="." index="16" unique_id=379913050 instance=ExtResource("2_grapple")]
+[node name="Grapple17" parent="." index="16" unique_id=723392310 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 34.55159, -150.00536)
+
+[node name="Grapple3" parent="." index="17" unique_id=379913050 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -88.63363)
 
-[node name="Grapple4" parent="." index="17" unique_id=369810128 instance=ExtResource("2_grapple")]
+[node name="Grapple4" parent="." index="18" unique_id=369810128 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -53.324486)
 
-[node name="Grapple5" parent="." index="18" unique_id=985498875 instance=ExtResource("2_grapple")]
+[node name="Grapple18" parent="." index="19" unique_id=1959472997 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -114.957306, 36.78283, -69.56685)
+
+[node name="Grapple19" parent="." index="20" unique_id=1993796985 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -121.9307, 36.78283, -36.269306)
+
+[node name="Grapple5" parent="." index="21" unique_id=985498875 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.53293, 36.78283, -26.1576)
 
-[node name="Grapple6" parent="." index="19" unique_id=340681438 instance=ExtResource("2_grapple")]
+[node name="Grapple20" parent="." index="22" unique_id=745324870 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -147.85384, 36.78283, -26.1576)
+
+[node name="Grapple21" parent="." index="23" unique_id=1569375070 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -173.95471, 36.78283, -26.1576)
+
+[node name="Grapple6" parent="." index="24" unique_id=340681438 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -159.9351, 36.78283, -26.1576)
 
-[node name="Grapple7" parent="." index="20" unique_id=548703477 instance=ExtResource("2_grapple")]
+[node name="Grapple7" parent="." index="25" unique_id=548703477 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -186.7315, 36.78283, -26.1576)
 
-[node name="Grapple8" parent="." index="21" unique_id=453498086 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.78283, -51.038464)
+[node name="Grapple8" parent="." index="26" unique_id=453498086 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.56116, 36.78283, -83.487274)
 
-[node name="Grapple9" parent="." index="22" unique_id=1542291906 instance=ExtResource("2_grapple")]
+[node name="Grapple24" parent="." index="27" unique_id=834115902 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.56116, 38.85786, -104.52352)
+
+[node name="Grapple25" parent="." index="28" unique_id=104453846 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.56116, 40.731174, -117.238914)
+
+[node name="Grapple22" parent="." index="29" unique_id=1408722840 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 32.496563, -51.038464)
+
+[node name="Grapple23" parent="." index="30" unique_id=442701733 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 37.21516, -61.234756)
+
+[node name="Grapple9" parent="." index="31" unique_id=1542291906 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.78283, -69.66736)
 
-[node name="Grapple10" parent="." index="23" unique_id=1565432725 instance=ExtResource("2_grapple")]
+[node name="Grapple10" parent="." index="32" unique_id=1565432725 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.78283, -93.6124)
 
-[node name="Grapple11" parent="." index="24" unique_id=1154428835 instance=ExtResource("2_grapple")]
+[node name="Grapple11" parent="." index="33" unique_id=1154428835 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 44.87616, -129.38458)
 
-[node name="Grapple12" parent="." index="25" unique_id=1367832024 instance=ExtResource("2_grapple")]
+[node name="Grapple26" parent="." index="34" unique_id=576619959 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 47.57007, -145.55368)
+
+[node name="Grapple12" parent="." index="35" unique_id=1367832024 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 44.87616, -160.56949)
 
-[node name="Grapple13" parent="." index="26" unique_id=1752870134 instance=ExtResource("2_grapple")]
+[node name="Grapple27" parent="." index="36" unique_id=73036800 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 42.18435, -179.05298)
+
+[node name="Grapple13" parent="." index="37" unique_id=1752870134 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -226.50766, 36.645264, -208.20389)
 
-[node name="Grapple14" parent="." index="27" unique_id=1327886920 instance=ExtResource("2_grapple")]
+[node name="Grapple28" parent="." index="38" unique_id=995898503 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -213.47485, 36.645264, -215.63612)
+
+[node name="Grapple14" parent="." index="39" unique_id=1327886920 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -200.8603, 36.645264, -229.72864)
 
-[node name="Grapple15" parent="." index="28" unique_id=1486096142 instance=ExtResource("2_grapple")]
+[node name="Grapple29" parent="." index="40" unique_id=683847753 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -186.90495, 34.882233, -229.72864)
+
+[node name="Grapple15" parent="." index="41" unique_id=1486096142 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -170.71751, 28.145256, -250.84296)
 
-[node name="Grapple16" parent="." index="29" unique_id=2032653777 instance=ExtResource("2_grapple")]
+[node name="Grapple30" parent="." index="42" unique_id=1095294419 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -157.00893, 28.145256, -250.84296)
+
+[node name="Grapple16" parent="." index="43" unique_id=2032653777 instance=ExtResource("2_grapple")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -141.81316, 28.145256, -250.84296)
 
-[node name="Grapple2" parent="." index="30" unique_id=642734320 instance=ExtResource("2_grapple")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.957306, 38.78283, -177.98639)
+[node name="Grapple2" parent="." index="44" unique_id=642734320 instance=ExtResource("2_grapple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.957306, 33.14715, -177.98639)
 
-[node name="Splice" parent="." index="31" unique_id=556500260 instance=ExtResource("3_companion")]
+[node name="Splice" parent="." index="45" unique_id=556500260 instance=ExtResource("3_companion")]
 transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 28.17853, -357.75714)
 hide_when_flag = &"refused_splice"
 skin_scene = ExtResource("4_splice_skin")
 dialogue_resource = ExtResource("5_splice_dlg")
 interactable_id = &"npc_splice_offer"
 
-[node name="PortalAlpha1" parent="." index="32" unique_id=2094463888 instance=ExtResource("8_portal")]
+[node name="PortalAlpha1" parent="." index="46" unique_id=2094463888 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -179.06776, 38.12951, -134.92235)
 link_id = &"l3_alpha"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 
-[node name="PortalAlpha2" parent="." index="33" unique_id=1484985069 instance=ExtResource("8_portal")]
+[node name="PortalAlpha2" parent="." index="47" unique_id=1484985069 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.413664, 28.071827, -136.7956)
 link_id = &"l3_alpha"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 
-[node name="PortalBeta1" parent="." index="34" unique_id=1254587178 instance=ExtResource("8_portal")]
+[node name="PortalBeta1" parent="." index="48" unique_id=1254587178 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.3051, 27.962957, -118.231735)
 link_id = &"l3_beta"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 
-[node name="PortalBeta2" parent="." index="35" unique_id=288564988 instance=ExtResource("8_portal")]
+[node name="PortalBeta2" parent="." index="49" unique_id=288564988 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -181.29823, 44.63256, -127.418564)
 link_id = &"l3_beta"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 
-[node name="PortalGamma1" parent="." index="36" unique_id=44065169 instance=ExtResource("8_portal")]
+[node name="PortalGamma1" parent="." index="50" unique_id=44065169 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.478882, 27.129602, -131.70486)
 link_id = &"l3_gamma"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 
-[node name="PortalGamma2" parent="." index="37" unique_id=102743654 instance=ExtResource("8_portal")]
+[node name="PortalGamma2" parent="." index="51" unique_id=102743654 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -100.7253, 27.129602, -192.43694)
 link_id = &"l3_gamma"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 
-[node name="CsgColliderSwap" type="Node" parent="." index="38" unique_id=1477089886]
+[node name="CsgColliderSwap" type="Node" parent="." index="52" unique_id=1477089886]
 script = ExtResource("6_csgswap")
 
-[node name="EnemyDistanceSleep" type="Node" parent="." index="39" unique_id=1429426704]
+[node name="EnemyDistanceSleep" type="Node" parent="." index="53" unique_id=1429426704]
 script = ExtResource("7_edsleep")
 
-[node name="Glitch" parent="." index="40" unique_id=523605578 instance=ExtResource("3_companion")]
+[node name="Glitch" parent="." index="54" unique_id=523605578 instance=ExtResource("3_companion")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -102.024475, 28.39603, -111.87125)
 warp_sfx = ExtResource("14_warp")
 skin_scene = ExtResource("11_robot")
@@ -166,169 +207,184 @@ travel_duration = 5.0
 dialogue_resource = ExtResource("15_l3glitchdlg")
 interactable_id = &"npc_glitch_l3"
 
-[node name="GlitchStation1" parent="." index="41" unique_id=1160189420 instance=ExtResource("10_station")]
+[node name="GlitchStation1" parent="." index="55" unique_id=1160189420 instance=ExtResource("10_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.134056, 28.39603, -65.405014)
 dialogue_resource = ExtResource("13_glitch2dlg")
 
-[node name="WalkieGlitch" parent="." index="42" unique_id=568644597 instance=ExtResource("9_walkie")]
+[node name="WalkieGlitch" parent="." index="56" unique_id=568644597 instance=ExtResource("9_walkie")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 28)
 character = &"Glitch"
 line = "[Glitch L3 walkie placeholder — replace me]"
 
-[node name="WalkieDialTone" parent="." index="43" unique_id=690149048 instance=ExtResource("9_walkie")]
+[node name="WalkieDialTone" parent="." index="57" unique_id=690149048 instance=ExtResource("9_walkie")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.5, 31)
 line = "[DialTone L3 walkie placeholder — replace me]"
 
-[node name="WalkieNyx" parent="." index="44" unique_id=229561898 instance=ExtResource("9_walkie")]
+[node name="WalkieNyx" parent="." index="58" unique_id=229561898 instance=ExtResource("9_walkie")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 28)
 character = &"Nyx"
 line = "[Nyx L3 walkie placeholder — replace me]"
 
-[node name="WalkieSplice" parent="." index="45" unique_id=1742868168 instance=ExtResource("9_walkie")]
+[node name="WalkieSplice" parent="." index="59" unique_id=1742868168 instance=ExtResource("9_walkie")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 31)
 character = &"Splice"
 line = "[Splice L3 walkie placeholder — replace me]"
 
-[node name="ReturnPortal" parent="." index="46" unique_id=332361385 instance=ExtResource("16_returnportal")]
+[node name="ReturnPortal" parent="." index="60" unique_id=332361385 instance=ExtResource("16_returnportal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 29.09312, -357.7052)
 require_flag = &"level_3_completed"
 interactable_id = &"return_portal_l3"
 
-[node name="Ground6" type="CSGBox3D" parent="." index="47" unique_id=544231927]
+[node name="Ground6" type="CSGBox3D" parent="." index="61" unique_id=544231927]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.103058, -1.2361307, -25.130781)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(8, 1, 9.029175)
 
-[node name="column" type="CSGBox3D" parent="." index="48" unique_id=7425025]
+[node name="column" type="CSGBox3D" parent="." index="62" unique_id=7425025]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -43.195564, 6.788514, -89.68104)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="column2" type="CSGBox3D" parent="." index="49" unique_id=1674763083]
+[node name="column2" type="CSGBox3D" parent="." index="63" unique_id=1674763083]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -35.706715, -2.184432, -61.347908)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="column3" type="CSGBox3D" parent="." index="50" unique_id=1688155891]
+[node name="column3" type="CSGBox3D" parent="." index="64" unique_id=1688155891]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -62.039944, -14.497725, -61.347908)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(7, 80.276855, 11)
 
-[node name="big" type="CSGBox3D" parent="." index="51" unique_id=639010703]
+[node name="big" type="CSGBox3D" parent="." index="65" unique_id=639010703]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -45.342556, -12.475626, -63.88246)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(36.105957, 27, 63.18991)
 material = ExtResource("2_w5o0a")
 
-[node name="column4" type="CSGBox3D" parent="." index="52" unique_id=654285162]
+[node name="column4" type="CSGBox3D" parent="." index="66" unique_id=654285162]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -63.316757, 11.902557, -298.47165)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="column5" type="CSGBox3D" parent="." index="53" unique_id=722683169]
+[node name="column5" type="CSGBox3D" parent="." index="67" unique_id=722683169]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -63.316757, -3.6107616, -246.49316)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="column6" type="CSGBox3D" parent="." index="54" unique_id=327328431]
+[node name="column6" type="CSGBox3D" parent="." index="68" unique_id=327328431]
 transform = Transform3D(-0.0032639883, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.0032639883, -63.316757, 3.7259846, -272.9455)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(7, 27, 11)
 
-[node name="big3" type="CSGBox3D" parent="." index="55" unique_id=866442345]
+[node name="big3" type="CSGBox3D" parent="." index="69" unique_id=866442345]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -89.52209, -18.720224, -272.59454)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(84.2229, 49.717285, 63.18991)
 material = ExtResource("2_w5o0a")
 
-[node name="big2" type="CSGBox3D" parent="." index="56" unique_id=1700495078]
+[node name="big2" type="CSGBox3D" parent="." index="70" unique_id=1700495078]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -111.213875, -0.55173683, -112.23988)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(36.105957, 50.84778, 45.89818)
 material = ExtResource("2_w5o0a")
 
-[node name="big4" type="CSGBox3D" parent="." index="57" unique_id=180105834]
+[node name="big4" type="CSGBox3D" parent="." index="71" unique_id=180105834]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, -211.62592, -0.55173683, -19.54261)
 material_override = ExtResource("2_w5o0a")
 use_collision = true
 size = Vector3(36.105957, 50.84778, 45.89818)
 material = ExtResource("2_w5o0a")
 
-[node name="PhoneBooth" parent="." index="58" unique_id=547259237 instance=ExtResource("17_b3knk")]
+[node name="PhoneBooth" parent="." index="72" unique_id=547259237 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.388336, 11.328789, -60.932648)
 
-[node name="PhoneBooth2" parent="." index="59" unique_id=1289857986 instance=ExtResource("17_b3knk")]
+[node name="PhoneBooth2" parent="." index="73" unique_id=1289857986 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.403557, 20.301735, -89.31017)
 
-[node name="PhoneBooth3" parent="." index="60" unique_id=1769276472 instance=ExtResource("17_b3knk")]
+[node name="PhoneBooth3" parent="." index="74" unique_id=1769276472 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60.591686, 25.653925, -61.848564)
 
-[node name="PhoneBooth4" parent="." index="61" unique_id=549601935 instance=ExtResource("17_b3knk")]
+[node name="PhoneBooth4" parent="." index="75" unique_id=549601935 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -208.32515, 25.653925, -12.058533)
 
-[node name="CrumblePlatform" parent="." index="62" unique_id=1923401418 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform" parent="." index="76" unique_id=1923401418 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -342.37042)
 
-[node name="CrumblePlatform2" parent="." index="63" unique_id=4741769 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform2" parent="." index="77" unique_id=4741769 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -330.4769)
 
-[node name="CrumblePlatform3" parent="." index="64" unique_id=1913522714 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform3" parent="." index="78" unique_id=1913522714 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -320.01843)
 
-[node name="CrumblePlatform4" parent="." index="65" unique_id=1285278205 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform4" parent="." index="79" unique_id=1285278205 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -310.0511)
 
-[node name="CrumblePlatform5" parent="." index="66" unique_id=920535722 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform5" parent="." index="80" unique_id=920535722 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2016602, 28.064878, -298.56808)
 
-[node name="CrumblePlatform6" parent="." index="67" unique_id=621717598 instance=ExtResource("18_b3knk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.362755, 28.064878, -298.56808)
+[node name="CrumblePlatform6" parent="." index="81" unique_id=621717598 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.670401, 28.064878, -298.56808)
 
-[node name="CrumblePlatform7" parent="." index="68" unique_id=977413817 instance=ExtResource("18_b3knk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.739285, 28.064878, -298.56808)
+[node name="CrumblePlatform7" parent="." index="82" unique_id=977413817 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.96792, 28.064878, -298.56808)
 
-[node name="CrumblePlatform8" parent="." index="69" unique_id=1071829694 instance=ExtResource("18_b3knk")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.702858, 28.064878, -298.56808)
+[node name="CrumblePlatform15" parent="." index="83" unique_id=1463539377 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.44972, 28.064878, -298.56808)
 
-[node name="CrumblePlatform9" parent="." index="70" unique_id=105309974 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform8" parent="." index="84" unique_id=1071829694 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.667744, 28.064878, -298.56808)
+
+[node name="CrumblePlatform9" parent="." index="85" unique_id=105309974 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.281628, 2.9272037, -49.788048)
 
-[node name="CrumblePlatform10" parent="." index="71" unique_id=1064798523 instance=ExtResource("18_b3knk")]
+[node name="CrumblePlatform10" parent="." index="86" unique_id=1064798523 instance=ExtResource("18_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.281628, 6.3191977, -55.42659)
 
-[node name="BouncyPlatform" parent="." index="72" unique_id=668224222 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform" parent="." index="87" unique_id=668224222 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.13564, 10.328781, -71.06221)
 
-[node name="BouncyPlatform2" parent="." index="73" unique_id=972797486 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform2" parent="." index="88" unique_id=972797486 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.13564, 14.810482, -80.595955)
 
-[node name="BouncyPlatform3" parent="." index="74" unique_id=186161030 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform3" parent="." index="89" unique_id=186161030 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.549072, 20.114346, -80.595955)
 
-[node name="BouncyPlatform4" parent="." index="75" unique_id=92040743 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform4" parent="." index="90" unique_id=92040743 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.549072, 21.350044, -69.543304)
 
-[node name="Rail" parent="." index="76" unique_id=749221686 instance=ExtResource("20_510pp")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.49113, 25.564905, -67.336655)
-
-[node name="BouncyPlatform5" parent="." index="77" unique_id=78352864 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform5" parent="." index="91" unique_id=78352864 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 9.717696, -257.65497)
 
-[node name="BouncyPlatform6" parent="." index="78" unique_id=461125992 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform6" parent="." index="92" unique_id=461125992 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 13.998303, -265.7169)
 
-[node name="BouncyPlatform7" parent="." index="79" unique_id=297554645 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform7" parent="." index="93" unique_id=297554645 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 16.159584, -283.22845)
 
-[node name="BouncyPlatform8" parent="." index="80" unique_id=565224024 instance=ExtResource("19_dhw2c")]
+[node name="BouncyPlatform8" parent="." index="94" unique_id=565224024 instance=ExtResource("19_dhw2c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.04698, 20.678907, -291.7791)
+
+[node name="CrumblePlatform11" parent="." index="95" unique_id=394523426 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.64435, 24.24476, -70.732864)
+
+[node name="CrumblePlatform12" parent="." index="96" unique_id=186982213 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.64435, 24.24476, -79.561195)
+
+[node name="CrumblePlatform13" parent="." index="97" unique_id=738976596 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.64435, 24.24476, -89.68366)
+
+[node name="CrumblePlatform14" parent="." index="98" unique_id=2015464969 instance=ExtResource("18_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -83.26911, 24.24476, -89.68366)
+
+[node name="PhoneBooth5" parent="." index="99" unique_id=2901889 instance=ExtResource("17_b3knk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.622, 6.1516433, -267.01248)

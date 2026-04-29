@@ -60,7 +60,7 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## then-green. Re-evaluated at engage-time so picking up a coin between
 ## stands of the platform raises your odds.
 @export_range(0.0, 1.0) var min_conversion_probability: float = 0.30
-@export_range(0.0, 1.0) var max_conversion_probability: float = 1.0
+@export_range(0.0, 1.0) var max_conversion_probability: float = 0.80
 ## Seconds after the player steps off before reverting golds to green.
 ## Re-entering during this window cancels the revert.
 @export var revert_debounce: float = 1.0
@@ -166,9 +166,19 @@ func _apply_conversion() -> void:
 			if not body.has_method(&"set_faction"):
 				continue
 			var path_key: String = String(body.get_path())
-			if _rolled.has(path_key):
-				continue  # one roll per body ever
 			var current_faction: StringName = StringName(body.get(&"faction"))
+			if _rolled.has(path_key):
+				# Already rolled. Winners get re-imprinted to gold every time
+				# the player stands on the platform — they "remember" being
+				# converted. Losers (failed the original roll) stay red
+				# forever, even if the player re-steps. This preserves the
+				# "no farming" rule: each body has exactly one outcome,
+				# determined the first time they were exposed to the portal.
+				if _rolled[path_key] and current_faction == revert_faction:
+					body.call(&"set_faction", resulting_faction)
+					_active_gold.append(body)
+				continue
+			# First exposure — only eligible if currently a target faction.
 			if not (current_faction in target_factions):
 				continue
 			var passed: bool = randf() < prob

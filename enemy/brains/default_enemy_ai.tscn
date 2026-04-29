@@ -4,3 +4,4 @@
 
 [node name="EnemyAIBrain" type="Node"]
 script = ExtResource("1_brain")
+nav_mode = 2

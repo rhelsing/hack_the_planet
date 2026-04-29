@@ -134,7 +134,10 @@ func _apply_graphics() -> void:
 			_override(bldg, "pit_strength", 0.0)
 			_override(bldg, "smudge_strength", 0.0)
 			_override(bldg, "scratch_strength", 0.0)
-			_override(bldg, "code_opacity", 0.0)
+			# Keep the scrolling code overlay on buildings — it's part of the
+			# game's signature look, not a surface-detail effect that should
+			# fall off with quality.
+			_authored(bldg, _authored_building, "code_opacity")
 		"medium":
 			_override(plat, "pit_strength", 0.0)
 			_authored(plat, _authored_platform, "smudge_strength")

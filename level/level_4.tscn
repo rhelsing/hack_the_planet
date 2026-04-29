@@ -38,7 +38,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.78706, -17.898941, 36.885
 size = Vector3(115.72479, 1, 9.029175)
 
 [node name="Ground5" parent="." index="6" unique_id=122823214]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 166.56305, -10.508518, -70.95506)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 166.56305, -15.226713, -70.95506)
 
 [node name="PlayerSpawn" parent="." index="8" unique_id=139234302]
 transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, 0, -2.0692139, 59.940693)
@@ -67,13 +67,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.3, 1, -12)
 id = &"l4_arena"
 
 [node name="Nyx" parent="." index="17" unique_id=1878992773 instance=ExtResource("8_companion")]
-transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 164.56305, -9.908211, -74.47766)
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 164.56305, -14.626406, -74.47766)
 skin_scene = ExtResource("9_nyxskin")
 dialogue_resource = ExtResource("16_l4nyx")
 interactable_id = &"npc_nyx_l4"
 
 [node name="DialTone" parent="." index="18" unique_id=1082965759 instance=ExtResource("8_companion")]
-transform = Transform3D(1.52, 0, 0, 0, 1.52, 0, 0, 0, 1.52, 169.59357, -10.239159, -74.47766)
+transform = Transform3D(1.52, 0, 0, 0, 1.52, 0, 0, 0, 1.52, 169.59357, -14.957354, -74.47766)
 skin_scene = ExtResource("10_animeskin")
 dialogue_resource = ExtResource("18_l4dialtone")
 interactable_id = &"npc_dialtone_l4"

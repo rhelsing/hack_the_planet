@@ -135,7 +135,23 @@ extends Brain
 ## brain idles in place; when farther, it walks toward the subject.
 @export var follow_distance: float = 3.0
 
-@export_group("Jump")
+@export_group("Navigation")
+## Navigation strategy. Determines how the brain handles vertical platform
+## traversal — jumps up to higher targets, drops down to lower ones, or
+## stays grounded entirely. Switchable per brain preset:
+##   NONE:      brake at ledges; never jump. Patrol AI / cone-stealth fits.
+##   DUMB:      brake at ledges; jump if target is above + on floor. The
+##              naive default. Per-target attempt cache prevents spam.
+##   SMART:     DUMB + landing-arc raycast (don't fire if no surface lands)
+##              + drop-down at ledges when target is below + drop is safe.
+##              Handles "follow me up an elevator" and "drop to my platform"
+##              scenarios. ~3-5 extra raycasts per chasing pawn per tick.
+##   COMPANION: not yet implemented — would use NavigationRegion3D +
+##              NavigationLink3D for multi-platform path planning.
+enum NavMode { NONE, DUMB, SMART, COMPANION }
+@export var nav_mode: NavMode = NavMode.DUMB
+
+@export_subgroup("Jump tuning")
 ## Minimum y-delta (target.y - body.y) that triggers a jump. Below this,
 ## the brain trusts walking + elevators to handle the height difference.
 ## 1.5m matches a single platform step + a comfortable jump apex.
@@ -143,6 +159,20 @@ extends Brain
 ## Seconds between consecutive jump triggers. Stops the brain from
 ## hammering the jump button while in mid-air or stuck against a step.
 @export var jump_cooldown: float = 0.4
+
+@export_subgroup("SMART tuning")
+## Minimum y-delta below body before considering a drop-down. Smaller = more
+## aggressive drops, more risk of stepping off small ledges. 1.0m is a
+## comfortable "platform-level" gap.
+@export var smart_drop_threshold: float = 1.0
+## Maximum drop the SMART nav will commit to. Drops exceeding this are
+## treated as suicide; sentinel brakes at ledge instead. 8m is a tall fall
+## but survivable on most levels.
+@export var max_safe_drop: float = 8.0
+## How much of the theoretical jump reach the SMART arc-check trusts. The
+## body's actual jump arc varies with current speed + frame timing; a
+## safety factor < 1.0 prevents marginal jumps that miss by a hair.
+@export_range(0.3, 1.0) var smart_jump_safety_factor: float = 0.7
 
 @export_group("Ledges")
 @export var turn_at_ledges := true
@@ -198,6 +228,15 @@ var _wander_timer := 0.0
 var _attack_cooldown_timer := 0.0
 var _wind_up_timer := 0.0
 var _jump_cooldown_timer := 0.0
+# Sticky cache of "I already jumped at this target." Cleared when the
+# target reference changes OR when the pawn reaches dy < threshold (i.e.,
+# the jump worked OR the target moved within reach). Prevents the "jump
+# in place forever against a wall I can't clear" loop.
+var _jump_attempted_target: Node3D = null
+# Mirror cache for SMART nav drop-down attempts. Set when the drop-landing
+# probe finds no safe surface; cleared when target changes or we reach
+# parity height (target no longer below threshold).
+var _drop_attempted_target: Node3D = null
 var _target: Node3D
 var _intent := Intent.new()
 # Debug-viz fan mesh. Attached to the body so its transform follows the
@@ -365,15 +404,10 @@ func tick(body: Node3D, delta: float) -> Intent:
 			else:
 				_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
 
-	# Jump check runs AFTER state's match block so it sees the move_direction
-	# we just computed — gate `length() < 0.01` works correctly only if intent
-	# reflects this tick's choice, not the start-of-tick zero reset.
-	# DISABLED 2026-04-29: naive "target is higher → jump" looks silly when
-	# the pawn jumps in place against a wall it can't clear, and re-jumps
-	# on cooldown forever. Re-enable once `_maybe_jump` checks (a) pawn has
-	# ground above + ahead at landing distance, and (b) abandons after one
-	# failed attempt. Until then sentinels stay grounded.
-	# _maybe_jump(body)
+	# Navigation runs AFTER state's match block so it sees the move_direction
+	# we just computed — and so SMART can override the chase-direction's
+	# ledge brake when target is below + drop is safe.
+	_navigate(body)
 
 	return _intent
 
@@ -478,6 +512,11 @@ func _follow_direction(body: Node3D) -> Vector3:
 			subject = node3d
 	if subject == null:
 		return Vector3.ZERO
+	# Crouch-pause: if the follow subject is crouching, allies idle in place
+	# rather than re-acquire — gives the player a "ditch the posse for
+	# stealth" beat. Auto-resumes the moment the subject uncrouches.
+	if "_was_crouched" in subject and bool(subject.get(&"_was_crouched")):
+		return Vector3.ZERO
 	var dist: float = sqrt(best_dist_sq)
 	if dist <= follow_distance:
 		return Vector3.ZERO  # idle inside the gap
@@ -529,14 +568,30 @@ func _ensure_target(body: Node3D) -> void:
 	var tree := body.get_tree()
 	if tree == null:
 		return
-	# Walk every target group; first valid Node3D wins. Dedup not needed —
-	# we return on first hit. A pawn in two groups would just be picked
-	# from whichever group iterates first.
+	# Pick the NEAREST target across all groups, not the first match.
+	# Naïve first-match locked converted golds onto far-away greens on
+	# other platforms — outside detection_radius — so they never engaged
+	# the reds standing 5m away. Nearest-pick scans all eligible bodies
+	# (deduped, since a pawn can be in multiple groups e.g. red is in
+	# both "splice_enemies" and "enemies") and picks the closest by
+	# horizontal+vertical distance. O(N) per acquisition; cheap at our
+	# scale (a re-acquire only fires when current _target dies/leaves).
+	var best: Node3D = null
+	var best_dsq: float = INF
+	var seen: Dictionary = {}
 	for grp in target_groups:
 		for node: Node in tree.get_nodes_in_group(grp):
-			if node is Node3D:
-				_target = node
-				return
+			if seen.has(node):
+				continue
+			seen[node] = true
+			if not (node is Node3D):
+				continue
+			var n3d: Node3D = node as Node3D
+			var dsq: float = n3d.global_position.distance_squared_to(body.global_position)
+			if dsq < best_dsq:
+				best_dsq = dsq
+				best = n3d
+	_target = best
 
 
 func _horizontal_distance(a: Vector3, b: Vector3) -> float:
@@ -580,36 +635,180 @@ func _tick_wind_up(body: Node3D, delta: float) -> void:
 		_state = State.CHASE
 
 
-# Jump trigger. Sets intent.jump_pressed when on the floor, off cooldown,
-# AND whatever we're moving toward this tick (chase target if HOSTILE,
-# follow subject otherwise) is meaningfully higher than us. Lets allies
-# climb after the player up steps/elevators and lets chasing sentinels
-# reach platforms above them. Brain doesn't try to verify a landing
-# spot — physics handles it; if they miss, they fall (the body's ledge
-# probe still gates wandering).
-func _maybe_jump(body: Node3D) -> void:
+# Navigation dispatcher. nav_mode determines vertical-traversal strategy.
+# All modes share the chase/follow horizontal direction set by the state
+# match block; this function decides whether to also jump up, drop down,
+# or stay grounded.
+func _navigate(body: Node3D) -> void:
+	# Gold allies always run SMART — they need to track the player up
+	# elevators and drop down to follow. The brain preset's nav_mode
+	# applies to whatever faction the pawn was authored as; converted
+	# golds (regardless of original brain) get promoted here so the
+	# posse follows reliably across platforms.
+	var effective_mode: int = nav_mode
+	if "faction" in body and body.get(&"faction") == &"gold":
+		effective_mode = NavMode.SMART
+	match effective_mode:
+		NavMode.NONE:
+			pass  # ledge brake from _chase_direction stays; no jumps
+		NavMode.DUMB:
+			_nav_dumb(body)
+		NavMode.SMART:
+			_nav_smart(body)
+		NavMode.COMPANION:
+			# Not yet implemented — falls back to SMART. When built, this
+			# will query a NavigationAgent3D for the next path waypoint
+			# and trigger jumps/drops based on NavigationLink3D crossings.
+			_nav_smart(body)
+
+
+# Pick the subject we're navigating toward this tick — chase target if
+# HOSTILE, follow subject (player) otherwise. Returns null when there's
+# no valid target to navigate toward.
+func _navigation_target(body: Node3D) -> Node3D:
+	if _state == State.CHASE or _state == State.WIND_UP:
+		if _target != null and is_instance_valid(_target):
+			return _target
+		return null
+	if follow_subject_group != &"":
+		return _nearest_in_group(body, follow_subject_group)
+	return null
+
+
+# DUMB nav: blind faith jump. Target above + on floor + cooldown → jump.
+# No landing-arc check, no drop logic. Naive but predictable. Per-target
+# attempt cache prevents re-jumping at unreachable walls.
+func _nav_dumb(body: Node3D) -> void:
 	if _jump_cooldown_timer > 0.0:
 		return
 	if not (body.has_method("is_on_floor") and body.is_on_floor()):
 		return
-	# Pick the right "towards" subject for this state.
-	var towards: Node3D = null
-	if _state == State.CHASE or _state == State.WIND_UP:
-		towards = _target
-	elif follow_subject_group != &"":
-		towards = _nearest_in_group(body, follow_subject_group)
+	var towards: Node3D = _navigation_target(body)
 	if towards == null or not is_instance_valid(towards):
+		return
+	if towards.has_method(&"is_on_floor") and not towards.is_on_floor():
 		return
 	var dy: float = towards.global_position.y - body.global_position.y
 	if dy < jump_height_threshold:
+		_jump_attempted_target = null
 		return
-	# Only jump if we're roughly moving toward the subject — no point
-	# hopping in place if the subject is above but we're not actively
-	# closing the distance (e.g. chase already returned ZERO at a ledge).
 	if _intent.move_direction.length() < 0.01:
+		return
+	if _jump_attempted_target == towards:
 		return
 	_intent.jump_pressed = true
 	_jump_cooldown_timer = jump_cooldown
+	_jump_attempted_target = towards
+
+
+# SMART nav: arc-checked jumps + drop-down at ledges.
+#   Jump UP: only if a downward probe at the projected landing spot finds
+#     ground at a Y between (current Y, target Y + 1m). Saves wasted jumps
+#     into open space.
+#   Drop DOWN: if at a ledge (chase set hard_brake), target is below by
+#     smart_drop_threshold, and a forward+down probe finds a safe landing
+#     within max_safe_drop. Skips the brake so the body walks off; gravity
+#     handles the fall.
+func _nav_smart(body: Node3D) -> void:
+	if not (body.has_method("is_on_floor") and body.is_on_floor()):
+		return
+	var towards: Node3D = _navigation_target(body)
+	if towards == null or not is_instance_valid(towards):
+		return
+	if towards.has_method(&"is_on_floor") and not towards.is_on_floor():
+		return
+	var towards_dir: Vector3 = (towards.global_position - body.global_position)
+	towards_dir.y = 0.0
+	if towards_dir.length_squared() > 0.0001:
+		towards_dir = towards_dir.normalized()
+	else:
+		towards_dir = _direction
+	var dy: float = towards.global_position.y - body.global_position.y
+	# Drop-down: chase already braked at a ledge AND target is below us.
+	# If the drop is safe, override the brake and let the body walk off.
+	if _intent.hard_brake and dy < -smart_drop_threshold:
+		if _drop_attempted_target != towards:
+			if _smart_drop_landing_safe(body, towards, towards_dir):
+				_intent.hard_brake = false
+				_intent.move_direction = towards_dir * chase_speed_fraction
+				_drop_attempted_target = null
+				return
+			else:
+				_drop_attempted_target = towards
+	# Jump-up: target above by threshold + arc lands on a real surface.
+	if dy >= jump_height_threshold:
+		if _intent.move_direction.length() < 0.01:
+			return
+		if _jump_cooldown_timer > 0.0:
+			return
+		if _jump_attempted_target == towards:
+			return
+		if _smart_jump_arc_lands(body, towards, towards_dir):
+			_intent.jump_pressed = true
+			_jump_cooldown_timer = jump_cooldown
+			_jump_attempted_target = towards
+		else:
+			_jump_attempted_target = towards  # cached failed arc check
+	else:
+		# Reached parity OR target moved within reach — clear caches.
+		_jump_attempted_target = null
+		if dy >= -smart_drop_threshold:
+			_drop_attempted_target = null
+
+
+# Probe whether a jump from current state lands on solid ground. Estimate
+# apex + horizontal reach from jump_impulse, gravity, and current horiz
+# speed; cast down at that point. Solid surface between (my Y, target Y +
+# 1m tolerance) = jump worth attempting.
+func _smart_jump_arc_lands(body: Node3D, towards: Node3D, dir: Vector3) -> bool:
+	var profile: Variant = body.get(&"_current_profile")
+	var jump_v: float = 10.0
+	if profile != null and "jump_impulse" in profile:
+		jump_v = float(profile.jump_impulse)
+	var gravity_y: float = 30.0
+	var air_time: float = 2.0 * jump_v / gravity_y
+	var horiz_speed: float = 0.0
+	if body is CharacterBody3D:
+		var v: Vector3 = (body as CharacterBody3D).velocity
+		horiz_speed = sqrt(v.x * v.x + v.z * v.z)
+	# Min reach for low-velocity pawns (e.g. wind-up creep) — they still
+	# jump from a near-stop.
+	horiz_speed = maxf(horiz_speed, 2.0)
+	var reach: float = horiz_speed * air_time * smart_jump_safety_factor
+	var apex: float = (jump_v * jump_v) / (2.0 * gravity_y)
+	var landing: Vector3 = body.global_position + dir * reach + Vector3.UP * apex
+	var space := body.get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(landing, landing + Vector3.DOWN * (apex + 5.0))
+	if body is CollisionObject3D:
+		query.exclude = [(body as CollisionObject3D).get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return false
+	var hit_y: float = (hit.position as Vector3).y
+	return hit_y > body.global_position.y - 0.1 \
+		and hit_y <= towards.global_position.y + 1.0
+
+
+# Probe whether walking off the ledge in `dir` lands on a safe surface
+# at or above target's Y, within max_safe_drop. Returns true if drop is
+# committable.
+func _smart_drop_landing_safe(body: Node3D, towards: Node3D, dir: Vector3) -> bool:
+	var current_y: float = body.global_position.y
+	var target_y: float = towards.global_position.y
+	if current_y - target_y > max_safe_drop:
+		return false
+	var probe_origin: Vector3 = body.global_position + dir * 1.5 + Vector3.UP * 0.2
+	var space := body.get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(probe_origin, probe_origin + Vector3.DOWN * (max_safe_drop + 1.0))
+	if body is CollisionObject3D:
+		query.exclude = [(body as CollisionObject3D).get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return false
+	var hit_y: float = (hit.position as Vector3).y
+	# Landing must be near target's Y (so we land where target is, not in
+	# a deeper pit past them).
+	return hit_y >= target_y - 1.0 and current_y - hit_y <= max_safe_drop
 
 
 func _nearest_in_group(body: Node3D, group: StringName) -> Node3D:

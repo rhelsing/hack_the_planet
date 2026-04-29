@@ -94,6 +94,10 @@ func _convert_in_radius(player: Node3D, radius: float) -> void:
 			if not node.has_method(&"set_faction"):
 				continue
 			node.call(&"set_faction", &"gold")
+			# GOD-power converts get the rollerblade visual + skate profile.
+			# (ControlPortal converts skip this path → they walk.)
+			if node.has_method(&"set_profile_skate"):
+				node.call(&"set_profile_skate")
 
 
 # Build a unit sphere mesh with its own transparent material, drop into the

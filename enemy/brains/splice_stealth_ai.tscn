@@ -12,6 +12,7 @@ vision_eye_height = 1.0
 suspect_duration = 3.0
 chase_max_duration = 8.0
 crouch_makes_invisible = true
+nav_mode = 0
 aggressive_while_chasing = false
 wander_speed_fraction = 0.25
 chase_speed_fraction = 1.0

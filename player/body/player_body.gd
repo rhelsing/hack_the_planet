@@ -95,19 +95,22 @@ func set_faction(new_faction: StringName) -> void:
 	# faction-specific brain config beyond target_groups.
 	if _brain != null and "follow_subject_group" in _brain:
 		_brain.follow_subject_group = &"player" if new_faction == &"gold" else &""
-	# Gold gets rollerblades — switch to skate profile if available. Skin
-	# updates via set_profile_skate's set_skate_mode(true). Per
-	# docs/conversion_and_portals.md §6: visual wheels are deferred for
-	# KayKit (no rig); profile flip is the real mechanical change.
+	# Skate profile flip is no longer auto on gold conversion — moved to the
+	# explicit caller. ControlPortal converts walk; GodAbility converts ride.
+	# Apply the aggressive package (99 damage, 0 wind-up, 0 cooldown) to red
+	# AND gold so both faction always swing first. Stealth-splice toggles the
+	# package independently via aggressive_while_chasing on its brain.
+	set_aggressive_buffs(new_faction == &"red" or new_faction == &"gold")
+	# Gold's "always wins vs red" probability scales with coin completion.
+	# Rolled once at conversion and sticky for the life of this pawn —
+	# keeps the gold-vs-red outcome deterministic per encounter rather than
+	# coin-flipping on every swing. lerp(0.30, 1.00, ratio): 0 coins → 30%,
+	# full coins → 100%. Re-rolled if a body is converted again.
 	if new_faction == &"gold":
-		set_profile_skate()
-	# Apply per-faction buffs. Red gets the aggressive package (2.5× speed,
-	# 2× damage, invulnerable, zero attack cooldown + wind-up); other
-	# factions get their normal entry from the table. The brain on a
-	# stealth-splice pawn calls set_aggressive_buffs() directly to flip in
-	# and out of red-style aggression based on player crouch state, without
-	# touching faction membership.
-	set_aggressive_buffs(new_faction == &"red")
+		var dodge: float = lerp(0.30, 1.0, GameState.coin_completion_ratio())
+		_gold_dodges_splice = randf() < dodge
+		print("[gold-dodge] %s rolled %s (chance=%.2f, coin_ratio=%.2f)" % [
+			get_path(), _gold_dodges_splice, dodge, GameState.coin_completion_ratio()])
 	# Tint the skin (no-op on skins that haven't implemented set_faction_tint).
 	if _skin != null and _skin.has_method(&"set_faction_tint"):
 		var tint: Array = _FACTION_TINT[new_faction]
@@ -196,7 +199,7 @@ const _FACTION_GROUP: Dictionary = {
 	&"gold":           &"allies",
 }
 const _FACTION_TARGETS: Dictionary = {
-	&"player":         [&"enemies", &"splice_enemies", &"allies"],
+	&"player":         [&"enemies", &"splice_enemies"],
 	&"green":          [&"player",  &"allies"],
 	&"red":            [&"player",  &"allies"],
 	&"splice_stealth": [&"player",  &"allies"],
@@ -553,6 +556,10 @@ var _faction_speed_mult: float = 1.0
 var _faction_attack_damage: int = 1
 # Splice (red) is unkillable. take_hit early-returns when this is set.
 var _faction_invulnerable: bool = false
+# Set at conversion-to-gold time. When true, this gold pawn dodges all
+# damage from splice_enemies (red + stealth) attackers. Determined by a
+# coin-completion-ratio lerp 30%..100% — see set_faction(&"gold").
+var _gold_dodges_splice: bool = false
 # Cached brain defaults — set on first set_faction call that flips them
 # (so red→green restores the brain's authored cooldown/wind-up). -1.0
 # sentinel = "not captured yet". Applied via the brain's runtime fields.
@@ -1464,13 +1471,16 @@ func _spawn_death_confetti() -> void:
 ## respawns) and enemies (max_health=1, dies_permanently=true → queue_free).
 ## Pawns outside a sweep's attack_target_group are simply never called — no
 ## faction gating needed inside the method.
-func take_hit(impact_direction: Vector3, force: float, damage: int = 1) -> void:
+func take_hit(impact_direction: Vector3, force: float, damage: int = 1, attacker: Node = null) -> void:
 	if _dying:
 		return
-	# Splice (red) faction is unkillable — eats the hit silently. Hack-
-	# converting them via the L2 terminal flips faction to green which
-	# clears _faction_invulnerable, restoring normal damage handling.
-	if _faction_invulnerable:
+	# Faction-aware invuln. Red blocks player attacks (you can't punch them
+	# yourself — recruit golds). Splice_stealth blocks everything via this
+	# path; only StealthKillTarget's backstab calls stealth_kill() directly.
+	# Gold blocks splice_enemies (red+stealth) IF the conversion-time dodge
+	# roll passed — the % scales with coin completion so collecting coins
+	# makes your posse more reliable in fights.
+	if _is_invuln_against(attacker):
 		return
 	# Post-respawn grace window: ignore damage for respawn_invuln_duration
 	# seconds after _finish_death. Fixes the checkpoint death-loop.
@@ -1490,6 +1500,35 @@ func take_hit(impact_direction: Vector3, force: float, damage: int = 1) -> void:
 	health_changed.emit(_health, old_health)
 	if _health <= 0:
 		_start_death(impact_direction)
+
+
+# Faction-relational invuln. Returns true if THIS pawn is immune to a hit
+# from `attacker`. Per-faction rules:
+#   red:            blocks attackers in the player group only
+#   splice_stealth: blocks every attacker (universal); the [E] backstab
+#                   uses stealth_kill() directly so it bypasses take_hit
+#   gold:           blocks splice_enemies attackers IF this gold rolled
+#                   the coin-progression dodge at conversion time
+#   anything else:  not invuln
+# attacker = null is treated as a player attack (legacy callers + traps).
+func _is_invuln_against(attacker: Node) -> bool:
+	var attacker_is_player: bool = attacker == null \
+		or (attacker is Node and (attacker as Node).is_in_group(&"player"))
+	var attacker_faction: StringName = &""
+	if attacker is Node and "faction" in attacker:
+		attacker_faction = StringName(attacker.get(&"faction"))
+	match faction:
+		&"red":
+			return attacker_is_player
+		&"splice_stealth":
+			return true
+		&"gold":
+			# Dodge applies vs RED only — not vs splice_stealth. Stealth
+			# is the apex predator; nothing in the posse survives them
+			# (mirrors the player needing backstab to deal with stealth).
+			return _gold_dodges_splice and attacker_faction == &"red"
+		_:
+			return false
 
 
 # Pick the nearest auto-orient candidate within attack_auto_orient_range AND
@@ -1565,7 +1604,7 @@ func _sweep_attack() -> void:
 			# until it's retired. _faction_attack_damage is 1 for everyone
 			# except splice (red, 99 — one-shot kill on max_health=3).
 			if enemy.has_method("take_hit"):
-				enemy.take_hit(impact_dir, attack_knockback, _faction_attack_damage)
+				enemy.take_hit(impact_dir, attack_knockback, _faction_attack_damage, self)
 			elif enemy.has_method("hit"):
 				enemy.hit(impact_dir, attack_knockback)
 			_attack_hit_enemies.append(enemy)

@@ -22,7 +22,6 @@ extends Ability
 
 const MAX_RANGE: float = 25.0
 const FACING_COS: float = 0.7
-const RELEASE_UP_KICK: float = 5.0
 
 ## rope_length = (current_distance - pull_in), clamped to min_rope_length.
 ## Higher pull_in = bigger "yank" toward anchor; 0 = rope starts at current
@@ -43,6 +42,29 @@ const RELEASE_UP_KICK: float = 5.0
 ## Linear damping on the player proxy. 0 = zero friction, swing forever.
 ## ~0.1–0.3 reads as energetic but not jittery.
 @export_range(0.0, 2.0, 0.05) var player_proxy_damp: float = 0.0
+## Gravity multiplier on the player proxy during the swing. >1 = the swing
+## arcs tighter and "sucks down" — combined with rope tension, the player
+## gets yanked toward the anchor AND down before the launch fires.
+@export_range(0.5, 5.0, 0.1) var swing_gravity_scale: float = 2.0
+## When the player fires from ABOVE the anchor, both gravity and the chain
+## point straight down — there's no swing arc, just a fall onto the rope.
+## This impulse forces the proxy's seed Y velocity up to at least this value
+## so the swing kicks off with upward motion, even from above. 0 = disabled.
+@export_range(0.0, 30.0, 0.5) var above_anchor_up_impulse: float = 12.0
+
+@export_group("Release launch")
+## Vertical kick on release. Always applied so apex-release reads as a jump.
+@export_range(0.0, 20.0, 0.25) var release_up_kick: float = 5.0
+## Horizontal kick on release, along the direction from anchor → player at
+## the moment of fire (the "side you were on"). Sends you launching out from
+## that side rather than continuing the chaotic swing tangent.
+@export_range(0.0, 30.0, 0.25) var release_lateral_kick: float = 8.0
+## How much of the chain proxy's chaotic swing velocity blends into the
+## release. 0 = pure deterministic up + lateral kick (most predictable).
+## 1 = pure proxy velocity (organic but unpredictable). 0.0 default makes
+## the launch always read the same way.
+@export_range(0.0, 1.0, 0.05) var release_velocity_inherit: float = 0.0
+@export_group("")
 
 
 # ── Aim state ───────────────────────────────────────────────────────────
@@ -67,6 +89,16 @@ var _rope_joints: Array[Node] = []
 var _cached_pivot: Node3D = null
 var _saved_pivot_top_level: bool = false
 var _saved_pivot_local_position: Vector3 = Vector3.ZERO
+
+# Horizontal direction from anchor → player at the moment of fire. Used to
+# bias the release launch back toward the side the player came in from,
+# regardless of where the swing actually carried them.
+var _launch_side_dir: Vector3 = Vector3.FORWARD
+
+# True when the player fired from ABOVE the anchor. Switches the proxy into
+# a no-gravity hover so the swing doesn't free-fall onto the rope and lose
+# all the altitude before release fires.
+var _above_anchor_mode: bool = false
 
 
 func _ready() -> void:
@@ -100,6 +132,21 @@ func _register_debug_sliders() -> void:
 	dp.add_slider("Grapple/player_proxy_damp", 0.0, 2.0, 0.05,
 		func() -> float: return player_proxy_damp,
 		func(v: float) -> void: player_proxy_damp = v)
+	dp.add_slider("Grapple/swing_gravity_scale", 0.5, 5.0, 0.1,
+		func() -> float: return swing_gravity_scale,
+		func(v: float) -> void: swing_gravity_scale = v)
+	dp.add_slider("Grapple/release_up_kick", 0.0, 20.0, 0.25,
+		func() -> float: return release_up_kick,
+		func(v: float) -> void: release_up_kick = v)
+	dp.add_slider("Grapple/release_lateral_kick", 0.0, 30.0, 0.25,
+		func() -> float: return release_lateral_kick,
+		func(v: float) -> void: release_lateral_kick = v)
+	dp.add_slider("Grapple/release_velocity_inherit", 0.0, 1.0, 0.05,
+		func() -> float: return release_velocity_inherit,
+		func(v: float) -> void: release_velocity_inherit = v)
+	dp.add_slider("Grapple/above_anchor_up_impulse", 0.0, 30.0, 0.5,
+		func() -> float: return above_anchor_up_impulse,
+		func(v: float) -> void: above_anchor_up_impulse = v)
 
 
 # ── Frame-level updates ─────────────────────────────────────────────────
@@ -201,7 +248,16 @@ func _start_swing(target: Node3D) -> void:
 	var anchor_pos: Vector3 = target.global_position
 
 	var offset: Vector3 = body_3d.global_position - anchor_pos
+	_above_anchor_mode = offset.y > 0.0
 	var current_distance: float = offset.length()
+	# Capture the side the player was on (horizontal-only). Release uses this
+	# to launch them back out toward where they came from, ignoring whatever
+	# tangent the chaotic chain physics happened to land on.
+	var horiz_offset: Vector3 = Vector3(offset.x, 0.0, offset.z)
+	if horiz_offset.length_squared() > 0.0001:
+		_launch_side_dir = horiz_offset.normalized()
+	else:
+		_launch_side_dir = Vector3.FORWARD
 	var raw_rope: float = current_distance - pull_in
 	var clamped: bool = raw_rope < min_rope_length
 	_rope_length = maxf(raw_rope, min_rope_length)
@@ -223,6 +279,16 @@ func _start_swing(target: Node3D) -> void:
 		var radial_speed: float = approach_vel.dot(offset_dir)
 		if radial_speed > 0.0:
 			approach_vel -= offset_dir * radial_speed
+
+	# Above the anchor = both gravity and chain point straight down → no
+	# swing arc, just a fall onto the rope. Force the proxy's seed Y velocity
+	# up to `above_anchor_up_impulse` so even an above-anchor grapple kicks
+	# off going up. APPLIED AFTER the radial strip above — when above the
+	# anchor, "away from anchor" IS up, so the strip would otherwise eat the
+	# entire impulse the moment we add it.
+	if offset.y > 0.0 and above_anchor_up_impulse > 0.0:
+		approach_vel.y = maxf(approach_vel.y, above_anchor_up_impulse)
+	print("[grapple] above=%s approach_vel=%s" % [offset.y > 0.0, approach_vel])
 
 	# Freeze the CharacterBody3D so its own physics doesn't fight the chain.
 	# We'll overwrite global_position each tick from the proxy.
@@ -267,11 +333,22 @@ func _tick_swing(delta: float) -> void:
 
 func _release() -> void:
 	var body := _find_body()
-	# Release velocity is the proxy's linear velocity (the physical swing
-	# result) plus a small up kick so letting go at apex reads as a jump.
-	var release_velocity: Vector3 = Vector3.UP * RELEASE_UP_KICK
-	if _player_proxy != null and is_instance_valid(_player_proxy):
-		release_velocity = _player_proxy.linear_velocity + Vector3.UP * RELEASE_UP_KICK
+	# Deterministic launch: always up + out from the side the player was on
+	# at fire. The chain's chaotic swing velocity is optionally blended in
+	# via release_velocity_inherit (0 = canned, 1 = pure organic swing).
+	var release_velocity: Vector3 = (
+		Vector3.UP * release_up_kick
+		+ _launch_side_dir * release_lateral_kick
+	)
+	if release_velocity_inherit > 0.0 \
+			and _player_proxy != null and is_instance_valid(_player_proxy):
+		release_velocity += _player_proxy.linear_velocity * release_velocity_inherit
+	print("[grapple] release: above=%s vel=%s body_y=%s" % [
+		_above_anchor_mode,
+		release_velocity,
+		(body as Node3D).global_position.y if body is Node3D else 0.0,
+	])
+	_above_anchor_mode = false
 
 	_swinging = false
 	_anchor = null
@@ -350,8 +427,17 @@ func _spawn_rope_chain(anchor_pos: Vector3, player_pos: Vector3, seed_vel: Vecto
 	_player_proxy.collision_layer = 0
 	_player_proxy.collision_mask = 0
 	_player_proxy.mass = player_proxy_mass
-	_player_proxy.gravity_scale = 1.0
-	_player_proxy.linear_damp = player_proxy_damp
+	# Above-anchor: zero gravity + heavy damp → the proxy hovers and gets
+	# pulled horizontally toward the anchor by rope tension only, no
+	# free-fall. This is what lets release-from-above actually read as up.
+	# Below-anchor: swing_gravity_scale > 1 for the normal "yank toward and
+	# down" pendulum that loads up the spring before release.
+	if _above_anchor_mode:
+		_player_proxy.gravity_scale = 0.0
+		_player_proxy.linear_damp = 1.5
+	else:
+		_player_proxy.gravity_scale = swing_gravity_scale
+		_player_proxy.linear_damp = player_proxy_damp
 	_player_proxy.angular_damp = player_proxy_damp
 	var proxy_shape := CollisionShape3D.new()
 	var ps := SphereShape3D.new()

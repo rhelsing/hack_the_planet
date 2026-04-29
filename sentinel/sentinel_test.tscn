@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://dsentineltest1"]
+[gd_scene format=3 uid="uid://k0t7vvsb4odc"]
 
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="1_swarm"]
 [ext_resource type="PackedScene" uid="uid://hyhh56bgmm1u" path="res://enemy/enemy_kaykit_splice_stealth.tscn" id="2_stealth"]
@@ -9,11 +9,10 @@
 [ext_resource type="PackedScene" uid="uid://dconvert00001" path="res://level/interactable/convert_zone/convert_zone.tscn" id="7_zone"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_test"]
-sky_top_color = Color(0.05, 0.06, 0.10, 1)
-sky_horizon_color = Color(0.10, 0.10, 0.16, 1)
+sky_top_color = Color(0.05, 0.06, 0.1, 1)
+sky_horizon_color = Color(0.1, 0.1, 0.16, 1)
 ground_bottom_color = Color(0.02, 0.02, 0.03, 1)
-ground_horizon_color = Color(0.05, 0.06, 0.10, 1)
-sun_angle_max = 30.0
+ground_horizon_color = Color(0.05, 0.06, 0.1, 1)
 
 [sub_resource type="Sky" id="Sky_test"]
 sky_material = SubResource("ProceduralSkyMaterial_test")
@@ -26,258 +25,222 @@ ambient_light_color = Color(0.7, 0.75, 0.85, 1)
 ambient_light_sky_contribution = 0.4
 ambient_light_energy = 1.5
 tonemap_mode = 2
-tonemap_exposure = 1.0
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_killplane"]
 size = Vector3(400, 1, 400)
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_zone2_convert"]
-size = Vector3(22.0, 6.0, 18.0)
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pillar"]
 albedo_color = Color(0.4, 0.4, 0.45, 1)
 
-[node name="SentinelTest" type="Node3D"]
+[node name="SentinelTest" type="Node3D" unique_id=1343995971]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1182495294]
 environment = SubResource("Environment_test")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=762345490]
 transform = Transform3D(0.86603, -0.4, 0.3, 0, 0.6, 0.8, -0.5, -0.69282, 0.51961, 0, 30, 0)
 light_energy = 1.2
 shadow_enabled = true
-directional_shadow_max_distance = 100.0
 
-[node name="KillPlane" parent="." instance=ExtResource("4_kill")]
+[node name="KillPlane" parent="." unique_id=1777415146 instance=ExtResource("4_kill")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -25, -30)
 
-[node name="KillPlaneShape" type="CollisionShape3D" parent="KillPlane"]
+[node name="KillPlaneShape" type="CollisionShape3D" parent="KillPlane" unique_id=2042539120]
 shape = SubResource("BoxShape3D_killplane")
 
-; ─── SPAWN: Starting pad (lower elevation, elevator up to Zone 1) ─────────
-
-[node name="Spawn_Plat" type="CSGBox3D" parent="."]
+[node name="Spawn_Plat" type="CSGBox3D" parent="." unique_id=1169028209]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.5, 37)
 material_override = ExtResource("5_platmat")
 use_collision = true
 size = Vector3(10, 1, 10)
 
-[node name="Spawn_Label" type="Label3D" parent="."]
+[node name="Spawn_Label" type="Label3D" parent="." unique_id=1105199963]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 37)
 billboard = 1
 no_depth_test = true
-font_size = 64
-outline_size = 12
 text = "SPAWN"
+font_size = 64
 
-[node name="PlayerSpawn" type="Marker3D" parent="."]
+[node name="PlayerSpawn" type="Marker3D" parent="." unique_id=1757842030]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, -2, 37)
 
-[node name="Elev0" parent="." instance=ExtResource("3_elev")]
+[node name="Elev0" parent="." unique_id=1252994964 instance=ExtResource("3_elev")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.5, 27)
+size = Vector3(5, 1, 5)
 amplitude = 3.0
 rise_duration = 4.0
 peak_pause = 1.5
-size = Vector3(5, 1, 5)
 
-; ─── ZONE 1: Basic AI test ────────────────────────────────────────────────
-
-[node name="Zone1_Plat" type="CSGBox3D" parent="."]
+[node name="Zone1_Plat" type="CSGBox3D" parent="." unique_id=1301306984]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 14)
 material_override = ExtResource("5_platmat")
 use_collision = true
 size = Vector3(20, 1, 20)
 
-[node name="Zone1_Pillar" type="CSGBox3D" parent="."]
+[node name="Zone1_Pillar" type="CSGBox3D" parent="." unique_id=2028867006]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 14)
 material_override = SubResource("StandardMaterial3D_pillar")
 use_collision = true
 size = Vector3(3, 5, 3)
 
-[node name="Zone1_Label" type="Label3D" parent="."]
+[node name="Zone1_Label" type="Label3D" parent="." unique_id=1738851810]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 14)
 billboard = 1
 no_depth_test = true
-font_size = 64
-outline_size = 12
 text = "ZONE 1
 BASIC AI + WALL"
+font_size = 64
 
-[node name="Z1_Green1" parent="." instance=ExtResource("1_swarm")]
+[node name="Z1_Green1" parent="." unique_id=300741179 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.05, 18)
 
-[node name="Z1_Green2" parent="." instance=ExtResource("1_swarm")]
+[node name="Z1_Green2" parent="." unique_id=283825157 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.05, 10)
 
-[node name="Z1_Green3" parent="." instance=ExtResource("1_swarm")]
+[node name="Z1_Green3" parent="." unique_id=1611333041 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0.05, 10)
 
-; ─── Elevator 1: Zone 1 → Zone 2 ──────────────────────────────────────────
-
-[node name="Elev1" parent="." instance=ExtResource("3_elev")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 1)
+[node name="Elev1" parent="." unique_id=537295410 instance=ExtResource("3_elev")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -0.7714987)
+size = Vector3(5, 1, 5)
 amplitude = 3.0
 rise_duration = 4.0
 peak_pause = 1.5
-size = Vector3(5, 1, 5)
 
-; ─── ZONE 2: Conversion Portal (red → gold → green) ───────────────────────
-
-[node name="Zone2_Plat" type="CSGBox3D" parent="."]
+[node name="Zone2_Plat" type="CSGBox3D" parent="." unique_id=1645143899]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -14)
 material_override = ExtResource("5_platmat")
 use_collision = true
 size = Vector3(22, 1, 18)
 
-[node name="Zone2_Label" type="Label3D" parent="."]
+[node name="Zone2_Label" type="Label3D" parent="." unique_id=1520198070]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9, -14)
 billboard = 1
 no_depth_test = true
-font_size = 64
-outline_size = 12
 text = "ZONE 2
 CONVERT PORTAL (reds)"
+font_size = 64
 
-[node name="Zone2_Portal" parent="." instance=ExtResource("6_portal")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -14)
-target_factions = Array[StringName]([&"red"])
-resulting_faction = &"gold"
-revert_faction = &"green"
-revert_debounce = 1.0
+[node name="Zone2_Portal" parent="." unique_id=476054164 instance=ExtResource("6_portal")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.497877, 3, -0.940855)
 convert_zone_id = &"sentinel_test_z2"
 
-[node name="Zone2_ConvertZone" parent="." instance=ExtResource("7_zone")]
+[node name="Zone2_ConvertZone" parent="." unique_id=1743593933 instance=ExtResource("7_zone")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -14)
 id = &"sentinel_test_z2"
 
-[node name="CollisionShape3D" parent="Zone2_ConvertZone" index="0"]
-shape = SubResource("BoxShape3D_zone2_convert")
-
-[node name="Z2_Red1" parent="." instance=ExtResource("1_swarm")]
+[node name="Z2_Red1" parent="." unique_id=560413991 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 3.05, -18)
 faction = &"red"
 
-[node name="Z2_Red2" parent="." instance=ExtResource("1_swarm")]
+[node name="Z2_Red2" parent="." unique_id=2137641954 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 3.05, -19)
 faction = &"red"
 
-[node name="Z2_Red3" parent="." instance=ExtResource("1_swarm")]
+[node name="Z2_Red3" parent="." unique_id=184669023 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 3.05, -19)
 faction = &"red"
 
-[node name="Z2_Red4" parent="." instance=ExtResource("1_swarm")]
+[node name="Z2_Red4" parent="." unique_id=724704961 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 3.05, -18)
 faction = &"red"
 
-[node name="Z2_Red5" parent="." instance=ExtResource("1_swarm")]
+[node name="Z2_Red5" parent="." unique_id=371605366 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 3.05, -10)
 faction = &"red"
 
-[node name="Z2_Red6" parent="." instance=ExtResource("1_swarm")]
+[node name="Z2_Red6" parent="." unique_id=1416589410 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 3.05, -10)
 faction = &"red"
 
-; ─── Elevator 2: Zone 2 → Zone 3 ──────────────────────────────────────────
-
-[node name="Elev2" parent="." instance=ExtResource("3_elev")]
+[node name="Elev2" parent="." unique_id=1047028485 instance=ExtResource("3_elev")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, -27)
+size = Vector3(5, 1, 5)
 amplitude = 3.0
 rise_duration = 4.0
 peak_pause = 1.5
-size = Vector3(5, 1, 5)
 
-; ─── ZONE 3: Stealth ──────────────────────────────────────────────────────
-
-[node name="Zone3_Plat" type="CSGBox3D" parent="."]
+[node name="Zone3_Plat" type="CSGBox3D" parent="." unique_id=2013656635]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, -40)
 material_override = ExtResource("5_platmat")
 use_collision = true
 size = Vector3(20, 1, 20)
 
-[node name="Zone3_Cover" type="CSGBox3D" parent="."]
+[node name="Zone3_Cover" type="CSGBox3D" parent="." unique_id=1560209900]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7, -40)
 material_override = SubResource("StandardMaterial3D_pillar")
 use_collision = true
 size = Vector3(3, 2, 3)
 
-[node name="Zone3_Label" type="Label3D" parent="."]
+[node name="Zone3_Label" type="Label3D" parent="." unique_id=2074221180]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12, -40)
 billboard = 1
 no_depth_test = true
-font_size = 64
-outline_size = 12
 text = "ZONE 3
 STEALTH (cone + backstab)"
+font_size = 64
 
-[node name="Z3_Stealth1" parent="." instance=ExtResource("2_stealth")]
+[node name="Z3_Stealth1" parent="." unique_id=426339373 instance=ExtResource("2_stealth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 6.05, -36)
-faction = &"splice_stealth"
 
-[node name="Z3_Stealth2" parent="." instance=ExtResource("2_stealth")]
+[node name="Z3_Stealth2" parent="." unique_id=565964821 instance=ExtResource("2_stealth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 6.05, -36)
-faction = &"splice_stealth"
 
-[node name="Z3_Stealth3" parent="." instance=ExtResource("2_stealth")]
+[node name="Z3_Stealth3" parent="." unique_id=468471250 instance=ExtResource("2_stealth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.05, -45)
-faction = &"splice_stealth"
 
-; ─── Elevator 3: Zone 3 → Zone 4 ──────────────────────────────────────────
-
-[node name="Elev3" parent="." instance=ExtResource("3_elev")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, -53)
+[node name="Elev3" parent="." unique_id=201381899 instance=ExtResource("3_elev")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.5, -55.44265)
+size = Vector3(5, 1, 5)
 amplitude = 3.0
 rise_duration = 4.0
 peak_pause = 1.5
-size = Vector3(5, 1, 5)
 
-; ─── ZONE 4: GOD Arena (mixed reds + greens, press Y to convert) ─────────
-
-[node name="Zone4_Plat" type="CSGBox3D" parent="."]
+[node name="Zone4_Plat" type="CSGBox3D" parent="." unique_id=389453200]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.5, -70)
 material_override = ExtResource("5_platmat")
 use_collision = true
 size = Vector3(28, 1, 24)
 
-[node name="Zone4_Label" type="Label3D" parent="."]
+[node name="Zone4_Label" type="Label3D" parent="." unique_id=1623765181]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 14, -70)
 billboard = 1
 no_depth_test = true
-font_size = 64
-outline_size = 12
 text = "ZONE 4
 GOD ARENA (Y to convert)"
+font_size = 64
 
-[node name="Z4_Red1" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Red1" parent="." unique_id=2127573407 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 9.05, -64)
 faction = &"red"
 
-[node name="Z4_Red2" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Red2" parent="." unique_id=26950549 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 9.05, -76)
 faction = &"red"
 
-[node name="Z4_Red3" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Red3" parent="." unique_id=882213488 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 9.05, -70)
 faction = &"red"
 
-[node name="Z4_Red4" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Red4" parent="." unique_id=1502732543 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.05, -64)
 faction = &"red"
 
-[node name="Z4_Red5" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Red5" parent="." unique_id=1368537888 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 9.05, -76)
 faction = &"red"
 
-[node name="Z4_Green1" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Green1" parent="." unique_id=833398448 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 9.05, -64)
 
-[node name="Z4_Green2" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Green2" parent="." unique_id=1309059783 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 9.05, -76)
 
-[node name="Z4_Green3" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Green3" parent="." unique_id=1934766988 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 9.05, -70)
 
-[node name="Z4_Green4" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Green4" parent="." unique_id=568725384 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.05, -76)
 
-[node name="Z4_Green5" parent="." instance=ExtResource("1_swarm")]
+[node name="Z4_Green5" parent="." unique_id=330841977 instance=ExtResource("1_swarm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 9.05, -64)

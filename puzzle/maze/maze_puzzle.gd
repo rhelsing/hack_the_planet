@@ -65,6 +65,12 @@ const _TIMER_BAR_WIDTH: float = 600.0
 const _CURSOR_SPEED_GRID_PER_SEC: float = 7.0
 # Stick noise floor — below this magnitude, no input.
 const _INPUT_DEADZONE: float = 0.18
+# Junction grace: when the cursor crosses a node, perpendicular input above
+# this magnitude is treated as a turn intent (preferred over continuing
+# straight even when not strictly dominant). Lower = more eager to turn;
+# higher = sticks to the entry axis. 0.4 means a stick deflection of >~22°
+# off the entry axis counts as a turn.
+const _TURN_BIAS_THRESHOLD: float = 0.4
 # Sentinel — "no active edge" (cursor sitting on a node). Coordinates are
 # negative so they can never collide with a real grid node.
 const _NO_NEIGHBOR: Vector2i = Vector2i(-99, -99)

@@ -43,6 +43,13 @@ extends CSGBox3D
 ## on avoid_path. Ignored when avoid_path is unset.
 @export_range(0.0, 100.0) var path_avoid_radius: float = 8.0
 
+@export_group("Grapple avoidance")
+## Reject any cell whose XZ is within this many meters of any node in the
+## "grappleable" group. Grappleables are visual-only (no physics body), so
+## the overlap check above doesn't see them — this is the dedicated path.
+## Set to 0 to disable.
+@export_range(0.0, 100.0) var grapple_avoid_radius: float = 14.0
+
 @export_group("Determinism")
 ## Fixed RNG seed so the city looks the same across reloads. Change to
 ## reshuffle the layout.
@@ -149,10 +156,21 @@ func _spawn_city() -> void:
 			path_curve = path_node.curve
 			path_xform_inv = path_node.global_transform.affine_inverse()
 
+	# Snapshot grappleable world XZ positions once. Empty in the hub / levels
+	# without grapples — the per-cell check costs nothing then.
+	var grapple_xz: PackedVector2Array = PackedVector2Array()
+	if grapple_avoid_radius > 0.0:
+		for g in get_tree().get_nodes_in_group(&"grappleable"):
+			if g is Node3D:
+				var p: Vector3 = (g as Node3D).global_position
+				grapple_xz.append(Vector2(p.x, p.z))
+	var grapple_radius_sq: float = grapple_avoid_radius * grapple_avoid_radius
+
 	var placed: int = 0
 	var rejected_radius: int = 0
 	var rejected_overlap: int = 0
 	var rejected_path: int = 0
+	var rejected_grapple: int = 0
 	for ix in range(-cells_per_side, cells_per_side + 1):
 		for iz in range(-cells_per_side, cells_per_side + 1):
 			var cx: float = float(ix) * cell_size
@@ -182,6 +200,21 @@ func _spawn_city() -> void:
 					rejected_path += 1
 					continue
 
+			# Grapple avoidance — XZ-only distance to every grappleable.
+			# Tested before the physics overlap check; intersect_shape is
+			# the most expensive thing in this loop.
+			if not grapple_xz.is_empty():
+				var cell_world_xz: Vector3 = global_transform * local_pos
+				var cxz := Vector2(cell_world_xz.x, cell_world_xz.z)
+				var hit_grapple: bool = false
+				for gxz in grapple_xz:
+					if cxz.distance_squared_to(gxz) < grapple_radius_sq:
+						hit_grapple = true
+						break
+				if hit_grapple:
+					rejected_grapple += 1
+					continue
+
 			if space_state != null and _overlaps_level_geometry(
 				space_state, local_pos, Vector3(w, h, d)
 			):
@@ -197,8 +230,8 @@ func _spawn_city() -> void:
 			bld.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(bld)
 			placed += 1
-	print("[city] spawned %d buildings (radius=%d, overlap=%d, path=%d rejects)" % [
-		placed, rejected_radius, rejected_overlap, rejected_path,
+	print("[city] spawned %d buildings (radius=%d, overlap=%d, path=%d, grapple=%d rejects)" % [
+		placed, rejected_radius, rejected_overlap, rejected_path, rejected_grapple,
 	])
 
 
