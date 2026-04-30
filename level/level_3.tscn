@@ -638,7 +638,7 @@ require_flag = &""
 [node name="walkie3" parent="." index="117" unique_id=495772329 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, 10.976757, 26.919716, -134.15948)
 character = &"Nyx"
-line = "Everything okay {player_handle}? Your signal is going bonkers."
+line = "Everything okay {player_handle}? Your signal is fragmenting."
 require_flag = &""
 
 [node name="walkie2" parent="." index="118" unique_id=1360825367 instance=ExtResource("9_walkie")]
@@ -673,7 +673,7 @@ require_flag = &""
 [node name="splice4" parent="." index="123" unique_id=1805706056 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -162.16653, 11.73326, -30.767206)
 character = &"Nyx"
-line = "DialTone, I'm not seeing him on my end either. I hope he's alright."
+line = "DialTone, I'm not seeing him on my end either. ...channel's dead."
 require_flag = &""
 
 [node name="splice5" parent="." index="124" unique_id=529607280 instance=ExtResource("9_walkie")]
@@ -691,7 +691,7 @@ require_flag = &""
 [node name="splice7" parent="." index="126" unique_id=436717905 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -199.38644, -2.6929522, -13.187076)
 character = &"Nyx"
-line = "{player_handle} where were you? Are you okay? Wait! is that it? you found it!"
+line = "{player_handle}, you're back! ...wait! ...you got it?"
 require_flag = &""
 
 [node name="splice8" parent="." index="127" unique_id=1956335588 instance=ExtResource("9_walkie")]

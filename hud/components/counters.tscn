@@ -16,7 +16,7 @@ alignment = 2
 [node name="CoinIcon" type="Label" parent="CoinRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 0)
-text = "💾"
+text = "🥤"
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 

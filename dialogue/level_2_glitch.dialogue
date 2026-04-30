@@ -4,7 +4,7 @@ if GameState.get_flag("level_2_glitch_briefed", false)
 	=> stage_revisit
 
 Glitch: That was pretty intense back there.
-Glitch: So I bet you are wondering how these new abilities work.
+Glitch: You'll want a briefing on these new abilities.
 - Please?
 	=> abilities
 

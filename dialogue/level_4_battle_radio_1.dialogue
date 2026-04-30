@@ -7,12 +7,12 @@
 
 Nyx: Ten down already. [#walkie]
 DialTone: Twelve more in your zone. Two more queueing. [#walkie]
-Splice: Don't get cocky, runner. Plenty where those came from. [#walkie]
+Splice: Don't get cocky, runner. I've been farming sentinels since before you had a handle. [#walkie]
 do CutsceneSequence.wait(7)
 
 Splice: You think you can outpace my spawn rate? Try me. [#walkie]
 Nyx: He really thinks numbers will save him. [#walkie]
-DialTone: They won't. Keep moving. [#walkie]
+DialTone: They won't. I've seen his books. He's bluffing. [#walkie]
 do CutsceneSequence.wait(8)
 
 DialTone: Twenty down. He's burning through reserves. [#walkie]
@@ -20,9 +20,9 @@ Splice: Reserves are infinite. [#walkie]
 Nyx: They are extremely not. [#walkie]
 do CutsceneSequence.wait(7)
 
-Splice: Stop converting them. Stop *converting* them. [#walkie]
+Splice: Stop converting them. Stop **converting** them. [#walkie]
 DialTone: Three new ones inbound — splice them all. [#walkie]
-Nyx: He hates the platforms. He's *whining*. [#walkie]
+Nyx: He hates the platforms. He's **whining**. [#walkie]
 do CutsceneSequence.wait(8)
 
 DialTone: Six left in the arena. Then four. [#walkie]
@@ -36,7 +36,7 @@ Nyx: Listen to him. He hears it now. [#walkie]
 do CutsceneSequence.wait(7)
 
 Splice: Stop. Just — stop. STOP. [#walkie]
-Nyx: Oh he's *not* having a good time. [#walkie]
+Nyx: Oh he's **not** having a good time. [#walkie]
 DialTone: Three reds left. Finish them. [#walkie]
 
 => END

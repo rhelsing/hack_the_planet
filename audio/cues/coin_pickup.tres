@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="AudioCue" format=3 uid="uid://by348o0knw7qm"]
 
 [ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
-[ext_resource type="AudioStream" uid="uid://cnrspoqewnf78" path="res://audio/sfx/coin_click_a.mp3" id="2"]
-[ext_resource type="AudioStream" uid="uid://bnn3ej125bies" path="res://audio/sfx/coin_click_b.mp3" id="3"]
+[ext_resource type="AudioStream" uid="uid://di78be6vv4xu2" path="res://audio/sfx/can1.mp3" id="2"]
+[ext_resource type="AudioStream" uid="uid://3lo8tqy54y87" path="res://audio/sfx/can2.mp3" id="3"]
+[ext_resource type="AudioStream" uid="uid://kewv26s47pbm" path="res://audio/sfx/can3.mp3" id="4"]
+[ext_resource type="AudioStream" uid="uid://dwurti5d8rohw" path="res://audio/sfx/can4.mp3" id="5"]
 
 [resource]
 script = ExtResource("1")
-streams = Array[AudioStream]([ExtResource("2"), ExtResource("3")])
+streams = Array[AudioStream]([ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5")])
 strict_alternate = true
 volume_db_min = -2.0
 volume_db_max = 0.0

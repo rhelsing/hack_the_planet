@@ -4,10 +4,14 @@
 
 - **Game Dev** — Ryan Helsing
 - **Design and Characters** — Laurel Moore
-- **Music & SFX** — Griffin Knock
+- **Music** — Tyler Ono
+- **Music** — Griffin Knock
 - **Game Design** — Dustin Garner
-- **Sound** — Tyler Ono
-- **Play Testing** — Nolan Cooper, Kyra Rush
+
+## Playtesting
+
+Nolan Cooper
+Kyra Rush
 
 ---
 
@@ -22,6 +26,7 @@ Thank you to the Sketchfab community whose models bring the Gibson to life.
 - **Pool – LowPoly** by [Blendev](https://sketchfab.com/hugo859859) — [Sketchfab](https://sketchfab.com/3d-models/pool-lowpoly-9bb9102cb52444bea910678e1c27a6e4)
 - **Sci-Fi Laptop (alternative 90s)** by [holgcool](https://sketchfab.com/holgcool) — [Sketchfab](https://sketchfab.com/3d-models/sci-fi-laptop-alternative-90s-1d67104ac71c495293fdbf7e7059b732)
 - **Floating Robot** by [nada.elshorbagi](https://sketchfab.com/nada.elshorbagi) — [Sketchfab](https://sketchfab.com/3d-models/floating-robot-20dd7f7bdc9a4c36aef491f12afa14d8)
+- **Anime Character (Free)** by [Legend](https://sketchfab.com/Legend_01) — used in-game as **Dialtone** — [Sketchfab](https://sketchfab.com/3d-models/anime-character-free-b308a290e1944da4bc84c9a74e3c02bb)
 
 ---
 
@@ -29,14 +34,7 @@ Thank you to the Sketchfab community whose models bring the Gibson to life.
 
 - **Mannequiny rig** — [GDQuest](https://www.gdquest.com/), CC-BY 4.0 — [GitHub](https://github.com/gdquest-demos/godot-3d-mannequin)
 - **KayKit Mannequin Character Pack + animations** — [KayKit Studio](https://kaykit.itch.io/)
-
-> _Pending attribution — please supply source URLs:_
-> - Sophia skin (`player/sophia_skin/model/sophia.glb`)
-> - AJ skin (`player/skins/aj/model/aj.glb`)
-> - Splice skin (`player/skins/splice/model/splice.glb`)
-> - Anime Character skin (`player/skins/anime_character/model/anime_character.glb`)
-> - Nyx skin (`player/skins/nyx/model/nyx.glb`)
-> - Flag (`level/interactable/flag/flag.glb`)
+- **AJ, Splice, Nyx skins + rigs** — [Adobe Mixamo](https://www.mixamo.com/)
 
 ---
 
@@ -75,14 +73,10 @@ Licensed / sourced tracks:
 
 ## Sound Effects
 
-- **Pixabay creators** — collectively credited for foley, UI clicks, ambient one-shots — [Pixabay](https://pixabay.com/)
+Sourced from the amazing creator communities at:
 
-> _Pending per-asset attribution — list any SFX you sourced from Freesound, ZapSplat, etc.:_
-> - Footsteps (`audio/sfx/footsteps_keyboard/`)
-> - Bounce one-shots (`audio/sfx/bounces/`)
-> - Attack impacts + kicks (`audio/sfx/attack_impacts/`, `attack_kicks/`)
-> - Enemy deaths (`audio/sfx/enemy_deaths/`)
-> - Misc (`audio/sfx/beer.wav`, `guncock.wav`, `dial_tone_actual.mp3`, etc.)
+- **Pixabay** — foley, UI clicks, ambient one-shots, footsteps, bounces, impacts, deaths, misc — [pixabay.com](https://pixabay.com/)
+- **Sketchfab** — additional foley and one-shots — [sketchfab.com](https://sketchfab.com/)
 
 ---
 
@@ -98,9 +92,6 @@ Licensed / sourced tracks:
 - **Dialogue Manager** by Nathan Hoad — dialogue tree runtime — [GitHub](https://github.com/nathanhoad/godot_dialogue_manager)
 - **GDQuest** — base player controller reference — [gdquest.com](https://www.gdquest.com/)
 - **Inigo Quilez** — shader / noise / SDF references — [iquilezles.org](https://iquilezles.org/)
-
-> _Pending link — please supply where the 3D menu camera was sourced:_
-> - meloonics — 3D menu camera
 
 ---
 

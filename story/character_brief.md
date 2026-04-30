@@ -8,7 +8,9 @@ This is a **brief**, not a bible. Edit it as the story moves. The compiled `dial
 
 ## Story frame
 
-**Genre:** Cyberpunk. **Tonal touchstones:** *Hackers* (1995) — found-family of misfits, neon vibe, hacking-as-art swagger. *The Matrix* — the wire is a real second world; choosing your side is the plot.
+**Genre:** Cyberpunk. **Tonal touchstones:** *Hackers* (1995) — found-family of misfits, neon vibe, hacking-as-art swagger. *The Matrix* (1999) — the wire is a real second world; choosing your side is the plot.
+
+**Genre register:** late-1990s / early-2000s techno-thriller with **earnest pulp**. Leather coats, dial-up vocab, hacker-as-folk-hero, philosophical villains who think they've seen through the system. Lean into the genre, don't ironize it — earnest Neo / earnest Crash Override beats land here. The crew calls each other things like "runner" without flinching; villains monologue and we let them. The audience's pleasure is recognizing the form being played straight, not winked at.
 
 **Premise:** The Gibson grid runs on a mesh of independent operators. One of them — Splice — has resurfaced after a year quiet, and is hunting a chain of power-ups that will hand him root access. If he gets it, the era of distributed hackers ends. The runner (player) is recruited from outside that world and pulled into the fight.
 
@@ -241,6 +243,8 @@ Betray ending:
 
 **Role:** The villain. The mirror. The path not taken.
 
+**Touchstone:** Agent Smith — *The Matrix* (1999) and especially *Revolutions* (2003) "I hate this place, this zoo, this prison" wants-out monologue. Splice is **calm-philosophical-cracking, not vocal-cracking.** He doesn't escalate emphasis when he loses; he **reveals**. His scariest moments are the ones where his composure holds and the wound surfaces as a clinical observation. Smith names his irritation in flat language (*"I must get out of here, I must get free"*) — Splice does the same. When he cracks, the calm gets quieter, not louder; he confesses something he wouldn't have admitted while winning. By post-L4 quarantine he's full Smith-in-the-cage register: bored, philosophical, reframing his containment as a vantage point ("Better view, honestly").
+
 ### Lead writer's read
 
 The **mirror**. Calm, amused, jaded. Patient — until refused, then the bullied kid surfaces. *"...wow. Wow okay."* is the canonical crack.
@@ -269,7 +273,7 @@ The L3 refusal where the crew expunges him is his peak antagonist beat: he goes 
 **Conflict**
 - *External:* DialTone and Nyx know him. They're the only crew with both the skill and the motive to stop him.
 - *External:* Has to convert the runner — or eliminate them — before the runner is too embedded with the others.
-- *Internal:* The calm/amused/jaded affect is real until refused. After refusal, the original wound shows: anger, desperation, the bullied kid screaming through the operator. **By L4 he cracks.**
+- *Internal:* The calm/amused/jaded affect is real until refused. After refusal, the original wound surfaces — but as Smith surfaces, not as a brawler. The bullied kid leaks through the operator in flat clinical confessions, not shouted threats. **By L4 he cracks: the calm holds, the wound shows.**
 - *Internal:* Nyx represents the only version of his life where he didn't become this. Avoids her until forced.
 
 ### Voice
@@ -279,7 +283,7 @@ The L3 refusal where the crew expunges him is his peak antagonist beat: he goes 
 - **Compliments by separating you from the crew.** "You're built different. The crew you're running with? They don't see it." The flattery is the wedge.
 - **Repeats his own words for emphasis when excited.** "I knew. I KNEW."
 - **Loses the calm when refused.** "wow. Wow okay." Dropping consonants. Bullied kid breaking through.
-- **By L4, anger.** Threats stop being veiled.
+- **By L4, the calm gets quieter — not louder.** Threats land as confessions, not veils. Smith-Revolutions register: he stops pretending he's above this and lets the wound show. Same volume, more wound. *"You and I were going to understand each other"* lands harder than any shouted threat.
 
 **Sample lines (canon):**
 - "Interesting. Do I detect a new trace on the wire?"

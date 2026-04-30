@@ -199,7 +199,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro2" parent="." index="26" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "I've seen you started collecting the floppies. The more you collect, the greater your mods. If you don't collect enough, weak sauce. That's all I will say for now."
+line = "I see you've started collecting the cans. Good for the planet — and for you. The more you collect, the greater your mods. Below threshold, the upgrade is unimpressive. That's all I will say for now."
 require_flag = &""
 
 [node name="Nyx" parent="." index="27" unique_id=1420528326 instance=ExtResource("3_companion")]

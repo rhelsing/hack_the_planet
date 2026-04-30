@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cuxx2hw1ftmcy"]
 
 [ext_resource type="Script" uid="uid://d8s5uk7og5ah" path="res://level/interactable/coin/coin.gd" id="1_coin"]
-[ext_resource type="PackedScene" uid="uid://b4wtspvq7hyjf" path="res://level/interactable/coin/floppy.glb" id="2_hgnkn"]
+[ext_resource type="PackedScene" uid="uid://dmb7iyn8owh01" path="res://level/interactable/coin/jolt_soda_model.glb" id="2_hgnkn"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_coin"]
 albedo_color = Color(1, 0.82, 0.15, 1)
@@ -14,7 +14,7 @@ bottom_radius = 0.4
 height = 0.12
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_coin"]
-radius = 0.825
+radius = 1.1138023
 
 [node name="Coin" type="Area3D" unique_id=1783642324]
 script = ExtResource("1_coin")
@@ -30,4 +30,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2922293, 0)
 shape = SubResource("SphereShape3D_coin")
 
 [node name="Sketchfab_Scene" parent="." unique_id=1653477214 instance=ExtResource("2_hgnkn")]
-transform = Transform3D(1.9106854e-16, -4.371139e-09, 0.1, -0.1, -4.371139e-09, 0, 4.371139e-09, -0.1, -4.371139e-09, -0.024732828, 0.32382435, -0.006462157)
+transform = Transform3D(0.12, 0, 0, 0, 0.1159111, 0.031058282, 0, -0.031058282, 0.1159111, 0, 0.3, 0)

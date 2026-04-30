@@ -129,7 +129,7 @@ func _enter_victory_state() -> void:
 		# no-op then because the node is detached. Nyx lives at the hub root
 		# now (revealed post-L1 via visible_when_flag), not under postL4Show —
 		# we still wire her into the dance loop on victory entry.
-		for path in [^"postL4Show/Splice", ^"Nyx"]:
+		for path in [^"Nyx"]:
 			var npc := get_node_or_null(path)
 			if npc != null and npc.has_method(&"enter_dance_loop"):
 				npc.call(&"enter_dance_loop", victory_player_dance_clips)

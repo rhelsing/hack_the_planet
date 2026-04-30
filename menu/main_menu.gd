@@ -25,7 +25,7 @@ const INTRO_VIDEO_PATH := "res://cutscenes/intro_movie.ogv"
 @onready var _credits_btn:  Button  = %CreditsBtn
 @onready var _quit_btn:     Button  = %QuitBtn
 @onready var _stack:        Control = %MenuStack
-@onready var _title:        Label   = %Title
+@onready var _title:        TextureRect = %Title
 
 var _stack_children: Array[Node] = []
 var _go_to_game_after_pick: bool = false
@@ -35,7 +35,6 @@ func _ready() -> void:
 	Events.menu_opened.emit(&"main_menu")
 	_wire_buttons()
 	_refresh_continue_state()
-	_title.text = "HACK THE PLANET"
 	_continue_btn.grab_focus()
 	_start_menu_music()
 	# Re-check continue state if a save gets written while we're on the menu.

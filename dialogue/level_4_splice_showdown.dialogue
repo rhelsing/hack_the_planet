@@ -5,7 +5,7 @@
 # is listening silently. Glitch is absent. Ends straight into the boss
 # battle — no player choices, no menu, just the cinematic.
 
-Splice: {player_handle}.
+Splice: {{HandlePicker.chosen_name()}}.
 Splice: So here we are.
 
 Splice: The world's rigged. You know it. Everybody knows it.
@@ -30,6 +30,6 @@ Splice: They're voices in your ear. I'm here.
 Splice: That should tell you something about who's actually in the room.
 Splice: When this is over — when I'm at root — I'm not going to do anything cruel.
 Splice: I want you to know that.
-Splice: I'm just going to do *anything I want*. Forever.
+Splice: I'm just going to do **anything I want**. Forever.
 
 => END

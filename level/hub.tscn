@@ -287,7 +287,7 @@ dialogue_resource = ExtResource("25_p4splice")
 interactable_id = &"npc_post4_splice"
 
 [node name="Glitch" parent="postL4Show" instance=ExtResource("13_companion")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.5, 11.190241, -58.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.5, 15.5, -55.0)
 skin_scene = ExtResource("21_robot")
 dialogue_resource = ExtResource("28_p4glitchdlg")
 interactable_id = &"npc_post4_glitch"

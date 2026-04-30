@@ -6,10 +6,11 @@ extends VBoxContainer
 const POP_SCALE := 1.18
 const POP_S := 0.15
 
-## Coin-row emoji. Defaults to 💾 (floppy disks — what they actually look
-## like in-world). Inspector-editable so future re-skins (soda can, gold
-## bar, whatever) are a one-field change without touching the .tscn.
-@export var coin_emoji: String = "💾"
+## Coin-row emoji. Defaults to 🥤 (cup-with-straw — closest emoji to a
+## soda can; no aluminum-can glyph exists in Unicode). Swap to 🥫 if you
+## want the tin-can silhouette instead. Inspector-editable so reskins are
+## a one-field change without touching the .tscn.
+@export var coin_emoji: String = "🥤"
 
 # Walkie / companion comm chip — appears on the HUD once the player has been
 # registered (Glitch's pick beat grants this). Pulses whenever a Walkie or

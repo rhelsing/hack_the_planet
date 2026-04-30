@@ -10,7 +10,7 @@ Splice: Easy. Easy.
 do Cutscene.show_video("res://cutscenes/splice_intro.ogv")
 Splice: The trap was for the conversation. That's all.
 Splice: Splice. You may have heard the name.
-Splice: I've been on your channel since the floppy run. Watching. Not interfering.
+Splice: I've been following your signal since your first run. Watching. Not interfering.
 Splice: You're better at this than the crew you came in with realizes. They've got you running their little chores.
 Splice: Step off-channel a minute. Just listen. Walk away if you want.
 - Get off my channel.
@@ -23,7 +23,7 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing floppies.
+Splice: The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing soda cans.
 Splice: I **was** them. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: Not because you took it. Because you saw it first. The rest are too busy performing.
@@ -50,7 +50,7 @@ Splice: You're the same. That's why I'm talking to you and not them.
 
 ~ splice_if_no
 
-Splice: Then you go back to your floppy run and your little prank crew. No hard feelings.
+Splice: Then you go back to your soda run and your little prank crew. No hard feelings.
 Splice: You'll think about this. Probably tonight.
 Splice: When you do — channel's open.
 - Actually, I'm in.

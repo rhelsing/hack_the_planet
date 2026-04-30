@@ -365,7 +365,7 @@ require_flag = &""
 
 [node name="Walkie3" parent="." index="54" unique_id=686050591 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 13.082044, -30.812723, -12.973331, 32.116066)
-line = "It looks like Splice is already losing his grip on the sentenals. I hope I dont need to remind you not to touch that red one."
+line = "It looks like Splice is already losing his grip on the sentinels. I hope I don't need to remind you not to touch that red one."
 require_flag = &""
 
 [node name="Walkie2" parent="." index="55" unique_id=1735128929 instance=ExtResource("13_walkie")]
@@ -399,7 +399,7 @@ require_flag = &""
 [node name="Walkie8" parent="." index="60" unique_id=2133159114 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 191.25284, -13.0255165, 37.083664)
 character = &"Nyx"
-line = "Oh boy. Time to see if this works."
+line = "Time to see if this works."
 require_flag = &""
 
 [node name="Walkie9" parent="." index="61" unique_id=1396528666 instance=ExtResource("13_walkie")]
@@ -427,19 +427,19 @@ require_flag = &""
 [node name="Walkie13" parent="." index="65" unique_id=1239643507 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 323.24536, -10.380843, -140.3234)
 character = &"Splice"
-line = "You messed with the wrong hacker, kid."
+line = "Hm. You're better than I planned for, runner. That's annoying."
 require_flag = &""
 
 [node name="Walkie14" parent="." index="66" unique_id=1744180438 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 335.23764, -4.9053965, -191.36955)
 character = &"Splice"
-line = "Wait, how are you  even doing that?"
+line = "Wait, how are you even doing that?"
 require_flag = &""
 
 [node name="Walkie15" parent="." index="67" unique_id=477027558 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 398.77518, -13.05994, -254.90742)
 character = &"Nyx"
-line = "Try to convert back as many sentenals as you can here. You are going to need them if we want a chance to capture Splice."
+line = "Try to convert back as many sentinels as you can here. You are going to need them if we want a chance to capture Splice."
 require_flag = &""
 
 [node name="Walkie16" parent="." index="68" unique_id=1987610947 instance=ExtResource("13_walkie")]
@@ -450,7 +450,7 @@ require_flag = &""
 [node name="Walkie17" parent="." index="69" unique_id=84697639 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 487.8493, 28.254538, -372.71942)
 character = &"Splice"
-line = "You know. You are **really** starting to test my patience"
+line = "You should've said yes, runner. You and I — we were going to understand each other."
 require_flag = &""
 
 [node name="Walkie18" parent="." index="70" unique_id=1789802865 instance=ExtResource("13_walkie")]
@@ -462,7 +462,7 @@ require_flag = &""
 [node name="Walkie19" parent="." index="71" unique_id=2079433958 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 472.32434, 29.50692, -492.7536)
 character = &"Nyx"
-line = "[laughs] You haven't taught him shit. [sigh] Good luck, {player_handle} [#model=eleven_v3]"
+line = "[laughs] You didn't teach him a thing. [sigh] Good luck, {player_handle}. [#model=eleven_v3]"
 require_flag = &""
 persist_flag = &"l4_walkie19_fired"
 

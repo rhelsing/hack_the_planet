@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://b3mainmenu0001"]
+[gd_scene load_steps=7 format=3 uid="uid://b3mainmenu0001"]
 
 [ext_resource type="PackedScene" uid="uid://b3menuworld001" path="res://menu/menu_world.tscn" id="1_world"]
 [ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
 [ext_resource type="PackedScene" uid="uid://b3menubtn0001" path="res://menu/menu_button.tscn" id="3_btn"]
 [ext_resource type="Script" path="res://menu/main_menu.gd" id="4_script"]
+[ext_resource type="Texture2D" path="res://menu/title_image.png" id="5_title"]
 
 [sub_resource type="StyleBoxFlat" id="MenuPanelStyle"]
 bg_color = Color(0.1, 0.1, 0.1, 0.6)
@@ -35,12 +36,12 @@ theme_override_styles/panel = SubResource("MenuPanelStyle")
 [node name="Column" type="VBoxContainer" parent="MenuUI/Center/MenuPanel"]
 custom_minimum_size = Vector2(460, 0)
 
-[node name="Title" type="Label" parent="MenuUI/Center/MenuPanel/Column"]
+[node name="Title" type="TextureRect" parent="MenuUI/Center/MenuPanel/Column"]
 unique_name_in_owner = true
-text = "HACK THE PLANET"
-theme_override_font_sizes/font_size = 36
-theme_override_colors/font_color = Color(0, 1, 1, 1)
-horizontal_alignment = 1
+custom_minimum_size = Vector2(420, 230)
+texture = ExtResource("5_title")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Gap" type="Control" parent="MenuUI/Center/MenuPanel/Column"]
 custom_minimum_size = Vector2(0, 24)

@@ -18,6 +18,20 @@ extends Pickup
 ## One-line caption shown on the how-to panel. E.g. "PRESS R TO SKATE."
 @export var howto_caption: String = ""
 
+## Optional per-instance disk visual. If set, replaces the default `disk_mesh`
+## child at _ready. If the scene is a master model containing multiple
+## `{label} disc` subtrees (e.g., the love_disc_model.glb shipping with
+## Love/sex/secret/god discs), the one matching `powerup_label` is kept and
+## the rest are freed. Empty = the default floppy in powerup_pickup.tscn stays.
+@export var disk_scene: PackedScene
+## Uniform scale applied to the swapped-in disk. 0.2 ≈ the legacy floppy size.
+@export_range(0.01, 5.0) var disk_visual_scale: float = 0.2
+## Local rotation (degrees) layered on top of the disc's authored orientation.
+## Tune if the disc faces the wrong direction after swap.
+@export var disk_visual_rotation_deg: Vector3 = Vector3.ZERO
+## Local position offset for the disk. Matches the floppy's position by default.
+@export var disk_visual_offset: Vector3 = Vector3(-0.0345, 0.0, -0.0223)
+
 const _INSTALL_TOAST_SCENE := preload("res://hud/components/install_toast.tscn")
 const _HOWTO_PANEL_SCENE := preload("res://hud/components/howto_panel.tscn")
 
@@ -45,12 +59,60 @@ func _ready() -> void:
 	if not powerup_flag.is_empty() and bool(GameState.get_flag(powerup_flag, false)):
 		queue_free()
 		return
+	if disk_scene != null:
+		_swap_disk_scene()
 	var disk_label: Label3D = get_node_or_null(^"DiskLabel") as Label3D
 	if disk_label != null:
 		disk_label.text = powerup_label
 	_visual = _find_visual()
 	_build_tint_material()
 	_tint_all_meshes(self)
+
+
+func _swap_disk_scene() -> void:
+	var existing: Node3D = get_node_or_null(^"disk_mesh") as Node3D
+	if existing != null:
+		remove_child(existing)
+		existing.queue_free()
+	var inst := disk_scene.instantiate()
+	if not (inst is Node3D):
+		push_warning("PowerupPickup %s: disk_scene root must be Node3D" % interactable_id)
+		return
+	var node := inst as Node3D
+	# Master-model case: scene root holds multiple "{label} disc" subtrees.
+	# Pick the one matching powerup_label, peel siblings off, drop the wrapper.
+	var picked := _pick_label_disc(node)
+	if picked != null:
+		picked.get_parent().remove_child(picked)
+		node.queue_free()
+		node = picked
+		node.position = Vector3.ZERO
+	node.name = &"disk_mesh"
+	node.scale = Vector3.ONE * disk_visual_scale
+	node.rotation += Vector3(
+		deg_to_rad(disk_visual_rotation_deg.x),
+		deg_to_rad(disk_visual_rotation_deg.y),
+		deg_to_rad(disk_visual_rotation_deg.z),
+	)
+	node.position += disk_visual_offset
+	add_child(node)
+
+
+# Find a child of `root` whose name (case-insensitive) starts with the
+# powerup label and contains "disc" — e.g., powerup_label "LOVE" matches
+# "Love disc". Returns null if no master-model layout is present (single-
+# disc scene or unmatched label), in which case the caller uses the
+# instanced root directly.
+func _pick_label_disc(root: Node3D) -> Node3D:
+	if powerup_label.is_empty():
+		return null
+	var needle := powerup_label.to_lower()
+	for c in root.get_children():
+		if c is Node3D:
+			var lname := String(c.name).to_lower()
+			if lname.contains("disc") and lname.contains(needle):
+				return c
+	return null
 
 
 func _process(delta: float) -> void:

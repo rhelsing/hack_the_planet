@@ -20,6 +20,11 @@ extends Node3D
 ## Caption shown on the how-to-use panel after install toast completes.
 @export var howto_caption: String = "You have blades!"
 
+## Optional per-level disk visual. Forwarded into the PowerupPickup so each
+## level can show a different floppy/disc model (LOVE / SEX / SECRET / GOD).
+## Empty = use the default floppy.
+@export var disk_scene: PackedScene
+
 
 func _ready() -> void:
 	# Push exports into the pickup so the single .tscn template can host
@@ -36,6 +41,8 @@ func _ready() -> void:
 			pickup.powerup_flag = powerup_flag
 			pickup.powerup_label = powerup_label
 			pickup.howto_caption = howto_caption
+			if disk_scene != null:
+				pickup.disk_scene = disk_scene
 	# Register with the state machine so completion flags + save paths
 	# reference this level.
 	LevelProgression.register_level(level_num)

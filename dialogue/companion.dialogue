@@ -15,6 +15,6 @@ Glitch: One more thing — those phone booths around the grid. Walk near one and
 
 ~ done
 
-Glitch: Cool. Catch you on the other side.
+Glitch: Right. Catch you on the other side.
 do GameState.set_flag("glitch1_done", true)
 => END

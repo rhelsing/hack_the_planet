@@ -560,7 +560,7 @@ music_loop = ExtResource("61_dustmotions")
 
 [node name="Nyx4" parent="." index="109" unique_id=1337046534 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -44.886158, 34.003185, 4.0391345)
-line = "Oh my God. We need to get you out of there runner. Get out of there!"
+line = "We need to get you out of there runner."
 require_flag = &""
 
 [node name="Nyx6" parent="." index="110" unique_id=624766044 instance=ExtResource("54_walkie")]
@@ -639,7 +639,7 @@ material = ExtResource("26_xr530")
 
 [node name="dialtone_talking_splice" parent="." index="128" unique_id=1015246128 instance=ExtResource("54_walkie")]
 transform = Transform3D(4.094627, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 41.610558, 66.09217)
-line = "Glad you cleared those runner. It looks like someone we haven't seen in a while has resurfaced and is hacking the sentinels in a way we have never seen before. We think it's Splice. If it is, we need to get you out of there quick. We are working on it. Stay safe."
+line = "You cleared them. Good. Listen — someone's hacking sentinels in a way we haven't seen. We think it's Splice. If it is, we need you out. Working on it."
 require_flag = &""
 
 [node name="EnemySpawner3" parent="." index="130" unique_id=582643967 instance=ExtResource("24_fpfi6")]

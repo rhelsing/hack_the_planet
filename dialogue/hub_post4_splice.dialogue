@@ -1,7 +1,9 @@
 ~ start
 
+if GameState.get_flag("hub_post4_splice_danced", false)
+	=> revisit_dancing
 if GameState.get_flag("hub_post4_splice_taunted", false)
-	=> taunt
+	=> revisit_taunted
 
 Splice: Look at you. Standing on the right side of the wall.
 Splice: Funny how that works.
@@ -13,6 +15,10 @@ Splice: Funny how that works.
 	=> told_him
 - You okay in there?
 	=> caged
+- This is kind of cruel.
+	=> bullied
+- You're not getting out. But you can dance.
+	=> dance_offer
 - I won.
 	=> brag
 - Walk away.
@@ -20,7 +26,7 @@ Splice: Funny how that works.
 
 ~ told_him
 
-Splice: I came at the Gibson. You were just in the way.
+Splice: I came at the Gibson. You were **just** in the way.
 Splice: That'll be on the record forever, runner. Won't it.
 => menu
 
@@ -28,13 +34,34 @@ Splice: That'll be on the record forever, runner. Won't it.
 
 Splice: Not really, no.
 Splice: Quarantine's a soft jail. I get bored, the perimeter listens.
-Splice: I am, however, dancing. So.
+Splice: I'm not dancing. I'm watching. Better view, honestly. Front row to every move you make.
 => menu
+
+~ bullied
+
+Splice: ...
+Splice: It is what it is, runner. Don't lose sleep on my behalf.
+Splice: I wouldn't.
+=> menu
+
+~ dance_offer
+
+Splice: ...don't.
+Splice: You don't get to forgive me, runner.
+- I'm not. It's a good song.
+	Splice: ...
+	Splice: It's a fine song.
+	Splice: I'm not doing it for you. I'm doing it because it's a fine song. [#model=eleven_v3]
+	do GameState.set_flag("hub_post4_splice_danced", true)
+	=> menu
+- Fair enough.
+	Splice: Mm.
+	=> menu
 
 ~ brag
 
 Splice: Yeah. You did. Don't get used to it — perimeters fail.
-Splice: I'll remember the move you pulled.
+Splice: This wasn't the version of me you needed to worry about.
 => menu
 
 ~ done
@@ -43,7 +70,12 @@ Splice: Catch you on the wire.
 do GameState.set_flag("hub_post4_splice_taunted", true)
 => END
 
-~ taunt
+~ revisit_taunted
 
 Splice: Back already? The view from outside the cage that good?
+=> menu
+
+~ revisit_dancing
+
+Splice: Back already? The DJ's got taste, I'll give them that.
 => menu

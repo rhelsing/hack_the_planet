@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bbdah8exfsteh" path="res://interactable/pickup/powerup_pickup.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://b4wtspvq7hyjf" path="res://level/interactable/coin/floppy.glb" id="2_064ia"]
+[ext_resource type="PackedScene" uid="uid://dtpl5cfjuyshr" path="res://level/interactable/powerup_disk/love_disc_model.glb" id="3_pwrdisc"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_collision"]
 size = Vector3(1.6125733, 0.8, 2.0027587)
@@ -12,6 +13,7 @@ collision_mask = 0
 script = ExtResource("1_script")
 prompt_verb = "install"
 interactable_id = &"powerup_pickup"
+disk_scene = ExtResource("3_pwrdisc")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1908158614]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20628661, 0, 0.0057739317)

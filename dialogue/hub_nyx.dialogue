@@ -242,11 +242,21 @@ Nyx: But for now? Yes. He's boxed.
 
 ~ done
 
-Nyx: Go pick a song. Earned it.
+Nyx: Go pick a song. Save me one.
 do GameState.set_flag("hub_post4_nyx_celebrated", true)
 => END
 
 ~ celebrated
 
+if GameState.get_flag("hub_post4_splice_danced", false)
+	=> celebrated_splice_dancing
+
 Nyx: Back for round two? Splice still hates this. Stay as long as you want.
+=> menu
+
+~ celebrated_splice_dancing
+
+Nyx: ...is Splice dancing? In there?
+Nyx: ...we didn't see that. [#model=eleven_v3]
+Nyx: Stay as long as you want.
 => menu

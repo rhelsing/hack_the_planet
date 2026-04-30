@@ -367,6 +367,7 @@ do GameState.set_flag("level_4_unlocked", true)
 
 DialTone: Splice is quarantined. Not gone — but boxed in. The grid's logging it everywhere.
 DialTone: They're calling it "the Gibson run". You're a name now, {{HandlePicker.chosen_name()}}.
+DialTone: ...the music's Nyx's call. I'm contractually dancing.
 => post_4_menu
 
 ~ post_4_menu
