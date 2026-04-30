@@ -420,6 +420,14 @@ enum FollowMode { PARENTED, DETACHED }
 ## feet visibly moving while the body crawls.
 @export_range(0.05, 1.0) var walk_anim_min_scale: float = 0.35
 
+## When true, the walk anim playback rate scales with h_speed/max_speed
+## (anchored at `walk_anim_min_scale`). Reads great on the player —
+## strolling vs. striding looks different. Reads BADLY on AI allies/enemies
+## that hover at wander_speed_fraction (≈0.33×), because that lands the
+## anim at ~0.55× authored which looks laggy. Set false on AI pawn variants
+## (enemy_kaykit_splice etc.) so their walk always plays at authored speed.
+@export var walk_anim_speed_scaling: bool = true
+
 @export_group("Skate Strides")
 ## Pool of stride sounds played while skating. Phase-driven cadence; with
 ## two clips and the no-immediate-repeat picker this reads as strict L/R
@@ -608,6 +616,11 @@ const _DEATH_POSE_HOLD := 1.0
 const _DEATH_FLICKER_DURATION := 0.6
 const _DEATH_GLITCH_RAMP := 0.15
 const _DEATH_SAFETY_TIMEOUT := 6.0
+## Below this horizontal speed (m/s), the skin holds Idle instead of Move.
+## Stops physics-jitter velocity (collisions, slope friction, mid-zone follow
+## hysteresis) from flipping Move↔Idle every frame on AI bodies. Tuned well
+## above the noise floor (~0.001–0.05 m/s) and well below any real movement.
+const _MOVE_IDLE_DEADZONE := 0.15
 ## Seconds from the player's death to respawn — fires _finish_death mid-overlay
 ## so "CONNECTION TERMINATED" continues animating while the world reloads
 ## behind it. Enemies still use _DEATH_SAFETY_TIMEOUT (longer fallback for
@@ -626,6 +639,11 @@ var _tint_timer := 0.0
 ## Set on respawn to give the player a grace window against enemies near the
 ## checkpoint.
 var _invuln_until_time: float = -INF
+## Absolute time (seconds) until which kill_plane_touched no-ops. Separate
+## from `_invuln_until_time` so dash i-frames don't save you from falling
+## off the world — only an explicit respawn grants kill-plane immunity, and
+## only briefly (1s, vs the 2s damage-invuln window).
+var _kill_plane_invuln_until_time: float = -INF
 
 # Dash state
 var _dash_timer: float = 0.0
@@ -815,17 +833,15 @@ func _ready() -> void:
 		if body != self:
 			return
 		# Falling off the world skips the HP system — it's always terminal.
-		# Pass DOWN as the impact direction — knockback-death skins won't
-		# reach this anyway (kill plane = respawn for player), but the
-		# signature requires it.
-		# Honor the post-respawn invuln window like take_hit does. Without
-		# this a stale kill_plane signal queued during the death sequence
-		# can fire after _finish_death and re-kill at the spawn point.
-		# kill_plane_3d.gd also drops stale emits via overlaps_body —
-		# this is defense-in-depth.
+		# Two guards: _dying prevents re-entering an in-progress death
+		# sequence, and _kill_plane_invuln_until_time gives a 1s grace
+		# window after respawn so a stale fall signal queued during the
+		# respawn teleport can't insta-re-kill at the checkpoint. Damage
+		# i-frames (_invuln_until_time) are deliberately NOT honored here —
+		# dashing off a cliff still kills.
 		if _dying:
 			return
-		if Time.get_ticks_msec() / 1000.0 < _invuln_until_time:
+		if Time.get_ticks_msec() / 1000.0 < _kill_plane_invuln_until_time:
 			return
 		_start_death(Vector3.DOWN)
 	)
@@ -1143,7 +1159,7 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 	if profile == null or _skin == null:
 		return
 	var in_walk: bool = profile == walk_profile and walk_profile != null
-	if in_walk:
+	if in_walk and walk_anim_speed_scaling:
 		var max_speed: float = maxf(profile.max_speed, 0.001)
 		var ratio: float = clampf(h_speed / max_speed, 0.0, 1.0)
 		var anim_scale: float = lerpf(walk_anim_min_scale, 1.0, ratio)
@@ -1154,6 +1170,9 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 			anim_scale = 1.0
 		_skin.set_walk_speed_scale(anim_scale)
 	else:
+		# Either skating (handled by skate cadence below) OR scaling is
+		# disabled on this pawn (AI variants — see walk_anim_speed_scaling).
+		# Authored playback speed regardless of body velocity.
 		_skin.set_walk_speed_scale(1.0)
 	# --- walk footsteps ---
 	if walk_footsteps_enabled and not _walk_footstep_pool_resolved.is_empty():
@@ -1471,7 +1490,12 @@ func _finish_death() -> void:
 	_attack_timer = 0.0
 	_tint_timer = 0.0
 	# Start the post-respawn grace window. take_hit no-ops until this elapses.
-	_invuln_until_time = Time.get_ticks_msec() / 1000.0 + respawn_invuln_duration
+	# Kill-plane gets a shorter 1s window — long enough to absorb a stale
+	# fall signal queued during the respawn teleport, short enough that a
+	# checkpoint placed near a ledge can still kill you if you walk off.
+	var now: float = Time.get_ticks_msec() / 1000.0
+	_invuln_until_time = now + respawn_invuln_duration
+	_kill_plane_invuln_until_time = now + 1.0
 	if _skin != null:
 		_skin.damage_tint = 0.0
 		# Knockback death froze the AnimationTree and rotated the skin onto
@@ -1515,6 +1539,13 @@ func _spawn_death_confetti() -> void:
 func take_hit(impact_direction: Vector3, force: float, damage: int = 1, attacker: Node = null) -> void:
 	if _dying:
 		return
+	# Provoked aggression: ANY hit (even one blocked by invuln) snaps the AI
+	# brain to HOSTILE on the attacker. Without this, splice_stealth shrugs
+	# off your swing and keeps patrolling because invuln short-circuits the
+	# damage path before any state change. Fires before the invuln check on
+	# purpose — we want the aggro reaction whether or not damage applied.
+	if _brain != null and attacker != null and _brain.has_method(&"aggro_to"):
+		_brain.call(&"aggro_to", attacker)
 	# Faction-aware invuln. Red blocks player attacks (you can't punch them
 	# yourself — recruit golds). Splice_stealth blocks everything via this
 	# path; only StealthKillTarget's backstab calls stealth_kill() directly.
@@ -2144,12 +2175,17 @@ func _physics_process(delta: float) -> void:
 			# Crouched Walking; idle-crouch holds Crouching Idle. Skins without
 			# a CrouchMove state inherit the base default that forwards to
 			# move(), so feet still animate instead of freezing.
+			# Deadzone: physics-jitter (collisions, slope friction, pushback)
+			# bounces velocity around 0 by ~0.001-0.05 m/s. Strict `> 0.0`
+			# flips Move↔Idle every frame for AI bodies stuck against a wall
+			# or in mid-zone follow hysteresis. 0.15 m/s is well below any
+			# real movement (walk ≈ 3 m/s) but above the jitter floor.
 			if is_crouching_now:
-				if ground_speed > 0.0:
+				if ground_speed > _MOVE_IDLE_DEADZONE:
 					_skin.crouch_move()
 				else:
 					_skin.crouch(true)
-			elif ground_speed > 0.0:
+			elif ground_speed > _MOVE_IDLE_DEADZONE:
 				_skin.move()
 			else:
 				_skin.idle()

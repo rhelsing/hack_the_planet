@@ -30,6 +30,13 @@ class_name SceneSetupOnFlag extends Node
 ## player had before. Empty group OR null scene = staging disabled.
 @export var ally_marker_group: StringName = &""
 @export var ally_pawn_scene: PackedScene = null
+## When true, each spawned ally toggles into its skate (rollerblade)
+## profile after gold conversion — pawn_template starts in walk mode by
+## convention, so one toggle puts them in skate. Defaults to false to
+## preserve existing behavior; turn on for staged crews that should
+## roll-with-the-runner instead of walking. Used by L4 Splice showdown
+## to give the staged ally posse rollerblades.
+@export var ally_skate_mode: bool = false
 
 @export_group("Disable on fire")
 ## Rails (Path3D + child Area3D) whose body_entered detection should be
@@ -120,6 +127,13 @@ func _stage_allies() -> void:
 		# completes before set_faction reconfigures brain/buffs.
 		if pawn.has_method(&"set_faction"):
 			pawn.call_deferred(&"set_faction", &"gold")
+		# Optional: flip the pawn into skate (rollerblade) mode. Toggle is
+		# called AFTER set_faction so brain/skin reconfiguration is done.
+		# pawn_template starts in walk mode → one toggle = skate. Idempotent
+		# only under that assumption; if a future template defaults to skate
+		# this would un-toggle them.
+		if ally_skate_mode and pawn.has_method(&"toggle_profile"):
+			pawn.call_deferred(&"toggle_profile")
 
 
 func _disable_rails() -> void:

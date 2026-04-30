@@ -229,12 +229,35 @@ func to_dict() -> Dictionary:
 	}
 
 
+## Flags that should NEVER persist across game launches even if a prior
+## session wrote them true. Wiped after every from_dict() so a continued
+## save reads them as false. Used for "fires once per fresh-cutscene-run"
+## semantics on regular GameState flags — like the L4 battle radio arm,
+## which gates a CutscenePlayer (which uses the regular flags dict via
+## Events.flag_set) but should reset on a fresh showdown play.
+##
+## Also covers shared-persist-flag walkie groups (Walkie19..24 share
+## `l4_walkie19_fired` so any one firing silences the others). Without
+## this reset, once tripped the entire group stays dead for the save's
+## lifetime, even on fresh playthroughs from continue. Wiping at load
+## means: same-session = group fires once, never repeats; fresh launch /
+## continue = group re-armed, fires again on first area entry.
+const _SESSION_RESET_FLAGS: Array[StringName] = [
+	&"l4_battle_radio_arm",
+	&"l4_walkie19_fired",
+]
+
+
 func from_dict(d: Dictionary) -> void:
 	var loaded_inv: Array = d.get("inventory", [])
 	inventory.clear()
 	for entry: Variant in loaded_inv:
 		inventory.append(StringName(entry))
 	flags = d.get("flags", {}).duplicate(true)
+	# Wipe session-scoped flags so cutscene re-runs aren't poisoned by a
+	# prior session's write. See _SESSION_RESET_FLAGS docstring.
+	for f: StringName in _SESSION_RESET_FLAGS:
+		flags.erase(f)
 	dialogue_visited = d.get("dialogue_visited", {}).duplicate(true)
 	# Coin sets persist across reload — collected coins stay collected
 	# permanently, and the seen-set survives so the HUD denominator is

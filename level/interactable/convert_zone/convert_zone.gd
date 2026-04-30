@@ -29,11 +29,33 @@ static var _registry: Dictionary = {}
 
 
 func _ready() -> void:
+	if forbid_enemy_jump:
+		# Tag every overlapping body with a refcounted "jump inhibit" meta
+		# while they're inside this zone. enemy_ai_brain reads the meta and
+		# skips ALL jump-decision logic for the tick — they don't even
+		# enter the jump-considering code path. Refcount handles stacked
+		# zones correctly: only fully clears on exit from the last one.
+		body_entered.connect(_on_body_entered_forbid)
+		body_exited.connect(_on_body_exited_forbid)
 	if id == &"":
 		return
 	var arr: Array = _registry.get(id, [])
 	arr.append(self)
 	_registry[id] = arr
+
+
+func _on_body_entered_forbid(body: Node) -> void:
+	if body == null:
+		return
+	var count: int = int(body.get_meta(&"jump_inhibit_count", 0))
+	body.set_meta(&"jump_inhibit_count", count + 1)
+
+
+func _on_body_exited_forbid(body: Node) -> void:
+	if body == null:
+		return
+	var count: int = int(body.get_meta(&"jump_inhibit_count", 0))
+	body.set_meta(&"jump_inhibit_count", maxi(0, count - 1))
 
 
 func _exit_tree() -> void:
@@ -55,19 +77,12 @@ static func zones_for(zone_id: StringName) -> Array:
 	return _registry.get(zone_id, []) as Array
 
 
-## Returns true if `body` overlaps any registered ConvertZone with
-## forbid_enemy_jump=true. Walks every registered zone (id-agnostic) so a
-## single forbid-jump zone applies regardless of which id it carries.
-## Called per-frame from enemy_ai_brain when jump intent is about to fire —
-## hot-path-safe: most ConvertZones default forbid=false so the inner
-## overlaps_body() never runs.
+## Returns true if `body` is currently inside one or more ConvertZones with
+## forbid_enemy_jump=true. Reads a refcount meta tag set by body_entered /
+## body_exited handlers — no per-tick zone iteration. enemy_ai_brain calls
+## this once at the top of jump-decision branches; the body itself "knows"
+## it can't jump while inside a forbid zone.
 static func is_jump_forbidden_for(body: Node) -> bool:
 	if body == null:
 		return false
-	for arr: Array in _registry.values():
-		for zone: ConvertZone in arr:
-			if not zone.forbid_enemy_jump:
-				continue
-			if zone.overlaps_body(body):
-				return true
-	return false
+	return int(body.get_meta(&"jump_inhibit_count", 0)) > 0

@@ -47,26 +47,32 @@ func _ready() -> void:
 
 
 ## InteractionSensor calls this with on=true when this target becomes the
-## focused interactable. The actual mesh overlay is gated on the same
-## behind/crouch/powerup checks `can_interact` uses — the sensor's
-## proximity-based focus is necessary but not sufficient. _physics_process
-## re-evaluates per-tick while focused, so the overlay tracks player
-## position in real time.
+## focused interactable. With layer-gated visibility (see _physics_process)
+## focus only happens when we're eligible, so this is essentially a
+## redundant secondary signal — but we honor it for safety so an unfocused
+## state always clears the overlay.
 func set_highlighted(on: bool) -> void:
 	_focus_active = on
 	if not on:
 		_apply_highlight(false)
 
 
-# Repaint per-tick while focused. Cheap when the eligibility hasn't flipped
-# (the _painted cache short-circuits the mesh walk).
+# Drive BOTH the sensor's view of us (collision_layer) AND the highlight
+# overlay from a single eligibility predicate. Sensor scans by collision
+# layer (`interaction_sensor.gd:98`), so layer=0 → sensor blind → no focus
+# → PromptUI stays empty (`prompt_ui.gd:125`). Same pattern as
+# `puzzle_terminal.gd:106` for visibility-gated terminals. The label, the
+# (locked) suffix, and the cyan overlay are all bound to one signal:
+# `_eligible_for_highlight(actor)`.
+const _SENSOR_VISIBLE_LAYER: int = 512
 func _physics_process(_delta: float) -> void:
-	if not _focus_active:
-		return
 	var actor: Node3D = _player_actor()
-	var should_paint: bool = actor != null and _eligible_for_highlight(actor)
-	if should_paint != _painted:
-		_apply_highlight(should_paint)
+	var eligible: bool = actor != null and _eligible_for_highlight(actor)
+	var desired_layer: int = _SENSOR_VISIBLE_LAYER if eligible else 0
+	if collision_layer != desired_layer:
+		collision_layer = desired_layer
+	if eligible != _painted:
+		_apply_highlight(eligible)
 
 
 # First member of the "player" group. Used by the per-tick highlight

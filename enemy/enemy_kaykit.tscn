@@ -14,6 +14,7 @@ dies_permanently = true
 walk_profile = ExtResource("4_profile")
 skate_profile = ExtResource("5_skate")
 start_in_walk_mode = true
+walk_anim_speed_scaling = false
 max_health = 1
 death_sound_auto_load_dir = "res://audio/sfx/enemy_deaths"
 attack_kick_auto_load_dir = "res://audio/sfx/attack_kicks"

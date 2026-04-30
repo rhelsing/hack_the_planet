@@ -26,9 +26,15 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## to the hacker power-up for legacy hacking terminals; set empty ("") to
 ## remove the gate so non-hack puzzles (flow, password) don't require it.
 @export var required_flag: StringName = &"powerup_secret"
-## Message shown in the locked prompt when `required_flag` isn't set. Empty
-## uses the default "not a hacker" text from legacy hacking terminals.
+## Message shown when `required_flag == powerup_secret` and the player
+## hasn't picked up the hack ability yet. The copy assumes the gate IS the
+## ability gate; per-terminal override if a specific terminal needs flavor.
 @export var locked_message: String = "not a hacker"
+## Message shown when `required_flag` is some non-powerup gate (e.g., a
+## chain predecessor's interactable_id). Surfaced when the player HAS the
+## hack ability but this specific terminal isn't ready yet — usually
+## because they need to solve another terminal first.
+@export var disabled_message: String = "Terminal Disabled. Have you tried turning it on?"
 
 ## Path to a .maze file (authored in tools/maze_editor/) forwarded into the
 ## puzzle instance as `maze_path` when interact() fires. Only relevant when
@@ -196,7 +202,12 @@ func can_interact(actor: Node3D) -> bool:
 
 func describe_lock() -> String:
 	if required_flag != &"" and not bool(GameState.get_flag(required_flag, false)):
-		return locked_message
+		# Branch on WHY the lock fired: missing hack ability vs. some other
+		# gate flag (typically a chain predecessor's interactable_id).
+		# "not a hacker" only makes sense for the ability gate.
+		if required_flag == &"powerup_secret":
+			return locked_message
+		return disabled_message
 	return super.describe_lock()
 
 

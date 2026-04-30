@@ -119,7 +119,7 @@ size = Vector3(115.761215, 1, 9.029175)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 166.56305, -15.226713, -70.95506)
 
 [node name="KillPlane" parent="." index="8" unique_id=1073834918]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -28.833447, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -26.777744, 0)
 
 [node name="PlayerSpawn" parent="." index="9" unique_id=139234302]
 transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.99753845, -30.135954, -12.213342, 59.940693)
@@ -169,7 +169,7 @@ dialogue_resource = ExtResource("16_l4nyx")
 interactable_id = &"npc_nyx_l4"
 
 [node name="BuriedReveal" parent="Nyx" index="5" unique_id=641539165 instance=ExtResource("39_buriedrev")]
-reveal_flag = &"l4_terminals_reveal"
+reveal_flag = &"l4_terminal_planet"
 bury_depth = 30.0
 
 [node name="Beacon" parent="Nyx" index="6" unique_id=388036129 instance=ExtResource("44_beacon")]
@@ -185,7 +185,7 @@ dialogue_resource = ExtResource("18_l4dialtone")
 interactable_id = &"npc_dialtone_l4"
 
 [node name="BuriedReveal" parent="DialTone" index="5" unique_id=189898714 instance=ExtResource("39_buriedrev")]
-reveal_flag = &"l4_terminals_reveal"
+reveal_flag = &"l4_terminal_planet"
 bury_depth = 30.0
 
 [node name="Beacon" parent="DialTone" index="6" unique_id=1128665406 instance=ExtResource("44_beacon")]
@@ -951,6 +951,12 @@ interactable_id = &"l4_terminal_hack"
 [node name="BuriedReveal" parent="terminal_hack" index="3" unique_id=2137073819 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
 
+[node name="Beacon" parent="terminal_hack" index="4" unique_id=505050505 instance=ExtResource("44_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+color = Color(0.3, 1, 0.5, 1)
+label = "HACK"
+visible_when_flag = &"l4_terminals_reveal"
+
 [node name="terminal_the" parent="." index="194" unique_id=963166808 instance=ExtResource("20_fa07n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.20227, 34.701344, -519.5497)
 maze_path = "res://puzzle/maze/mazes/rabbit_hole_bin_THE.maze"
@@ -1070,7 +1076,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 433.0639, -3.9426527, -588.71
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 421.0691, -5.430666, -546.88794)
 
 [node name="SpliceMinionSpawner" parent="." index="225" unique_id=382949826 instance=ExtResource("37_repspawn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 498.09283, 32, -596.9421)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 485.85828, 6.4423223, -586.1411)
 spawn_scene = ExtResource("21_dpqqc")
 arm_flag = &"l4_splice_cutscene_done"
 initial_delay = 30.0
@@ -1088,6 +1094,7 @@ session_played_flag = &"l4_splice_cutscene_played"
 
 [node name="BouncyPlatform9" parent="." index="227" unique_id=1080128589 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 428.79776, -4.6320395, -549.0698)
+size = Vector3(7, 1, 7)
 
 [node name="BuriedReveal" parent="BouncyPlatform9" index="2" unique_id=1890438494 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
@@ -1095,6 +1102,7 @@ start_offset = Vector3(0, 0, 15)
 
 [node name="BouncyPlatform10" parent="." index="228" unique_id=1722846190 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 429.29697, 2.0347996, -540.98224)
+size = Vector3(7, 1, 7)
 
 [node name="BuriedReveal" parent="BouncyPlatform10" index="2" unique_id=1028675440 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
@@ -1102,27 +1110,31 @@ start_offset = Vector3(0, 0, 15)
 
 [node name="BouncyPlatform11" parent="." index="229" unique_id=867761441 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 438.1845, 8.540169, -536.0314)
+size = Vector3(7, 1, 7)
 
 [node name="BuriedReveal" parent="BouncyPlatform11" index="2" unique_id=947101608 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
 start_offset = Vector3(0, 0, 15)
 
 [node name="BouncyPlatform12" parent="." index="230" unique_id=436468444 instance=ExtResource("17_m36c5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 427.60956, 15.396721, -532.5372)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 427.60956, 13.893591, -532.5372)
+size = Vector3(7, 1, 7)
 
 [node name="BuriedReveal" parent="BouncyPlatform12" index="2" unique_id=1619809610 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
 start_offset = Vector3(0, 0, 15)
 
 [node name="BouncyPlatform13" parent="." index="231" unique_id=1492256122 instance=ExtResource("17_m36c5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 417.4491, 21.77353, -531.7553)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 417.4491, 19.34788, -531.7553)
+size = Vector3(7, 1, 7)
 
 [node name="BuriedReveal" parent="BouncyPlatform13" index="2" unique_id=533948449 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
 start_offset = Vector3(0, 0, 15)
 
 [node name="BouncyPlatform14" parent="." index="232" unique_id=685410085 instance=ExtResource("17_m36c5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 408.5216, 29.21243, -531.7553)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 408.5216, 25.384533, -531.7553)
+size = Vector3(7, 1, 7)
 
 [node name="BuriedReveal" parent="BouncyPlatform14" index="2" unique_id=360855697 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
@@ -1146,6 +1158,7 @@ shape = SubResource("ConcavePolygonShape3D_nh3ff")
 [node name="BuriedReveal" parent="cage" index="1" unique_id=1892557566 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminal_planet"
 bury_depth = 8.522
+reveal_duration = 3.0
 
 [node name="WellShitCutscene" parent="." index="235" unique_id=494067337 instance=ExtResource("49_csplayer")]
 timeline = ExtResource("51_l4wellshit")
@@ -1161,12 +1174,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 161.78722, -16.94369, 41.2915
 
 [node name="BattleRadioCutscene" parent="." index="238" unique_id=707070707 instance=ExtResource("49_csplayer")]
 timeline = ExtResource("52_l4btradio")
-arm_flag = &"l4_ten_reds_down"
+arm_flag = &"l4_battle_radio_arm"
 stop_flag = &"l4_terminals_reveal"
 
 [node name="TenRedsDownCounter" parent="." index="239" unique_id=606060606 instance=ExtResource("53_killctr")]
 arm_flag = &"l4_splice_cutscene_started"
-done_flag = &"l4_ten_reds_down"
+done_flag = &"l4_battle_radio_arm"
+kill_threshold = 1
 
 [node name="PlayerStagePos" type="Marker3D" parent="." index="240" unique_id=808080808]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 475.5605, 34.299385, -523.7794)
@@ -1176,6 +1190,7 @@ listen_flag = &"l4_splice_says_name"
 player_teleport_target = NodePath("../PlayerStagePos")
 ally_marker_group = &"l4_gold_stage"
 ally_pawn_scene = ExtResource("21_dpqqc")
+ally_skate_mode = true
 rails_to_disable = Array[NodePath]([NodePath("../Rail4")])
 
 [node name="EnemyKayKit28" parent="." index="242" unique_id=1460279179 instance=ExtResource("18_02w31")]
@@ -1195,3 +1210,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 472.07343, 2.7866275, -263.12
 
 [node name="EnemyKayKit33" parent="." index="247" unique_id=1356626302 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 476.8357, 2.7866268, -246.62347)
+
+[node name="ThirtyKillsCounter" parent="." index="248" unique_id=303030303 instance=ExtResource("53_killctr")]
+arm_flag = &"l4_splice_cutscene_done"
+done_flag = &"l4_terminals_reveal"
+kill_threshold = 30
+
+[node name="NyxTerminalsLoadedWalkie" parent="." index="249" unique_id=404040404 instance=ExtResource("45_flagwalk")]
+character = &"Nyx"
+line = "Alright, {player_handle}. Final step! The terminals are loaded!"
+trigger_flag = &"l4_terminals_reveal"

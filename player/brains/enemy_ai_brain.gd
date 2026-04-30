@@ -283,6 +283,11 @@ var _jump_attempted_target: Node3D = null
 # parity height (target no longer below threshold).
 var _drop_attempted_target: Node3D = null
 var _target: Node3D
+# Cached reference to the body that's driving us. Set on first tick (and
+# re-set every tick — cheap reassignment, but keeps the ref fresh if the
+# brain ever gets reparented). Used by aggro_to() so externally-triggered
+# phase changes can fire _on_alert_phase_changed without a body argument.
+var _body_ref: Node3D = null
 # Hysteresis state for follow zoning. Flipped to true when the subject
 # crosses follow_engage_distance going out; back to false when crossing
 # follow_arrive_distance coming in. While true, ally actively path-finds
@@ -398,6 +403,7 @@ func _ready() -> void:
 
 
 func tick(body: Node3D, delta: float) -> Intent:
+	_body_ref = body  # cache for aggro_to() and other external entry points
 	if not _perf_setup_done:
 		_setup_perf(body)
 		_setup_debug_label(body)
@@ -770,6 +776,34 @@ func _exit_tree() -> void:
 	# the registry doesn't leak references to dead nodes.
 	if _target != null:
 		_set_target(null)
+
+
+## Public hook: called by external systems (e.g., PlayerBody.take_hit) to
+## snap this brain into HOSTILE on a specific attacker, regardless of cone
+## arc, range, or LOS. Provoked aggression — being hit always commits the
+## AI to chase, even when the body's invuln blocks the damage. Validates
+## the attacker is in our target_groups (no friendly-fire aggro).
+func aggro_to(attacker: Node) -> void:
+	if attacker == null or not (attacker is Node3D):
+		return
+	var att3d: Node3D = attacker as Node3D
+	var is_valid_target: bool = false
+	for grp in target_groups:
+		if att3d.is_in_group(grp):
+			is_valid_target = true
+			break
+	if not is_valid_target:
+		return
+	_set_target(att3d)
+	if _alert_phase != _AlertPhase.HOSTILE:
+		var prior: int = _alert_phase
+		_alert_phase = _AlertPhase.HOSTILE
+		_alert_timer = 0.0
+		_state = State.CHASE
+		# Fire the phase-change hook so aggressive_while_chasing buffs apply
+		# and the cone color flashes red. _body_ref is set every tick.
+		if _body_ref != null:
+			_on_alert_phase_changed(_body_ref, prior, _alert_phase)
 
 
 func _horizontal_distance(a: Vector3, b: Vector3) -> float:
