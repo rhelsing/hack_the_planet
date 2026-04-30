@@ -1,0 +1,100 @@
+Hack The Planet — Credits
+
+
+Team
+
+Game Dev — Ryan Helsing
+Design and Characters — Laurel Moore
+Music — Tyler Ono
+Music — Griffin Knock
+Game Design — Dustin Garner
+
+
+Playtesting
+
+Nolan Cooper
+Kyra Rush
+
+
+3D Models — Sketchfab (CC-BY 4.0)
+
+Thank you to the Sketchfab community whose models bring the Gibson to life.
+
+Drone Robot Enemy by Just8 — https://sketchfab.com/3d-models/drone-robot-enemy-1a36815b7e00402d8dc219f0c39bf06a
+Cop Riot Multi Anim by Leo — https://sketchfab.com/3d-models/cop-riot-multi-anim-e79a33bbf4f849f8b0dd2f3bd0a65e40
+Floppy by ocean — https://sketchfab.com/3d-models/floppy-289fccd9b1904d32afe8fab12cd4994a
+Public Phone Booth by tribhuvantechnoart — https://sketchfab.com/3d-models/public-phone-booth-d86b8632da384514965b9d920815334e
+Pool – LowPoly by Blendev — https://sketchfab.com/3d-models/pool-lowpoly-9bb9102cb52444bea910678e1c27a6e4
+Sci-Fi Laptop (alternative 90s) by holgcool — https://sketchfab.com/3d-models/sci-fi-laptop-alternative-90s-1d67104ac71c495293fdbf7e7059b732
+Floating Robot by nada.elshorbagi — https://sketchfab.com/3d-models/floating-robot-20dd7f7bdc9a4c36aef491f12afa14d8
+Anime Character (Free) by Legend — used in-game as Dialtone — https://sketchfab.com/3d-models/anime-character-free-b308a290e1944da4bc84c9a74e3c02bb
+
+
+3D Models — Other
+
+Mannequiny rig — GDQuest, CC-BY 4.0 — https://github.com/gdquest-demos/godot-3d-mannequin
+KayKit Mannequin Character Pack + animations — https://kaykit.itch.io/
+AJ, Splice, Nyx skins + rigs — https://www.mixamo.com/
+
+
+Animation
+
+Mixamo — humanoid rigs and motion-capture animations — https://www.mixamo.com/
+
+
+Music
+
+Original tracks by Ryan Helsing:
+
+& interpersonal arbitrage
+this is me letting you go
+for new drugs
+
+Original tracks by Ryan Helsing & Matthew Saltz:
+
+Vibes A
+Vibes B
+Vibes C
+Vibes D
+
+Licensed / sourced tracks:
+
+One Love — The Prodigy
+Halcyon + On + On — Orbital
+A Song To Fall Through Textures — Dopo Goto
+The Songs From The Disc Three — Dopo Goto
+
+
+Sound Effects
+
+Sourced from the amazing creator communities at:
+
+Pixabay — foley, UI clicks, ambient one-shots, footsteps, bounces, impacts, deaths, misc — https://pixabay.com/
+Sketchfab — additional foley and one-shots — https://sketchfab.com/
+
+
+Voice / TTS
+
+ElevenLabs — text-to-speech voice synthesis for in-game dialogue — https://elevenlabs.io/
+
+
+Code / Tools / Engines
+
+Godot Engine — game engine — https://godotengine.org/
+Dialogue Manager by Nathan Hoad — dialogue tree runtime — https://github.com/nathanhoad/godot_dialogue_manager
+GDQuest — base player controller reference — https://www.gdquest.com/
+Inigo Quilez — shader / noise / SDF references — https://iquilezles.org/
+
+
+AI Providers
+
+Trained by harvesting humanity's actual soul. Credited because that's the deal.
+
+Claude by Anthropic — code, dialogue, design iteration — https://www.anthropic.com/claude
+ChatGPT by OpenAI — code, dialogue, design iteration — https://openai.com/chatgpt
+ElevenLabs — text-to-speech voice synthesis (also listed under Voice) — https://elevenlabs.io/
+
+
+Special Thanks
+
+And every phone booth that still takes a quarter.

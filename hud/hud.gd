@@ -9,3 +9,7 @@ func _ready() -> void:
 	# HUD belongs to gameplay only — never on the main menu. The scene tree
 	# guarantees this (we're a child of game.tscn), but call it out.
 	layer = 0
+	# Register so the cutscene engine (and anything else that wants to
+	# show/hide gameplay UI wholesale) can find us via the "hud" group.
+	# See docs/cutscene_engine.md §10.6.
+	add_to_group(&"hud")

@@ -30,6 +30,14 @@ extends Interactable
 ## tree and the whole pawn glows on focus.
 var _resolved_highlight_meshes: Array[MeshInstance3D] = []
 var _highlight_resolved: bool = false
+# Tracks whether the InteractionSensor currently has us focused. When
+# true, _physics_process re-evaluates the eligibility checks (behind +
+# crouched + powerup) every tick so the overlay flips on/off as the
+# player orbits the pawn — focus alone isn't enough to paint.
+var _focus_active: bool = false
+# Last-applied overlay state. Lets the per-tick refresh skip the mesh
+# walk when nothing changed.
+var _painted: bool = false
 
 
 func _ready() -> void:
@@ -39,10 +47,63 @@ func _ready() -> void:
 
 
 ## InteractionSensor calls this with on=true when this target becomes the
-## focused interactable. We paint a translucent blue-green emissive overlay
-## on every MeshInstance3D in the parent pawn so the player has the same
-## "in range" affordance the puzzle terminals use.
+## focused interactable. The actual mesh overlay is gated on the same
+## behind/crouch/powerup checks `can_interact` uses — the sensor's
+## proximity-based focus is necessary but not sufficient. _physics_process
+## re-evaluates per-tick while focused, so the overlay tracks player
+## position in real time.
 func set_highlighted(on: bool) -> void:
+	_focus_active = on
+	if not on:
+		_apply_highlight(false)
+
+
+# Repaint per-tick while focused. Cheap when the eligibility hasn't flipped
+# (the _painted cache short-circuits the mesh walk).
+func _physics_process(_delta: float) -> void:
+	if not _focus_active:
+		return
+	var actor: Node3D = _player_actor()
+	var should_paint: bool = actor != null and _eligible_for_highlight(actor)
+	if should_paint != _painted:
+		_apply_highlight(should_paint)
+
+
+# First member of the "player" group. Used by the per-tick highlight
+# refresh — sensor doesn't pass the actor through to set_highlighted().
+func _player_actor() -> Node3D:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	return tree.get_first_node_in_group(&"player") as Node3D
+
+
+# Side-effect-free mirror of can_interact's gate set. Called every physics
+# frame while focused, so no debug prints — keep it tight.
+func _eligible_for_highlight(actor: Node3D) -> bool:
+	if required_powerup != &"" and not GameState.get_flag(required_powerup, false):
+		return false
+	if "_was_crouched" in actor and not bool(actor.get(&"_was_crouched")):
+		return false
+	var pawn: Node3D = get_parent() as Node3D
+	if pawn == null or not is_instance_valid(pawn):
+		return false
+	if "is_dying" in pawn and bool(pawn.call(&"is_dying")):
+		return false
+	var pawn_forward: Vector3 = _pawn_forward(pawn)
+	if pawn_forward.length_squared() < 0.0001:
+		return true
+	var to_actor: Vector3 = actor.global_position - pawn.global_position
+	to_actor.y = 0.0
+	if to_actor.length_squared() < 0.0001:
+		return true
+	to_actor = to_actor.normalized()
+	return pawn_forward.dot(to_actor) <= behind_dot_threshold
+
+
+# Paint or clear the overlay on every cached MeshInstance3D in the pawn.
+func _apply_highlight(on: bool) -> void:
+	_painted = on
 	var meshes: Array[MeshInstance3D] = _resolve_highlight_meshes()
 	if meshes.is_empty():
 		return

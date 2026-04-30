@@ -6,11 +6,10 @@ extends VBoxContainer
 const POP_SCALE := 1.18
 const POP_S := 0.15
 
-## Coin-row emoji. Defaults to 🥤 (cup-with-straw — closest emoji to a
-## soda can; no aluminum-can glyph exists in Unicode). Swap to 🥫 if you
-## want the tin-can silhouette instead. Inspector-editable so reskins are
-## a one-field change without touching the .tscn.
-@export var coin_emoji: String = "🥤"
+# Coin icon is now a TextureRect in counters.tscn pointing at
+# res://hud/icons/coin.png (Jolt cola can). Reskin by swapping the texture
+# in the .tscn. Legacy `coin_emoji` export retired with the Label → image
+# migration.
 
 # Walkie / companion comm chip — appears on the HUD once the player has been
 # registered (Glitch's pick beat grants this). Pulses whenever a Walkie or
@@ -34,7 +33,7 @@ const KEY_COLORS := {
 const KEY_COLOR_FALLBACK := Color(0, 1, 1)  # accent_cyan
 
 @onready var _coin_row:   HBoxContainer = %CoinRow
-@onready var _coin_icon:  Label         = %CoinIcon
+@onready var _coin_icon:  TextureRect   = %CoinIcon
 @onready var _coin_label: Label         = %CoinLabel
 @onready var _keys_row:   HBoxContainer = %KeysRow
 @onready var _walkie_row:  HBoxContainer = %WalkieRow
@@ -42,12 +41,9 @@ const KEY_COLOR_FALLBACK := Color(0, 1, 1)  # accent_cyan
 
 const _WALKIE_IDLE_MODULATE: Color = Color(1, 1, 1, 0.55)
 const _WALKIE_ACTIVE_MODULATE: Color = Color(0.55, 1, 0.65, 1)
-var _walkie_pulse_tween: Tween
 
 
 func _ready() -> void:
-	# Apply the configured emoji once. Future swaps just change the export.
-	_coin_icon.text = coin_emoji
 	Events.coin_collected.connect(_on_coin_collected)
 	Events.item_added.connect(_on_item_added)
 	Events.item_removed.connect(_on_item_removed)
@@ -106,17 +102,9 @@ func _on_walkie_line_started(_character: String, _text: String) -> void:
 	if not _walkie_row.visible:
 		return
 	_walkie_icon.modulate = _WALKIE_ACTIVE_MODULATE
-	if _walkie_pulse_tween != null and _walkie_pulse_tween.is_valid():
-		_walkie_pulse_tween.kill()
-	_walkie_pulse_tween = create_tween().set_loops().set_trans(Tween.TRANS_SINE)
-	_walkie_pulse_tween.tween_property(_walkie_icon, "scale", Vector2(1.15, 1.15), 0.35)
-	_walkie_pulse_tween.tween_property(_walkie_icon, "scale", Vector2(1.0, 1.0), 0.35)
 
 
 func _on_walkie_line_ended() -> void:
-	if _walkie_pulse_tween != null and _walkie_pulse_tween.is_valid():
-		_walkie_pulse_tween.kill()
-	_walkie_icon.scale = Vector2.ONE
 	_walkie_icon.modulate = _WALKIE_IDLE_MODULATE
 
 

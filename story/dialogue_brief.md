@@ -42,7 +42,7 @@ DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break h
 ~ intro_messenger
 
 DialTone: ...maybe.
-DialTone: Let's just say I noticed you. The way you asked questions on hacker news intrigued me.
+DialTone: Let's just say I noticed you. The way you asked questions on neon-archive intrigued me.
 DialTone: I wanted to see what you were made of.
 do GameState.set_flag("dialtone_messenger_thread", 1)
 DialTone: Anything else?
@@ -216,7 +216,7 @@ do GameState.set_flag("glitch1_done", true)
 ### `WalkieTriggerIntro2` — DialTone
 **Position:** (-51.97108, 5.6971655, 169.44095)
 
-> I see you've started collecting the cans. Good for the planet — and for you. The more you collect, the greater your mods. Below threshold, the upgrade is unimpressive. That's all I will say for now.
+> I see you've started collecting the Jolt Cola — all the sugar and twice the caffeine. The more you collect, the greater your mods. That's all I'll say for now.
 
 ## Respawn Voice Hints (`level/level_1.tscn`) — 1 total
 
@@ -340,7 +340,7 @@ do GameState.set_flag("glitch_chance_done", true)
 Nyx: Hey there runner.
 do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
 Nyx: Umm.. why are you looking at me like that?
-- Dial tone said you needed help?
+- DialTone said you needed help?
 	Nyx: Of course he did! He's a child.
 	Nyx: This is just where I like to go to think sometimes.
 	=> tail
@@ -353,7 +353,7 @@ Nyx: Umm.. why are you looking at me like that?
 ~ tail
 
 Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
-Nyx: God, I swear I'm going to kill him!
+Nyx: I'm going to kill him.
 Nyx: We are gonna have to go have a talk with him.
 - Head back to the hub.
 	do LevelProgression.advance()
@@ -384,7 +384,7 @@ Nyx: It does. Trust me.
 
 ~ post_1_menu
 
-- So whats next?
+- So what's next?
 	=> post_1_done
 - So what was that about?
 	=> post_1_explain
@@ -582,7 +582,7 @@ if GameState.get_flag("level_2_glitch_briefed", false)
 	=> stage_revisit
 
 Glitch: That was pretty intense back there.
-Glitch: So I bet you are wondering how these new abilities work.
+Glitch: You'll want a briefing on these new abilities.
 - Please?
 	=> abilities
 
@@ -1239,7 +1239,7 @@ Splice: Easy. Easy.
 do Cutscene.show_video("res://cutscenes/splice_intro.ogv")
 Splice: The trap was for the conversation. That's all.
 Splice: Splice. You may have heard the name.
-Splice: I've been on your channel since the floppy run. Watching. Not interfering.
+Splice: I've been following your signal since your first run. Watching. Not interfering.
 Splice: You're better at this than the crew you came in with realizes. They've got you running their little chores.
 Splice: Step off-channel a minute. Just listen. Walk away if you want.
 - Get off my channel.
@@ -1252,7 +1252,7 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing floppies.
+Splice: The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing soda cans.
 Splice: I **was** them. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: Not because you took it. Because you saw it first. The rest are too busy performing.
@@ -1279,7 +1279,7 @@ Splice: You're the same. That's why I'm talking to you and not them.
 
 ~ splice_if_no
 
-Splice: Then you go back to your floppy run and your little prank crew. No hard feelings.
+Splice: Then you go back to your soda run and your little prank crew. No hard feelings.
 Splice: You'll think about this. Probably tonight.
 Splice: When you do — channel's open.
 - Actually, I'm in.
@@ -1813,6 +1813,24 @@ do GameState.set_flag("l4_glitch_invention_celebrated", true)
 
 ```
 
+<!-- source: dialogue/level_4_glitch_post.dialogue -->
+<!-- type: dialogue_file -->
+
+## `dialogue/level_4_glitch_post.dialogue`
+
+```
+~ start
+
+Glitch: Ah. You've moved past the platforms.
+Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
+Glitch: One thing while I have you.
+Glitch: Sentinels lose interest the moment you crouch. Their detection cone clips your knees, apparently.
+Glitch: So — no more lambs to the slaughter. Crouch when you need a breather.
+Glitch: Carry on.
+=> END
+
+```
+
 <!-- source: dialogue/level_4_dialtone.dialogue -->
 <!-- type: dialogue_file -->
 
@@ -1890,45 +1908,100 @@ do GameState.set_flag("level_4_dialtone_done", true)
 
 ```
 
-<!-- source: dialogue/level_4_splice_showdown.dialogue -->
+<!-- source: cutscenes/l4_splice_showdown.tres -->
+<!-- type: cutscene_timeline -->
+
+## `cutscenes/l4_splice_showdown.tres`
+
+```
+do GameState.set_flag("l4_splice_cutscene_done", true)
+# cut → ../CutsceneCam_Splice
+# stinger
+# music swap
+do wait(1.5)
+Splice: {player_handle}. [#walkie]
+Splice: So here we are. [#walkie]
+Splice: The world's **rigged**. You know it. Everybody knows it. [#walkie]
+Splice: They sell you **"rules"** and they sell you **"fair"** and they sell you **"earn it"** — and meanwhile the people who already have everything **write the rulebook with their other hand**. [#walkie]
+Splice: I figured that out and I started playing. [#walkie]
+Nyx: He has no idea what's coming, does he? [#walkie]
+# skip-point: halfpipe
+# cut → ../CutsceneCam_Halfpipe
+Splice: After tonight, the Gibson is **mine**. [#walkie]
+Splice: Comms. Finance. Routing. Every sentinel that's ever responded to a ping. [#walkie]
+Splice: I don't **burn** it. I don't have to. [#walkie]
+Splice: I just decide who gets to **keep using** it. [#walkie]
+Splice: That's the real win. Not destruction. **Permission**. [#walkie]
+Splice: Your crew thinks they're the protagonists, runner. [#walkie]
+Splice: DialTone thinks he runs the channel. He ran it because nobody important was listening. [#walkie]
+Splice: Somebody's **listening** now. [#walkie]
+DialTone: He's been workshopping that monologue for years. I once read a draft. Six pages. [#walkie]
+# skip-point: finale
+# cut → ../CutsceneCam_Splice
+Splice: They're voices in your ear. **I'm here**. [#walkie]
+Splice: That should tell you something about who's **actually in the room**. [#walkie]
+Splice: When this is over — when I'm at root — I'm not going to do **anything cruel**. [#walkie]
+Splice: I want you to know that. [#walkie]
+Splice: I'm just going to do **anything I want**. Forever. [#walkie]
+# music swap
+```
+
+<!-- source: cutscenes/l4_well_shit.tres -->
+<!-- type: cutscene_timeline -->
+
+## `cutscenes/l4_well_shit.tres`
+
+```
+# cut → ../CutsceneCam_Splice
+Splice: Well, shit.
+```
+
+<!-- source: dialogue/level_4_battle_radio_1.dialogue -->
 <!-- type: dialogue_file -->
 
-## `dialogue/level_4_splice_showdown.dialogue`
+## `dialogue/level_4_battle_radio_1.dialogue`
 
 ```
 ~ start
 
-# Pre-battle villain monologue. Splice arrives across the platforms; only
-# Nyx interjects on the walkie channel (Splice can't hear her). DialTone
-# is listening silently. Glitch is absent. Ends straight into the boss
-# battle — no player choices, no menu, just the cinematic.
+# 3-minute battle banter. Splice is on the walkie, NOT yet in quarantine —
+# starts cocky, slowly realizes he's losing. Nyx + DialTone needle him as
+# his confidence cracks. `do wait(N)` paces between groups
+# to roughly 10s cadence.
 
-Splice: {{HandlePicker.chosen_name()}}.
-Splice: So here we are.
+Nyx: Ten down already. [#walkie]
+DialTone: Twelve more in your zone. Two more queueing. [#walkie]
+Splice: Don't get cocky, runner. I've been farming sentinels since before you had a handle. [#walkie]
+do wait(7)
 
-Splice: The world's rigged. You know it. Everybody knows it.
-Splice: They sell you "rules" and they sell you "fair" and they sell you "earn it" — and meanwhile the people who already have everything write the rulebook with their other hand.
-Splice: I figured that out and I started playing.
+Splice: You think you can outpace my spawn rate? Try me. [#walkie]
+Nyx: He really thinks numbers will save him. [#walkie]
+DialTone: They won't. I've seen his books. He's bluffing. [#walkie]
+do wait(8)
 
-Nyx: He has no idea what's coming, does he? [#walkie]
+DialTone: Twenty down. He's burning through reserves. [#walkie]
+Splice: Reserves are infinite. [#walkie]
+Nyx: They are extremely not. [#walkie]
+do wait(7)
 
-Splice: After tonight, the Gibson is mine.
-Splice: Comms. Finance. Routing. Every sentinel that's ever responded to a ping.
-Splice: I don't burn it. I don't have to.
-Splice: I just decide who gets to keep using it.
-Splice: That's the real win. Not destruction. **Permission**.
+Splice: Stop converting them. Stop **converting** them. [#walkie]
+DialTone: Three new ones inbound — splice them all. [#walkie]
+Nyx: He hates the platforms. He's **whining**. [#walkie]
+do wait(8)
 
-Splice: Your crew thinks they're the protagonists, runner.
-Splice: DialTone thinks he runs the channel. He ran it because nobody important was listening.
-Splice: Somebody's listening now.
+DialTone: Six left in the arena. Then four. [#walkie]
+Splice: The next wave is bigger. Just wait. [#walkie]
+Nyx: There is no next wave. [#walkie]
+do wait(6)
 
-Nyx: God. I can't believe I dated this asshole. [#walkie]
+Splice: There is. There has to be. [#walkie]
+DialTone: His spawn queue's empty. He's just... shouting. [#walkie]
+Nyx: Listen to him. He hears it now. [#walkie]
+do wait(7)
 
-Splice: They're voices in your ear. I'm here.
-Splice: That should tell you something about who's actually in the room.
-Splice: When this is over — when I'm at root — I'm not going to do anything cruel.
-Splice: I want you to know that.
-Splice: I'm just going to do **anything I want**. Forever.
+Splice: Stop. Just — stop. STOP. [#walkie]
+Nyx: Oh he's **not** having a good time. [#walkie]
+DialTone: Three reds left. Finish them. [#walkie]
 
 => END
 
@@ -2217,3 +2290,8 @@ Glitch: I'm just bobbing. It's nice.
 => menu
 
 ```
+
+
+# Level 5 — Walk of Shame (Betray Ending)
+
+*(cutscene not yet authored: `cutscenes/l5_walk.tres`)*

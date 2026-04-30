@@ -52,9 +52,15 @@ func _log(msg: String) -> void:
 
 
 ## Enqueue a walkie line. Synthesizes on cache miss, plays on hit. FIFO.
-func speak(character: String, text: String) -> void:
-	_log('speak: character="%s" text="%s"' % [character, text])
-	_queue.append({"character": character, "text": text})
+##
+## bus_override (default empty) plays the line on a non-Walkie bus, e.g. so
+## an in-person speaker can reuse Walkie's queue + subtitle pipeline without
+## getting the phone FX. Plumbed through to Audio.play_walkie. See
+## cutscene_engine/services/cutscene_audio.gd for the cutscene wiring.
+func speak(character: String, text: String, bus_override: StringName = &"") -> void:
+	_log('speak: character="%s" text="%s"%s' % [character, text,
+		(" bus=%s" % bus_override) if bus_override != &"" else ""])
+	_queue.append({"character": character, "text": text, "bus_override": bus_override})
 	_dispatch_if_idle()
 
 
@@ -63,6 +69,15 @@ func stop() -> void:
 	_log("stop")
 	_queue.clear()
 	Audio.stop_walkie()  # will emit walkie_finished → _on_walkie_finished
+
+
+## Pause/resume the active line. Cutscene engine calls this on pause-menu
+## open/close so a line in flight halts mid-playback rather than running
+## ahead through pause (Audio is PROCESS_MODE_ALWAYS, so its players don't
+## stop on tree pause). The line's `line_ended` does NOT fire while paused —
+## awaiters on the cutscene side stay parked correctly.
+func pause(on: bool) -> void:
+	Audio.pause_walkie(on)
 
 
 # ---- internals ----------------------------------------------------------
@@ -79,6 +94,7 @@ func _dispatch_if_idle() -> void:
 	var next: Dictionary = _queue[0]
 	var character: String = next.character
 	var text: String = next.text
+	var bus_override: StringName = next.get("bus_override", &"")
 	# Resolve voice via Dialogue's voices.tres (single source of truth).
 	var voices: Resource = Dialogue._voices
 	if voices == null or not voices.has_voice(character):
@@ -103,7 +119,7 @@ func _dispatch_if_idle() -> void:
 	if not read_path.is_empty():
 		_log("dispatch: CACHE HIT %s%s" % [read_path, (" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else ""])
 		_queue.pop_front()
-		_play_from_path(read_path, character, resolved_text)
+		_play_from_path(read_path, character, resolved_text, bus_override)
 		return
 
 	# Production gate: exported builds never hit ElevenLabs (mirrors the
@@ -128,6 +144,7 @@ func _dispatch_if_idle() -> void:
 		"voice_id": voice_id,
 		"path": write_path,
 		"model_id": line_model,
+		"bus_override": bus_override,
 	}
 	var url: String = ELEVEN_API_URL % voice_id
 	var headers: PackedStringArray = [
@@ -163,7 +180,7 @@ func _on_http_completed(_result: int, response_code: int, _headers: PackedString
 			file.close()
 			_log("synth OK — cached %d bytes to %s" % [body.size(), req.path])
 			_queue.pop_front()
-			_play_from_path(req.path, req.character, req.text)
+			_play_from_path(req.path, req.character, req.text, req.get("bus_override", &""))
 			return
 		_log("synth OK but FileAccess write failed for %s" % req.path)
 	else:
@@ -173,7 +190,7 @@ func _on_http_completed(_result: int, response_code: int, _headers: PackedString
 	_dispatch_if_idle()
 
 
-func _play_from_path(path: String, character: String, text: String) -> void:
+func _play_from_path(path: String, character: String, text: String, bus_override: StringName = &"") -> void:
 	# Two-path load matching Dialogue._play_cached:
 	#   - FileAccess works in editor for raw .mp3 on disk (and for freshly-
 	#     synthed files that haven't been imported yet — no .import sidecar
@@ -199,7 +216,7 @@ func _play_from_path(path: String, character: String, text: String) -> void:
 		_log("play: FileAccess failed but ResourceLoader resolved %s" % path)
 	_playing = true
 	line_started.emit(character, text)
-	Audio.play_walkie(stream)
+	Audio.play_walkie(stream, bus_override)
 
 
 func _on_walkie_finished() -> void:

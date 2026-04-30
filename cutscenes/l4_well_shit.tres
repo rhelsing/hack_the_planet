@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CutsceneTimeline" format=3 uid="uid://dl4wellshit01"]
+
+[ext_resource type="Script" uid="uid://dipkkotkrot6s" path="res://cutscene_engine/cutscene_timeline.gd" id="1_tl"]
+[ext_resource type="Script" uid="uid://dhbvm07mihi2n" path="res://cutscene_engine/steps/cut_step.gd" id="2_cut"]
+[ext_resource type="Script" uid="uid://p8kgvcxxeh78" path="res://cutscene_engine/cutscene_step.gd" id="2_litxp"]
+[ext_resource type="Script" uid="uid://n5yffch0fibx" path="res://cutscene_engine/steps/line_step.gd" id="3_line"]
+
+[sub_resource type="Resource" id="cut_1"]
+script = ExtResource("2_cut")
+camera = NodePath("../CutsceneCam_Splice")
+label = "shot: Splice cam"
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("3_line")
+character = &"Splice"
+text = "Well, shit."
+label = "Splice: well shit"
+
+[resource]
+script = ExtResource("1_tl")
+steps = Array[ExtResource("2_litxp")]([SubResource("cut_1"), SubResource("line_1")])
+scene_duration = 5.0
+done_flag = &"l4_well_shit_done"

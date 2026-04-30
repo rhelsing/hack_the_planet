@@ -156,6 +156,17 @@ func set_aggressive_buffs(active: bool) -> void:
 			if _brain_default_wind_up < 0.0:
 				_brain_default_wind_up = float(_brain.wind_up_duration)
 			_brain.wind_up_duration = 0.0 if active else _brain_default_wind_up
+	# Diagnostic — verify reverted-from-gold bodies actually reset to vanilla.
+	# Compare to the [faction] log line at the bottom of set_faction: a body
+	# that just reverted to green should print here with active=false,
+	# faction=green, speed=1.0, damage=1, invuln=false. Anything else means
+	# the revert didn't fully neutralize them.
+	print("[buffs] %s active=%s faction=%s speed=%.2f damage=%d invuln=%s cooldown=%.2f windup=%.2f" % [
+		get_path(), active, faction,
+		_faction_speed_mult, _faction_attack_damage, _faction_invulnerable,
+		float(_brain.attack_cooldown) if _brain != null and "attack_cooldown" in _brain else -1.0,
+		float(_brain.wind_up_duration) if _brain != null and "wind_up_duration" in _brain else -1.0,
+	])
 
 
 ## Map pawn_group → default faction for backwards compat. Used by _ready
@@ -207,16 +218,16 @@ const _FACTION_TARGETS: Dictionary = {
 }
 # Faction → [speed_multiplier, attack_damage]. Multiplied into the body's
 # move_toward target each tick + passed to take_hit on every connecting
-# swing. Splice (red) is the swarm variant: 2.5× speed + 99 damage +
+# swing. Splice (red) is the swarm variant: 1.5× speed + 99 damage +
 # invulnerable + zero cooldown. Splice stealth is the patrol variant:
 # normal speed + one-shot kill but killable + cone-of-view AI (configured
 # on the brain, not here).
 const _FACTION_BUFFS: Dictionary = {
 	&"player":         [1.0, 1],
 	&"green":          [1.0, 1],
-	&"red":            [2.8, 99],
+	&"red":            [1.5, 99],
 	&"splice_stealth": [1.0, 99],
-	&"gold":           [1.0, 1],
+	&"gold":           [1.7, 99],
 }
 # Tint: [Color, amount]. amount=0 → skin restores its authored per-part
 # albedo; amount>0 → skin overrides every body part to `color`. Pure RGB
@@ -457,6 +468,12 @@ enum FollowMode { PARENTED, DETACHED }
 @export_dir var death_sound_auto_load_dir: String = ""
 @export_range(-30.0, 12.0) var death_sound_volume_db: float = -3.0
 @export_range(0.0, 0.5) var death_sound_pitch_jitter: float = 0.05
+## When true, _play_random_death_sfx pulls from the attack-impact hit
+## pool instead of the authored death pool. Player pawn sets this true
+## (the cartoon-horn fail sounds in player_deaths/ read as cheesy on a
+## fall — the punchy hit thuds feel more weighted). Enemies leave it
+## false to use their authored glitch death sounds in enemy_deaths/.
+@export var death_sfx_uses_attack_impact_pool: bool = false
 
 @export_group("Camera Occlusion")
 ## Smooths SpringArm's instant-snap output into an eased response.
@@ -649,6 +666,19 @@ const _VOICE_RESPAWN_DELAY: float = 3.0
 @onready var _skin: CharacterSkin = %SophiaSkin
 @onready var _landing_sound: AudioStreamPlayer3D = %LandingSound
 @onready var _jump_sound: AudioStreamPlayer3D = %JumpSound
+
+# Round-robin'd landing impacts. Cycled sequentially each touchdown so the
+# same clip never plays twice in a row. Lives on Audio's recursive sfx
+# preload (audio/sfx/lands/) so first-play decode hitches don't surface.
+const _LAND_SOUNDS: Array[AudioStream] = [
+	preload("res://audio/sfx/lands/land1.mp3"),
+	preload("res://audio/sfx/lands/land2.mp3"),
+	preload("res://audio/sfx/lands/land3.mp3"),
+	preload("res://audio/sfx/lands/land4.mp3"),
+	preload("res://audio/sfx/lands/land5.mp3"),
+	preload("res://audio/sfx/lands/land6.mp3"),
+]
+var _land_idx: int = 0
 @onready var _grind_sparks: GPUParticles3D = %GrindSparks
 @onready var _grind_sound: AudioStreamPlayer3D = %GrindSound
 ## Brain found by type, not by name — lets AI pawns drop in EnemyAIBrain,
@@ -1222,15 +1252,20 @@ func _play_random_skate_stride() -> void:
 
 
 func _play_random_death_sfx() -> void:
-	# Cycle through attack-impact hit sounds (the same pool used for melee
-	# connections) instead of a dedicated death pool. The ex-horn cues read
-	# as cheesy on a fall/death — re-using the punchy hit thuds keeps deaths
-	# feeling weighted and consistent with the rest of the audio palette.
-	# Falls back to the legacy death_sound_pool if attack impacts aren't
-	# loaded (defensive — shouldn't happen in normal play).
-	var pool: Array[AudioStream] = _attack_impact_pool_resolved
-	if pool.is_empty():
+	# Pawn-specific death pool selection. Player pawn sets
+	# death_sfx_uses_attack_impact_pool=true to dodge its cheesy cartoon
+	# horns; enemies leave it false so their authored glitch death sounds
+	# (audio/sfx/enemy_deaths/glitch_death_*.wav) play on death. Either
+	# branch falls back to the OTHER pool if the preferred one is empty.
+	var pool: Array[AudioStream]
+	if death_sfx_uses_attack_impact_pool:
+		pool = _attack_impact_pool_resolved
+		if pool.is_empty():
+			pool = _death_sound_pool_resolved
+	else:
 		pool = _death_sound_pool_resolved
+		if pool.is_empty():
+			pool = _attack_impact_pool_resolved
 	if pool.is_empty() or _death_sfx_player == null:
 		return
 	var n: int = pool.size()
@@ -1635,24 +1670,54 @@ func _snap_camera_to_player() -> void:
 		_camera_pivot.position = pivot_offset
 
 
+## Public: returns the grind direction this pawn is currently riding on
+## `rail` (+1.0 / -1.0), or 0.0 if not grinding that specific rail. Used by
+## ally pawns to gate their own grind-entry on the player's state.
+func grinding_dir_on(rail: Path3D) -> float:
+	if not _grinding or _grind_rail != rail:
+		return 0.0
+	return _grind_direction
+
+
 func _on_rail_touched(rail: Node, body: Node) -> void:
 	if body != self or _grinding:
 		return
 	var profile: MovementProfile = _current_profile
 	if profile == null or profile.grind_speed <= 0.0:
 		return
-	_grind_rail = rail as Path3D
+	var path_rail: Path3D = rail as Path3D
+	if path_rail == null:
+		return
+	# Faction gate: only the player grinds freely. Allies (gold) can chain
+	# off the player's rail but locked to the same direction. Everything
+	# else (red enemies, splice, stealth) is barred from rails entirely.
+	var forced_direction: float = 0.0  # 0 = derive from velocity below
+	if pawn_group != "player":
+		if not is_in_group(&"allies"):
+			return
+		var tree := get_tree()
+		var player := tree.get_first_node_in_group(&"player") if tree != null else null
+		if player == null or not player.has_method(&"grinding_dir_on"):
+			return
+		forced_direction = player.call(&"grinding_dir_on", path_rail)
+		if forced_direction == 0.0:
+			return
+	_grind_rail = path_rail
 	_grind_progress = _grind_rail.closest_progress(global_position)
-	# Pick direction: compare player's velocity to the curve tangent at the entry
-	# point. If they disagree, grind backward along the curve.
 	var pf: PathFollow3D = _grind_rail.get_node_or_null("PathFollow3D") as PathFollow3D
-	_grind_direction = 1.0
-	if pf != null:
-		pf.progress = _grind_progress
-		var tangent: Vector3 = -pf.global_transform.basis.z
-		var h_vel: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
-		if h_vel.length() > 0.1 and h_vel.dot(tangent) < 0.0:
-			_grind_direction = -1.0
+	if forced_direction != 0.0:
+		# Ally chained onto player's rail — lock to the player's direction.
+		_grind_direction = forced_direction
+	else:
+		# Player entry: pick direction by comparing velocity to curve tangent
+		# at the entry point. If they disagree, grind backward along the curve.
+		_grind_direction = 1.0
+		if pf != null:
+			pf.progress = _grind_progress
+			var tangent: Vector3 = -pf.global_transform.basis.z
+			var h_vel: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
+			if h_vel.length() > 0.1 and h_vel.dot(tangent) < 0.0:
+				_grind_direction = -1.0
 	_grinding = true
 	_grind_snap_t = 0.0
 	_grind_start_pos = global_position
@@ -2050,11 +2115,13 @@ func _physics_process(delta: float) -> void:
 			velocity.y += profile.jump_impulse
 		else:
 			velocity.y = profile.jump_impulse
-		_jump_sound.play()
+		if pawn_group == "player":
+			_jump_sound.play()
 		_coyote_timer = 0.0  # spent — no double-firing
 	elif is_air_jumping:
 		velocity.y = profile.jump_impulse
-		_jump_sound.play()
+		if pawn_group == "player":
+			_jump_sound.play()
 		_air_jump_available = false
 		_flip_axis = (Basis(Vector3.UP, new_yaw) * Vector3.RIGHT).normalized()
 		_flip_timer = _flip_duration
@@ -2093,7 +2160,10 @@ func _physics_process(delta: float) -> void:
 	_skin.set_dust_emitting(on_floor && ground_speed > 0.0 && not intent.crouch_held)
 
 	if on_floor and not _was_on_floor_last_frame:
-		_landing_sound.play()
+		if pawn_group == "player":
+			_landing_sound.stream = _LAND_SOUNDS[_land_idx]
+			_land_idx = (_land_idx + 1) % _LAND_SOUNDS.size()
+			_landing_sound.play()
 		# Skip the Land state visual if a one-shot is currently holding the
 		# skin (attack, dash). The attack lunge adds an upward hop which
 		# immediately tripped this branch and clobbered the kick clip; same
@@ -2187,8 +2257,12 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 
 	# Player counter-balance: project world-space move intent onto the camera's
 	# right axis so keyboard "A/D" gives the expected screen-relative lean.
-	var cam_right: Vector3 = _camera.global_basis.x
-	var balance_x: float = intent.move_direction.dot(cam_right)
+	# AI pawns have _camera freed (see _ready), so skip — they have no
+	# screen-relative input and the natural lean alone is fine.
+	var balance_x: float = 0.0
+	if _camera != null:
+		var cam_right: Vector3 = _camera.global_basis.x
+		balance_x = intent.move_direction.dot(cam_right)
 	_current_lean_roll = clamp(_natural_lean_roll - balance_x * profile.grind_counter_strength * delta, -1.5, 1.5)
 
 

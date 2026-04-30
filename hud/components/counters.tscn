@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://hud/components/counters.gd" id="1_counters"]
 [ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://bcmg238q0hyhe" path="res://hud/icons/coin.png" id="3_coin"]
 
 [node name="Counters" type="VBoxContainer"]
 custom_minimum_size = Vector2(140, 0)
@@ -13,12 +14,12 @@ script = ExtResource("1_counters")
 unique_name_in_owner = true
 alignment = 2
 
-[node name="CoinIcon" type="Label" parent="CoinRow"]
+[node name="CoinIcon" type="TextureRect" parent="CoinRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 0)
-text = "🥤"
-theme_override_font_sizes/font_size = 24
-horizontal_alignment = 1
+custom_minimum_size = Vector2(22, 22)
+texture = ExtResource("3_coin")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="CoinLabel" type="Label" parent="CoinRow"]
 unique_name_in_owner = true

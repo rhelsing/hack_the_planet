@@ -51,7 +51,8 @@ func _input(event: InputEvent) -> void:
 	# Dev hotkeys for sentinel iteration. F12 toggles to/from the sentinel
 	# test scene (stashes prior level + player position on entry, restores
 	# both on exit). F3 toggles the per-pawn debug overlay.
-	if event is InputEventKey and event.pressed and not event.echo:
+	# Editor-only: gated off in any exported build (debug or release).
+	if OS.has_feature("editor") and event is InputEventKey and event.pressed and not event.echo:
 		var key := (event as InputEventKey).keycode
 		if key == KEY_F12:
 			_toggle_sentinel_test()

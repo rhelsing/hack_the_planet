@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://level/interactable/scene_setup_on_flag/scene_setup_on_flag.gd" id="1_setup"]
+
+[node name="SceneSetupOnFlag" type="Node"]
+script = ExtResource("1_setup")

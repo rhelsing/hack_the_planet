@@ -58,6 +58,13 @@ func stop() -> void:
 	Audio.stop_companion()
 
 
+## Pause/resume the active line. Mirror of Walkie.pause — see that for the
+## why (Audio is PROCESS_MODE_ALWAYS, so the cutscene engine needs an
+## explicit hook to halt voice playback during pause-menu).
+func pause(on: bool) -> void:
+	Audio.pause_companion(on)
+
+
 func _dispatch_if_idle() -> void:
 	# In-flight guard: a previous request is still mid-flight on _http. A
 	# second _http.request() while busy returns ERR_BUSY (44), and the err

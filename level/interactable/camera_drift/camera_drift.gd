@@ -41,6 +41,9 @@ var _rotation_start_basis: Basis
 var _running: bool = false
 var _elapsed: float = 0.0
 var _rotation_active: bool = false
+# Last logged progress milestone (0/25/50/75/100) so per-frame log spam is
+# deduped to one line per quarter of the drift.
+var _last_logged_milestone: int = -1
 
 
 func _ready() -> void:
@@ -52,7 +55,11 @@ func _ready() -> void:
 
 ## Begin the drift. No-ops if already running.
 func start_drift() -> void:
-	if _camera == null or _running:
+	if _camera == null:
+		print("[cd] %s start_drift FAIL: parent not Camera3D" % get_path())
+		return
+	if _running:
+		print("[cd] %s start_drift SKIP: already running" % get_path())
 		return
 	if override_start:
 		_camera.global_position = start_position
@@ -63,6 +70,10 @@ func start_drift() -> void:
 	_elapsed = 0.0
 	_rotation_active = false
 	set_process(true)
+	print("[cd] %s start: from=%s to=%s duration=%s rotation_target=%s" % [
+		get_path(), _start_position, end_position, duration,
+		rotation_target if not rotation_target.is_empty() else "<none>",
+	])
 
 
 ## Halts the drift in place. Camera stays at its current position.
@@ -118,6 +129,14 @@ func _process(delta: float) -> void:
 				var end_q := Quaternion(target_basis.orthonormalized())
 				_camera.global_basis = Basis(start_q.slerp(end_q, rot_t))
 
+	# Dedup progress logs: only print at 0/25/50/75/100% milestones.
+	var milestone: int = int(t * 4) * 25
+	if milestone != _last_logged_milestone:
+		_last_logged_milestone = milestone
+		print("[cd] %s tick %d%%: pos=%s rot_active=%s" % [
+			get_path(), milestone, _camera.global_position, _rotation_active
+		])
 	if t >= 1.0:
 		_running = false
 		set_process(false)
+		print("[cd] %s DONE: final_pos=%s" % [get_path(), _camera.global_position])

@@ -32,25 +32,42 @@ vertical_alignment = 1
 text = "// HACKING //"
 theme_override_font_sizes/font_size = 28
 
+[node name="Subline" type="Label" parent="Root"]
+unique_name_in_owner = true
+anchor_left = 0.3
+anchor_right = 0.7
+offset_top = 95.0
+offset_bottom = 195.0
+horizontal_alignment = 1
+vertical_alignment = 0
+autowrap_mode = 3
+text = ""
+visible = false
+theme_override_font_sizes/font_size = 20
+
 [node name="TimerBG" type="ColorRect" parent="Root"]
 unique_name_in_owner = true
 anchor_left = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
+anchor_bottom = 1.0
 offset_left = -300.0
-offset_top = 100.0
+offset_top = -120.0
 offset_right = 300.0
-offset_bottom = 106.0
+offset_bottom = -114.0
 color = Color(1, 1, 1, 0.15)
 visible = false
 
 [node name="TimerBar" type="ColorRect" parent="Root"]
 unique_name_in_owner = true
 anchor_left = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
+anchor_bottom = 1.0
 offset_left = -300.0
-offset_top = 100.0
+offset_top = -120.0
 offset_right = 300.0
-offset_bottom = 106.0
+offset_bottom = -114.0
 color = Color(0.35, 1.0, 0.65, 1)
 visible = false
 

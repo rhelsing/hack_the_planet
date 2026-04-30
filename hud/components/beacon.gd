@@ -90,11 +90,28 @@ func _apply_flag_gates() -> void:
 		return
 
 
-func _on_flag_set(id: StringName, value: Variant) -> void:
-	if id == visible_when_flag and value:
-		set_beacon_visible(true)
-	elif id == hide_when_flag and value:
-		set_beacon_visible(false)
+## Re-evaluate flag gates against current GameState and update visibility.
+## Public so external controllers (e.g., hub_terminal_sequence.gd's master
+## level-completion gate) can force a re-sync after a supra-gate toggle.
+## Voice-armed flow does NOT call this — it has its own re-evaluation path
+## via _on_line_ended that intentionally ignores visible_when_flag.
+func refresh_flag_gates() -> void:
+	var on: bool = true
+	if visible_when_flag != &"" and not bool(GameState.get_flag(visible_when_flag, false)):
+		on = false
+	if hide_when_flag != &"" and bool(GameState.get_flag(hide_when_flag, false)):
+		on = false
+	set_beacon_visible(on)
+
+
+func _on_flag_set(id: StringName, _value: Variant) -> void:
+	# Re-evaluate gates from the live GameState so flag CLEARS propagate
+	# symmetrically: visible_when_flag clears → re-hide; hide_when_flag
+	# clears → re-show. Required for Fail Cascade rewinds to ratchet
+	# beacons back to the chain root (see docs/hub_terminal_sequence.md).
+	if id != visible_when_flag and id != hide_when_flag:
+		return
+	refresh_flag_gates()
 
 
 func _on_line_started(character: String, text: String) -> void:

@@ -44,6 +44,18 @@ const _COLOR_OIL: Color = Color(1.0, 0.6, 0.15, 1.0)
 const _COLOR_FAIL: Color = Color(1.0, 0.22, 0.28, 1.0)    # red flash on conflict markers
 const _MARKER_RADIUS: float = 9.0
 const _MARKER_SQUARE_SIZE: float = 16.0
+## Soft pulse-glow rendered behind every marker: N concentric bands
+## sin-driven on alpha. Subtle by design — base 0.20 alpha, peak +0.08.
+## Each band expands `_GLOW_RADIUS_PER_BAND` px outward; outermost is the
+## faintest. Pulse is 0.7Hz so it reads as "breathing", not strobing.
+const _GLOW_BANDS: int = 3
+const _GLOW_RADIUS_PER_BAND: float = 4.0
+const _GLOW_PULSE_HZ: float = 0.7
+const _GLOW_ALPHA_BASE: float = 0.20
+const _GLOW_ALPHA_AMPLITUDE: float = 0.08
+## Oil square's corner radius — Witness-style rounded square so it reads
+## as "container of fluid" without the harsh 90° corners of a draw_rect.
+const _OIL_CORNER_RADIUS: float = 3.0
 # Hold the red flash for ~0.4s before the glitch transition kicks in. Long
 # enough to read which markers conflicted; short enough to feel snappy.
 const _FAIL_HOLD_DURATION: float = 0.4
@@ -71,29 +83,37 @@ const _CURSOR_CORE_RADIUS: float = 7.0
 const _CURSOR_HALO_RADIUS: float = 16.0
 const _TIMER_BAR_WIDTH: float = 600.0
 
-# Grid units traveled per second at full input deflection. ~8 cells/s feels
-# crisp without robbing precision; analog stick scales it lower for fine
-# control. Tunable per puzzle if needed.
-const _CURSOR_SPEED_GRID_PER_SEC: float = 7.0
+# Grid units traveled per second at full input deflection. Stick magnitude
+# (0..1) scales it linearly. 5.0 = balanced — enough pace to feel responsive
+# while leaving room for the junction-grace mechanisms to land.
+const _CURSOR_SPEED_GRID_PER_SEC: float = 5.0
 # Stick noise floor — below this magnitude, no input.
 const _INPUT_DEADZONE: float = 0.18
 # Junction grace: when the cursor crosses a node, perpendicular input above
 # this magnitude is treated as a turn intent (preferred over continuing
 # straight even when not strictly dominant). Lower = more eager to turn;
-# higher = sticks to the entry axis. 0.4 means a stick deflection of >~22°
-# off the entry axis counts as a turn.
-const _TURN_BIAS_THRESHOLD: float = 0.4
+# higher = sticks to the entry axis. 0.3 means a stick deflection of >~17°
+# off the entry axis counts as a turn — i.e. modest diagonals already
+# read as "I want to turn here."
+const _TURN_BIAS_THRESHOLD: float = 0.3
 # Pre-press input buffer (Witness-grace #1). Press = an axis crossing this
 # magnitude from below. Buffered direction wins over turn-bias / dominant
-# at the next junction commit if still fresh.
-const _AXIS_PRESS_THRESHOLD: float = 0.5
-const _BUFFER_DURATION: float = 0.15  # seconds the buffer stays valid
+# at the next junction commit if still fresh. Tightened to 0.18s
+# (was 0.22) — wide enough for genuine pre-presses to land but short
+# enough that stray stick-pull-back gestures don't get queued and fire
+# as accidental backtracks at the next node crossing.
+const _AXIS_PRESS_THRESHOLD: float = 0.4
+const _BUFFER_DURATION: float = 0.18
 # Mid-edge turn-out (Witness-grace #2). When perpendicular input dominates
 # AND forward intent is weak, drive the cursor back to path[-1] at the
 # perp magnitude rate so the next loop iteration enters the new direction.
 # Same gesture as Witness's mouse-pulled-perpendicular cursor retreat.
-const _PERP_TURN_THRESHOLD: float = 0.6     # min perp magnitude to count
-const _PERP_TURN_FORWARD_GATE: float = 0.3  # max forward alignment to allow turn-out
+# Lowered thresholds: 0.45 perp + 0.45 forward gate (was 0.6 + 0.3) — the
+# cursor abandons the current lane sooner when the player clearly wants
+# to head elsewhere, even if they haven't fully released the original
+# direction. Less "I'm stuck on this edge" feel.
+const _PERP_TURN_THRESHOLD: float = 0.45
+const _PERP_TURN_FORWARD_GATE: float = 0.45
 # Sentinel — "no active edge" (cursor sitting on a node). Coordinates are
 # negative so they can never collide with a real grid node.
 const _NO_NEIGHBOR: Vector2i = Vector2i(-99, -99)
@@ -185,6 +205,11 @@ var _warning_canvas: CanvasLayer = null
 var _warning_mat: ShaderMaterial = null
 var _warning_phase: float = 0.0
 
+# Cached StyleBoxFlat used to render oil markers as rounded squares.
+# Built lazily on first paint (StyleBox can't be a const). bg_color is
+# rewritten each frame to whatever the current oil/conflict tint is.
+var _oil_box: StyleBoxFlat = null
+
 # Looping audio — ambient drone runs the whole puzzle, slide buzz toggles
 # with cursor motion. Both are children of the puzzle so they auto-free.
 var _ambient_player: AudioStreamPlayer = null
@@ -204,6 +229,8 @@ var _coin_next_at: float = 0.6
 @onready var _timer_bg: ColorRect = %TimerBG
 @onready var _timer_bar: ColorRect = %TimerBar
 @onready var _instructions: Label = %Instructions
+@onready var _title: Label = %Title
+@onready var _subline: Label = %Subline
 
 
 func _ready() -> void:
@@ -226,6 +253,15 @@ func _ready() -> void:
 		return
 	print("[maze] loaded %s (%d×%d, time_limit=%.1fs)" % [
 		maze_path, _data.cols, _data.rows, _data.time_limit])
+	# Drive the title + subline labels from the maze data — falls back to
+	# the authored "// HACKING //" title when the maze file omits a name.
+	if _data.puzzle_name.strip_edges() != "":
+		_title.text = "// %s //" % _data.puzzle_name.to_upper()
+	if _data.subline.strip_edges() != "":
+		_subline.text = _data.subline
+		_subline.visible = true
+	else:
+		_subline.visible = false
 	_layout_maze()
 	_path = [_data.start]
 	_time_left = _data.time_limit
@@ -340,6 +376,11 @@ func _process(delta: float) -> void:
 		_set_sliding(false)
 		_maze_root.queue_redraw()
 		return
+	# Outside the fail window: queue a redraw if there are hazard markers
+	# so their slow glow pulse animates. Cheap (~5-10 markers, immediate
+	# mode 2D). Skipped on no-hazard mazes to avoid burning frames.
+	if _data.has_markers():
+		_maze_root.queue_redraw()
 	# Timer
 	if _data.time_limit > 0.0:
 		_time_left = maxf(_time_left - delta, 0.0)
@@ -882,16 +923,25 @@ func _draw_maze() -> void:
 	_maze_root.draw_circle(cursor_pos, _CURSOR_CORE_RADIUS, _COLOR_CURSOR)
 
 
-# Witness-style cell markers — water = blue circle, oil = purple square.
+# Witness-style cell markers — water = blue circle, oil = orange rounded
+# square. Each marker has a soft 3-band sin-pulsed glow drawn behind it
+# (a slow "breathing" cue that the markers are interactive elements).
 # Drawn between base maze and trail so the trail visually slices over them.
-# During the fail flash, conflict-region markers pulse toward red.
+# During the fail flash, conflict-region markers tint toward red AND
+# their fast strobe replaces the slow glow pulse on top.
 func _draw_markers() -> void:
 	if not _data.has_markers():
 		return
-	var pulse: float = 0.0
+	# Conflict-flash strobe (fast, only during _failing). Independent from
+	# the always-on subtle glow pulse below.
+	var conflict_pulse: float = 0.0
 	if _failing:
 		var elapsed: float = Time.get_ticks_msec() / 1000.0 - _fail_t0
-		pulse = 0.5 + 0.5 * sin(elapsed * 22.0)
+		conflict_pulse = 0.5 + 0.5 * sin(elapsed * 22.0)
+	# Slow ambient glow pulse — drives the alpha amplitude on the bands.
+	var t: float = Time.get_ticks_msec() / 1000.0
+	var glow_pulse: float = 0.5 + 0.5 * sin(t * TAU * _GLOW_PULSE_HZ)
+	var top_alpha: float = _GLOW_ALPHA_BASE + glow_pulse * _GLOW_ALPHA_AMPLITUDE
 	for cy in _data.rows - 1:
 		for cx in _data.cols - 1:
 			var marker: int = _data.cell_marker(cx, cy)
@@ -901,15 +951,44 @@ func _draw_markers() -> void:
 			var base_color: Color = _COLOR_WATER if marker == _data.MARKER_WATER else _COLOR_OIL
 			var color: Color = base_color
 			if _failing and Vector2i(cx, cy) in _conflict_cells:
-				color = base_color.lerp(_COLOR_FAIL, 0.55 + 0.45 * pulse)
+				color = base_color.lerp(_COLOR_FAIL, 0.55 + 0.45 * conflict_pulse)
+			# Glow bands: outermost first, decreasing radius and increasing
+			# alpha as we approach the marker. The marker's solid shape is
+			# drawn last on top.
+			for i in _GLOW_BANDS:
+				var radius_boost: float = _GLOW_RADIUS_PER_BAND * (_GLOW_BANDS - i)
+				var fade: float = float(i + 1) / float(_GLOW_BANDS)
+				var glow_col: Color = color
+				glow_col.a = top_alpha * fade
+				if marker == _data.MARKER_WATER:
+					_maze_root.draw_circle(center, _MARKER_RADIUS + radius_boost, glow_col)
+				else:
+					var ob: float = _MARKER_SQUARE_SIZE * 0.5 + radius_boost
+					_maze_root.draw_style_box(
+							_get_oil_box(glow_col),
+							Rect2(center - Vector2(ob, ob), Vector2(2 * ob, 2 * ob)))
+			# Solid marker shape on top of the glow bands.
 			if marker == _data.MARKER_WATER:
 				_maze_root.draw_circle(center, _MARKER_RADIUS, color)
 			else:
 				var half: float = _MARKER_SQUARE_SIZE * 0.5
-				_maze_root.draw_rect(
+				_maze_root.draw_style_box(
+						_get_oil_box(color),
 						Rect2(center - Vector2(half, half),
-								Vector2(_MARKER_SQUARE_SIZE, _MARKER_SQUARE_SIZE)),
-						color)
+								Vector2(_MARKER_SQUARE_SIZE, _MARKER_SQUARE_SIZE)))
+
+
+# Lazy-built rounded-square stylebox for oil markers. Color is rewritten
+# every call so a single instance services both glow bands and the solid.
+func _get_oil_box(color: Color) -> StyleBoxFlat:
+	if _oil_box == null:
+		_oil_box = StyleBoxFlat.new()
+		_oil_box.corner_radius_top_left = int(_OIL_CORNER_RADIUS)
+		_oil_box.corner_radius_top_right = int(_OIL_CORNER_RADIUS)
+		_oil_box.corner_radius_bottom_left = int(_OIL_CORNER_RADIUS)
+		_oil_box.corner_radius_bottom_right = int(_OIL_CORNER_RADIUS)
+	_oil_box.bg_color = color
+	return _oil_box
 
 
 func _cell_center_pos(cx: int, cy: int) -> Vector2:

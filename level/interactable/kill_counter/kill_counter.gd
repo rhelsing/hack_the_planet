@@ -26,7 +26,13 @@ class_name KillCounter
 @export var post_delay: float = 0.0
 
 var _armed: bool = false
-var _tracked: Dictionary = {}  # body → true; bodies currently in target faction
+# instance_id (int64) → true. We DON'T store Object refs because once a body
+# queue_free's, the ref becomes invalid; iterating a Dictionary whose keys
+# are freed Objects throws "Trying to assign invalid previously freed
+# instance" the moment GDScript tries to bind a key to the typed loop
+# variable. instance_ids are pure ints — they survive freeing intact, so the
+# diff against `current_ids` cleanly counts vanished bodies as kills.
+var _tracked_ids: Dictionary = {}
 var _kill_count: int = 0
 var _threshold_hit: bool = false
 
@@ -56,22 +62,22 @@ func _arm() -> void:
 
 func _physics_process(_delta: float) -> void:
 	if _threshold_hit: return
-	# Snapshot bodies currently in target faction.
-	var current: Dictionary = {}
+	# Snapshot instance_ids of bodies currently in target faction.
+	var current_ids: Dictionary = {}
 	for body: Node in get_tree().get_nodes_in_group(enemy_group):
 		if not is_instance_valid(body): continue
 		var f: Variant = body.get(&"faction")
 		if f != null and StringName(f) == target_faction:
-			current[body] = true
-	# Anything in _tracked but missing here = left the faction (died or
+			current_ids[body.get_instance_id()] = true
+	# Anything in _tracked_ids but missing here = left the faction (died or
 	# converted). Increment count.
-	for body: Object in _tracked:
-		if not current.has(body):
+	for id: int in _tracked_ids:
+		if not current_ids.has(id):
 			_kill_count += 1
 			if _kill_count >= kill_threshold:
 				_on_threshold_hit()
 				return
-	_tracked = current
+	_tracked_ids = current_ids
 
 
 func _on_threshold_hit() -> void:

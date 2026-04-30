@@ -25,6 +25,10 @@ const DEFAULT_MUSIC_PATHS := [
 	"res://audio/music/for_new_drugs.mp3",
 	"res://audio/music/tyler_ono_fast_paced_low.mp3",
 	"res://audio/music/tyler_ono_fast_paced_high.mp3",
+	"res://audio/music/vibes_a.mp3",
+	"res://audio/music/vibes_b.mp3",
+	"res://audio/music/vibes_c.mp3",
+	"res://audio/music/vibes_d.mp3",
 ]
 
 const BUS_MASTER: StringName = &"Master"
@@ -427,20 +431,41 @@ func stop_dialogue() -> void:
 ## (bandpass + distortion) so it reads as radio chatter, not standard dialogue.
 ## Single-stream-at-a-time; the Walkie autoload queues lines and drives the
 ## next one via the walkie_finished signal.
-func play_walkie(stream: AudioStream) -> void:
+##
+## bus_override: when non-empty, the line plays on that bus instead of Walkie.
+## Used by cutscene LineStep.bus_override to route an in-person speaker
+## (e.g. Splice) through Walkie's proven subtitle/queue pipeline while
+## bypassing the radio FX. The override lasts only for this stream — the
+## next play_walkie() with no override snaps back to BUS_WALKIE.
+func play_walkie(stream: AudioStream, bus_override: StringName = &"") -> void:
 	if stream == null: return
 	# Kill standard dialogue so the two channels never overlap — last speaker
 	# wins per the concurrency rule in docs/level_one_arc.md §4.7.
 	stop_dialogue()
+	_walkie_player.bus = bus_override if bus_override != &"" else BUS_WALKIE
 	_walkie_player.stream = stream
 	_walkie_player.play()
 
 
 func stop_walkie() -> void:
+	# Diagnostic: log every explicit stop. The walkie_finished emission below
+	# eventually drives walkie_ui's fade-out tween, so any caller hitting this
+	# is a candidate for "subtitle disappeared mysteriously."
+	print("[audio] stop_walkie called (was_playing=%s) — emitting walkie_finished" % _walkie_player.playing)
 	if _walkie_player.playing:
 		_walkie_player.stop()
 	# Emit manually on explicit stop so Walkie queue advances / UI hides.
 	walkie_finished.emit()
+
+
+## Pause/resume the active walkie line in place. Used by the cutscene engine
+## to honor pause-menu open: Audio is PROCESS_MODE_ALWAYS so its playback is
+## not paused by the tree pause; this method is the explicit hook. Idempotent;
+## safe to call when nothing is playing. Does NOT emit walkie_finished —
+## paused playback is still "in flight," it just doesn't progress.
+func pause_walkie(on: bool) -> void:
+	if _walkie_player != null:
+		_walkie_player.stream_paused = on
 
 
 ## Companion channel — diegetic in-world voice with reverb + slight low-pass
@@ -456,9 +481,16 @@ func play_companion(stream: AudioStream) -> void:
 
 
 func stop_companion() -> void:
+	print("[audio] stop_companion called (was_playing=%s) — emitting companion_finished" % _companion_player.playing)
 	if _companion_player.playing:
 		_companion_player.stop()
 	companion_finished.emit()
+
+
+## Pause/resume the active companion line. Same contract as pause_walkie.
+func pause_companion(on: bool) -> void:
+	if _companion_player != null:
+		_companion_player.stream_paused = on
 
 
 func _play_next_dialogue_if_idle() -> void:
@@ -496,9 +528,15 @@ func _create_players() -> void:
 	_dialogue_player.finished.connect(_on_dialogue_finished)
 	_walkie_player = _make_player(BUS_WALKIE)
 	# Natural end: re-emit our signal so the Walkie autoload can dequeue.
-	_walkie_player.finished.connect(func(): walkie_finished.emit())
+	# Diagnostic log captures the bus we were on at end — useful for
+	# correlating with bus_override (e.g. Splice on bus=Companion).
+	_walkie_player.finished.connect(func():
+		print("[audio] _walkie_player.finished (bus=%s) — emitting walkie_finished" % _walkie_player.bus)
+		walkie_finished.emit())
 	_companion_player = _make_player(BUS_COMPANION)
-	_companion_player.finished.connect(func(): companion_finished.emit())
+	_companion_player.finished.connect(func():
+		print("[audio] _companion_player.finished — emitting companion_finished")
+		companion_finished.emit())
 	# SFX pool: 6 players round-robin handles overlapping short sounds without
 	# cutting each other off. Overflow silently reuses oldest.
 	for i in range(6):

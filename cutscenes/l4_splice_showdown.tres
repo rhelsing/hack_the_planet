@@ -1,0 +1,241 @@
+[gd_resource type="Resource" script_class="CutsceneTimeline" format=3 uid="uid://b1yhhun2x0g1u"]
+
+[ext_resource type="Script" uid="uid://dipkkotkrot6s" path="res://cutscene_engine/cutscene_timeline.gd" id="1_tl"]
+[ext_resource type="Script" uid="uid://n5yffch0fibx" path="res://cutscene_engine/steps/line_step.gd" id="2_line"]
+[ext_resource type="Script" uid="uid://p8kgvcxxeh78" path="res://cutscene_engine/cutscene_step.gd" id="2_rp5n3"]
+[ext_resource type="Script" uid="uid://dhbvm07mihi2n" path="res://cutscene_engine/steps/cut_step.gd" id="3_cut"]
+[ext_resource type="Script" uid="uid://dko4xni2iec0" path="res://cutscene_engine/steps/music_step.gd" id="5_music"]
+[ext_resource type="Script" uid="uid://clloc4xngffqo" path="res://cutscene_engine/steps/stinger_step.gd" id="6_stinger"]
+[ext_resource type="Script" uid="uid://bq3qble132dka" path="res://cutscene_engine/steps/skip_point_step.gd" id="7_skip"]
+[ext_resource type="AudioStream" uid="uid://bo37srf1txc6y" path="res://audio/cutscene/dramatic_braam.mp3" id="8_braam"]
+[ext_resource type="AudioStream" uid="uid://cijibtdvpv832" path="res://audio/cutscene/leap_motiv.mp3" id="9_leap"]
+[ext_resource type="AudioStream" uid="uid://dhwfw22d5vb3m" path="res://audio/music/one_love.mp3" id="10_onelove"]
+[ext_resource type="Script" uid="uid://vcsac5ogqqof" path="res://cutscene_engine/steps/wait_step.gd" id="11_wait"]
+[ext_resource type="Script" uid="uid://bptomihv5rha8" path="res://cutscene_engine/steps/flag_step.gd" id="12_flag"]
+
+[sub_resource type="Resource" id="flag_outset_started"]
+script = ExtResource("12_flag")
+flag = &"l4_splice_cutscene_started"
+label = "set started flag at outset — world reactions (cage despawn / spawner / watcher) arm DURING cutscene. Distinct from done_flag, which fires at end and gates post-cutscene beats like the battle radio."
+
+[sub_resource type="Resource" id="cut_splice_1"]
+script = ExtResource("3_cut")
+camera = NodePath("../CutsceneCam_Splice")
+label = "shot 1: Splice (cut FIRST so stinger lands on the right framing)"
+
+[sub_resource type="Resource" id="stinger_braam"]
+script = ExtResource("6_stinger")
+stream = ExtResource("8_braam")
+label = "BRAAAM (fire-and-forget — line starts before it ends)"
+
+[sub_resource type="Resource" id="music_in"]
+script = ExtResource("5_music")
+stream = ExtResource("9_leap")
+fade_in = 1.5
+label = "music in: leap_motiv (fades in under the stinger tail)"
+
+[sub_resource type="Resource" id="wait_stinger_ring"]
+script = ExtResource("11_wait")
+seconds = 1.5
+label = "let the braam ring before line 1"
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "{player_handle}."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.6
+label = "Splice: handle"
+
+[sub_resource type="Resource" id="flag_says_name"]
+script = ExtResource("12_flag")
+flag = &"l4_splice_says_name"
+label = "fired right after Splice's '{player_handle}.' line — SceneSetupOnFlag listens to teleport player, stage golds at GoldHere markers, disable Rail4"
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "So here we are."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.8
+label = "Splice: so here we are"
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "The world's **rigged**. You know it. Everybody knows it."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: world's rigged"
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "They sell you **\"rules\"** and they sell you **\"fair\"** and they sell you **\"earn it\"** — and meanwhile the people who already have everything **write the rulebook with their other hand**."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: rules / fair / earn it"
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "I figured that out and I started playing."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.5
+label = "Splice: figured it out"
+
+[sub_resource type="Resource" id="line_nyx_1"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "He has no idea what's coming, does he?"
+channel = "walkie"
+label = "Nyx: no idea what's coming"
+
+[sub_resource type="Resource" id="skip_halfpipe"]
+script = ExtResource("7_skip")
+label = "halfpipe"
+
+[sub_resource type="Resource" id="cut_halfpipe"]
+script = ExtResource("3_cut")
+camera = NodePath("../CutsceneCam_Halfpipe")
+label = "shot 2: Halfpipe"
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "After tonight, the Gibson is **mine**."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: gibson is mine"
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Comms. Finance. Routing. Every sentinel that's ever responded to a ping."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: comms / finance / routing"
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "I don't **burn** it. I don't have to."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: don't burn it"
+
+[sub_resource type="Resource" id="line_9"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "I just decide who gets to **keep using** it."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: who gets to keep using it"
+
+[sub_resource type="Resource" id="line_10"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "That's the real win. Not destruction. **Permission**."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.6
+label = "Splice: real win — permission"
+
+[sub_resource type="Resource" id="line_11"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Your crew thinks they're the protagonists, runner."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: protagonists, runner"
+
+[sub_resource type="Resource" id="line_12"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "DialTone thinks he runs the channel. He ran it because nobody important was listening."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: dialtone / channel"
+
+[sub_resource type="Resource" id="line_13"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Somebody's **listening** now."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.4
+label = "Splice: somebody's listening now"
+
+[sub_resource type="Resource" id="line_dialtone_workshop"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "He's been workshopping that monologue for years. I once read a draft. Six pages."
+channel = "walkie"
+label = "DialTone: workshop quip (replaces Nyx asshole line)"
+
+[sub_resource type="Resource" id="skip_finale"]
+script = ExtResource("7_skip")
+label = "finale"
+
+[sub_resource type="Resource" id="cut_splice_2"]
+script = ExtResource("3_cut")
+camera = NodePath("../CutsceneCam_Splice")
+label = "shot 3: back to Splice"
+
+[sub_resource type="Resource" id="line_14"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "They're voices in your ear. **I'm here**."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: voices in your ear"
+
+[sub_resource type="Resource" id="line_15"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "That should tell you something about who's **actually in the room**."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: who's in the room"
+
+[sub_resource type="Resource" id="line_16"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "When this is over — when I'm at root — I'm not going to do **anything cruel**."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: when this is over"
+
+[sub_resource type="Resource" id="line_17"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "I want you to know that."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.4
+label = "Splice: want you to know that"
+
+[sub_resource type="Resource" id="line_18"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "I'm just going to do **anything I want**. Forever."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 1.0
+label = "Splice: anything I want forever"
+
+[sub_resource type="Resource" id="music_out"]
+script = ExtResource("5_music")
+stream = ExtResource("10_onelove")
+fade_in = 1.0
+label = "music out: one_love"
+
+[resource]
+script = ExtResource("1_tl")
+steps = Array[ExtResource("2_rp5n3")]([SubResource("flag_outset_started"), SubResource("cut_splice_1"), SubResource("stinger_braam"), SubResource("music_in"), SubResource("wait_stinger_ring"), SubResource("line_1"), SubResource("flag_says_name"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_nyx_1"), SubResource("skip_halfpipe"), SubResource("cut_halfpipe"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10"), SubResource("line_11"), SubResource("line_12"), SubResource("line_13"), SubResource("line_dialtone_workshop"), SubResource("skip_finale"), SubResource("cut_splice_2"), SubResource("line_14"), SubResource("line_15"), SubResource("line_16"), SubResource("line_17"), SubResource("line_18"), SubResource("music_out")])
+hide_hud = true
+scene_duration = 90.0
+done_flag = &"l4_splice_cutscene_done"

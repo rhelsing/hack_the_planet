@@ -37,6 +37,12 @@ func _ready() -> void:
 
 
 func _on_line_started(character: String, text: String) -> void:
+	# Diagnostic: confirms the handler fires for every line. If a line
+	# gets dropped from the subtitle UI, this print reveals whether it's
+	# a signal-routing issue (no print = signal didn't reach us) vs a
+	# rendering issue (print fires but text didn't appear).
+	print("[walkie_ui] line_started char=%s text='%s' (pre-alpha=%.2f)" % [
+		character, text.substr(0, 50), _root.modulate.a])
 	_cancel_tweens()
 	_apply_portrait(character)
 	_name_label.text = character.to_upper()
@@ -51,10 +57,14 @@ func _on_line_started(character: String, text: String) -> void:
 	else:
 		_name_label.remove_theme_color_override(&"font_color")
 		_apply_panel_border(Color(0.45, 0.85, 0.55, 0.9))  # default green
-	_text_label.text = ""
+	# Snap to fully visible synchronously. Cutscene lines chain via
+	# `await line_ended` → `line_started` synchronously, so the previous
+	# line's fade-out tween may still have a queued visible=false callback
+	# in flight; we forced visible=true + modulate=1 here so race outcomes
+	# can't hide the new line. The fade-in tween below is a slight ease so
+	# first-line entry isn't a hard pop.
 	_root.visible = true
-	var fade := create_tween()
-	fade.tween_property(_root, "modulate:a", 1.0, fade_duration)
+	_root.modulate.a = 1.0
 	# Apply emphasis-marker conversion (**bold**/*italic*) — same converter
 	# the dialogue balloon uses, so the subtitles match the balloon style.
 	# Speaker color drives the **bold** span tint via VoicePortraits.
@@ -64,19 +74,35 @@ func _on_line_started(character: String, text: String) -> void:
 		var c: Color = _portraits.call(&"get_color", character) as Color
 		color_hex = "#" + c.to_html(false)
 	var formatted: String = TextEmphasis.format_for_display(text, color_hex)
-	# Typewrite via visible_ratio.
+	# Show text fully on line start. The typewrite-via-visible_ratio path
+	# was unreliable for chained cutscene lines (rapid line_ended →
+	# line_started transitions could leave visible_ratio at 0 with text
+	# loaded, rendering as an invisible subtitle even though _root was
+	# visible and modulate.a was 1.0). The line's natural audio duration
+	# gives the player time to read; explicit typewriting can come back
+	# later as a separate effect once the chain-transition bug is
+	# understood at a deeper level.
 	_text_label.text = formatted
-	_text_label.visible_ratio = 0.0
-	_typewrite_tween = create_tween()
-	var duration: float = max(0.4, float(text.length()) / typewrite_speed)
-	_typewrite_tween.tween_property(_text_label, "visible_ratio", 1.0, duration)
+	_text_label.visible_ratio = 1.0
 
 
 func _on_line_ended() -> void:
+	# Diagnostic: this is the ONLY place that fades the panel out (modulate
+	# tween 1→0). If the subtitle is disappearing unexpectedly, every event
+	# that gets here is a suspect. Pre-alpha tells us what state we're
+	# starting from — alpha=0 means we're "ending" something already hidden,
+	# which is fishy.
+	print("[walkie_ui] line_ended — starting fade-out (pre-alpha=%.2f)" % _root.modulate.a)
 	_cancel_tweens()
+	# Fade modulate to 0 only — DO NOT touch _root.visible. The previous
+	# implementation flipped visible=false in a tween_callback after fade,
+	# but that callback could land in the same frame as the next line's
+	# line_started (cutscene chains lines synchronously), occasionally
+	# clobbering a freshly-displayed subtitle. modulate alpha alone is
+	# enough to hide the panel; visible stays true for the lifetime of
+	# the layer.
 	_fade_tween = create_tween()
 	_fade_tween.tween_property(_root, "modulate:a", 0.0, fade_duration)
-	_fade_tween.tween_callback(func(): _root.visible = false)
 
 
 func _cancel_tweens() -> void:

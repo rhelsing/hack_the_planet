@@ -47,16 +47,20 @@ var _start_time_sec: float = -1.0
 
 func _ready() -> void:
 	if arm_flag == &"":
+		print("[repspawn] %s ready, no arm_flag — inert" % name)
 		return
 	if bool(GameState.get_flag(arm_flag, false)):
+		print("[repspawn] %s ready, flag '%s' already true → arming now" % [name, arm_flag])
 		_arm()
 	else:
+		print("[repspawn] %s ready, awaiting flag '%s'" % [name, arm_flag])
 		Events.flag_set.connect(_on_flag_set)
 
 
 func _on_flag_set(id: StringName, value: Variant) -> void:
 	if id != arm_flag: return
 	if not bool(value): return
+	print("[repspawn] %s flag '%s' fired → arming" % [name, arm_flag])
 	_arm()
 
 
@@ -66,21 +70,31 @@ func arm() -> void:
 
 
 func _arm() -> void:
-	if _armed: return
+	if _armed:
+		print("[repspawn] %s _arm called but already armed — ignoring" % name)
+		return
 	_armed = true
+	print("[repspawn] %s armed (delay=%.1fs interval=%.1fs total=%.1fs) at t=%.2fs" % [
+		name, initial_delay, spawn_interval, total_duration, Time.get_ticks_msec() / 1000.0])
 	_run.call_deferred()
 
 
 func _run() -> void:
+	print("[repspawn] %s _run entered at t=%.2fs (will await %.1fs)" % [
+		name, Time.get_ticks_msec() / 1000.0, initial_delay])
 	if initial_delay > 0.0:
 		await get_tree().create_timer(initial_delay).timeout
 	if not is_instance_valid(self): return
+	print("[repspawn] %s initial_delay elapsed at t=%.2fs → first spawn" % [
+		name, Time.get_ticks_msec() / 1000.0])
 	_start_oscillation()
 	_start_time_sec = Time.get_ticks_msec() / 1000.0
 	while is_instance_valid(self):
 		if total_duration > 0.0:
 			var elapsed: float = Time.get_ticks_msec() / 1000.0 - _start_time_sec
-			if elapsed >= total_duration: break
+			if elapsed >= total_duration:
+				print("[repspawn] %s total_duration elapsed → stopping" % name)
+				break
 		if max_spawns >= 0 and _spawn_count >= max_spawns: break
 		_spawn_one()
 		await get_tree().create_timer(spawn_interval).timeout
@@ -112,3 +126,5 @@ func _spawn_one() -> void:
 	parent.add_child(enemy)
 	enemy.global_position = global_position
 	_spawn_count += 1
+	print("[repspawn] %s spawn #%d at t=%.2fs pos=%s" % [
+		name, _spawn_count, Time.get_ticks_msec() / 1000.0, global_position])

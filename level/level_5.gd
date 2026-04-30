@@ -26,31 +26,19 @@ extends Node3D
 ## that so he doesn't walk off the geometry.
 @export var splice_stop_at_z: float = -62.0
 
-## Seconds between scripted lines. Each line is queued through Walkie which
-## chains them on its own FIFO — this interval is just the spacing between
-## kicks, not the playback duration.
-@export var line_interval_s: float = 7.0
-## Initial delay before the first line fires (gives the player a beat to
-## realize they can't control anything).
+## Initial delay before the cutscene's first line fires (gives the player
+## a beat to realize they're locked into the walk).
 @export var first_line_delay_s: float = 2.5
 ## Seconds the end card holds before fading to main menu.
 @export var end_card_hold_s: float = 4.5
+## Background loop for the corridor walk. Force-looped via Audio.play_music.
+@export var loop_music: AudioStream = preload("res://audio/music/it_came_from_a_synth.mp3")
+@export var loop_music_fade_in_s: float = 1.5
 
-# Scripted dialogue beats — preserved here as code (not a .dialogue file)
-# because they're timed walkie lines, not press-E branching dialogue.
-const _BEATS: Array = [
-	["Splice",   "There you are. ...I knew you'd see it eventually."],
-	["DialTone", "Channel's open. They wanted to hear me say it."],
-	["DialTone", "I picked you. That's on me."],
-	["Glitch",   "I had hoped my analysis was wrong. It was not."],
-	["Glitch",   "...local node, helpful to all. I'll go back to that."],
-	["Nyx",      "Sane move was log out. I told you that."],
-	["Nyx",      "I told myself I'd read you right. ...that's twice now."],
-	["Nyx",      "Bye, runner."],
-	["Splice",   "You wanted in. ...you're in."],
-	["Splice",   "Just won't be anyone left to know it."],
-	["Splice",   "Don't stop walking."],
-]
+# Scripted dialogue beats now live in cutscenes/l5_walk.tres as a non-
+# blocking CutsceneTimeline (LineSteps + WaitSteps). The level locks the
+# player into the forced walk; the cutscene plays the radio chatter on top.
+# freeze_player must stay false on that timeline — level_5 owns the walk.
 
 var _ended: bool = false
 var _splice_npc: Node3D
@@ -60,6 +48,8 @@ var _splice_walking: bool = false
 
 func _ready() -> void:
 	SaveService.set_current_level(&"level_5")
+	if loop_music != null:
+		Audio.play_music(loop_music, loop_music_fade_in_s)
 	# Find the player and lock them into the walk. PlayerBody is added to the
 	# "player" group at _ready by the existing setup.
 	var player := get_tree().get_first_node_in_group(&"player")
@@ -81,8 +71,11 @@ func _ready() -> void:
 		if _splice_skin != null and _splice_skin.has_method(&"move"):
 			_splice_skin.call(&"move")
 		_splice_walking = true
-	# Kick off the scripted line sequence.
-	_play_beats()
+	# Kick off the scripted line sequence via the non-blocking CutscenePlayer.
+	# We arm manually (instead of via arm_flag) because this fires once per
+	# level load, not on a save-flag; the CutscenePlayer's fire_once gate
+	# would otherwise block re-entry on respawn.
+	_arm_walk_cutscene_after_delay()
 	# Credits roll alongside the corridor walk. Same scroll as the post-L4
 	# hub trigger and the main-menu Credits button. Self-frees on completion
 	# or Esc; the end-card / main-menu transition is independent of this
@@ -126,15 +119,15 @@ func _process(delta: float) -> void:
 			_splice_skin.call(&"idle")
 
 
-func _play_beats() -> void:
+func _arm_walk_cutscene_after_delay() -> void:
 	await get_tree().create_timer(first_line_delay_s).timeout
-	for beat: Array in _BEATS:
-		if _ended:
-			return
-		var character: String = beat[0]
-		var line: String = beat[1]
-		Walkie.speak(character, line)
-		await get_tree().create_timer(line_interval_s).timeout
+	if _ended:
+		return
+	var cs := get_node_or_null(^"%WalkOfShameCutscene")
+	if cs != null and cs.has_method(&"arm"):
+		cs.call(&"arm")
+	else:
+		push_warning("level_5: WalkOfShameCutscene not found — radio chatter will not play")
 
 
 func _on_end_entered(body: Node) -> void:

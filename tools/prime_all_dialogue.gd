@@ -28,6 +28,7 @@ const TtsText: GDScript = preload("res://autoload/tts_text.gd")
 const REQUEST_GAP_SEC: float = 0.4
 const DIALOGUE_DIR: String = "res://dialogue"
 const LEVEL_DIRS: Array[String] = ["res://level"]
+const CUTSCENE_DIR: String = "res://cutscenes"
 
 ## Speaker-line regex for .dialogue files. Matches "Character: spoken text".
 ## Skips lines starting with `do`, `if`, `=>`, `~`, `-` (response options),
@@ -107,7 +108,48 @@ func _collect_voice_lines() -> Array:
 	out.append_array(_walk_dialogue_files(DIALOGUE_DIR))
 	for level_dir: String in LEVEL_DIRS:
 		out.append_array(_walk_tscn_voice_lines(level_dir))
+	out.append_array(_walk_cutscene_timelines(CUTSCENE_DIR))
 	return out
+
+
+## Walks .tres files under `root`, loads each as a CutsceneTimeline, iterates
+## steps, and pulls (character, text) from every LineStep — including ones
+## nested inside ParallelStep / SubsequenceStep. Cutscene authoring uses the
+## new engine (cutscene_engine/); the bake script picks them up here so
+## LineStep texts get pre-cached TTS the same way .dialogue speaker lines do.
+func _walk_cutscene_timelines(root: String) -> Array:
+	var out: Array = []
+	var paths: Array[String] = _list_files(root, ".tres")
+	for path: String in paths:
+		var resource: Resource = ResourceLoader.load(path)
+		if resource == null or not (resource is CutsceneTimeline):
+			continue
+		var timeline: CutsceneTimeline = resource
+		_collect_line_steps(timeline.steps, out)
+	return out
+
+
+## Recursive — walks ParallelStep.steps and SubsequenceStep.cutscene.steps so
+## nested LineSteps don't get missed.
+func _collect_line_steps(steps: Array, out: Array) -> void:
+	for step: CutsceneStep in steps:
+		if step == null:
+			continue
+		if step is LineStep:
+			var ls: LineStep = step
+			var character: String = String(ls.character)
+			var text: String = ls.text
+			if character.is_empty() or text.is_empty():
+				continue
+			for variant: String in DialogueExpander.expand(text):
+				out.append({"character": character, "text": variant})
+		elif step is ParallelStep:
+			var ps: ParallelStep = step
+			_collect_line_steps(ps.steps, out)
+		elif step is SubsequenceStep:
+			var ss: SubsequenceStep = step
+			if ss.timeline != null:
+				_collect_line_steps(ss.timeline.steps, out)
 
 
 ## Reads every .dialogue under `root` and pulls "Character: text" lines.

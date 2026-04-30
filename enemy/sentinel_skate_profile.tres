@@ -4,14 +4,23 @@
 
 [resource]
 script = ExtResource("1")
-max_speed = 6.5
-accel = 22.0
-friction = 26.0
-air_accel_mult = 0.5
-turn_rate = 12.0
+max_speed = 11.2
+accel = 100.0
+friction = 100.0
+air_accel_mult = 0.54
+turn_rate = 39.9
 jump_impulse = 14.25
-rotation_speed = 8.0
-stopping_speed = 0.5
+rotation_speed = 19.75
 face_velocity = true
-forward_lean_amount = -0.05
-side_lean_amount = 0.02
+forward_lean_amount = -0.06
+side_lean_amount = 0.036
+cruise_sway_amplitude = 0.1
+brake_impulse_amount = 0.3
+grind_speed = 10.0
+grind_exit_boost = 3.0
+grind_yaw_offset_deg = 90.0
+grind_counter_strength = 6.5
+grind_fall_threshold = 0.785
+grind_lean_multiplier = 0.6
+tilt_height_drop = 0.5
+forward_speed_lift = 0.2

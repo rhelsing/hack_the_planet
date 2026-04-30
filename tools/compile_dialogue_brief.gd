@@ -52,9 +52,12 @@ const PROGRESSION: Array = [
 	["Level 4 — In-Level", [
 		["voice_nodes", "res://level/level_4.tscn"],
 		["dialogue_file", "res://dialogue/level_4_glitch.dialogue"],
+		["dialogue_file_optional", "res://dialogue/level_4_glitch_post.dialogue"],
 		["dialogue_file", "res://dialogue/level_4_dialtone.dialogue"],
 		["dialogue_file", "res://dialogue/level_4_nyx.dialogue"],
-		["dialogue_file", "res://dialogue/level_4_splice_showdown.dialogue"],
+		["cutscene_timeline", "res://cutscenes/l4_splice_showdown.tres"],
+		["cutscene_timeline", "res://cutscenes/l4_well_shit.tres"],
+		["cutscene_timeline", "res://cutscenes/l4_battle_radio.tres"],
 	]],
 	["Hub — Post-Level-4", [
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_post_4"],
@@ -62,6 +65,9 @@ const PROGRESSION: Array = [
 		["dialogue_file_optional", "res://dialogue/hub_post4_nyx.dialogue"],
 		["dialogue_file_optional", "res://dialogue/hub_post4_splice.dialogue"],
 		["dialogue_file_optional", "res://dialogue/hub_post4_glitch.dialogue"],
+	]],
+	["Level 5 — Walk of Shame (Betray Ending)", [
+		["cutscene_timeline", "res://cutscenes/l5_walk.tres"],
 	]],
 ]
 
@@ -102,6 +108,8 @@ func _render_item(item: Array) -> String:
 		"dialogue_file": return _render_dialogue_file(item[1], false)
 		"dialogue_file_optional": return _render_dialogue_file(item[1], true)
 		"dialogue_stage": return _render_dialogue_stage(item[1], item[2])
+		"cutscene_timeline": return _render_cutscene_timeline(item[1], false)
+		"cutscene_timeline_optional": return _render_cutscene_timeline(item[1], true)
 	return ""
 
 
@@ -291,6 +299,94 @@ func _is_other_stage_header(line: String, current_stage: String) -> bool:
 
 func _rel(path: String) -> String:
 	return path.replace("res://", "")
+
+
+# --- Cutscene timeline rendering ----------------------------------------
+#
+# Cutscenes are CutsceneTimeline .tres resources (cutscene_engine/) — typed
+# CutsceneStep arrays. We load each, walk the steps, and render LineSteps as
+# `Character: text` (matching .dialogue file conventions), WaitSteps as
+# `do wait(N)`, FlagSteps as `do GameState.set_flag(...)`, and so on.
+# ParallelStep / SubsequenceStep recurse so nested LineSteps appear inline.
+
+func _render_cutscene_timeline(path: String, optional: bool) -> String:
+	if not FileAccess.file_exists(path):
+		if optional:
+			return "\n*(cutscene not yet authored: `%s`)*\n" % _rel(path)
+		return "\n*(missing: %s)*\n" % _rel(path)
+	var resource: Resource = ResourceLoader.load(path)
+	if resource == null or not (resource is CutsceneTimeline):
+		return "\n*(not a CutsceneTimeline: %s)*\n" % _rel(path)
+	var timeline: CutsceneTimeline = resource
+	var body: String = _format_cutscene_steps(timeline.steps, 0)
+	return """
+<!-- source: %s -->
+<!-- type: cutscene_timeline -->
+
+## `%s`
+
+```
+%s
+```
+""" % [_rel(path), _rel(path), body]
+
+
+func _format_cutscene_steps(steps: Array, indent: int) -> String:
+	var prefix: String = "\t".repeat(indent)
+	var lines: Array[String] = []
+	for step: CutsceneStep in steps:
+		if step == null:
+			continue
+		if step is LineStep:
+			var ls: LineStep = step
+			var tag: String = " [#walkie]" if ls.channel == "walkie" else ""
+			lines.append("%s%s: %s%s" % [prefix, ls.character, ls.text, tag])
+		elif step is WaitStep:
+			var ws: WaitStep = step
+			if ws.seconds > 0.0:
+				lines.append("%sdo wait(%s)" % [prefix, _trim_float(ws.seconds)])
+			elif String(ws.until_flag) != "":
+				lines.append("%sdo wait_for_flag(\"%s\")" % [prefix, ws.until_flag])
+			elif String(ws.until_signal_name) != "":
+				lines.append("%sdo wait_for_signal(\"%s\")" % [prefix, ws.until_signal_name])
+		elif step is FlagStep:
+			var fs: FlagStep = step
+			lines.append("%sdo GameState.set_flag(\"%s\", %s)" % [prefix, fs.flag, str(fs.value)])
+		elif step is CutStep:
+			var cs: CutStep = step
+			lines.append("%s# cut → %s" % [prefix, cs.camera])
+		elif step is PanStep:
+			var ps: PanStep = step
+			lines.append("%s# pan %.1fs" % [prefix, ps.duration])
+		elif step is MusicStep:
+			lines.append("%s# music swap" % prefix)
+		elif step is StingerStep:
+			lines.append("%s# stinger" % prefix)
+		elif step is SkipPointStep:
+			var sp: SkipPointStep = step
+			lines.append("%s# skip-point: %s" % [prefix, sp.label])
+		elif step is ParallelStep:
+			var par: ParallelStep = step
+			lines.append("%s# parallel {" % prefix)
+			lines.append(_format_cutscene_steps(par.steps, indent + 1))
+			lines.append("%s# }" % prefix)
+		elif step is SubsequenceStep:
+			var sub: SubsequenceStep = step
+			lines.append("%s# subsequence {" % prefix)
+			if sub.timeline != null:
+				lines.append(_format_cutscene_steps(sub.timeline.steps, indent + 1))
+			lines.append("%s# }" % prefix)
+	return "\n".join(lines)
+
+
+func _trim_float(v: float) -> String:
+	# 7.0 → "7", 7.5 → "7.5"
+	var s: String = "%.2f" % v
+	while s.ends_with("0"):
+		s = s.left(s.length() - 1)
+	if s.ends_with("."):
+		s = s.left(s.length() - 1)
+	return s
 
 
 # --- Respawn voice hint extraction --------------------------------------

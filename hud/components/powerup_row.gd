@@ -7,23 +7,56 @@ extends VBoxContainer
 ## Cooldown overlay is driven by Events.skill_cooldown_started when the
 ## skill id matches an owned ability. Non-skill abilities never show one.
 
-const SLOT_SIZE := Vector2(72, 26)
+const SLOT_SIZE := Vector2(120, 34)
+const ICON_SIZE := Vector2(28, 28)
 const COLOR_ACTIVE   := Color(0, 1, 1)        # accent_cyan
 const COLOR_INACTIVE := Color(0.10, 0.53, 0.20, 0.7)
+## Cooldown tint — pill goes yellow at the moment the cooldown starts and
+## fades back to COLOR_ACTIVE over the cooldown duration (the "progress
+## fade" — yellow draining toward ready). When the fade finishes, the pill
+## blinks yellow→active three times to flag "ability available again."
+const COLOR_COOLDOWN := Color(1.0, 0.85, 0.10)  # yellow
+const READY_BLINK_COUNT: int = 3
+const READY_BLINK_INTERVAL: float = 0.08  # seconds per half-blink
 const ICON_FALLBACK := "??"
 
-# Per-ability icon (emoji) + short text. Most project fonts don't carry emoji
-# glyphs, so we render both — the text reads on any font, the emoji shows up
-# if the system font happens to have it.
+# Per-ability icon texture + short label + the input action that fires the
+# ability (so the pill can render the device-correct glyph in brackets,
+# e.g. "GOD [Y]" on keyboard / "GOD [R2]" on gamepad). Icons live in
+# hud/icons/powerups/; powerup_flag-keyed names map level → ability:
+#   love=Skate (L1) · secret=HackMode (L2) · sex=Grapple (L3) · god=Godd (L4).
 const ICONS := {
-	&"Skate":           {"emoji": "⛸", "text": "SKATE"},
-	&"GrappleAbility":  {"emoji": "🪝", "text": "GRAPPLE"},
-	&"GodAbility":      {"emoji": "😇", "text": "GOD"},
-	&"HackModeAbility": {"emoji": "🕶", "text": "HACK"},
+	&"Skate": {
+		"icon": preload("res://hud/icons/powerups/love.png"),
+		"text": "SKATE",
+		# Skate is passive — always-on once unlocked, no toggle button. Empty
+		# action skips the [glyph] suffix on this pill.
+		"action": "",
+	},
+	&"HackModeAbility": {
+		"icon": preload("res://hud/icons/powerups/secret.png"),
+		"text": "HACK",
+		"action": "interact",
+	},
+	&"GrappleAbility": {
+		"icon": preload("res://hud/icons/powerups/sex.png"),
+		"text": "GRAPPLE",
+		"action": "grapple_fire",
+	},
+	&"GodAbility": {
+		"icon": preload("res://hud/icons/powerups/god.png"),
+		"text": "GOD",
+		"action": "flare_shoot",
+	},
 }
 
 var _player: Node = null
-var _slots: Dictionary = {}  # ability_id (StringName) -> Label node
+## ability_id (StringName) -> PanelContainer.
+## Tinting goes through `panel.self_modulate` ONLY — that colors the pill's
+## bg + border without cascading. The icon TextureRect and the label text
+## are never tinted; powerup artwork and the SKATE/HACK/etc text always
+## render in their real colors regardless of active/inactive/cooldown state.
+var _slots: Dictionary = {}
 
 
 func _ready() -> void:
@@ -49,7 +82,9 @@ func _bind() -> void:
 
 func _rebuild_from_player() -> void:
 	for id in _slots.keys():
-		_slots[id].queue_free()
+		var panel: Node = _slots[id]
+		if panel != null and is_instance_valid(panel):
+			panel.queue_free()
 	_slots.clear()
 	var abilities := _player.get_node_or_null(^"Abilities")
 	if abilities == null:
@@ -78,23 +113,37 @@ func _on_ability_granted(ability_id: StringName) -> void:
 
 
 func _on_ability_enabled_changed(ability_id: StringName, enabled: bool) -> void:
-	var slot: Control = _slots.get(ability_id)
-	if slot == null:
+	var panel: PanelContainer = _slots.get(ability_id)
+	if panel == null:
 		return
-	slot.modulate = COLOR_ACTIVE if enabled else COLOR_INACTIVE
+	panel.self_modulate = COLOR_ACTIVE if enabled else COLOR_INACTIVE
 
 
 func _on_cooldown_started(skill: StringName, seconds: float) -> void:
-	var slot: Control = _slots.get(skill)
-	if slot == null or seconds <= 0.0:
+	var panel: PanelContainer = _slots.get(skill)
+	if panel == null or seconds <= 0.0:
 		return
-	slot.modulate.a = 0.4
+	# Yellow progress fade: snap pill bg to yellow, tween back to active over
+	# the cooldown's duration. The visual transition IS the progress meter.
+	# Only `self_modulate` — never cascades, so the icon and label stay in
+	# their real colors throughout.
+	panel.self_modulate = COLOR_COOLDOWN
 	var tw := create_tween()
-	tw.tween_interval(seconds)
+	tw.tween_property(panel, "self_modulate", COLOR_ACTIVE, seconds)\
+		.set_trans(Tween.TRANS_LINEAR)
 	tw.tween_callback(func() -> void:
-		if is_instance_valid(slot):
-			slot.modulate.a = 1.0
+		if is_instance_valid(panel):
+			_blink_ready(panel)
 	)
+
+
+# Three rapid yellow→active flashes signaling "available again." Tweens the
+# pill bg only — icon and label text are never touched.
+func _blink_ready(panel: PanelContainer) -> void:
+	var tw := create_tween()
+	for i in READY_BLINK_COUNT:
+		tw.tween_property(panel, "self_modulate", COLOR_COOLDOWN, READY_BLINK_INTERVAL)
+		tw.tween_property(panel, "self_modulate", COLOR_ACTIVE, READY_BLINK_INTERVAL)
 
 
 # ── Slot construction ───────────────────────────────────────────────────
@@ -119,20 +168,42 @@ func _add_slot(ability_id: StringName, enabled: bool) -> void:
 	style.content_margin_bottom = 2
 	slot.add_theme_stylebox_override(&"panel", style)
 
+	var icon_data: Variant = ICONS.get(ability_id, {})
+	var icon_tex: Texture2D = icon_data.get("icon", null)
+	var text: String = icon_data.get("text", ICON_FALLBACK)
+	var action: String = icon_data.get("action", "")
+
+	# Pill layout: icon flush-left, "TEXT [GLYPH]" immediately to its right.
+	# HBox alignment BEGIN packs both children to the leading edge instead of
+	# centering them in the 120px pill.
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override(&"separation", 6)
+	hbox.alignment = BoxContainer.ALIGNMENT_BEGIN
+	slot.add_child(hbox)
+
+	if icon_tex != null:
+		var icon := TextureRect.new()
+		icon.texture = icon_tex
+		icon.custom_minimum_size = ICON_SIZE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		hbox.add_child(icon)
+
 	var label := Label.new()
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override(&"font_size", 12)
-	var icon_data: Variant = ICONS.get(ability_id, {"emoji": "", "text": ICON_FALLBACK})
-	var emoji: String = icon_data.get("emoji", "")
-	var text: String = icon_data.get("text", ICON_FALLBACK)
-	label.text = "%s %s" % [emoji, text] if emoji != "" else text
-	slot.add_child(label)
-	# Apply the active/inactive tint on the slot so the panel border + label
-	# dim together.
-	slot.modulate = COLOR_ACTIVE if enabled else COLOR_INACTIVE
+	var glyph: String = Glyphs.for_action(action) if action != "" else ""
+	if glyph != "" and glyph != "?":
+		label.text = "%s [%s]" % [text, glyph]
+	else:
+		label.text = text
+	hbox.add_child(label)
 
 	add_child(slot)
+	# Pill bg is the only thing that ever changes color. self_modulate stays
+	# on the panel and never cascades; icon and label keep their real colors.
+	slot.self_modulate = COLOR_ACTIVE if enabled else COLOR_INACTIVE
 	_slots[ability_id] = slot
 
 

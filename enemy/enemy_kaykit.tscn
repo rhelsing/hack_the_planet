@@ -16,3 +16,6 @@ skate_profile = ExtResource("5_skate")
 start_in_walk_mode = true
 max_health = 1
 death_sound_auto_load_dir = "res://audio/sfx/enemy_deaths"
+attack_kick_auto_load_dir = "res://audio/sfx/attack_kicks"
+attack_kick_volume_db = -6.0
+attack_impact_auto_load_dir = "res://audio/sfx/attack_impacts"

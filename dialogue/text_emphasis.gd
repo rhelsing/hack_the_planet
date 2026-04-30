@@ -19,8 +19,32 @@ extends RefCounted
 ## TTS side: autoload/tts_text.gd::for_eleven_labs uppercases the same
 ## spans for ElevenLabs synth so the spoken emphasis matches the visual
 ## WYSIWYG. Both sides drop the literal `*` characters.
+
+
+## Strip ElevenLabs v3 audio cues (`[laughs]`, `[pause]`, `[whispering]`,
+## `[chuckles]`, `[sighs]`, `[laughs softly]`, etc.) from text destined for
+## a visible label. The TTS path keeps them — v3 reads them as voice cues —
+## so they only need removal at the display boundary.
+##
+## Regex matches `[X]` where X starts with a letter and contains
+## alphanumeric + space + underscore + dash. Excludes things with `=`, `#`,
+## `/`, `(`, etc., so DialogueManager tags (`[#walkie]`, `[#model=…]`,
+## `[if … /]`) and BBCode close tags (`[/color]`) are NOT matched here. The
+## visual BBCode tags `[b]`, `[i]`, `[u]` ARE matched, but `format_for_display`
+## adds those AFTER this strip — so callers that strip then format are safe.
+static func strip_audio_tags(text: String) -> String:
+	var re_tag: RegEx = RegEx.create_from_string("\\[[a-zA-Z][a-zA-Z0-9 _-]*\\]")
+	var out: String = re_tag.sub(text, "", true)
+	# Collapse whitespace runs left by stripped tags ("a [pause] b" → "a  b" → "a b").
+	var re_space: RegEx = RegEx.create_from_string("\\s+")
+	out = re_space.sub(out, " ", true)
+	return out.strip_edges()
+
+
 static func format_for_display(raw: String, color_hex: String = "") -> String:
-	var out: String = raw
+	# Strip audio cues BEFORE adding visual BBCode — otherwise the [b]/[i]
+	# we add here would get nuked by the strip's regex.
+	var out: String = strip_audio_tags(raw)
 	var bold: RegEx = RegEx.new()
 	bold.compile("\\*\\*([^*]+)\\*\\*")
 	for m: RegExMatch in bold.search_all(out):

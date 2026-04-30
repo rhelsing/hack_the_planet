@@ -45,6 +45,21 @@ static func strip_model_tag(text: String) -> String:
 ## Convert dialogue-source text into the form sent to ElevenLabs.
 static func for_eleven_labs(text: String) -> String:
 	var out: String = text
+	# Strip visual BBCode FIRST. By the time dialogue text reaches us, the
+	# scroll_balloon has often already converted `**word**` into
+	# `[b][color=#XXXXXX]WORD[/color][/b]` (its mutation runs *before* our
+	# got_dialogue handler because the plugin emits got_dialogue deferred —
+	# scroll_balloon's await returns first, mutates line.text, and only
+	# then does the next idle frame fire our handler). So by the time the
+	# bold/italic regex below would run, the asterisks are gone.
+	#
+	# Allow-list only the VISUAL tags (b/i/u/s/color/font/font_size/center/
+	# right/outline). Everything else — ElevenLabs v3 audio cues like
+	# `[laughs]`, `[pause]`, `[whispering]`, `[chuckles]`, `[#model=...]`,
+	# DialogueManager `[#walkie]` and `[if … /]` — is preserved untouched.
+	var bbcode: RegEx = RegEx.new()
+	bbcode.compile("\\[/?(b|i|u|s|color|font|font_size|center|right|outline)(=[^\\]]*)?\\]")
+	out = bbcode.sub(out, "", true)
 	# Bold first — `\*\*([^*]+)\*\*`. The `[^*]+` capture excludes asterisks
 	# so we don't span across multiple emphasis pairs.
 	var bold: RegEx = RegEx.new()

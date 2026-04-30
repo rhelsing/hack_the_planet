@@ -47,6 +47,11 @@ var time_limit: float = 0.0
 var h: Array = []      # Array[Array[int]], rows × (cols-1)
 var v: Array = []      # Array[Array[int]], (rows-1) × cols
 var cells: Array = []  # Array[Array[int]], (rows-1) × (cols-1)
+## Optional title shown in-game above the maze. Empty = falls back to
+## the default "HACKING" label authored on the puzzle scene.
+var puzzle_name: String = ""
+## Optional secondary line shown under the title — flavor text, quote, etc.
+var subline: String = ""
 var error: String = ""
 
 
@@ -83,6 +88,13 @@ func load_text(text: String) -> void:
 	start = Vector2i(int(s_raw[0]), int(s_raw[1]))
 	end = Vector2i(int(e_raw[0]), int(e_raw[1]))
 	time_limit = float(dict.get("time_limit", 0.0))
+	# Optional metadata. Type-check so a corrupted file with `"name": null`
+	# doesn't produce GDScript's stringified "<null>" in the in-game label.
+	# Missing key, wrong type, or null → empty string (no override).
+	var name_raw: Variant = dict.get("name", "")
+	puzzle_name = name_raw if name_raw is String else ""
+	var subline_raw: Variant = dict.get("subline", "")
+	subline = subline_raw if subline_raw is String else ""
 	h = dict.get("h", [])
 	v = dict.get("v", [])
 	if h.size() != rows:

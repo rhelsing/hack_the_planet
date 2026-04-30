@@ -17,11 +17,24 @@ extends Brain
 ## per the faction targeting table. Inspector default keeps existing
 ## "hit the player" behavior for old enemy variants without faction set.
 @export var target_groups: Array[StringName] = [&"player"]
+## Groups that take target priority when within `priority_target_radius`,
+## even if a regular target is closer. Bypasses both the nearest-wins
+## sweep and the 2:1 hysteresis so the priority target snaps in the
+## moment they enter range. Empty = no priority logic (default). Use
+## case: stealth pawns set this to [&"allies"] so golds in their bubble
+## get chased + one-shot before the player does.
+@export var priority_target_groups: Array[StringName] = []
+## Radius (m) inside which `priority_target_groups` members override
+## the regular target pick. 0 = priority logic disabled (only the
+## groups list is consulted, which is empty by default).
+@export var priority_target_radius: float = 0.0
 
 @export_group("Vision Cone")
-## Half-angle in degrees of the FOV cone. 0 = omnidirectional (default,
-## existing swarm behavior). 45 = 90° total cone. Targets outside the
-## cone aren't acquired even within detection_radius.
+## Half-angle in degrees of the FOV cone for STANDING targets. 0 =
+## omnidirectional (swarm). 45 = 90° total cone. 170 = 340° total cone
+## (near-omni stealth pawn, ~20° dead zone behind). Targets outside the
+## cone aren't acquired even within detection_radius. When the target
+## is crouched, this is multiplied by `crouch_cone_multiplier`.
 @export_range(0.0, 180.0) var vision_cone_deg: float = 0.0
 ## Show the vision cone as a translucent fan. Material writes depth via
 ## TRANSPARENCY_ALPHA_DEPTH_PRE_PASS so walls properly occlude it (no
@@ -37,11 +50,12 @@ extends Brain
 @export_range(0.0, 1.0) var vision_swivel_smoothing: float = 0.15
 
 @export_group("Vision Cone Stealth")
-## When true and the cone is enabled (vision_cone_deg > 0), a crouched
-## target is treated as invisible — the cone won't acquire them.
-## Player crouch state read via PlayerBody._was_crouched (stealth-game
-## sneaking pattern). Off = crouching is irrelevant (still detected).
-@export var crouch_makes_invisible: bool = true
+## Multiplier on `vision_cone_deg` when the target is crouched. <1 narrows
+## the cone arc (crouching makes the splice "tunnel-vision" — wide standing
+## awareness collapses to a forward sliver). 1 = crouching has no effect on
+## arc width (range/suspect multipliers still apply). Default 0.3 ≈ 102°
+## crouched arc when standing is 340°.
+@export_range(0.0, 1.0) var crouch_cone_multiplier: float = 0.3
 ## Seconds the cone holds in SUSPECT (yellow) before promoting to HOSTILE
 ## (red, chase). Player has this long to break LOS / crouch out before
 ## they snap into pursuit. 0 = snap immediately (swarm AI default).
@@ -142,14 +156,29 @@ extends Brain
 @export_range(0.0, 1.0) var wind_up_speed_fraction := 0.15
 
 @export_group("Follow")
-## When non-empty AND no enemy is in detection range, the brain walks
-## toward the nearest node in this group instead of pure-random wander.
-## Used by ally pawns (faction "gold") set via PlayerBody.set_faction —
-## they follow the player around and idle near them. Empty = pure wander.
+## When non-empty AND no enemy is in detection range, the brain follows
+## the nearest node in this group with three-zone hysteresis: chase if far,
+## wander if mid-range, push away if too close. Used by ally pawns
+## (faction "gold") set via PlayerBody.set_faction. Empty = pure wander.
 @export var follow_subject_group: StringName = &""
-## Stop-and-idle gap. When closer than this to the follow subject, the
-## brain idles in place; when farther, it walks toward the subject.
-@export var follow_distance: float = 3.0
+## Outer threshold: subject farther than this triggers active path-finding.
+## Hysteresis pair with follow_arrive_distance — once engaged, the ally
+## walks toward the subject until they're within follow_arrive_distance,
+## then drops back to wander until the subject drifts past this again.
+@export var follow_engage_distance: float = 20.0
+## Inner threshold for engagement: once the ally has closed within this
+## distance, they stop actively path-finding and switch to wander.
+@export var follow_arrive_distance: float = 10.0
+## Personal-space radius. Inside this distance the ally walks AWAY from
+## the subject instead of toward it — keeps allies from clustering on
+## the player. Set < follow_arrive_distance.
+@export var follow_personal_space: float = 5.0
+## Multiplier applied to a candidate target's distance² for every other
+## ally already targeting it. Higher = stronger spread (allies prefer
+## un-claimed enemies). 1.0 = no spread (all pile on nearest). 1.5 ≈ a
+## peer claim makes a target look ~22% farther linearly. Only applied
+## when this brain's body is in the "allies" physics group.
+@export_range(1.0, 4.0) var ally_target_spread_penalty: float = 1.5
 
 @export_group("Navigation")
 ## Navigation strategy. Determines how the brain handles vertical platform
@@ -254,6 +283,17 @@ var _jump_attempted_target: Node3D = null
 # parity height (target no longer below threshold).
 var _drop_attempted_target: Node3D = null
 var _target: Node3D
+# Hysteresis state for follow zoning. Flipped to true when the subject
+# crosses follow_engage_distance going out; back to false when crossing
+# follow_arrive_distance coming in. While true, ally actively path-finds
+# toward the subject; while false, they wander (unless within
+# follow_personal_space, in which case they push away regardless).
+var _follow_engaged: bool = false
+# Class-wide claim registry: target node → number of ally brains currently
+# targeting it. _set_target maintains the count; the scoring loop in
+# _ensure_target reads it to penalize already-claimed candidates so allies
+# spread across enemies instead of dogpiling the nearest one.
+static var _target_claims: Dictionary = {}
 var _intent := Intent.new()
 # Debug-viz fan mesh. Attached to the body so its transform follows the
 # pawn; rotated each tick to match _direction so the cone points where
@@ -419,10 +459,15 @@ func tick(body: Node3D, delta: float) -> Intent:
 			_intent.move_direction = Vector3.ZERO
 		_:
 			# WANDER: if a follow subject is configured (allies follow the
-			# player), home toward them with a stop-and-idle gap. Otherwise
-			# fall back to pure-random wander.
+			# player), use 3-zone hysteresis — chase if far, push away if
+			# in personal space, otherwise wander. _follow_direction returns
+			# Vector3.ZERO to signal "no follow command, wander instead."
 			if follow_subject_group != &"":
-				_intent.move_direction = _follow_direction(body) * chase_speed_fraction
+				var follow_dir: Vector3 = _follow_direction(body)
+				if follow_dir != Vector3.ZERO:
+					_intent.move_direction = follow_dir * chase_speed_fraction
+				else:
+					_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
 			else:
 				_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
 
@@ -452,12 +497,12 @@ func _update_state(_body: Node3D) -> void:
 
 
 # Detection check.
-#   cone == 0 (swarm)        : pure sphere — in range = detected.
-#   cone > 0 + standing      : pure sphere too — splice "hears" the
-#       player anywhere within range_cap. The cone is purely a visual
-#       state indicator at this point, not a detection gate.
-#   cone > 0 + crouched      : cone arc + line-of-sight via per-slice
-#       raycasts. Crouching is the only way to slip out of detection.
+#   cone == 0 (swarm)  : pure sphere — in range = detected.
+#   cone > 0           : cone arc + LOS via per-slice raycasts. Same path
+#       for standing and crouched; crouch shrinks the arc via
+#       crouch_cone_multiplier and the range via crouch_range_multiplier
+#       (folded into range_cap upstream). Crouching narrows what the
+#       splice sees but never grants total invisibility inside the arc.
 # Reports raw "currently visible" state — the alert state machine
 # (SUSPECT delay + hostile_zone_radius close-up shortcut) decides what
 # to do with that signal.
@@ -471,24 +516,49 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 		return false
 	if vision_cone_deg <= 0.0:
 		return true  # swarm: sphere detection, no cone
-	if not _target_crouched:
-		return true  # standing inside the cone's range_cap — sphere catches you
-	# Crouched: must lie inside the FOV arc AND inside the unblocked
-	# extent of whichever slice contains them.
 	if horiz < 0.0001 or _slice_distances.size() < 2:
 		return true
 	var to_dir: Vector3 = to_target_flat / horiz
 	var theta_t: float = atan2(to_dir.x, to_dir.z) + PI
 	var a_target: float = angle_difference(_vision_cone_yaw, theta_t)
-	var half_rad: float = deg_to_rad(vision_cone_deg)
+	var half_rad: float = deg_to_rad(_effective_cone_deg())
 	if absf(a_target) > half_rad:
 		return false  # outside cone arc
+	# Direct 3D LOS check — the slice fan is a flat 2D probe at eye height,
+	# so a low wall (or any geometry at eye height) blocks it even when the
+	# target is actually visible in 3D (crouched player below a ledge, etc.).
+	# A single ray from eye to target chest restores vertical depth without
+	# rebuilding the cone. If clear, we trust the direct check; if blocked,
+	# fall back to the slice for backward compat (slice never said "visible"
+	# when direct ray is blocked, so this strictly broadens detection).
+	var space := body.get_world_3d().direct_space_state
+	if space != null:
+		var eye: Vector3 = body.global_position + Vector3.UP * vision_eye_height
+		var target_chest: Vector3 = _target.global_position + Vector3.UP * 0.6
+		var query := PhysicsRayQueryParameters3D.create(eye, target_chest)
+		var exclude: Array[RID] = []
+		if body is CollisionObject3D:
+			exclude.append((body as CollisionObject3D).get_rid())
+		if _target is CollisionObject3D:
+			exclude.append((_target as CollisionObject3D).get_rid())
+		query.exclude = exclude
+		if space.intersect_ray(query).is_empty():
+			return true  # 3D LOS clear, visible regardless of flat-fan slice
 	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
 	var slice_f: float = (a_target + half_rad) / step
 	var f_idx: int = clampi(int(floor(slice_f)), 0, _slice_distances.size() - 1)
 	var c_idx: int = clampi(int(ceil(slice_f)), 0, _slice_distances.size() - 1)
 	var slice_dist: float = minf(_slice_distances[f_idx], _slice_distances[c_idx])
 	return horiz <= slice_dist
+
+
+# Cone half-angle for THIS tick. Standing → vision_cone_deg as authored.
+# Crouched → multiplied by crouch_cone_multiplier so the arc tightens.
+# Source of truth for both detection (slice arc bounds) and the visual fan.
+func _effective_cone_deg() -> float:
+	if _target_crouched:
+		return vision_cone_deg * crouch_cone_multiplier
+	return vision_cone_deg
 
 
 func _chase_direction(body: Node3D) -> Vector3:
@@ -511,9 +581,11 @@ func _chase_direction(body: Node3D) -> Vector3:
 
 
 func _follow_direction(body: Node3D) -> Vector3:
-	# Pick the nearest member of follow_subject_group. Returns zero if
-	# inside the follow_distance gap — that maps to "idle in place" via
-	# move_direction = 0. Returns toward-subject unit vector otherwise.
+	# Three-zone follow with hysteresis:
+	#   dist > follow_engage_distance      → engaged := true, walk toward
+	#   engaged AND dist > follow_arrive   → walk toward (hysteresis tail)
+	#   dist < follow_personal_space       → walk AWAY (push out of bubble)
+	#   else                               → return ZERO → caller wanders
 	var tree := body.get_tree()
 	if tree == null:
 		return Vector3.ZERO
@@ -536,14 +608,29 @@ func _follow_direction(body: Node3D) -> Vector3:
 	# stealth" beat. Auto-resumes the moment the subject uncrouches.
 	if "_was_crouched" in subject and bool(subject.get(&"_was_crouched")):
 		return Vector3.ZERO
-	var dist: float = sqrt(best_dist_sq)
-	if dist <= follow_distance:
-		return Vector3.ZERO  # idle inside the gap
 	var to_subject: Vector3 = subject.global_position - body.global_position
 	to_subject.y = 0.0
 	if to_subject.length_squared() < 0.0001:
 		return Vector3.ZERO
-	return to_subject.normalized()
+	var dir: Vector3 = to_subject.normalized()
+	var dist: float = sqrt(best_dist_sq)
+	# Push-away has the highest priority — even if engaged, we don't violate
+	# personal space.
+	if dist < follow_personal_space:
+		_follow_engaged = false
+		return -dir
+	# Hysteresis: drop out of engaged once we've arrived; jump back in once
+	# we drift past the outer threshold.
+	if _follow_engaged:
+		if dist <= follow_arrive_distance:
+			_follow_engaged = false
+		else:
+			return dir
+	else:
+		if dist > follow_engage_distance:
+			_follow_engaged = true
+			return dir
+	return Vector3.ZERO  # mid-zone → caller falls through to wander
 
 
 func _wander_direction(body: Node3D, delta: float) -> Vector3:
@@ -577,11 +664,42 @@ func _ensure_target(body: Node3D) -> void:
 	var tree := body.get_tree()
 	if tree == null:
 		return
+	# Priority sweep: if any member of priority_target_groups sits within
+	# priority_target_radius, lock the nearest one and skip the regular
+	# pick. Bypasses the 2:1 hysteresis so the moment a priority target
+	# enters the bubble, the brain snaps to them — splice pawns drop
+	# whatever they were chasing and go for the gold in their face.
+	if priority_target_radius > 0.0 and not priority_target_groups.is_empty():
+		var prio_radius_sq: float = priority_target_radius * priority_target_radius
+		var prio_best: Node3D = null
+		var prio_best_dsq: float = INF
+		var prio_seen: Dictionary = {}
+		for grp in priority_target_groups:
+			for node: Node in tree.get_nodes_in_group(grp):
+				if prio_seen.has(node):
+					continue
+				prio_seen[node] = true
+				if not (node is Node3D):
+					continue
+				var n3d: Node3D = node as Node3D
+				var dsq: float = n3d.global_position.distance_squared_to(body.global_position)
+				if dsq <= prio_radius_sq and dsq < prio_best_dsq:
+					prio_best_dsq = dsq
+					prio_best = n3d
+		if prio_best != null:
+			_set_target(prio_best)
+			return
 	# Scan EVERY tick for the nearest candidate across all target groups.
 	# Drives both acquisition (when cache is empty) AND the distance-aware
 	# proactive switch below. O(N) over a small enemy count — microseconds.
 	# Dedup because a single pawn can sit in multiple target groups
 	# (e.g. a red is in both `enemies` and `splice_enemies`).
+	#
+	# Ally spread: when this brain's body is in the "allies" physics group,
+	# already-claimed candidates take a multiplicative distance penalty per
+	# peer claim — so a second ally prefers a different (un-claimed) enemy
+	# over piling onto the closest one. Penalty applies in dsq space.
+	var is_ally: bool = body.is_in_group(&"allies")
 	var best: Node3D = null
 	var best_dsq: float = INF
 	var seen: Dictionary = {}
@@ -594,6 +712,12 @@ func _ensure_target(body: Node3D) -> void:
 				continue
 			var n3d: Node3D = node as Node3D
 			var dsq: float = n3d.global_position.distance_squared_to(body.global_position)
+			if is_ally and ally_target_spread_penalty > 1.0:
+				var claims: int = _target_claims.get(n3d, 0)
+				if _target == n3d:
+					claims -= 1  # don't penalize against our own existing claim
+				if claims > 0:
+					dsq *= pow(ally_target_spread_penalty, float(claims))
 			if dsq < best_dsq:
 				best_dsq = dsq
 				best = n3d
@@ -607,9 +731,9 @@ func _ensure_target(body: Node3D) -> void:
 				still_targeted = true
 				break
 		if not still_targeted:
-			_target = null
+			_set_target(null)
 	else:
-		_target = null
+		_set_target(null)
 	# Distance-aware proactive switch: keep the cached target UNLESS `best`
 	# is meaningfully closer. dsq ratio of 2:1 → new target must be ≤~70%
 	# the linear distance of the current one to win. Prevents thrashing on
@@ -619,9 +743,33 @@ func _ensure_target(body: Node3D) -> void:
 	if _target != null:
 		var current_dsq: float = (_target as Node3D).global_position.distance_squared_to(body.global_position)
 		if best != null and best_dsq * 2.0 < current_dsq:
-			_target = best
+			_set_target(best)
 	else:
-		_target = best
+		_set_target(best)
+
+
+# Single mutation point for `_target` — keeps the static `_target_claims`
+# registry in sync. Allies use that registry to spread targeting across
+# multiple enemies instead of dogpiling the nearest one.
+func _set_target(new_target: Node3D) -> void:
+	if _target == new_target:
+		return
+	if _target != null:
+		var c: int = int(_target_claims.get(_target, 1)) - 1
+		if c <= 0:
+			_target_claims.erase(_target)
+		else:
+			_target_claims[_target] = c
+	if new_target != null:
+		_target_claims[new_target] = int(_target_claims.get(new_target, 0)) + 1
+	_target = new_target
+
+
+func _exit_tree() -> void:
+	# Brain or its body is being freed — release any outstanding claim so
+	# the registry doesn't leak references to dead nodes.
+	if _target != null:
+		_set_target(null)
 
 
 func _horizontal_distance(a: Vector3, b: Vector3) -> float:
@@ -632,7 +780,9 @@ func _horizontal_distance(a: Vector3, b: Vector3) -> float:
 
 ## Trigger the wind-up the moment the target enters strike range and the
 ## cooldown is ready. From WIND_UP, _tick_wind_up handles the actual swing
-## fire after wind_up_duration elapses.
+## fire after wind_up_duration elapses. Priority targets bypass the wind-up
+## entirely — splice pawns one-shot golds with no telegraph, while keeping
+## the wind-up "punish window" for the player.
 func _maybe_start_wind_up(body: Node3D) -> void:
 	if _target == null or _attack_cooldown_timer > 0.0:
 		return
@@ -642,13 +792,26 @@ func _maybe_start_wind_up(body: Node3D) -> void:
 	var dy: float = absf(_target.global_position.y - body.global_position.y)
 	if dy > attack_vertical_range:
 		return
-	if wind_up_duration <= 0.0:
-		# Wind-up disabled — fire immediately (legacy behavior).
+	if wind_up_duration <= 0.0 or _is_priority_target(_target):
+		# Wind-up disabled (globally OR for this priority target) — fire
+		# immediately. Priority bypass is what makes the splice insta-kill
+		# golds: no 0.4s telegraph, just an instant 99-dmg swing.
 		_intent.attack_pressed = true
 		_attack_cooldown_timer = attack_cooldown
 		return
 	_state = State.WIND_UP
 	_wind_up_timer = wind_up_duration
+
+
+# True if `target` belongs to any priority_target_groups. Cheap multi-group
+# check — typically one group ("allies") with an early-out match.
+func _is_priority_target(target: Node) -> bool:
+	if target == null or priority_target_groups.is_empty():
+		return false
+	for grp in priority_target_groups:
+		if target.is_in_group(grp):
+			return true
+	return false
 
 
 ## Slow to a creep facing the target while the wind-up timer ticks down.
@@ -725,6 +888,9 @@ func _nav_dumb(body: Node3D) -> void:
 	if _intent.move_direction.length() < 0.01:
 		return
 	if _jump_attempted_target == towards:
+		return
+	if ConvertZone.is_jump_forbidden_for(body):
+		_jump_attempted_target = towards
 		return
 	_intent.jump_pressed = true
 	_jump_cooldown_timer = jump_cooldown
@@ -807,6 +973,15 @@ func _try_jump(body: Node3D, towards: Node3D, towards_dir: Vector3, at_ledge: bo
 			_intent.move_direction = Vector3.ZERO
 		return
 	if _jump_attempted_target == towards:
+		if at_ledge:
+			_intent.hard_brake = true
+			_intent.move_direction = Vector3.ZERO
+		return
+	if ConvertZone.is_jump_forbidden_for(body):
+		# Zone forbids jump entirely. Treat as if the arc didn't land —
+		# cache the target so we don't re-check every tick, and brake at
+		# the ledge so we don't walk off into open air.
+		_jump_attempted_target = towards
 		if at_ledge:
 			_intent.hard_brake = true
 			_intent.move_direction = Vector3.ZERO
@@ -975,8 +1150,20 @@ func _has_ground_ahead(body: Node3D) -> bool:
 # When chase_max_duration <= 0, HOSTILE never tuckers (swarm pattern).
 func _update_alert_phase(body: Node3D, delta: float) -> void:
 	var prior: int = _alert_phase
-	var range_cap: float = _effective_chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else _effective_detection_radius
-	var visible: bool = _target != null and _can_see_target(body, range_cap)
+	# Mid-HOSTILE override for `aggressive_while_chasing` pawns (splice_stealth):
+	# once they've committed to a chase, they behave like swarm reds — sphere
+	# detection at full chase_exit_radius, no cone arc, no crouch range shrink,
+	# no LOS check. The player can't drop the chase by crouching or stepping
+	# behind cover. Only distance > chase_exit_radius (raw) or chase_max_duration
+	# tucker-out can break the lock. Pairs with set_aggressive_buffs(true) which
+	# already promotes the BODY to red-tier; this matches the BRAIN side.
+	var visible: bool
+	if _alert_phase == _AlertPhase.HOSTILE and aggressive_while_chasing and _target != null:
+		var horiz_h: float = _horizontal_distance(body.global_position, _target.global_position)
+		visible = horiz_h <= chase_exit_radius
+	else:
+		var range_cap: float = _effective_chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else _effective_detection_radius
+		visible = _target != null and _can_see_target(body, range_cap)
 	# Distance check for the hostile-zone (close-up) shortcut. Behavior
 	# differs by stance:
 	#   Standing inside hostile_zone   → snap to HOSTILE (no SUSPECT).
@@ -1114,7 +1301,7 @@ func _compute_slice_distances(body: Node3D) -> void:
 		return
 	var origin: Vector3 = body.global_position + Vector3.UP * vision_eye_height
 	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
-	var half_rad: float = deg_to_rad(vision_cone_deg)
+	var half_rad: float = deg_to_rad(_effective_cone_deg())
 	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
 	var exclude: Array[RID] = []
 	if body is CollisionObject3D:
@@ -1147,14 +1334,13 @@ func _update_vision_debug(body: Node3D, delta: float) -> void:
 		_vision_cone_color_current = _vision_cone_color_target
 	_vision_cone_mesh.global_position = body.global_position + Vector3.UP * vision_eye_height
 	# Smooth phase-color crossfade. _vision_cone_color_target is set in
-	# _on_alert_phase_changed; here we ease into it.
+	# _on_alert_phase_changed; here we ease into it. The color is consumed
+	# per-vertex inside _rebuild_vision_cone_mesh (apex full alpha, outer
+	# rim fades to 10%) — no albedo write here, the material is a passthrough.
 	var ck: float = 1.0
 	if color_blend_time > 0.0:
 		ck = clampf(delta / color_blend_time, 0.0, 1.0)
 	_vision_cone_color_current = _vision_cone_color_current.lerp(_vision_cone_color_target, ck)
-	var mat: StandardMaterial3D = _vision_cone_mesh.material_override as StandardMaterial3D
-	if mat != null:
-		mat.albedo_color = _vision_cone_color_current
 	_rebuild_vision_cone_mesh()
 
 
@@ -1162,7 +1348,12 @@ func _build_vision_cone_mesh(body: Node3D) -> MeshInstance3D:
 	var inst := MeshInstance3D.new()
 	inst.mesh = ImmediateMesh.new()
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color_calm
+	# Color comes from per-vertex RGBA in _rebuild_vision_cone_mesh — apex
+	# at the phase color's full alpha, outer rim at 10% for a radial fade.
+	# Material itself is a white passthrough; vertex_color_use_as_albedo
+	# routes the per-vertex color (incl. alpha) through to the surface.
+	mat.albedo_color = Color(1, 1, 1, 1)
+	mat.vertex_color_use_as_albedo = true
 	# DEPTH_PRE_PASS lets opaque walls correctly occlude the translucent
 	# fan. Plain alpha lets the fan bleed through cover.
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
@@ -1175,8 +1366,10 @@ func _build_vision_cone_mesh(body: Node3D) -> MeshInstance3D:
 
 
 # Rebuild the fan as one triangle per slice, reaching to the slice's
-# wall-clipped distance. Single surface — color comes from material_override
-# which is phase-tweened in _update_vision_debug.
+# wall-clipped distance. Single surface; per-vertex RGBA carries the phase
+# color (lerped in _update_vision_debug) — apex sits at the phase alpha,
+# outer rim collapses to 10% for a radial gradient. The material is a
+# white passthrough with vertex_color_use_as_albedo enabled.
 func _rebuild_vision_cone_mesh() -> void:
 	if _vision_cone_mesh == null or not is_instance_valid(_vision_cone_mesh):
 		return
@@ -1187,10 +1380,13 @@ func _rebuild_vision_cone_mesh() -> void:
 	if _slice_distances.size() < 2:
 		return
 	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	var half_rad: float = deg_to_rad(vision_cone_deg)
+	var half_rad: float = deg_to_rad(_effective_cone_deg())
 	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
 	var apex := Vector3.ZERO
 	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
+	var phase_color: Color = _vision_cone_color_current
+	var apex_color: Color = phase_color
+	var edge_color := Color(phase_color.r, phase_color.g, phase_color.b, phase_color.a * 0.01)
 	for i in range(_CONE_SLICES):
 		var a0: float = -half_rad + step * float(i)
 		var a1: float = -half_rad + step * float(i + 1)
@@ -1198,8 +1394,11 @@ func _rebuild_vision_cone_mesh() -> void:
 		var dir1: Vector3 = forward.rotated(Vector3.UP, a1)
 		var p0: Vector3 = dir0 * _slice_distances[i]
 		var p1: Vector3 = dir1 * _slice_distances[i + 1]
+		mesh.surface_set_color(apex_color)
 		mesh.surface_add_vertex(apex)
+		mesh.surface_set_color(edge_color)
 		mesh.surface_add_vertex(p0)
+		mesh.surface_set_color(edge_color)
 		mesh.surface_add_vertex(p1)
 	mesh.surface_end()
 

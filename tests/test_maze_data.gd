@@ -1,10 +1,11 @@
 extends SceneTree
 
-## Smoke test for puzzle/maze/maze_data.gd against the level-2 fixture.
+## Smoke test for puzzle/maze/maze_data.gd against the level-2 starter
+## fixture (baby_steps.exe — 5×5, the easiest authored puzzle).
 ## Run: godot --headless --script res://tests/test_maze_data.gd --quit
 
 const MazeData = preload("res://puzzle/maze/maze_data.gd")
-const FIXTURE: String = "res://puzzle/maze/mazes/l2_hack_terminal.maze"
+const FIXTURE: String = "res://puzzle/maze/mazes/baby_steps_exe.maze"
 
 
 func _init() -> void:
@@ -37,8 +38,10 @@ func _init() -> void:
 				seen[nb] = true
 				queue.append(nb)
 	assert(found, "BFS could not reach end from start in fixture")
-	# Untimed: time_limit should be 0 since the editor exported without timer.
-	assert(d.time_limit == 0.0, "expected untimed (0.0), got %f" % d.time_limit)
+	# Fixture is timed (baby_steps.exe is currently 10s). Don't pin the exact
+	# value — re-tunes shouldn't break the parser smoke test. Just confirm
+	# the parser read a positive limit through.
+	assert(d.time_limit > 0.0, "expected a positive time_limit, got %f" % d.time_limit)
 	# Bad-shape rejection.
 	var bad = MazeData.new()
 	bad.load_text('{"cols": 5, "rows": 5}')

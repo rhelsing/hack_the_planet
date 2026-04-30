@@ -73,6 +73,35 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## so the reveal happens live, not just on _ready.
 @export var visible_when_flag: StringName = &""
 
+@export_group("Cutscene On Solve")
+## Optional .ogv path to play after a successful solve. Empty = no cutscene.
+## Routes through Cutscene.show_video, which already pauses music+ambience
+## for the duration and resumes on end (audio.gd:385–394). _on_puzzle_solved
+## awaits playback so dependent logic stays sequential.
+@export_file("*.ogv") var cutscene_video_path: String = ""
+## When true (default), the cutscene fires only on the FIRST solve; replays
+## of the same terminal skip it. Tracked via an auto-derived per-terminal
+## flag `<interactable_id>_cutscene_played`, persisted by GameState.
+@export var cutscene_only_once: bool = true
+## Seconds of black-frame hold appended after the video ends. Lets the
+## moment land before whatever line / level transition follows.
+@export var cutscene_post_delay: float = 0.0
+
+@export_group("Fail Cascade")
+## On a fail event (timer expiry, hazard violation, OR manual cancel), walk
+## back N predecessors via the `visible_when_flag` chain and clear each
+## predecessor's GameState flag. Used to enforce "fail any one of a sequence
+## → restart from the start" patterns (see docs/hub_terminal_sequence.md).
+##   0  = no rewind (default, current behavior — fail just unhooks).
+##   N  = clear N predecessors.
+##  -1  = walk all the way to the chain start.
+## The walk follows `visible_when_flag` (not `required_flag`), so chains
+## use the visibility link as the predecessor-pointer and `required_flag`
+## stays free for orthogonal gates (e.g., `powerup_secret`). Walk stops
+## cleanly when a flag points at something that isn't a registered terminal
+## (e.g., the powerup gate at the chain root).
+@export var fail_reset_count: int = 0
+
 @export_group("Slide On Solve")
 ## Optional Node3D to translate when the puzzle is solved. Empty = no slide.
 @export var slide_target: NodePath
@@ -92,12 +121,23 @@ var _default_highlight_cached: Material
 var _resolved_highlight_meshes: Array[MeshInstance3D] = []
 var _highlight_resolved: bool = false
 
+# Static registry of all live PuzzleTerminals keyed by interactable_id, so
+# Fail Cascade walks can find a predecessor terminal by its flag name in
+# O(1). Populated in _ready, erased on tree_exiting.
+static var _by_id: Dictionary = {}
+
 
 func _ready() -> void:
 	super._ready()
 	pauses_game = true
 	if prompt_verb == "interact":
 		prompt_verb = "hack"
+	# Register in the static lookup table so Fail Cascade walks can find
+	# predecessors by interactable_id. Erase on tree exit so freed instances
+	# don't linger in the dict across scene swaps.
+	if interactable_id != &"":
+		_by_id[interactable_id] = self
+		tree_exiting.connect(func() -> void: _by_id.erase(interactable_id))
 	# If we already solved this terminal in a prior session (flag restored),
 	# replay the conversion side effect so enemies that were converted last
 	# session show up converted again on reload — instead of respawning in
@@ -127,13 +167,13 @@ func _apply_visibility_gate() -> void:
 	collision_layer = 512 if unlocked else 0
 
 
-func _on_visibility_flag_set(id: StringName, value: Variant) -> void:
+func _on_visibility_flag_set(id: StringName, _value: Variant) -> void:
 	if id != visible_when_flag:
 		return
-	if not bool(value):
-		return
-	visible = true
-	collision_layer = 512
+	# Re-evaluate from the live flag value (handles BOTH set-to-true and
+	# set-to-false). Required for Fail Cascade rewinds to re-hide downstream
+	# terminals when their predecessor's flag clears.
+	_apply_visibility_gate()
 
 
 # Deferred-call entry: waits one physics frame so PlayerBody _ready has
@@ -190,6 +230,15 @@ func _on_puzzle_solved(solved_id: StringName) -> void:
 	_apply_faction_conversion()
 	_apply_slide_on_solve()
 	_disconnect_puzzle_signals()
+	# Cutscene gate: per-terminal `<id>_cutscene_played` flag persists in
+	# GameState, so re-solving a replayable terminal (one_shot=false) never
+	# replays the video. Default behavior of every existing terminal is
+	# unchanged because cutscene_video_path defaults to "".
+	if cutscene_video_path != "":
+		var played: StringName = StringName("%s_cutscene_played" % String(interactable_id))
+		if not (cutscene_only_once and bool(GameState.get_flag(played, false))):
+			await Cutscene.show_video(cutscene_video_path, -1.0, cutscene_post_delay)
+			GameState.set_flag(played, true)
 
 
 func _apply_slide_on_solve() -> void:
@@ -263,8 +312,37 @@ func _try_convert_body(body: Node) -> void:
 
 func _on_puzzle_failed(failed_id: StringName) -> void:
 	if failed_id != interactable_id: return
-	# On fail (cancel/bail), just unhook — terminal remains interactable for retry.
+	# On fail (cancel / timer / hazard), unhook for retry. Optional cascade
+	# rewinds N predecessor flags via the visible_when_flag chain — see
+	# `fail_reset_count` export.
+	if fail_reset_count != 0:
+		_rewind_chain(fail_reset_count)
 	_disconnect_puzzle_signals()
+
+
+# Walks the visible_when_flag chain backward from this terminal, clearing
+# each predecessor's GameState flag (which Events.flag_set propagates live
+# to dependent terminals + beacons, re-hiding them). Stops cleanly when:
+#   - the cursor's visible_when_flag is empty (chain root reached), OR
+#   - the cursor's visible_when_flag points at something that isn't a
+#     registered PuzzleTerminal (e.g., powerup_secret / a level flag).
+# `steps`: positive N = clear N predecessors. -1 = clear all the way.
+func _rewind_chain(steps: int) -> void:
+	var cursor: Node = self
+	var remaining: int = steps
+	while remaining != 0:
+		var prev_id: StringName = cursor.get(&"visible_when_flag") if "visible_when_flag" in cursor else &""
+		if prev_id == &"":
+			break
+		var prev: Node = _by_id.get(prev_id)
+		if prev == null:
+			break
+		if bool(GameState.get_flag(prev_id, false)):
+			GameState.set_flag(prev_id, false)
+			print("[hack] %s rewound — cleared %s" % [interactable_id, prev_id])
+		cursor = prev
+		if remaining > 0:
+			remaining -= 1
 
 
 func _disconnect_puzzle_signals() -> void:

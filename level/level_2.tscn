@@ -27,6 +27,7 @@
 [ext_resource type="AudioStream" uid="uid://b00ipab7xnlw1" path="res://audio/sfx/sound_teleport.mp3" id="59_warp"]
 [ext_resource type="Resource" uid="uid://bqgoadmxxuq8y" path="res://dialogue/level_2_glitch.dialogue" id="60_l2glitchdlg"]
 [ext_resource type="AudioStream" uid="uid://cmkxnqaxjfjvi" path="res://audio/music/dust_motions.mp3" id="61_dustmotions"]
+[ext_resource type="AudioStream" uid="uid://bo37srf1txc6y" path="res://audio/cutscene/dramatic_braam.mp3" id="62_braam"]
 
 [sub_resource type="Curve3D" id="Curve3D_iugbs"]
 resource_local_to_scene = true
@@ -74,13 +75,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.424747, 51.39068, 65.6984
 
 [node name="HackTerminal" parent="." index="13" unique_id=60983618 instance=ExtResource("2_hackterm")]
 transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -41.698, 33.22149, 7.952879)
-maze_path = "res://puzzle/maze/mazes/l2_hack_terminal.maze"
+maze_path = "res://puzzle/maze/mazes/hello_world_exe.maze"
 convert_zone_id = &"l2_splice"
 interactable_id = &"l2_hack_terminal"
 
 [node name="HackTerminalUnlockOtherHackTerminal" parent="." index="14" unique_id=816224979 instance=ExtResource("2_hackterm")]
 transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -99.73901, 73.39116, 41.373928)
-maze_path = "res://puzzle/maze/mazes/maze_6x6.maze"
+maze_path = "res://puzzle/maze/mazes/baby_steps_exe.maze"
 convert_zone_id = &"l2_splice"
 interactable_id = &"l2_terminal_2"
 
@@ -94,7 +95,7 @@ visible_when_voice_match = "Splice is jamming"
 
 [node name="HackTerminalUnlockNyx" parent="." index="15" unique_id=2042270589 instance=ExtResource("2_hackterm")]
 transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -222.24124, 73.12922, 40.12161)
-maze_path = "res://puzzle/maze/mazes/maze_7x7.maze"
+maze_path = "res://puzzle/maze/mazes/loki_dat.maze"
 convert_zone_id = &"l2_splice"
 visible_when_flag = &"l2_terminal_2"
 interactable_id = &"l2_terminal_3"
@@ -554,6 +555,7 @@ character = &"Nyx"
 line = "Runner, something is wrong! We are seeing a rogue sentinel."
 require_flag = &""
 music_loop = ExtResource("61_dustmotions")
+stinger_oneshot = ExtResource("62_braam")
 
 [node name="Nyx4" parent="." index="109" unique_id=1337046534 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -44.886158, 34.003185, 4.0391345)

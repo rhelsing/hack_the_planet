@@ -73,6 +73,11 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## quietly ignores body_entered while gated. Used to lock a platform
 ## behind a hack/puzzle reveal — see Level 4 Glitch's invention.
 @export var require_flag: StringName = &""
+## When non-empty, sets this GameState flag = true the FIRST time the
+## player engages a non-gated platform. Fires once, persists via save.
+## Used to downstream-gate dialogue / HUD on first-use of the platform —
+## see Level 4 Glitch's `~ post_solve` celebration on l4_invention_terminal_solved.
+@export var done_flag: StringName = &""
 
 @export_group("SFX")
 ## Played once when the player first steps on (any-time replay disabled).
@@ -127,6 +132,10 @@ func _on_body_entered(body: Node) -> void:
 	# player can still physically stand on them; they just don't do anything.
 	if require_flag != &"" and not bool(GameState.get_flag(require_flag, false)):
 		return
+	# First non-gated engagement fires done_flag once. Persists via GameState
+	# so dialogue gates / HUD beats can react on subsequent reads.
+	if done_flag != &"" and not bool(GameState.get_flag(done_flag, false)):
+		GameState.set_flag(done_flag, true)
 	# Cancel any pending revert — player came back before debounce expired.
 	_debounce_timer = -1.0
 	if _engaged:

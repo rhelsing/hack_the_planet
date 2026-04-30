@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://b5ecua1qxlsek" path="res://player/body/player_body.gd" id="1_dpokc"]
 [ext_resource type="PackedScene" uid="uid://prh35jb6tjtd" path="res://player/sophia_skin/sophia_skin.tscn" id="2_4dj54"]
-[ext_resource type="AudioStream" uid="uid://bhoyegbjust84" path="res://player/sounds/robot_land.wav" id="3_kbqxf"]
 [ext_resource type="AudioStream" uid="uid://b4x0f4pgfifoo" path="res://player/sounds/robot_jump.wav" id="4_1v0dq"]
 [ext_resource type="Resource" uid="uid://2anvkhe6bdr4" path="res://player/walk_profile.tres" id="5_walk"]
 [ext_resource type="Resource" uid="uid://bccqlooedrax4" path="res://player/skate_profile.tres" id="6_skate"]
@@ -60,13 +59,12 @@ unique_name_in_owner = true
 
 [node name="LandingSound" type="AudioStreamPlayer3D" parent="." unique_id=184288526]
 unique_name_in_owner = true
-stream = ExtResource("3_kbqxf")
 volume_db = 1.0
 
 [node name="JumpSound" type="AudioStreamPlayer3D" parent="." unique_id=335572763]
 unique_name_in_owner = true
 stream = ExtResource("4_1v0dq")
-volume_db = 1.0
+volume_db = -5.0
 
 [node name="GrindSound" type="AudioStreamPlayer3D" parent="." unique_id=337853260]
 unique_name_in_owner = true

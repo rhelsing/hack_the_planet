@@ -1,6 +1,8 @@
 // Maze editor — DOM grid, h/v matrix state, JSON export.
 // Format (.maze file):
 //   { version: 1, cols, rows, start: [x,y], end: [x,y],
+//     name: string (optional, shown in-game as the puzzle title),
+//     subline: string (optional, second line under the title — quote / flavor),
 //     time_limit: number (seconds; 0 = untimed),
 //     h: rows × (cols-1) of 0/1,        // h[y][x] = edge open (x,y)↔(x+1,y)
 //     v: (rows-1) × cols of 0/1,        // v[y][x] = edge open (x,y)↔(x,y+1)
@@ -22,6 +24,8 @@ const state = {
 	start: null, end: null,
 	mode: "edges",
 	time_limit: 0, // 0 = untimed
+	name: "",
+	subline: "",
 };
 let painting = null; // null | 0 | 1 — drag-paint target value
 
@@ -259,6 +263,8 @@ function download() {
 		version: 1,
 		cols: state.cols, rows: state.rows,
 		start: state.start, end: state.end,
+		name: state.name,
+		subline: state.subline,
 		time_limit: state.time_limit,
 		h: state.h, v: state.v,
 		cells: state.cells,
@@ -268,7 +274,15 @@ function download() {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
-	a.download = `maze_${state.cols}x${state.rows}.maze`;
+	// Use the puzzle name (sanitized) when set; otherwise fall back to
+	// dimensions so the filename is still meaningful.
+	const slug = (state.name || "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "");
+	a.download = slug
+		? `${slug}.maze`
+		: `maze_${state.cols}x${state.rows}.maze`;
 	document.body.appendChild(a);
 	a.click();
 	a.remove();
@@ -295,11 +309,15 @@ function loadFile(file) {
 			state.start = Array.isArray(d.start) ? [d.start[0], d.start[1]] : null;
 			state.end = Array.isArray(d.end) ? [d.end[0], d.end[1]] : null;
 			state.time_limit = (typeof d.time_limit === "number" && d.time_limit > 0) ? d.time_limit : 0;
+			state.name = (typeof d.name === "string") ? d.name : "";
+			state.subline = (typeof d.subline === "string") ? d.subline : "";
 			document.getElementById("cols").value = state.cols;
 			document.getElementById("rows").value = state.rows;
 			document.getElementById("timed").checked = state.time_limit > 0;
 			document.getElementById("time_seconds").value = state.time_limit > 0 ? state.time_limit : 60;
 			document.getElementById("time_seconds").disabled = state.time_limit === 0;
+			document.getElementById("puzzle_name").value = state.name;
+			document.getElementById("puzzle_subline").value = state.subline;
 			render();
 			refreshStatus();
 		} catch (e) {
@@ -362,6 +380,12 @@ function init() {
 		const f = e.target.files[0];
 		if (f) loadFile(f);
 		e.target.value = ""; // allow re-loading the same file
+	});
+	document.getElementById("puzzle_name").addEventListener("input", (e) => {
+		state.name = e.target.value;
+	});
+	document.getElementById("puzzle_subline").addEventListener("input", (e) => {
+		state.subline = e.target.value;
 	});
 }
 

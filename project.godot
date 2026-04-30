@@ -46,6 +46,8 @@ VoicePrimer="*res://autoload/voice_primer.gd"
 Glyphs="*res://autoload/glyphs.gd"
 Beacons="*res://autoload/beacons.gd"
 Cutscene="*res://autoload/cutscene.gd"
+CutsceneAudio="*res://cutscene_engine/services/cutscene_audio.gd"
+CutsceneCamera="*res://cutscene_engine/services/cutscene_camera.gd"
 
 [dialogue_manager]
 
@@ -226,7 +228,7 @@ look_up={
 
 [internationalization]
 
-locale/translations_pot_files=PackedStringArray("res://dialogue/companion.dialogue", "res://dialogue/glitch_2.dialogue", "res://dialogue/dial_tone.dialogue", "res://dialogue/level_1_nyx.dialogue", "res://dialogue/level_3_splice_offer.dialogue", "res://dialogue/hub_post4_splice.dialogue", "res://dialogue/level_1_glitch.dialogue", "res://dialogue/level_1_glitch_2.dialogue", "res://dialogue/level_1_glitch_3.dialogue", "res://dialogue/level_2_nyx.dialogue", "res://dialogue/hub_nyx.dialogue", "res://dialogue/level_4_nyx.dialogue", "res://dialogue/level_4_dialtone.dialogue", "res://dialogue/level_3_glitch.dialogue", "res://dialogue/level_4_glitch.dialogue", "res://dialogue/level_2_glitch.dialogue", "res://dialogue/level_4_glitch_post.dialogue", "res://dialogue/hub_post4_glitch.dialogue", "res://dialogue/level_4_splice_showdown.dialogue", "res://dialogue/level_4_splice_well_shit.dialogue", "res://dialogue/level_4_battle_radio_1.dialogue")
+locale/translations_pot_files=PackedStringArray("res://dialogue/companion.dialogue", "res://dialogue/glitch_2.dialogue", "res://dialogue/dial_tone.dialogue", "res://dialogue/level_1_nyx.dialogue", "res://dialogue/level_3_splice_offer.dialogue", "res://dialogue/hub_post4_splice.dialogue", "res://dialogue/level_1_glitch.dialogue", "res://dialogue/level_1_glitch_2.dialogue", "res://dialogue/level_1_glitch_3.dialogue", "res://dialogue/level_2_nyx.dialogue", "res://dialogue/hub_nyx.dialogue", "res://dialogue/level_4_nyx.dialogue", "res://dialogue/level_4_dialtone.dialogue", "res://dialogue/level_3_glitch.dialogue", "res://dialogue/level_4_glitch.dialogue", "res://dialogue/level_2_glitch.dialogue", "res://dialogue/level_4_glitch_post.dialogue", "res://dialogue/hub_post4_glitch.dialogue", "res://dialogue/level_4_battle_radio_1.dialogue")
 
 [layer_names]
 

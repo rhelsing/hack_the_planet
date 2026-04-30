@@ -13,6 +13,20 @@ class_name PhoneBooth extends Node3D
 @export var active_sound: AudioStream = preload("res://audio/sfx/checkpoint_active.mp3")
 @export_range(-30.0, 12.0) var active_sound_volume_db: float = 0.0
 
+## Optional: when this booth activates (live touch OR continue-from-save
+## spawn at this position), arm the CutscenePlayer at the given path
+## after `arm_delay` seconds. Empty NodePath = no cutscene wiring.
+##
+## Session-once semantics: if `session_played_flag` is set in
+## GameState.session_flags (in-memory only, not serialized), the cutscene
+## is NOT armed — same-session re-entries (death/respawn at this
+## checkpoint) skip silently. Game restart wipes the session_flags dict
+## (autoload re-init) so continue-from-save replays the cutscene.
+@export_group("Cutscene trigger")
+@export var on_activate_arm_cutscene: NodePath
+@export_range(0.0, 10.0, 0.1) var arm_delay: float = 1.0
+@export var session_played_flag: StringName = &""
+
 @onready var _activation_block: MeshInstance3D = get_node_or_null("ActivationBlock")
 
 var _active_sound_player: AudioStreamPlayer
@@ -36,6 +50,24 @@ func _ready() -> void:
 	var area: Area3D = get_node_or_null("Area3D")
 	if area != null:
 		area.body_entered.connect(_on_body_entered)
+		# Continue-from-save case: the player teleports INSIDE this Area3D
+		# rather than crossing its boundary, so body_entered would never
+		# fire. After one physics frame, walk the overlap set and synthesize
+		# the entry. No-op on fresh-load when no player exists yet, no-op
+		# on level-load where the player spawned elsewhere.
+		_check_initial_overlap.call_deferred(area)
+
+
+func _check_initial_overlap(area: Area3D) -> void:
+	if not is_instance_valid(area):
+		return
+	await get_tree().physics_frame
+	if not is_instance_valid(area):
+		return
+	for body: Node3D in area.get_overlapping_bodies():
+		if body.is_in_group("player"):
+			_on_body_entered(body)
+			return
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -45,6 +77,35 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	Events.checkpoint_reached.emit(global_position)
 	_activate()
+	_maybe_fire_cutscene()
+
+
+func _maybe_fire_cutscene() -> void:
+	if on_activate_arm_cutscene.is_empty():
+		return
+	# Same-session guard. We set the session flag IMMEDIATELY (before the
+	# delay timer) so a second body_entered during the 1s window can't
+	# double-arm. The flag is in-memory only — death+respawn keeps it set
+	# (no replay), but game restart / continue-from-save wipes it (replay).
+	if session_played_flag != &"" \
+			and bool(GameState.session_flags.get(session_played_flag, false)):
+		return
+	if session_played_flag != &"":
+		GameState.session_flags[session_played_flag] = true
+	_arm_after_delay.call_deferred()
+
+
+func _arm_after_delay() -> void:
+	if arm_delay > 0.0:
+		await get_tree().create_timer(arm_delay).timeout
+	if not is_inside_tree():
+		return
+	var cs: Node = get_node_or_null(on_activate_arm_cutscene)
+	if cs == null:
+		push_warning("PhoneBooth: cutscene path not found: %s" % on_activate_arm_cutscene)
+		return
+	if cs.has_method(&"arm"):
+		cs.call(&"arm")
 
 
 func _activate() -> void:

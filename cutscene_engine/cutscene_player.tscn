@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dcsplayer001"]
+
+[ext_resource type="Script" path="res://cutscene_engine/cutscene_player.gd" id="1_player"]
+
+[node name="CutscenePlayer" type="Node"]
+script = ExtResource("1_player")

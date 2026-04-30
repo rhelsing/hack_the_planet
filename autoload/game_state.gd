@@ -26,6 +26,16 @@ var inventory: Array[StringName] = []
 var flags: Dictionary = {}
 var dialogue_visited: Dictionary = {}
 
+## In-memory-only flag dictionary. Deliberately NOT persisted by to_dict /
+## from_dict — survives death-respawn (autoload stays alive across the
+## respawn teleport) but is wiped on game restart and on continue-from-save
+## (autoload re-instantiates with empty dict; from_dict doesn't touch it
+## because it's not in the saved JSON). Use for "play this once per
+## session" semantics where same-session re-entries should NOT replay
+## but a fresh game launch SHOULD. Canonical user: the L4 Splice
+## cutscene — plays once per session on PB5 checkpoint activation.
+var session_flags: Dictionary = {}
+
 ## Set-shaped dicts — keys are coin node paths, values are `true`. Both
 ## are persisted via to_dict / from_dict, so collected coins stay
 ## collected across reload AND the HUD denominator survives session

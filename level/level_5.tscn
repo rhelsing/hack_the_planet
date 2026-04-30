@@ -4,6 +4,8 @@
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_floor"]
 [ext_resource type="PackedScene" uid="uid://dcompnpc00001" path="res://level/interactable/companion_npc/companion_npc.tscn" id="3_companion"]
 [ext_resource type="PackedScene" uid="uid://dsplskin0001" path="res://player/skins/splice/splice_skin.tscn" id="4_splice_skin"]
+[ext_resource type="PackedScene" uid="uid://dcsplayer001" path="res://cutscene_engine/cutscene_player.tscn" id="5_csplayer"]
+[ext_resource type="Resource" path="res://cutscenes/l5_walk.tres" id="6_l5walk"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_proc"]
 sky_top_color = Color(0.02, 0.0, 0.04, 1)
@@ -82,3 +84,7 @@ collision_layer = 0
 
 [node name="EndTerminalShape" type="CollisionShape3D" parent="EndTerminal"]
 shape = SubResource("EndShape")
+
+[node name="WalkOfShameCutscene" parent="." instance=ExtResource("5_csplayer")]
+unique_name_in_owner = true
+timeline = ExtResource("6_l5walk")

@@ -1,0 +1,142 @@
+[gd_resource type="Resource" script_class="CutsceneTimeline" format=3]
+
+[ext_resource type="Script" uid="uid://dipkkotkrot6s" path="res://cutscene_engine/cutscene_timeline.gd" id="1_tl"]
+[ext_resource type="Script" uid="uid://n5yffch0fibx" path="res://cutscene_engine/steps/line_step.gd" id="2_line"]
+[ext_resource type="Script" uid="uid://p8kgvcxxeh78" path="res://cutscene_engine/cutscene_step.gd" id="3_step"]
+[ext_resource type="Script" path="res://cutscene_engine/steps/wait_step.gd" id="4_wait"]
+
+[sub_resource type="Resource" id="line_splice_1"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "There you are. ...I knew you'd see it eventually."
+channel = "walkie"
+label = "Splice: there you are"
+
+[sub_resource type="Resource" id="wait_1"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_dialtone_1"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "Channel's open. They wanted to hear me say it."
+channel = "walkie"
+label = "DialTone: channel's open"
+
+[sub_resource type="Resource" id="wait_2"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_dialtone_2"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "I picked you. That's on me."
+channel = "walkie"
+label = "DialTone: I picked you"
+
+[sub_resource type="Resource" id="wait_3"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_glitch_1"]
+script = ExtResource("2_line")
+character = &"Glitch"
+text = "I had hoped my analysis was wrong. It was not."
+channel = "walkie"
+label = "Glitch: analysis was wrong"
+
+[sub_resource type="Resource" id="wait_4"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_glitch_2"]
+script = ExtResource("2_line")
+character = &"Glitch"
+text = "...local node, helpful to all. I'll go back to that."
+channel = "walkie"
+label = "Glitch: local node helpful to all"
+
+[sub_resource type="Resource" id="wait_5"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_nyx_1"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "Sane move was log out. I told you that."
+channel = "walkie"
+label = "Nyx: sane move was log out"
+
+[sub_resource type="Resource" id="wait_6"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_nyx_2"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "I told myself I'd read you right. ...that's twice now."
+channel = "walkie"
+label = "Nyx: that's twice now"
+
+[sub_resource type="Resource" id="wait_7"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_nyx_3"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "Bye, runner."
+channel = "walkie"
+label = "Nyx: bye runner"
+
+[sub_resource type="Resource" id="wait_8"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_splice_2"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "You wanted in. ...you're in."
+channel = "walkie"
+label = "Splice: you wanted in"
+
+[sub_resource type="Resource" id="wait_9"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_splice_3"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Just won't be anyone left to know it."
+channel = "walkie"
+label = "Splice: anyone left to know it"
+
+[sub_resource type="Resource" id="wait_10"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_splice_4"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Don't stop walking."
+channel = "walkie"
+label = "Splice: don't stop walking"
+
+[resource]
+script = ExtResource("1_tl")
+steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_1"), SubResource("wait_4"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_4")])
+freeze_player = false
+hide_hud = false
+scene_duration = 0.0
+allow_skip = false
+done_flag = &"l5_walk_done"

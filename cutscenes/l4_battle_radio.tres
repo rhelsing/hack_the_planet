@@ -1,0 +1,191 @@
+[gd_resource type="Resource" script_class="CutsceneTimeline" format=3 uid="uid://c0p3nc0cxk7u8"]
+
+[ext_resource type="Script" uid="uid://dipkkotkrot6s" path="res://cutscene_engine/cutscene_timeline.gd" id="1_tl"]
+[ext_resource type="Script" uid="uid://n5yffch0fibx" path="res://cutscene_engine/steps/line_step.gd" id="2_line"]
+[ext_resource type="Script" uid="uid://p8kgvcxxeh78" path="res://cutscene_engine/cutscene_step.gd" id="3_step"]
+[ext_resource type="Script" uid="uid://vcsac5ogqqof" path="res://cutscene_engine/steps/wait_step.gd" id="4_wait"]
+
+[sub_resource type="Resource" id="line_g1_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "Ten down already."
+channel = "walkie"
+label = "Nyx: ten down already"
+
+[sub_resource type="Resource" id="line_g1_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "Twelve more in your zone. Two more queueing."
+channel = "walkie"
+label = "DialTone: twelve more queueing"
+
+[sub_resource type="Resource" id="line_g1_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Don't get cocky, runner. I've been farming sentinels since before you had a handle."
+channel = "walkie"
+label = "Splice: don't get cocky"
+
+[sub_resource type="Resource" id="wait_g1"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_g2_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "You think you can outpace my spawn rate? Try me."
+channel = "walkie"
+label = "Splice: outpace my spawn rate"
+
+[sub_resource type="Resource" id="line_g2_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "He really thinks numbers will save him."
+channel = "walkie"
+label = "Nyx: numbers will save him"
+
+[sub_resource type="Resource" id="line_g2_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "They won't. I've seen his books. He's bluffing."
+channel = "walkie"
+label = "DialTone: he's bluffing"
+
+[sub_resource type="Resource" id="wait_g2"]
+script = ExtResource("4_wait")
+seconds = 8.0
+label = "wait 8"
+
+[sub_resource type="Resource" id="line_g3_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "Twenty down. He's burning through reserves."
+channel = "walkie"
+label = "DialTone: twenty down"
+
+[sub_resource type="Resource" id="line_g3_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Reserves are infinite."
+channel = "walkie"
+label = "Splice: reserves are infinite"
+
+[sub_resource type="Resource" id="line_g3_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "They are extremely not."
+channel = "walkie"
+label = "Nyx: extremely not"
+
+[sub_resource type="Resource" id="wait_g3"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_g4_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Stop converting them. Stop **converting** them."
+channel = "walkie"
+label = "Splice: stop converting them"
+
+[sub_resource type="Resource" id="line_g4_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "Three new ones inbound — splice them all."
+channel = "walkie"
+label = "DialTone: three new ones inbound"
+
+[sub_resource type="Resource" id="line_g4_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "He hates the platforms. He's **whining**."
+channel = "walkie"
+label = "Nyx: he's whining"
+
+[sub_resource type="Resource" id="wait_g4"]
+script = ExtResource("4_wait")
+seconds = 8.0
+label = "wait 8"
+
+[sub_resource type="Resource" id="line_g5_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "Six left in the arena. Then four."
+channel = "walkie"
+label = "DialTone: six left, then four"
+
+[sub_resource type="Resource" id="line_g5_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "The next wave is bigger. Just wait."
+channel = "walkie"
+label = "Splice: next wave is bigger"
+
+[sub_resource type="Resource" id="line_g5_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "There is no next wave."
+channel = "walkie"
+label = "Nyx: there is no next wave"
+
+[sub_resource type="Resource" id="wait_g5"]
+script = ExtResource("4_wait")
+seconds = 6.0
+label = "wait 6"
+
+[sub_resource type="Resource" id="line_g6_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "There is. There has to be."
+channel = "walkie"
+label = "Splice: there has to be"
+
+[sub_resource type="Resource" id="line_g6_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "His spawn queue's empty. He's just... shouting."
+channel = "walkie"
+label = "DialTone: spawn queue empty"
+
+[sub_resource type="Resource" id="line_g6_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "Listen to him. He hears it now."
+channel = "walkie"
+label = "Nyx: he hears it now"
+
+[sub_resource type="Resource" id="wait_g6"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
+[sub_resource type="Resource" id="line_g7_splice"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Stop. Just — stop. STOP."
+channel = "walkie"
+label = "Splice: stop just stop STOP"
+
+[sub_resource type="Resource" id="line_g7_nyx"]
+script = ExtResource("2_line")
+character = &"Nyx"
+text = "Oh he's **not** having a good time."
+channel = "walkie"
+label = "Nyx: not having a good time"
+
+[sub_resource type="Resource" id="line_g7_dialtone"]
+script = ExtResource("2_line")
+character = &"DialTone"
+text = "Three reds left. Finish them."
+channel = "walkie"
+label = "DialTone: three reds left, finish them"
+
+[resource]
+script = ExtResource("1_tl")
+steps = Array[ExtResource("3_step")]([SubResource("line_g1_nyx"), SubResource("line_g1_dialtone"), SubResource("line_g1_splice"), SubResource("wait_g1"), SubResource("line_g2_splice"), SubResource("line_g2_nyx"), SubResource("line_g2_dialtone"), SubResource("wait_g2"), SubResource("line_g3_dialtone"), SubResource("line_g3_splice"), SubResource("line_g3_nyx"), SubResource("wait_g3"), SubResource("line_g4_splice"), SubResource("line_g4_dialtone"), SubResource("line_g4_nyx"), SubResource("wait_g4"), SubResource("line_g5_dialtone"), SubResource("line_g5_splice"), SubResource("line_g5_nyx"), SubResource("wait_g5"), SubResource("line_g6_splice"), SubResource("line_g6_dialtone"), SubResource("line_g6_nyx"), SubResource("wait_g6"), SubResource("line_g7_splice"), SubResource("line_g7_nyx"), SubResource("line_g7_dialtone")])
+freeze_player = false
+scene_duration = 0.0
+done_flag = &"l4_battle_radio_done"
+allow_skip = false

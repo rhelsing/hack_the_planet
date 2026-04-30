@@ -84,6 +84,10 @@ func _build_ui() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# Editor-only: gated off in any exported build (debug or release) so
+	# shipped players can't spawn the dev-tuning panel by hitting backtick.
+	if not OS.has_feature("editor"):
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_QUOTELEFT:
 			_canvas.visible = not _canvas.visible

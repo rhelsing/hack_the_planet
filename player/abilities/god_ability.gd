@@ -32,9 +32,17 @@ extends Ability
 ## Sphere color — gold-ish so it reads as "ally posse". Alpha is overridden
 ## by vfx_alpha at spawn and tweens to 0.
 @export var vfx_color: Color = Color(1.0, 0.78, 0.10, 1.0)
-## Activation sound — placeholder (sound_teleport.mp3) until a proper "GOD
-## roar" / pulse SFX is sourced. Override via inspector.
-@export var activation_sound: AudioStream = preload("res://audio/sfx/sound_teleport.mp3")
+## Activation sound — "yodguard healing magic" stinger fits the
+## convert-to-ally beat. Override via inspector.
+@export var activation_sound: AudioStream = preload("res://audio/sfx/god_activate.mp3")
+## Volume offset (dB) for the activation sound. Default -10 keeps the
+## stinger from drowning out combat audio.
+@export var activation_volume_db: float = -10.0
+## Cooldown (seconds) between presses. While cooling down, fire requests
+## are silently ignored and the HUD pill displays a yellow progress fade
+## that drains over this duration. 5s is enough to make each press feel
+## deliberate without strangling the rhythm of a sustained battle.
+@export var cooldown_seconds: float = 5.0
 
 # Groups whose members are eligible for conversion. Allies (gold) skipped
 # since they're already on our side; player skipped to avoid self-conversion.
@@ -42,6 +50,9 @@ extends Ability
 # carry faction "splice_stealth" — that's filtered out per-node below.
 const _TARGET_GROUPS: Array[StringName] = [&"enemies", &"splice_enemies"]
 const _STEALTH_FACTION: StringName = &"splice_stealth"
+
+
+var _cooldown_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -52,11 +63,20 @@ func _ready() -> void:
 	super._ready()
 
 
+func _process(delta: float) -> void:
+	if _cooldown_remaining > 0.0:
+		_cooldown_remaining = maxf(0.0, _cooldown_remaining - delta)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not owned:
 		return
-	if event.is_action_pressed("flare_shoot"):
-		_fire()
+	if not event.is_action_pressed("flare_shoot"):
+		return
+	if _cooldown_remaining > 0.0:
+		# Silent ignore — HUD is already telling the player it's cooling.
+		return
+	_fire()
 
 
 func _fire() -> void:
@@ -73,6 +93,11 @@ func _fire() -> void:
 	_spawn_vfx(body_3d.global_position, r)
 	_play_sound(body_3d.global_position)
 	_convert_in_radius(body_3d, r)
+	# Cooldown + HUD pulse. Emit BEFORE arming the timer so PowerupRow's
+	# tween starts from the same instant as the press.
+	if cooldown_seconds > 0.0:
+		Events.skill_cooldown_started.emit(ability_id, cooldown_seconds)
+		_cooldown_remaining = cooldown_seconds
 
 
 ## Lerps min_radius..max_radius by the player's coin completion ratio.
@@ -153,6 +178,7 @@ func _play_sound(origin: Vector3) -> void:
 	p.bus = &"SFX"
 	p.unit_size = 8.0
 	p.max_distance = 40.0
+	p.volume_db = activation_volume_db
 	p.stream = activation_sound
 	get_tree().current_scene.add_child(p)
 	p.global_position = origin

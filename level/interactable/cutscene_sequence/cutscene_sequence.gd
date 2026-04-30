@@ -49,6 +49,10 @@ var _drive_latched: bool = false
 ## the radio chatter"). The walk exits cleanly: shot 3 wrap-up still
 ## runs, music swap-out runs, done_flag still fires.
 @export var stop_flag: StringName = &""
+## Optional debug hotkey for manual triggering. Set to a Godot `Key`
+## (e.g. KEY_F11) and pressing it on the keyboard fires the cutscene
+## as if `arm_flag` had been set. Default KEY_NONE = disabled.
+@export var debug_hotkey: Key = KEY_NONE
 
 @export_group("Player")
 @export var freeze_player: bool = true
@@ -98,16 +102,24 @@ var _drive_latched: bool = false
 @export var shot_cameras: Array[NodePath] = []
 
 var _fired: bool = false
+var _running: bool = false
 var _saved_camera: Camera3D = null
 var _saved_player_physics: bool = true
 var _saved_player: Node3D = null
 
 
 func _ready() -> void:
+	print("[cs] %s ready: arm=%s done=%s shot_cams=%d freeze=%s dlg=%s music=%s stinger=%s" % [
+		name, arm_flag, done_flag, shot_cameras.size(), freeze_player,
+		"yes" if dialogue_file != null else "no",
+		"yes" if cutscene_music != null else "no",
+		"yes" if intro_stinger != null else "no",
+	])
 	if arm_flag == &"":
 		return
 	if bool(GameState.get_flag(arm_flag, false)):
 		_fired = true  # already past this beat on reload
+		print("[cs] %s SKIP — arm_flag %s already true" % [name, arm_flag])
 		return
 	Events.flag_set.connect(_on_flag_set)
 
@@ -117,6 +129,36 @@ func _on_flag_set(id: StringName, value: Variant) -> void:
 	if id != arm_flag: return
 	if not bool(value): return
 	_fired = true
+	print("[cs] %s ARMED by flag_set(%s)" % [name, id])
+	_dispatch_run()
+
+
+func _input(event: InputEvent) -> void:
+	if debug_hotkey == KEY_NONE: return
+	if not (event is InputEventKey): return
+	var ek: InputEventKey = event as InputEventKey
+	if not ek.pressed or ek.echo: return
+	if ek.keycode != debug_hotkey: return
+	get_viewport().set_input_as_handled()
+	print("[cs] %s DEBUG HOTKEY pressed (key=%s) → arm()" % [name, ek.keycode])
+	arm()
+
+
+## Public entry point. Fires the sequence unconditionally — bypasses the
+## one-shot `_fired` gate (which only governs the flag-driven path).
+## The `_running` guard still prevents two `_run()` coroutines starting
+## concurrently if F10 is mashed mid-cutscene.
+func arm() -> void:
+	if _running:
+		print("[cs] %s arm() ignored: already running" % name)
+		return
+	_dispatch_run()
+
+
+func _dispatch_run() -> void:
+	if _running:
+		return
+	_running = true
 	_run.call_deferred()
 
 
@@ -128,6 +170,7 @@ func _on_flag_set(id: StringName, value: Variant) -> void:
 ##   5. Play shot 1's lines, then shot 2 (with pan + lines).
 ##   6. Restore music, camera, player; set done flag.
 func _run() -> void:
+	print("[cs] %s _run START" % name)
 	_save_camera_and_freeze()
 	# Cut to shot 1's camera first so the stinger lands while we're already
 	# framed correctly — not on the gameplay camera. Skip when the sequence
@@ -139,7 +182,14 @@ func _run() -> void:
 	# authored trajectories for the whole sequence, regardless of which
 	# shot is currently being viewed.
 	_kick_camera_drifts()
+	# Stop existing music BEFORE the stinger so the stinger lands on
+	# silence. _swap_music_in below will then start cutscene_music after
+	# the stinger ends. Order matters: gameplay → silence → stinger →
+	# cutscene_music — three discrete beats rather than overlapping.
+	Audio.stop_music(0.0)
+	print("[cs] %s _run pre-stinger (music stopped)" % name)
 	await _play_stinger()
+	print("[cs] %s _run post-stinger" % name)
 	_swap_music_in()
 	if dialogue_file != null:
 		await _walk_dialogue()
@@ -150,6 +200,8 @@ func _run() -> void:
 	_restore_camera_and_unfreeze()
 	if done_flag != &"":
 		GameState.set_flag(done_flag, true)
+	_running = false
+	print("[cs] %s _run DONE — done_flag=%s set" % [name, done_flag])
 
 
 ## Pause the dialogue walk for `seconds`. Called by dialogue mutations:
@@ -180,8 +232,16 @@ func set_shot(n: int) -> void:
 	var cam: Camera3D = get_node_or_null(shot_cameras[idx]) as Camera3D
 	if cam == null:
 		push_warning("CutsceneSequence: shot %d camera not found at %s" % [n, shot_cameras[idx]])
+		print("[cs] %s set_shot(%d) FAIL: cam_path=%s resolved to null" % [name, n, shot_cameras[idx]])
 		return
+	var before: Camera3D = get_viewport().get_camera_3d()
 	cam.make_current()
+	var after: Camera3D = get_viewport().get_camera_3d()
+	print("[cs] %s set_shot(%d) cam=%s pos=%s. viewport: %s → %s" % [
+		name, n, cam.get_path(), cam.global_position,
+		before.get_path() if before != null else "<null>",
+		after.get_path() if after != null else "<null>",
+	])
 
 
 ## Walks every line of `dialogue_file` from `dialogue_start`. Each line
@@ -254,15 +314,21 @@ func _finalize_camera_drifts() -> void:
 ## sequence end via _finalize_camera_drifts.
 func _kick_camera_drifts() -> void:
 	var seen: Dictionary = {}
+	var drift_count: int = 0
 	for path: NodePath in shot_cameras:
 		if path.is_empty(): continue
 		var cam: Node = get_node_or_null(path)
 		if cam == null or seen.has(cam): continue
 		seen[cam] = true
+		var found_on_cam: int = 0
 		for child: Node in cam.get_children():
 			if child is CameraDrift:
 				(child as CameraDrift).duration = scene_duration
 				(child as CameraDrift).start_drift()
+				drift_count += 1
+				found_on_cam += 1
+		print("[cs] %s kick drifts on %s: found %d CameraDrift children" % [name, cam.name, found_on_cam])
+	print("[cs] %s kick drifts TOTAL: %d started across %d cameras" % [name, drift_count, seen.size()])
 
 
 ## Plays the intro stinger as a discrete sequenced step. Returns when its
@@ -280,23 +346,53 @@ func _play_stinger() -> void:
 
 func _save_camera_and_freeze() -> void:
 	_saved_camera = get_viewport().get_camera_3d()
+	print("[cs] %s saved camera: %s" % [
+		name, _saved_camera.get_path() if _saved_camera != null else "<null>"
+	])
 	if freeze_player:
 		_saved_player = get_tree().get_first_node_in_group(&"player") as Node3D
 		if _saved_player != null:
 			_saved_player_physics = _saved_player.is_physics_processing()
 			_saved_player.set_physics_process(false)
+			# WARN: set_physics_process(false) only disables _physics_process on
+			# the body. Children (PlayerBrain, anim controllers) still tick on
+			# _process / _input / _unhandled_input. If the player keeps moving
+			# during the cutscene, this is the reason — need a stronger freeze.
+			print("[cs] %s freeze player: %s, was_physics=%s, now is_physics_processing=%s, brain_process=%s" % [
+				name, _saved_player.get_path(), _saved_player_physics,
+				_saved_player.is_physics_processing(),
+				_describe_brain_process(_saved_player),
+			])
+		else:
+			print("[cs] %s freeze player: NO 'player' group node found" % name)
+
+
+func _describe_brain_process(player: Node) -> String:
+	for c: Node in player.get_children():
+		if "PlayerBrain" in c.name or "Brain" in c.name:
+			return "%s.is_processing=%s is_input=%s" % [
+				c.name, c.is_processing(), c.is_processing_input()
+			]
+	return "<no brain child>"
 
 
 func _restore_camera_and_unfreeze() -> void:
 	if _saved_camera != null and is_instance_valid(_saved_camera):
 		_saved_camera.make_current()
+		print("[cs] %s restored camera: %s" % [name, _saved_camera.get_path()])
 	if freeze_player and _saved_player != null and is_instance_valid(_saved_player):
 		_saved_player.set_physics_process(_saved_player_physics)
+		print("[cs] %s unfroze player: physics=%s" % [name, _saved_player_physics])
 
 
 func _swap_music_in() -> void:
+	# Music was already stopped at sequence start (see _run). Here we just
+	# kick off cutscene_music post-stinger if one was provided.
 	if cutscene_music != null:
 		Audio.play_music(cutscene_music, 0.4)
+		print("[cs] %s music IN: play(%s)" % [name, cutscene_music.resource_path])
+	else:
+		print("[cs] %s music IN: silence (no cutscene_music)" % name)
 
 
 func _swap_music_out() -> void:
@@ -313,9 +409,14 @@ func _swap_music_out() -> void:
 
 ## Plays one line on the chosen channel and awaits its line_ended.
 func _play_line(channel: String, character: String, text: String) -> void:
+	var preview: String = text.substr(0, 50)
+	print("[cs] %s line[%s] %s: \"%s%s\"" % [
+		name, channel, character, preview, "…" if text.length() > 50 else ""
+	])
 	if channel == "walkie":
 		Walkie.speak(character, text)
 		await Walkie.line_ended
 	else:
 		Companion.speak(character, text)
 		await Companion.line_ended
+	print("[cs] %s line[%s] ENDED" % [name, channel])

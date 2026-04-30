@@ -23,6 +23,13 @@ extends Area3D
 ## "something is wrong" cue → dust-motions track until level 3 starts.
 @export var music_loop: AudioStream = null
 
+## Optional one-shot stinger fired the moment the trigger fires, BEFORE the
+## music swap so the braam lands as the cue and the new music tail rides in
+## under it. Routes through CutsceneAudio.play_stinger (SFX bus) — same
+## stinger pipeline the cutscene engine uses, so volume tuning is shared.
+## Used for "rogue sentinel detected" type story beats.
+@export var stinger_oneshot: AudioStream = null
+
 var _fired: bool = false
 
 
@@ -50,6 +57,10 @@ func _on_body_entered(body: Node) -> void:
 	_fired = true
 	if persist_flag != &"":
 		GameState.set_flag(persist_flag, true)
+	if stinger_oneshot != null:
+		var ca: Node = get_node_or_null(^"/root/CutsceneAudio")
+		if ca != null and ca.has_method(&"play_stinger"):
+			ca.call(&"play_stinger", stinger_oneshot)
 	if music_loop != null:
 		var audio: Node = get_node_or_null(^"/root/Audio")
 		if audio != null and audio.has_method(&"play_music"):
