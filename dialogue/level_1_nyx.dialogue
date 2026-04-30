@@ -3,7 +3,7 @@
 Nyx: Hey there runner.
 do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
 Nyx: Umm.. why are you looking at me like that?
-- Dial tone said you needed help?
+- DialTone said you needed help?
 	Nyx: Of course he did! He's a child.
 	Nyx: This is just where I like to go to think sometimes.
 	=> tail
@@ -16,7 +16,7 @@ Nyx: Umm.. why are you looking at me like that?
 ~ tail
 
 Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
-Nyx: God, I swear I'm going to kill him!
+Nyx: I'm going to kill him.
 Nyx: We are gonna have to go have a talk with him.
 - Head back to the hub.
 	do LevelProgression.advance()

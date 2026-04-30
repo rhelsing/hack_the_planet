@@ -39,7 +39,7 @@ DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break h
 ~ intro_messenger
 
 DialTone: ...maybe.
-DialTone: Let's just say I noticed you. The way you asked questions on hacker news intrigued me.
+DialTone: Let's just say I noticed you. The way you asked questions on neon-archive intrigued me.
 DialTone: I wanted to see what you were made of.
 do GameState.set_flag("dialtone_messenger_thread", 1)
 DialTone: Anything else?
@@ -116,7 +116,7 @@ Nyx: It does. Trust me.
 
 ~ post_1_menu
 
-- So whats next?
+- So what's next?
 	=> post_1_done
 - So what was that about?
 	=> post_1_explain

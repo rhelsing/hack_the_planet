@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://b3credits00001"]
+[gd_scene load_steps=4 format=3 uid="uid://b3credits00001"]
 
 [ext_resource type="Script" path="res://menu/credits.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://menu/title_image.png" id="2_title"]
+[ext_resource type="Material" path="res://menu/title_drop_shadow.tres" id="3_shadow"]
 
 [node name="Credits" type="Control"]
 anchor_right = 1.0
@@ -17,22 +19,32 @@ anchor_bottom = 1.0
 clip_contents = true
 mouse_filter = 2
 
-[node name="ScrollText" type="Label" parent="ScrollColumn"]
+[node name="ScrollContent" type="VBoxContainer" parent="ScrollColumn"]
 unique_name_in_owner = true
 anchor_left = 0.0
 anchor_right = 1.0
 offset_left = 16.0
 offset_right = -16.0
 mouse_filter = 2
+
+[node name="TitleImage" type="TextureRect" parent="ScrollColumn/ScrollContent"]
+material = ExtResource("3_shadow")
+custom_minimum_size = Vector2(0, 180)
+texture = ExtResource("2_title")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Spacer" type="Control" parent="ScrollColumn/ScrollContent"]
+custom_minimum_size = Vector2(0, 24)
+
+[node name="ScrollText" type="Label" parent="ScrollColumn/ScrollContent"]
+unique_name_in_owner = true
+mouse_filter = 2
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0, 1, 1, 1)
 horizontal_alignment = 1
 autowrap_mode = 2
-text = "HACK THE PLANET
-
-
-
-Game Dev
+text = "Game Dev
 Ryan Helsing
 
 Design and Characters

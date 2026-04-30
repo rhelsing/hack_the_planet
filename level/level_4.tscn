@@ -43,8 +43,11 @@
 [ext_resource type="Resource" uid="uid://cscho0rxkngbw" path="res://dialogue/level_4_splice_well_shit.dialogue" id="41_wellshit"]
 [ext_resource type="PackedScene" uid="uid://dhnuc5e3b6465" path="res://hud/components/beacon.tscn" id="44_beacon"]
 [ext_resource type="PackedScene" uid="uid://dflagwalk0001" path="res://interactable/flag_walkie/flag_walkie.tscn" id="45_flagwalk"]
+[ext_resource type="PackedScene" uid="uid://dflagslide001" path="res://level/interactable/flag_slide/flag_slide.tscn" id="46_flagslide"]
+[ext_resource type="AudioStream" uid="uid://bqdl0yuabs62c" path="res://audio/sfx/rocks.mp3" id="47_rocks"]
+[ext_resource type="AudioStream" uid="uid://dkgw0kewl2005" path="res://audio/music/hackers_theme.mp3" id="48_hackers"]
 
-[sub_resource type="Curve3D" id="Curve3D_sl7vr"]
+[sub_resource type="Curve3D" id="Curve3D_nh3ff"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -53,7 +56,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_l46rc"]
+[sub_resource type="Curve3D" id="Curve3D_e512u"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -62,7 +65,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_wvk38"]
+[sub_resource type="Curve3D" id="Curve3D_7d07o"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -71,7 +74,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_rc26e"]
+[sub_resource type="Curve3D" id="Curve3D_h0kaq"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -86,7 +89,7 @@ size = Vector3(1.2, 1.8, 1.2)
 [sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_nh3ff"]
 data = PackedVector3Array(-0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, 0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, -0.59999996, 0.9, -0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, 0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, 0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, 0.9, 0.59999996, -0.59999996, 0.9, 0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, 0.9, 0.59999996, -0.59999996, 0.9, -0.59999996, 0.59999996, 0.9, -0.59999996, -0.59999996, -0.9, 0.59999996, 0.59999996, -0.9, 0.59999996, -0.59999996, -0.9, -0.59999996, 0.59999996, -0.9, 0.59999996, 0.59999996, -0.9, -0.59999996, -0.59999996, -0.9, -0.59999996)
 
-[node name="LevelMockup" unique_id=798014323 instance=ExtResource("1_base")]
+[node name="LevelMockup2" unique_id=798014323 instance=ExtResource("1_base")]
 level_num = 4
 powerup_flag = &"powerup_god"
 powerup_label = "GOD"
@@ -160,12 +163,11 @@ skin_scene = ExtResource("9_nyxskin")
 dialogue_resource = ExtResource("16_l4nyx")
 interactable_id = &"npc_nyx_l4"
 
-[node name="BuriedReveal" parent="Nyx" instance=ExtResource("39_buriedrev")]
+[node name="BuriedReveal" parent="Nyx" index="5" unique_id=641539165 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
 bury_depth = 30.0
-reveal_duration = 0.5
 
-[node name="Beacon" parent="Nyx" instance=ExtResource("44_beacon")]
+[node name="Beacon" parent="Nyx" index="6" unique_id=388036129 instance=ExtResource("44_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.9176, 0.7412, 0.1333, 1)
 label = "NYX"
@@ -177,12 +179,11 @@ skin_scene = ExtResource("10_animeskin")
 dialogue_resource = ExtResource("18_l4dialtone")
 interactable_id = &"npc_dialtone_l4"
 
-[node name="BuriedReveal" parent="DialTone" instance=ExtResource("39_buriedrev")]
+[node name="BuriedReveal" parent="DialTone" index="5" unique_id=189898714 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
 bury_depth = 30.0
-reveal_duration = 0.5
 
-[node name="Beacon" parent="DialTone" instance=ExtResource("44_beacon")]
+[node name="Beacon" parent="DialTone" index="6" unique_id=1128665406 instance=ExtResource("44_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.1647, 0.4314, 0.6667, 1)
 label = "DIALTONE"
@@ -281,7 +282,7 @@ material = ExtResource("17_sdk3c")
 [node name="WallCage" parent="conversion_area_above_here12" index="0" unique_id=987255971 instance=ExtResource("30_wallcage")]
 arm_flag = &"l4_walkie19_fired"
 target = NodePath("..")
-remove_when_flag = &"l4_cage_remove"
+remove_when_flag = &"l4_splice_cutscene_done"
 spawned_flag = &"l4_cage_spawned"
 directional = true
 
@@ -326,6 +327,10 @@ material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(12.825928, 20.038086, 16.979643)
 material = ExtResource("17_sdk3c")
+
+[node name="FlagSlide" parent="slide_down_20m" index="0" unique_id=1231341875 instance=ExtResource("46_flagslide")]
+trigger_flag = &"powerup_god"
+slide_sound = ExtResource("47_rocks")
 
 [node name="BouncyPlatform" parent="." index="43" unique_id=1780514145 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.724133, -14.896849, 43.36602)
@@ -501,6 +506,8 @@ persist_flag = &"l4_walkie19_fired"
 
 [node name="HackingTerminal" parent="." index="77" unique_id=816224979 instance=ExtResource("20_fa07n")]
 transform = Transform3D(0.40404025, 0, -0.9147412, 0, 1, 0, 0.9147412, 0, 0.40404025, 15.013902, -5.522363, 24.64869)
+maze_path = "res://puzzle/maze/mazes/maze_12x10.maze"
+interactable_id = &"l4_terminal_5"
 
 [node name="EnemyKayKit6" parent="." index="78" unique_id=1270424192 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.07148, -16.935965, 5.4262276)
@@ -843,15 +850,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 473.40186, 2.7789016, -255.76
 
 [node name="Rail" parent="." index="175" unique_id=584524852 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.05427049, 0, 0.9985263, 0, 1, 0, -0.9985263, 0, 0.05427049, 317.7961, -15.262541, -3.9363518)
-curve = SubResource("Curve3D_sl7vr")
+curve = SubResource("Curve3D_nh3ff")
 
 [node name="Rail2" parent="." index="176" unique_id=195334167 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.2513599, 0, 0.9678937, 0, 1, 0, -0.9678937, 0, 0.2513599, 323.27863, -16.471245, -142.0285)
-curve = SubResource("Curve3D_l46rc")
+curve = SubResource("Curve3D_e512u")
 
 [node name="Rail3" parent="." index="177" unique_id=1223991201 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.03549255, 0, 0.9993699, 0, 1, 0, -0.9993699, 0, 0.03549255, 487.89822, 4.785468, -295.13412)
-curve = SubResource("Curve3D_wvk38")
+curve = SubResource("Curve3D_7d07o")
 
 [node name="EnemySpawner13" parent="." index="178" unique_id=1810548121 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.06946, 26.671904, -406.64682)
@@ -905,7 +912,7 @@ material = ExtResource("17_sdk3c")
 
 [node name="Rail4" parent="." index="188" unique_id=1161704299 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.023280619, 0, 0.999729, 0, 1, 0, -0.999729, 0, 0.023280619, 475.61304, 28.395216, -440.52612)
-curve = SubResource("Curve3D_rc26e")
+curve = SubResource("Curve3D_h0kaq")
 
 [node name="GlitchPostPlatforms" parent="." index="189" unique_id=1299642312 instance=ExtResource("8_companion")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 365.06467, -8.128251, -249.55788)
@@ -916,6 +923,8 @@ interactable_id = &"npc_glitch_l4_post"
 
 [node name="terminal_hack" parent="." index="190" unique_id=1987866404 instance=ExtResource("20_fa07n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 415.77567, 34.701344, -519.5497)
+maze_path = "res://puzzle/maze/mazes/maze_15x9.maze"
+interactable_id = &"l4_terminal_hack"
 
 [node name="BuriedReveal" parent="terminal_hack" index="3" unique_id=2137073819 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
@@ -923,6 +932,8 @@ bury_depth = 1.0
 
 [node name="terminal_the" parent="." index="191" unique_id=963166808 instance=ExtResource("20_fa07n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.20227, 34.701344, -519.5497)
+maze_path = "res://puzzle/maze/mazes/maze_15x9.maze"
+interactable_id = &"l4_terminal_the"
 
 [node name="BuriedReveal" parent="terminal_the" index="3" unique_id=571609266 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
@@ -930,6 +941,8 @@ bury_depth = 1.0
 
 [node name="terminal_planet" parent="." index="192" unique_id=1012873127 instance=ExtResource("20_fa07n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 503.4798, 34.701344, -519.5497)
+maze_path = "res://puzzle/maze/mazes/maze_15x9.maze"
+interactable_id = &"l4_terminal_planet"
 
 [node name="BuriedReveal" parent="terminal_planet" index="3" unique_id=1892431924 instance=ExtResource("39_buriedrev")]
 reveal_flag = &"l4_terminals_reveal"
@@ -964,6 +977,7 @@ done_flag = &"l4_splice_cutscene_done"
 scene_duration = 90.0
 intro_stinger = ExtResource("33_braam")
 cutscene_music = ExtResource("32_leapmotiv")
+post_cutscene_music = ExtResource("48_hackers")
 dialogue_file = ExtResource("35_splicedlg")
 shot_cameras = Array[NodePath]([NodePath("../CutsceneCam_Splice"), NodePath("../CutsceneCam_Halfpipe"), NodePath("../CutsceneCam_Splice")])
 
@@ -1067,16 +1081,19 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 429.29697, 2.0347996, -540.98
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 438.1845, 8.540169, -536.0314)
 
 [node name="BouncyPlatform12" parent="." index="227" unique_id=436468444 instance=ExtResource("17_m36c5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 427.60956, 16.951788, -532.5372)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 427.60956, 15.396721, -532.5372)
 
 [node name="BouncyPlatform13" parent="." index="228" unique_id=1492256122 instance=ExtResource("17_m36c5")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 416.31885, 26.297825, -531.7553)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 417.4491, 21.77353, -531.7553)
 
-[node name="NoRedsWatcher" parent="." index="229" unique_id=2120522333 instance=ExtResource("38_facwatch")]
+[node name="BouncyPlatform14" parent="." index="229" unique_id=685410085 instance=ExtResource("17_m36c5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 408.5216, 29.21243, -531.7553)
+
+[node name="NoRedsWatcher" parent="." index="230" unique_id=2120522333 instance=ExtResource("38_facwatch")]
 arm_flag = &"l4_splice_cutscene_done"
 done_flag = &"l4_terminals_reveal"
 
-[node name="cage" type="MeshInstance3D" parent="." index="230" unique_id=877332620]
+[node name="cage" type="MeshInstance3D" parent="." index="231" unique_id=877332620]
 transform = Transform3D(4.238725, 0, 0, 0, 4.1788874, 0, 0, 0, 3.3284235, 462.3556, 34.132805, -616.7686)
 material_override = ExtResource("40_db0uq")
 mesh = SubResource("BoxMesh_hys5n")
@@ -1091,14 +1108,17 @@ shape = SubResource("ConcavePolygonShape3D_nh3ff")
 reveal_flag = &"l4_terminal_planet"
 bury_depth = 8.522
 
-[node name="WellShitCutscene" parent="." index="231" unique_id=494067337 instance=ExtResource("31_cutscene")]
+[node name="WellShitCutscene" parent="." index="232" unique_id=494067337 instance=ExtResource("31_cutscene")]
 arm_flag = &"l4_terminal_planet"
 done_flag = &"l4_well_shit_done"
 scene_duration = 5.0
 dialogue_file = ExtResource("41_wellshit")
 shot_cameras = Array[NodePath]([NodePath("../CutsceneCam_Splice")])
 
-[node name="NyxOverHereWalkie" parent="." instance=ExtResource("45_flagwalk")]
+[node name="NyxOverHereWalkie" parent="." index="233" unique_id=476244250 instance=ExtResource("45_flagwalk")]
 character = &"Nyx"
 line = "Hey {player_handle}, over here!"
 trigger_flag = &"l4_well_shit_done"
+
+[node name="PhoneBooth6" parent="." index="234" unique_id=564132411 instance=ExtResource("2_t4818")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 161.78722, -16.94369, 41.29153)

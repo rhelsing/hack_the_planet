@@ -177,6 +177,18 @@ func _on_line_shown(line: Object) -> void:
 		(" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else "",
 		tts_text,
 	])
+	# Cutscene-driver gate: if a CutsceneSequence is currently walking the
+	# DialogueManager, it's also calling Companion.speak / Walkie.speak for
+	# the same line via _play_line. Dispatching TTS here too would cause
+	# parallel HTTPRequests writing the same cache file (race), wasted API
+	# calls, and (combined with the in-flight bug fixed in companion.gd /
+	# walkie.gd this commit) hang the cutscene. The line still surfaces via
+	# Events.dialogue_line_shown above for HUD/subtitles — only the TTS
+	# dispatch is suppressed. VoicePrimer also skipped because Companion /
+	# Walkie's own speak path enqueues siblings.
+	if CutsceneSequence.is_dialogue_driven():
+		_log("  speak: SKIPPED (cutscene-driven; routed via Companion/Walkie)")
+		return
 	speak_line(character, tts_text, route_walkie, line_model)
 	VoicePrimer.enqueue_siblings(character, tts_template, tts_text)
 

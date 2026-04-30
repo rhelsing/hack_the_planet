@@ -1,6 +1,27 @@
 extends Node
 class_name CutsceneSequence
 
+## Increments while at least one CutsceneSequence is actively driving the
+## DialogueManager. Read by `Dialogue._on_line_shown` to suppress its own
+## TTS dispatch — the cutscene already routes voice through Companion.speak
+## or Walkie.speak directly. Without this, DialogueManager's `got_dialogue`
+## signal triggers Dialogue.speak_line in parallel with the cutscene's own
+## voice path, causing two HTTPRequests for the same line, race-write to
+## the cache file, and (combined with the in-flight bug fixed elsewhere
+## in this commit) hang the cutscene.
+static var _dialogue_drive_count: int = 0
+
+
+## True iff any CutsceneSequence is currently in its dialogue walk.
+static func is_dialogue_driven() -> bool:
+	return _dialogue_drive_count > 0
+
+
+# Per-instance latch so `_exit_tree` only decrements the counter if THIS
+# instance had incremented it — preventing under-flow if the cutscene is
+# freed before _walk_dialogue's increment runs, or after its decrement.
+var _drive_latched: bool = false
+
 ## Two-shot cinematic sequence. Triggered by `arm_flag`. Sequence:
 ##   1. Save the current gameplay camera, freeze the player (optional),
 ##      pause music, kick off `cutscene_music` (optional).
@@ -52,6 +73,12 @@ class_name CutsceneSequence
 ## Looped while the cutscene plays. Starts AFTER the stinger ends. Empty
 ## = keep current music (no swap).
 @export var cutscene_music: AudioStream
+## Music that takes over AFTER the cutscene ends. Use for boss-fight or
+## final-battle themes that should keep playing once the cinematic wraps.
+## When set, this OVERRIDES `resume_default_music_on_end` — instead of
+## resuming the menu/level playlist, the post-cutscene track plays as a
+## single-track loop. Leave null to fall back to playlist-resume.
+@export var post_cutscene_music: AudioStream
 ## When true, `Audio.resume_default_playlist_if_overridden()` is called on
 ## sequence end so gameplay returns to the default rotation.
 @export var resume_default_music_on_end: bool = true
@@ -166,6 +193,11 @@ func _walk_dialogue() -> void:
 	if dm == null or dialogue_file == null:
 		push_warning("CutsceneSequence: no DialogueManager / dialogue_file")
 		return
+	# Increment the global drive-count so Dialogue._on_line_shown skips its
+	# parallel TTS dispatch for every line in this walk. Latched per-instance
+	# so _exit_tree can safely under-flow-clean if we're freed mid-walk.
+	_dialogue_drive_count += 1
+	_drive_latched = true
 	# Pass `self` so `do CutsceneSequence.set_shot(...)` mutations resolve.
 	var line: Object = await dialogue_file.call(&"get_next_dialogue_line", dialogue_start, [self])
 	while line != null:
@@ -184,6 +216,20 @@ func _walk_dialogue() -> void:
 		if "next_id" in line: next_id = String(line.next_id)
 		if next_id.is_empty(): break
 		line = await dialogue_file.call(&"get_next_dialogue_line", next_id, [self])
+	# Release our reservation. _exit_tree won't decrement again.
+	if _drive_latched:
+		_drive_latched = false
+		_dialogue_drive_count = maxi(0, _dialogue_drive_count - 1)
+
+
+func _exit_tree() -> void:
+	# Safety net: if this CutsceneSequence is freed mid-walk (scene change,
+	# error, etc.) without the normal exit running, drop our reservation so
+	# the global counter doesn't leak high and permanently mute Dialogue's
+	# TTS dispatch for the rest of the session.
+	if _drive_latched:
+		_drive_latched = false
+		_dialogue_drive_count = maxi(0, _dialogue_drive_count - 1)
 
 
 ## Snap all CameraDrift descendants of any shot camera to their endpoints.
@@ -254,6 +300,11 @@ func _swap_music_in() -> void:
 
 
 func _swap_music_out() -> void:
+	# Post-cutscene track wins if set — boss-fight / climax theme that should
+	# carry the player past the cinematic. play_music loops it single-track.
+	if post_cutscene_music != null:
+		Audio.play_music(post_cutscene_music, 1.0)
+		return
 	if resume_default_music_on_end and cutscene_music != null:
 		# play_music marked the prior playlist as overridden — resume that.
 		if Audio.has_method(&"resume_default_playlist_if_overridden"):

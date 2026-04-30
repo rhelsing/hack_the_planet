@@ -68,7 +68,13 @@ func stop() -> void:
 # ---- internals ----------------------------------------------------------
 
 func _dispatch_if_idle() -> void:
-	if _playing or _queue.is_empty():
+	# In-flight guard — see companion.gd:_dispatch_if_idle for full rationale.
+	# Re-entry while _http is busy would call _http.request() again, return
+	# ERR_BUSY=44, the err branch clears _in_flight, and the original
+	# request's response then early-returns from _on_http_completed. Net
+	# effect: no playback, no line_ended, queues that consume line_ended
+	# (e.g. cutscene_sequence._play_line) hang forever.
+	if _playing or _queue.is_empty() or not _in_flight.is_empty():
 		return
 	var next: Dictionary = _queue[0]
 	var character: String = next.character

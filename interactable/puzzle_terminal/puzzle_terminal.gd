@@ -13,9 +13,14 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## finished(success: bool) signal). Example: res://puzzle/hacking/hacking_puzzle.tscn.
 @export var puzzle_scene: PackedScene
 
-## If true, becomes non-interactable after being solved once. Otherwise
-## the terminal stays hackable (useful for retry / practice).
-@export var one_shot: bool = true
+## If true, becomes non-interactable after being solved once. Default
+## false: terminals stay hackable across saves/reloads. Critical for
+## terminals with `slide_target` — the slide tween only fires on live
+## solve, so a saved-then-reloaded one_shot terminal would leave the
+## world geometry in its closed authored position with no way to
+## re-trigger. Repeatable hacking is the safe default; flip per-instance
+## to true only when retry would be undesirable.
+@export var one_shot: bool = false
 
 ## GameState flag that must be truthy for the terminal to be usable. Defaults
 ## to the hacker power-up for legacy hacking terminals; set empty ("") to

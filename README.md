@@ -246,3 +246,104 @@ Mazes are authored in a vanilla HTML/CSS/JS app at **`tools/maze_editor/`**. No 
 ### How a level uses a maze
 
 `PuzzleTerminal` (`interactable/puzzle_terminal/puzzle_terminal.gd`) has a `maze_path: String` `@export_file("*.maze")` field. The level scene sets it per-instance — e.g., on `level_2.tscn` the HackTerminal points at `res://puzzle/maze/mazes/l2_hack_terminal.maze`. On interact, `Puzzles.start` injects `maze_path` into the spawned `MazePuzzle` via setup-data; the puzzle reads the file, builds the graph, and runs.
+
+---
+
+## Hacking-terminal puzzle system (full reference)
+
+To drop a hackable terminal into a level: instance `library/interactables/hacking_terminal.tscn` and set the `@export`s below on the instance. Every property is per-instance, so the same scene can be re-used across the whole game with different mazes, gates, and side-effects.
+
+### Required per-instance
+
+| Property | Type | What it does |
+|---|---|---|
+| `interactable_id` | `StringName` | **Must be unique per terminal in a level.** This becomes the `GameState` flag name set on solve. Two terminals sharing an id collide on save and break chains. Convention: `&"l3_terminal_2"` for the second terminal in level 3, etc. |
+| `maze_path` | `String` (`*.maze`) | The maze JSON to play. Authored in `tools/maze_editor/`, saved under `puzzle/maze/mazes/`. Without this, `MazePuzzle._ready` errors and the puzzle fails immediately. |
+
+### Common per-instance overrides
+
+| Property | Default | Notes |
+|---|---|---|
+| `one_shot` | `false` | When true, terminal becomes non-interactable after one solve. **Leave at false** if the terminal has any `slide_target` — the slide tween only fires on live solve, so a saved-then-reloaded `one_shot=true` terminal soft-locks the world (the slid geometry doesn't re-animate; sensor is dead). Repeatable hacking is the safe default. |
+| `required_flag` | `&"powerup_secret"` | Gate: terminal stays press-E-but-locked until this `GameState` flag is true. The default is the hacker power-up gate (acquired from level 2's pickup). Override per-instance to chain to a previous terminal's flag, e.g. `&"l3_terminal_3"`. **Caveat:** the field only checks ONE flag, so overriding to a chain flag drops the powerup gate on that terminal. Fine in practice (L3+ are post-powerup), but flag if you ever need both. |
+| `locked_message` | `"not a hacker"` | Text shown in the prompt when `required_flag` isn't set. |
+| `visible_when_flag` | `&""` | Stricter than `required_flag`: hides the terminal entirely + disables collision until the flag flips. Use when you want the terminal to appear out of nowhere. Most chains want `required_flag` (see-but-can't-hack) instead. |
+
+### Side-effect on solve: slide-target
+
+Use these to slide world geometry on solve (open a floor, raise a wall, lower a barrier).
+
+| Property | Default | Notes |
+|---|---|---|
+| `slide_target` | `NodePath("")` | Any `Node3D` whose `global_position` should tween on solve. Relative path from the terminal — `NodePath("../this_wall_raises15units")` for a level-root sibling. |
+| `slide_offset` | `Vector3(10, 0, 0)` | World-space delta added to `slide_target.global_position`. e.g. `Vector3(0, 15, 0)` raises 15m up. |
+| `slide_duration` | `2.0` | Tween length in seconds. CUBIC ease-in-out. |
+| `slide_sound_cue` | `&""` | Optional `Audio.play_sfx` cue id. `&"rocks"` is the bundled grinding-stone cue. |
+
+⚠ **Save/reload caveat:** the slide tween only fires on the **live solve** path. Reloading a save where the flag is set restores the flag and replays faction conversion, but does **not** replay the slide — the target stays at its authored position. Two ways to handle this:
+- Keep `one_shot = false` so the player can re-hack on reload and re-trigger the slide. (Current default — safe.)
+- (Future) extend `puzzle_terminal.gd` to snap the slide target to its dest position on `_ready` when the flag is set, no tween. Not implemented yet.
+
+### Side-effect on solve: faction conversion
+
+Use these to flip nearby enemies to a friendly faction on solve. Used in level 2's "splice pen" beat.
+
+| Property | Default | Notes |
+|---|---|---|
+| `convert_zone_id` | `&""` | Drop one or more `level/interactable/convert_zone/convert_zone.tscn` instances in the level, set their `id` to match this string. Empty disables. Multiple zones with the same id are unioned (one terminal can convert across disjoint rooms). |
+| `target_factions` | `[]` | Array of faction names. Pawns inside any matching zone whose `faction` is in this list get flipped. Empty = no conversion. |
+| `resulting_faction` | `&"green"` | What matched pawns flip to. |
+
+Faction conversion **does** replay on save/reload (idempotent — already-converted pawns are a cheap no-op).
+
+### Highlight on focus
+
+The mesh inside the terminal scene gets a green emissive overlay while the player has it focused (about to press E).
+
+| Property | Default | Notes |
+|---|---|---|
+| `highlight_meshes` | `[]` | NodePaths to specific MeshInstance3Ds. Empty = auto-discovers all MeshInstance3D descendants of the terminal at first focus. |
+| `highlight_overlay_material` | `null` | Override material; `null` uses a built-in transparent green emissive. |
+
+### Chain pattern (the typical case)
+
+A sequence of terminals where solving each one unlocks the next:
+
+```
+[Terminal A]
+  interactable_id = &"l3_terminal_a"
+  maze_path = ".../some_maze.maze"
+  # No required_flag override → uses the powerup_secret default (or set to &"" for no gate).
+
+[Terminal B]
+  interactable_id = &"l3_terminal_b"
+  maze_path = ".../another_maze.maze"
+  required_flag = &"l3_terminal_a"           # locked until A is solved
+
+[Terminal C]
+  interactable_id = &"l3_terminal_c"
+  maze_path = ".../yet_another_maze.maze"
+  required_flag = &"l3_terminal_b"           # locked until B is solved
+  slide_target = NodePath("../boss_door")    # solving C opens the boss door
+  slide_offset = Vector3(0, 10, 0)
+  slide_sound_cue = &"rocks"
+```
+
+### Common pitfalls (from the Apr 2026 audit)
+
+1. **Forgetting `interactable_id`.** Without an override, every terminal inherits the template default `&"terminal_lobby"`. They all set the same flag → chains can't work and saves get corrupted state. Set a unique id on every terminal.
+2. **Forgetting `maze_path`.** The terminal looks fine in editor but `MazePuzzle._ready` errors and the puzzle closes the moment you press E.
+3. **Stale flags in beacons / NPCs.** `Beacon.visible_when_flag` and NPC visibility gates reference flag names that must match a real terminal's `interactable_id`. If you rename a terminal, grep for the old flag name and update consumers.
+4. **`one_shot = true` + `slide_target`.** Soft-locks on save/reload (slide doesn't replay; sensor is dead). Always pair sliders with `one_shot = false`.
+5. **`required_flag` overrides drop the powerup gate.** If a level wants both, the script needs extension — flag the case before shipping.
+
+### Authoring checklist for a new terminal
+
+- [ ] Instance `library/interactables/hacking_terminal.tscn`.
+- [ ] Set unique `interactable_id` (e.g. `&"lN_terminal_K"`).
+- [ ] Set `maze_path` to a `.maze` file under `puzzle/maze/mazes/` (author with `tools/maze_editor/`).
+- [ ] If chained: set `required_flag` to the previous terminal's `interactable_id`.
+- [ ] If sliding world geometry: set `slide_target` + `slide_offset` + optional `slide_sound_cue`. Leave `one_shot = false`.
+- [ ] If converting enemies: set `convert_zone_id`, drop `ConvertZone` siblings, set `target_factions` + `resulting_faction`.
+- [ ] If hidden until prereq: set `visible_when_flag`. (Most chains prefer `required_flag` so terminal stays visible-but-locked.)
+- [ ] If anything else gates on this solve (beacon, NPC, dialogue): wire those nodes' `visible_when_flag` / `hide_when_flag` to this terminal's `interactable_id`.

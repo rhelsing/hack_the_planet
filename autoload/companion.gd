@@ -59,7 +59,12 @@ func stop() -> void:
 
 
 func _dispatch_if_idle() -> void:
-	if _playing or _queue.is_empty():
+	# In-flight guard: a previous request is still mid-flight on _http. A
+	# second _http.request() while busy returns ERR_BUSY (44), and the err
+	# branch below clears _in_flight, which makes _on_http_completed early-
+	# return for the original request — no playback, no line_ended, cutscene
+	# soft-locks. Re-enter only after the in-flight request settles.
+	if _playing or _queue.is_empty() or not _in_flight.is_empty():
 		return
 	var next: Dictionary = _queue[0]
 	var character: String = next.character

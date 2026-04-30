@@ -574,27 +574,14 @@ func _reset_wander_timer() -> void:
 
 
 func _ensure_target(body: Node3D) -> void:
-	if _target != null and is_instance_valid(_target):
-		# Validate the cached target still belongs to one of our target
-		# groups — set_faction() rewrites target_groups but doesn't reach
-		# in here to clear _target, so a converted ally would otherwise
-		# keep chasing whatever it was last targeting (often the player).
-		# Dropping the cached target here forces a re-acquire below.
-		for grp in target_groups:
-			if _target.is_in_group(grp):
-				return
-		_target = null
 	var tree := body.get_tree()
 	if tree == null:
 		return
-	# Pick the NEAREST target across all groups, not the first match.
-	# Naïve first-match locked converted golds onto far-away greens on
-	# other platforms — outside detection_radius — so they never engaged
-	# the reds standing 5m away. Nearest-pick scans all eligible bodies
-	# (deduped, since a pawn can be in multiple groups e.g. red is in
-	# both "splice_enemies" and "enemies") and picks the closest by
-	# horizontal+vertical distance. O(N) per acquisition; cheap at our
-	# scale (a re-acquire only fires when current _target dies/leaves).
+	# Scan EVERY tick for the nearest candidate across all target groups.
+	# Drives both acquisition (when cache is empty) AND the distance-aware
+	# proactive switch below. O(N) over a small enemy count — microseconds.
+	# Dedup because a single pawn can sit in multiple target groups
+	# (e.g. a red is in both `enemies` and `splice_enemies`).
 	var best: Node3D = null
 	var best_dsq: float = INF
 	var seen: Dictionary = {}
@@ -610,7 +597,31 @@ func _ensure_target(body: Node3D) -> void:
 			if dsq < best_dsq:
 				best_dsq = dsq
 				best = n3d
-	_target = best
+	# Validate cached target — drop it if dead or no longer in any of our
+	# target groups (e.g. it got converted to ally via god power, or
+	# set_faction() rewrote our target_groups out from under it).
+	if _target != null and is_instance_valid(_target):
+		var still_targeted: bool = false
+		for grp in target_groups:
+			if _target.is_in_group(grp):
+				still_targeted = true
+				break
+		if not still_targeted:
+			_target = null
+	else:
+		_target = null
+	# Distance-aware proactive switch: keep the cached target UNLESS `best`
+	# is meaningfully closer. dsq ratio of 2:1 → new target must be ≤~70%
+	# the linear distance of the current one to win. Prevents thrashing on
+	# roughly-equidistant ties while staying responsive when fresh enemies
+	# spawn closer than the locked-on target — e.g. converted golds
+	# noticing newly-spawned reds 5m away while still chasing one 30m out.
+	if _target != null:
+		var current_dsq: float = (_target as Node3D).global_position.distance_squared_to(body.global_position)
+		if best != null and best_dsq * 2.0 < current_dsq:
+			_target = best
+	else:
+		_target = best
 
 
 func _horizontal_distance(a: Vector3, b: Vector3) -> float:

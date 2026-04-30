@@ -156,7 +156,7 @@ interactable_id = &"npc_splice_offer"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 color = Color(1, 0, 0, 1)
 label = "Nyx"
-visible_when_flag = &"hacking_terminal_4"
+visible_when_flag = &"l3_terminal_4"
 
 [node name="PortalAlpha1" parent="." index="29" unique_id=2094463888 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -179.06776, 38.12951, -134.92235)
@@ -619,6 +619,7 @@ curve = SubResource("Curve3D_6u0b5")
 [node name="HackingTerminal" parent="." index="113" unique_id=816224979 instance=ExtResource("22_krmuh")]
 transform = Transform3D(-0.02530452, 0, 0.9996798, 0, 1, 0, -0.9996798, 0, -0.02530452, -45.167114, 20.70369, -91.511444)
 maze_path = "res://puzzle/maze/mazes/maze_9x7.maze"
+interactable_id = &"l3_terminal_1"
 convert_zone_id = &"l3_splice_pen"
 
 [node name="EnemyKayKitSplice" parent="." index="114" unique_id=1999257081 instance=ExtResource("23_b30fa")]
@@ -769,14 +770,25 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.90707, 24.8931, -113.117
 [node name="HackingTerminal2" parent="." index="143" unique_id=1823611708 instance=ExtResource("22_krmuh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -161.63133, 10.074026, -31.143547)
 maze_path = "res://puzzle/maze/mazes/maze_11x8.maze"
+interactable_id = &"l3_terminal_2"
 slide_target = NodePath("../this_slides_towards_x direction")
 slide_sound_cue = &"rocks"
 
 [node name="HackingTerminal3" parent="." index="144" unique_id=251426275 instance=ExtResource("22_krmuh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -156.57721, -4.7974615, -31.41994)
+one_shot = false
+maze_path = "res://puzzle/maze/mazes/maze_12x10.maze"
+interactable_id = &"l3_terminal_3"
 
 [node name="HackingTerminal4" parent="." index="145" unique_id=1464235879 instance=ExtResource("22_krmuh")]
 transform = Transform3D(-0.9999658, 0, 0.008272705, 0, 1, 0, -0.008272705, 0, -0.9999658, -156.04951, -4.7974615, -10.82929)
+one_shot = false
+maze_path = "res://puzzle/maze/mazes/maze_15x9.maze"
+required_flag = &"l3_terminal_3"
+interactable_id = &"l3_terminal_4"
+slide_target = NodePath("../this_wall_raises15units")
+slide_offset = Vector3(0, 15, 0)
+slide_sound_cue = &"rocks"
 
 [node name="EnemySpawner7" parent="." index="146" unique_id=851986994 instance=ExtResource("20_510pp")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -248.24467, -10.988964, -7.492151)
@@ -857,3 +869,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.533657, 25.423506, -296.7
 
 [node name="HackingTerminal5" parent="." index="171" unique_id=422285938 instance=ExtResource("22_krmuh")]
 transform = Transform3D(0.09608901, 0, -0.9953728, 0, 1, 0, 0.9953728, 0, 0.09608901, -101.82914, 17.430096, -265.37494)
+one_shot = false
+maze_path = "res://puzzle/maze/mazes/maze_6x6.maze"
+interactable_id = &"l3_terminal_5"

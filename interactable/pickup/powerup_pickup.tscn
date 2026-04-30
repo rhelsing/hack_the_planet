@@ -19,12 +19,5 @@ disk_scene = ExtResource("3_pwrdisc")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20628661, 0, 0.0057739317)
 shape = SubResource("BoxShape3D_collision")
 
-[node name="DiskLabel" type="Label3D" parent="." unique_id=1015544219]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07203051, 0)
-pixel_size = 0.01
-billboard = 1
-modulate = Color(1, 0.95, 0.6, 1)
-font_size = 64
-
 [node name="disk_mesh" parent="." unique_id=1047152825 instance=ExtResource("2_064ia")]
 transform = Transform3D(-8.742278e-09, 0.2, 0, -0.2, -8.742278e-09, 0, 0, 0, 0.2, -0.03449136, -1.1920929e-07, -0.022251368)

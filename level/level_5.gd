@@ -16,11 +16,11 @@ extends Node3D
 ## Player's forced walk direction in WORLD space (Y is stripped). Default
 ## -Z = standard "into the corridor". Flip if you mirror the level layout.
 @export var walk_direction: Vector3 = Vector3(0, 0, -1)
-@export var walk_speed_mps: float = 1.5
+@export var walk_speed_mps: float = 0.8
 ## Splice's pace. Default matches the player's, so he stays exactly
 ## `splice_lead_distance` ahead the whole walk. Bump above to read as
 ## "leading", drop below to have the player overtake him at the end.
-@export var splice_walk_speed_mps: float = 1.5
+@export var splice_walk_speed_mps: float = 0.8
 ## World-Z (when walk_direction is -Z) where Splice stops walking. Player's
 ## EndTerminal is at z=-60, floor ends at z=-65 — clamp Splice short of
 ## that so he doesn't walk off the geometry.
@@ -39,13 +39,17 @@ extends Node3D
 # Scripted dialogue beats — preserved here as code (not a .dialogue file)
 # because they're timed walkie lines, not press-E branching dialogue.
 const _BEATS: Array = [
-	["Splice",   "There you are. I knew you'd see it."],
-	["DialTone", "Channel's open. Wanted you to hear me say it. You sold us."],
-	["Splice",   "What's a runner without a contract? You belong to me now."],
+	["Splice",   "There you are. ...I knew you'd see it eventually."],
+	["DialTone", "Channel's open. They wanted to hear me say it."],
+	["DialTone", "I picked you. That's on me."],
 	["Glitch",   "I had hoped my analysis was wrong. It was not."],
-	["Splice",   "We start with the lower nodes. By morning we'll own the dial-up."],
-	["Nyx",      "I rooted for you. Whatever. Bye, runner."],
-	["Splice",   "Keep walking. The throne room's just ahead."],
+	["Glitch",   "...local node, helpful to all. I'll go back to that."],
+	["Nyx",      "Sane move was log out. I told you that."],
+	["Nyx",      "I told myself I'd read you right. ...that's twice now."],
+	["Nyx",      "Bye, runner."],
+	["Splice",   "You wanted in. ...you're in."],
+	["Splice",   "Just won't be anyone left to know it."],
+	["Splice",   "Don't stop walking."],
 ]
 
 var _ended: bool = false
@@ -155,7 +159,7 @@ func _show_end_card() -> void:
 	bg.anchor_bottom = 1.0
 	layer.add_child(bg)
 	var lbl := Label.new()
-	lbl.text = "THE GIBSON IS YOURS.\nPOPULATION: 1."
+	lbl.text = "DIALTONE: DISCONNECTED.\nNYX: DISCONNECTED.\nGLITCH: OFFLINE.\n\nTHE GIBSON IS YOURS.\nPOPULATION: 1."
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.anchor_right = 1.0

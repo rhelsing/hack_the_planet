@@ -10,6 +10,7 @@ signal back_requested
 @export var scroll_speed_px_per_s: float = 60.0
 
 @onready var _column: Control = %ScrollColumn
+@onready var _content: Control = %ScrollContent
 @onready var _text: Label = %ScrollText
 
 var _scroll_tween: Tween = null
@@ -32,15 +33,15 @@ func _ready() -> void:
 
 
 func _start_scroll() -> void:
-	if _column == null or _text == null:
+	if _column == null or _content == null:
 		return
 	var start_y: float = _column.size.y
-	var end_y: float = -_text.size.y
-	_text.position.y = start_y
+	var end_y: float = -_content.size.y
+	_content.position.y = start_y
 	var distance: float = absf(end_y - start_y)
 	var duration: float = distance / maxf(scroll_speed_px_per_s, 1.0)
 	_scroll_tween = create_tween()
-	_scroll_tween.tween_property(_text, "position:y", end_y, duration)
+	_scroll_tween.tween_property(_content, "position:y", end_y, duration)
 	_scroll_tween.finished.connect(_on_scroll_finished)
 
 

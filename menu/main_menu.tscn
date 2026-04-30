@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://b3menubtn0001" path="res://menu/menu_button.tscn" id="3_btn"]
 [ext_resource type="Script" path="res://menu/main_menu.gd" id="4_script"]
 [ext_resource type="Texture2D" path="res://menu/title_image.png" id="5_title"]
+[ext_resource type="Material" path="res://menu/title_drop_shadow.tres" id="6_shadow"]
 
 [sub_resource type="StyleBoxFlat" id="MenuPanelStyle"]
 bg_color = Color(0.1, 0.1, 0.1, 0.6)
@@ -38,6 +39,7 @@ custom_minimum_size = Vector2(460, 0)
 
 [node name="Title" type="TextureRect" parent="MenuUI/Center/MenuPanel/Column"]
 unique_name_in_owner = true
+material = ExtResource("6_shadow")
 custom_minimum_size = Vector2(420, 230)
 texture = ExtResource("5_title")
 expand_mode = 1

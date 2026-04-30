@@ -59,11 +59,16 @@ func _ready() -> void:
 	if not powerup_flag.is_empty() and bool(GameState.get_flag(powerup_flag, false)):
 		queue_free()
 		return
+	# Defer visual setup: when wrapped by LevelMockup, the parent's _ready
+	# (which writes our powerup_label / powerup_flag) runs AFTER ours. The
+	# disc picker reads powerup_label, so we must wait one frame or it
+	# spawns all 4 master-model discs side-by-side.
+	_setup_visual.call_deferred()
+
+
+func _setup_visual() -> void:
 	if disk_scene != null:
 		_swap_disk_scene()
-	var disk_label: Label3D = get_node_or_null(^"DiskLabel") as Label3D
-	if disk_label != null:
-		disk_label.text = powerup_label
 	_visual = _find_visual()
 	_build_tint_material()
 	_tint_all_meshes(self)
