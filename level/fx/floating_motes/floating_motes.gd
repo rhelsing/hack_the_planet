@@ -22,7 +22,7 @@ class_name FloatingMotes
 
 @export_group("Quality tiers")
 ## Particle count at each Settings.graphics.quality preset. 0 disables.
-@export var amount_low: int = 0
+@export var amount_low: int = 20
 @export var amount_medium: int = 40
 @export var amount_high: int = 80
 @export var amount_max: int = 120

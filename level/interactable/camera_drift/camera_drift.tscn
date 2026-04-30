@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dcamdrift0001"]
+
+[ext_resource type="Script" path="res://level/interactable/camera_drift/camera_drift.gd" id="1_cd"]
+
+[node name="CameraDrift" type="Node"]
+script = ExtResource("1_cd")

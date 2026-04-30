@@ -441,6 +441,9 @@ func _speaker_color(name: String) -> String:
 
 ## Swap the upper-left portrait to match the current speaker. Hides the rect
 ## entirely if no portrait is registered (e.g. an unrecognised character).
+## Also draws a 3px border in the character's registry color with 4px
+## rounded corners, via a child Panel overlay (mounted lazily so we don't
+## need to touch the .tscn).
 func _apply_portrait(character: String) -> void:
 	var tex: Texture2D = null
 	if _portraits != null and _portraits.has_method(&"get_portrait"):
@@ -448,9 +451,40 @@ func _apply_portrait(character: String) -> void:
 	if tex != null:
 		portrait_rect.texture = tex
 		portrait_rect.visible = true
+		_apply_portrait_frame(character)
 	else:
 		portrait_rect.texture = null
 		portrait_rect.visible = false
+
+
+# Lazily mount a Panel child of the portrait that draws a colored border
+# matching the character's registry color. Border width = 3, corner radius
+# = 4, transparent fill so the texture shows through. Stylebox is rebuilt
+# per character so each speaker swap retints cleanly.
+func _apply_portrait_frame(character: String) -> void:
+	var frame: Panel = portrait_rect.get_node_or_null(^"BorderOverlay") as Panel
+	if frame == null:
+		frame = Panel.new()
+		frame.name = "BorderOverlay"
+		frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		portrait_rect.add_child(frame)
+	var color: Color = Color.WHITE
+	if _portraits != null and _portraits.has_method(&"has_color") \
+			and bool(_portraits.call(&"has_color", character)):
+		color = _portraits.call(&"get_color", character) as Color
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0)
+	sb.border_width_left = 3
+	sb.border_width_top = 3
+	sb.border_width_right = 3
+	sb.border_width_bottom = 3
+	sb.border_color = color
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_left = 4
+	sb.corner_radius_bottom_right = 4
+	frame.add_theme_stylebox_override(&"panel", sb)
 
 
 # Emphasis conversion (`**word**` / `*word*`) lives in TextEmphasis

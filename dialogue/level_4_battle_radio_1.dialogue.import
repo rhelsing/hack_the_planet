@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://c4b8lqaet650p"
+path="res://.godot/imported/level_4_battle_radio_1.dialogue-60a69627f3af37205217cb7e231c8602.tres"
+
+[deps]
+
+source_file="res://dialogue/level_4_battle_radio_1.dialogue"
+dest_files=["res://.godot/imported/level_4_battle_radio_1.dialogue-60a69627f3af37205217cb7e231c8602.tres"]
+
+[params]
+
+defaults=true

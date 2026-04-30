@@ -32,7 +32,7 @@
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
-"points": PackedVector3Array(4.9875526, 1.0523338, -6.265789, -4.9875526, -1.0523338, 6.265789, 14.211575, -2.6987114, -4.35466, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107925, -4.8454647, 3.9025383, -3.0714607, -2.415699, -2.908966, 3.0714607, 2.415699, 2.908966, -5.0261383, 3.1961613, 13.888241),
+"points": PackedVector3Array(4.9875526, 1.0523338, -6.265789, -4.9875526, -1.0523338, 6.265789, 14.211575, -2.6987114, -4.35466, 5.8937416, -1.3593206, -2.7650242, -5.8937416, 1.3593206, 2.7650242, -1.2107925, -4.8454647, 3.9025383, -1.2410278, 1.2546883, -4.391464, 1.2410278, -1.2546883, 4.391464, -5.0261383, 3.1961613, 17.325523),
 "tilts": PackedFloat32Array(0, 0, 0)
 }
 point_count = 3
@@ -566,7 +566,7 @@ require_flag = &""
 [node name="Nyx6" parent="." index="110" unique_id=624766044 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 30.412884, 14.665047)
 character = &"Splice"
-line = "Interesting. Do I detect a new trace on the wire?"
+line = "Interesting. Do I detect a **new trace** on the wire?"
 require_flag = &""
 
 [node name="Nyx7" parent="." index="111" unique_id=803060109 instance=ExtResource("54_walkie")]
@@ -657,5 +657,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -281.6411, 71.967735, 41.8350
 [node name="splice_musing_1" parent="." index="134" unique_id=1260040209 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -159.71008, 71.95591, 58.543922)
 character = &"Splice"
-line = "The mouse looking for the cheese will often find the **trap** instead."
+line = "The **mouse** looking for the cheese will often find the **trap**."
 require_flag = &""

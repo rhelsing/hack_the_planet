@@ -274,6 +274,12 @@ const _FACTION_TINT: Dictionary = {
 ## overrides horizontal. If false, dash zeroes vertical too.
 @export var dash_preserves_y: bool = true
 
+@export_group("Enemy Contact")
+## Horizontal m/s applied each tick the player is standing on top of an
+## enemy CharacterBody3D. Pushes them off so an enemy head isn't a stable
+## platform. 0 disables the slide-off entirely.
+@export var enemy_head_slide_speed: float = 6.0
+
 @export_group("Crouch")
 ## max_speed multiplier while crouch_held is true. Only applied in walk mode.
 @export_range(0.0, 1.0) var crouch_speed_multiplier: float = 0.45
@@ -2101,8 +2107,42 @@ func _physics_process(delta: float) -> void:
 
 	_was_on_floor_last_frame = on_floor
 	move_and_slide()
+	_slide_off_enemy_head()
 
 	_update_follow_camera(delta)
+
+
+## Push this pawn horizontally off any OTHER pawn it's currently standing on.
+## Symmetric: player-on-enemy AND enemy-on-player both fire, since every pawn
+## runs this body script. Iterates this tick's slide collisions; if any contact
+## has a roughly-upward normal AND the collider is a different CharacterBody3D
+## pawn, override horizontal velocity to point away from that pawn. Vertical
+## velocity is untouched (jumping off still works). Skipped entirely if
+## `enemy_head_slide_speed` is 0 — designer can disable per-pawn or globally.
+func _slide_off_enemy_head() -> void:
+	if enemy_head_slide_speed <= 0.0:
+		return
+	for i in get_slide_collision_count():
+		var col: KinematicCollision3D = get_slide_collision(i)
+		if col == null: continue
+		var collider: Object = col.get_collider()
+		# Any other CharacterBody3D pawn — covers player, enemies, allies.
+		# Excludes static/rigid geometry and self.
+		if not (collider is CharacterBody3D) or collider == self:
+			continue
+		if col.get_normal().dot(Vector3.UP) < 0.5:
+			continue  # not standing on top — side contact, ignore
+		var other_node := collider as Node3D
+		if other_node == null: continue
+		var away: Vector3 = global_position - other_node.global_position
+		away.y = 0.0
+		if away.length() < 0.01:
+			# Degenerate (perfectly stacked) — pick last input direction or arbitrary.
+			away = _last_input_direction if _last_input_direction.length() > 0.01 else Vector3.RIGHT
+		away = away.normalized()
+		velocity.x = away.x * enemy_head_slide_speed
+		velocity.z = away.z * enemy_head_slide_speed
+		return  # one slide-off per tick is plenty
 
 
 func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> void:

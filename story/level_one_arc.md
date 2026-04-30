@@ -11,7 +11,7 @@ Core idea: Level 1 is a **double prank**. DialTone tells the player his friend N
 | Handle | Role | Location | Voice (ElevenLabs) |
 |---|---|---|---|
 | **DialTone** | Narrator / mission-giver. Prankster. Anime-character skin, always on hub Ground. Unlike Glitch, DialTone is *not* a trusted source — half of what he says is a setup. | Hub (persistent) | Liam — energetic, social-media-creator |
-| **Nyx** | DialTone's friend. Not his girlfriend — the "save my girl" framing is part of the prank-flavor. Never actually in danger. Will be confused / annoyed when a stranger shows up to "rescue" her. Handle nods to Greek night goddess — unknowable, shadowy. | Level 1, end zone | Jessica — playful, bright, warm |
+| **Nyx** | DialTone's friend. Not his girlfriend — the "save my girl" framing is part of the prank-flavor. Never actually in danger. Will be confused / annoyed when a stranger shows up to "rescue" her. Handle nods to Greek night goddess — unknowable, shadowy. Story arc reveals she's also Splice's ex (post-L2 reveal). | Level 1, end zone | Cecily — deadpan, score-keeping, dry. Warm under the deflection but never says it. (Earlier draft cast Jessica — playful/bright — that's retired.) |
 | **Glitch / Glitch2** | Tutorial helper. Toad-style — always trustworthy, says only what's useful. Cleanly contrasts DialTone's unreliability so the player learns who to believe. Already shipped in `dialogue/companion.dialogue` + `glitch_2.dialogue`. | Hub (pre-Nyx arc) + platforming path | Will — relaxed optimist, young chill |
 | **Player** | Runner. Gets a hacker handle of their own during DialTone's intro — pick-one-from-four from a 20-name pool (see §9). Persisted in `GameState.flags["player_handle"]`. | — | — |
 
@@ -49,16 +49,22 @@ One or two scripted walkie cues on distance thresholds (player crosses X/Z bands
   - (Double meaning: player assumes "she's in deep trouble." Real reason: prank setup.)
 - On reaching the final platform: "Almost there. She's right up ahead. Don't let her see you coming."
 
-### Beat 5 — Reveal
+### Beat 5 — Reveal (shipped — see `dialogue/level_1_nyx.dialogue`)
 
-Player reaches end-zone. Nyx is there, **not** in distress — visibly fine, immediately annoyed. A short in-level dialogue:
+Player reaches end-zone. Nyx is there, **not** in distress — visibly fine, immediately annoyed. The shipped dialogue is softer than earlier drafts: Nyx is exasperated at DialTone, then goes back to the hub *with* the runner to confront him together. The pair then bicker through the post-L1 hub scene — that's where the prank actually pays off.
 
-- **Nyx:** "Let me guess. DialTone sent you."
-- Player-choice: ("He said you were stuck between sectors." / "Are you okay?")
-- **Nyx:** "Of *course* he did. I'm going to kill him."
-- **Nyx:** "I'm not stuck. I've never been stuck. He does this — tells people I need rescuing so he can watch me lose it. You're the third runner this month."
-- **Nyx:** "Go on back and tell him his joke landed. And tell him Nyx says he's a dead man."
-- Ends level (standard end-of-level dialogue → `LevelProgression.advance()` → `level_1_completed = true`).
+Beat shape (shipped):
+
+- **Nyx:** "Hey there runner."
+- (Cutscene: `nyx_intro.ogv`)
+- **Nyx:** "Umm.. why are you looking at me like that?"
+- Player-choice:
+  - "Dial tone said you needed help?" → Nyx: "Of course he did! He's a child. This is just where I like to go to think sometimes."
+  - "Are you okay?" → Nyx: "Um.. yeah. Why wouldn't I be?" → player: "DialTone.." → Nyx: "Oh not this again!"
+- (Both branches converge.) **Nyx:** "He thinks it's absolutely hilarious to tell people I need saving because I'm a girl! God, I swear I'm going to kill him! We are gonna have to go have a talk with him."
+- Player-choice: "Head back to the hub" → `LevelProgression.advance()` / "I'll hang out here a sec" → END.
+
+**Earlier draft retired:** original plan had sharper Nyx beats — *"You're the third runner this month."* / *"Go on back and tell him his joke landed. Tell him Nyx says he's a dead man."* These are out. Reason: Nyx and DialTone go to argue *together* in the hub (per shipped), not by proxy through the runner. The "dead man" menu option in `~ stage_post_1` was removed in the same pass.
 
 ### Beat 6 — Back to hub, DialTone post-reveal
 

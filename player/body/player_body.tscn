@@ -4,46 +4,44 @@
 [ext_resource type="PackedScene" uid="uid://prh35jb6tjtd" path="res://player/sophia_skin/sophia_skin.tscn" id="2_4dj54"]
 [ext_resource type="AudioStream" uid="uid://bhoyegbjust84" path="res://player/sounds/robot_land.wav" id="3_kbqxf"]
 [ext_resource type="AudioStream" uid="uid://b4x0f4pgfifoo" path="res://player/sounds/robot_jump.wav" id="4_1v0dq"]
-[ext_resource type="AudioStream" uid="uid://dxn1grindrail" path="res://player/sounds/rail_grind.mp3" id="12_grind"]
 [ext_resource type="Resource" uid="uid://2anvkhe6bdr4" path="res://player/walk_profile.tres" id="5_walk"]
 [ext_resource type="Resource" uid="uid://bccqlooedrax4" path="res://player/skate_profile.tres" id="6_skate"]
-[ext_resource type="PackedScene" path="res://player/brains/player_brain.tscn" id="7_brain"]
-[ext_resource type="Script" path="res://player/abilities/skate_ability.gd" id="8_skate_ability"]
-[ext_resource type="Script" path="res://player/abilities/hack_mode_ability.gd" id="9_hack_ability"]
-[ext_resource type="Script" path="res://player/abilities/grapple_ability_spring.gd" id="10_grapple_ability"]
-[ext_resource type="Script" path="res://player/abilities/god_ability.gd" id="11_god_ability"]
+[ext_resource type="PackedScene" uid="uid://d2m47xhlpcqhk" path="res://player/brains/player_brain.tscn" id="7_brain"]
+[ext_resource type="Script" uid="uid://cijwceaasnasg" path="res://player/abilities/skate_ability.gd" id="8_skate_ability"]
+[ext_resource type="Script" uid="uid://b086u7cppswj6" path="res://player/abilities/hack_mode_ability.gd" id="9_hack_ability"]
+[ext_resource type="Script" uid="uid://cq4sl3t8j2le1" path="res://player/abilities/grapple_ability_spring.gd" id="10_grapple_ability"]
+[ext_resource type="Script" uid="uid://b8sx8noy3avcu" path="res://player/abilities/god_ability.gd" id="11_god_ability"]
+[ext_resource type="AudioStream" uid="uid://dxn1grindrail" path="res://player/sounds/rail_grind.mp3" id="12_grind"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e8pdu"]
 radius = 0.4
-
-[sub_resource type="SeparationRayShape3D" id="SeparationRayShape3D_h1hkf"]
-length = 0.5
-slide_on_slope = true
-
-[sub_resource type="StandardMaterial3D" id="Mat_grind_sparks"]
-shading_mode = 0
-albedo_color = Color(1, 0.85, 0.3, 1)
-emission_enabled = true
-emission = Color(1, 0.7, 0.2, 1)
-emission_energy_multiplier = 4.0
-billboard_mode = 3
-billboard_keep_scale = true
-blend_mode = 1
-disable_receive_shadows = true
-
-[sub_resource type="QuadMesh" id="QuadMesh_grind_sparks"]
-material = SubResource("Mat_grind_sparks")
-size = Vector2(0.04, 0.04)
 
 [sub_resource type="ParticleProcessMaterial" id="ProcMat_grind_sparks"]
 direction = Vector3(0, 0.35, 1)
 spread = 25.0
 initial_velocity_min = 3.0
 initial_velocity_max = 7.0
-gravity = Vector3(0, -9.8, 0)
 scale_min = 0.5
-scale_max = 1.0
 color = Color(1, 0.8, 0.3, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_grind_sparks"]
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.3, 1)
+disable_receive_shadows = true
+billboard_mode = 3
+billboard_keep_scale = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_grind_sparks"]
+material = SubResource("Mat_grind_sparks")
+size = Vector2(0.04, 0.04)
+
+[sub_resource type="SeparationRayShape3D" id="SeparationRayShape3D_h1hkf"]
+length = 0.5
+slide_on_slope = true
 
 [node name="PlayerBody" type="CharacterBody3D" unique_id=2048643234]
 axis_lock_angular_x = true
@@ -70,12 +68,12 @@ unique_name_in_owner = true
 stream = ExtResource("4_1v0dq")
 volume_db = 1.0
 
-[node name="GrindSound" type="AudioStreamPlayer3D" parent="."]
+[node name="GrindSound" type="AudioStreamPlayer3D" parent="." unique_id=337853260]
 unique_name_in_owner = true
 stream = ExtResource("12_grind")
 volume_db = -2.0
 
-[node name="GrindSparks" type="GPUParticles3D" parent="."]
+[node name="GrindSparks" type="GPUParticles3D" parent="." unique_id=205210290]
 unique_name_in_owner = true
 top_level = true
 emitting = false

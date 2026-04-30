@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://bvc26yqkplrmn"
+path="res://.godot/imported/level_4_splice_showdown.dialogue-c57f04cfb992ff17443591813952bb55.tres"
+
+[deps]
+
+source_file="res://dialogue/level_4_splice_showdown.dialogue"
+dest_files=["res://.godot/imported/level_4_splice_showdown.dialogue-c57f04cfb992ff17443591813952bb55.tres"]
+
+[params]
+
+defaults=true

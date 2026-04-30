@@ -25,7 +25,8 @@
 [ext_resource type="Resource" uid="uid://c8jyiqkr3wt7p" path="res://dialogue/hub_post4_splice.dialogue" id="25_p4splice"]
 [ext_resource type="Resource" uid="uid://dgu1ynx0ibads" path="res://dialogue/hub_nyx.dialogue" id="26_hubnyxdlg"]
 [ext_resource type="Script" uid="uid://bg1lwgnbjspsi" path="res://level/world_environment_runtime_boost.gd" id="27_envboost"]
-[ext_resource type="PackedScene" uid="uid://dmotes0001" path="res://level/fx/floating_motes/floating_motes.tscn" id="28_motes"]
+[ext_resource type="Resource" path="res://dialogue/hub_post4_glitch.dialogue" id="28_p4glitchdlg"]
+[ext_resource type="Script" path="res://level/glitch_bob.gd" id="29_glitchbob"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -255,6 +256,7 @@ stations = Array[NodePath]([NodePath("../GlitchStation1")])
 advance_flag = &"glitch1_done"
 travel_duration = 5.0
 dialogue_resource = ExtResource("14_compdlg")
+hide_when_flag = &"level_4_completed"
 
 [node name="GlitchStation1" parent="." unique_id=329238846 instance=ExtResource("13b_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.046577, -11.85, 42.416115)
@@ -284,11 +286,20 @@ skin_scene = ExtResource("21_c3bbd")
 dialogue_resource = ExtResource("25_p4splice")
 interactable_id = &"npc_post4_splice"
 
+[node name="Glitch" parent="postL4Show" instance=ExtResource("13_companion")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.5, 11.190241, -58.5)
+skin_scene = ExtResource("21_robot")
+dialogue_resource = ExtResource("28_p4glitchdlg")
+interactable_id = &"npc_post4_glitch"
+
+[node name="Bob" type="Node" parent="postL4Show/Glitch"]
+script = ExtResource("29_glitchbob")
+
 [node name="Nyx" parent="." unique_id=1285406458 instance=ExtResource("13_companion")]
 transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, -31.39301, 11.206046, -60.313766)
 visible_when_flag = &"level_1_completed"
 skin_scene = ExtResource("23_xlodn")
 dialogue_resource = ExtResource("26_hubnyxdlg")
-interactable_id = &"npc_post4_nyx"
 redirect_target = NodePath("../Ground/DialTone")
 redirect_unless_flag = "level_2_unlocked"
+interactable_id = &"npc_post4_nyx"

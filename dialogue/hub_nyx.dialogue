@@ -156,7 +156,56 @@ Nyx: Don't fall off anything.
 
 ~ stage_post_3
 
-Nyx: [stub] Post-L3 line for Nyx — placeholder.
+Nyx: Hey.
+Nyx: Off-channel.
+Nyx: ...he's busy convincing himself the plan was his idea. Give it a minute.
+=> post_3_menu
+
+~ post_3_menu
+
+- About earlier...
+	=> post_3_earlier
+- You read this one. Didn't you.
+	=> post_3_read
+- See you on the wire.
+	=> post_3_done
+
+~ post_3_earlier
+
+Nyx: Yeah.
+Nyx: I don't do that.
+Nyx: ...the part that's bugging me is I didn't try to hide it.
+Nyx: From you, I mean. That's new.
+- Glad you didn't.
+	Nyx: Mm.
+	Nyx: Don't make me regret it.
+	=> post_3_menu
+- I didn't see anything.
+	Nyx: Liar.
+	Nyx: ...thanks.
+	=> post_3_menu
+
+~ post_3_read
+
+Nyx: ...maybe.
+Nyx: I read him wrong, once. Big once.
+Nyx: Been not-trusting that since.
+Nyx: When you said no to him — I knew before he did. That's new too. [#model=eleven_v3]
+- What does that mean?
+	Nyx: Means I don't have to keep guessing on you.
+	Nyx: Don't read into it.
+	=> post_3_menu
+- It mattered to you.
+	Nyx: ...yes.
+	Nyx: Moving on.
+	=> post_3_menu
+
+~ post_3_done
+
+Nyx: Last sector.
+Nyx: If we land it — I get to stop carrying the last one.
+Nyx: That'd be... new.
+do GameState.set_flag("hub_nyx_post3_done", true)
 => END
 
 # ── Post Level 4 — perimeter party (copied from hub_post4_nyx.dialogue) ──

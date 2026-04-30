@@ -1,5 +1,74 @@
 ~ start
 
-Glitch: [L3 Glitch placeholder — replace with real intro line.]
-- Cool.
-	=> END
+if GameState.get_flag("traversed_portals", false)
+	if GameState.get_flag("glitch_l3_post_traverse_count", 0) == 0
+		=> post_traverse_first
+	elif GameState.get_flag("glitch_l3_post_traverse_count", 0) == 1
+		=> post_traverse_second
+	else
+		=> post_traverse_done
+elif GameState.get_flag("glitch_l3_rude", false)
+	=> rude_replay
+elif GameState.get_flag("glitch_l3_portal_revealed", false)
+	=> portal_replay
+
+Glitch: {{HandlePicker.chosen_name()}}, you've been progressing through the Gibson at an impressive rate.
+Glitch: I want to let you in on something I've been cooking up on the side.
+Glitch: Want to see?
+- Yeah, show me.
+	=> show
+- Nope, I'm busy.
+	=> first_no
+
+~ show
+
+Glitch: Cool, check it out. Jump on the platform behind me.
+do GameState.set_flag("glitch_l3_portal_revealed", true)
+=> END
+
+~ first_no
+
+Glitch: ...oh.
+Glitch: I'll remember that, you know.
+Glitch: One more chance — you sure?
+- Alright, show me.
+	=> show
+- Still pass.
+	=> second_no
+
+~ second_no
+
+Glitch: Geez. Rude.
+do GameState.set_flag("glitch_l3_rude", true)
+=> END
+
+# ── Replays ──────────────────────────────────────────────────────────────
+
+~ portal_replay
+
+Glitch: Portal's still right there. Hop on whenever.
+=> END
+
+~ rude_replay
+
+Glitch: ...yeah. I remember.
+=> END
+
+# ── Post-traversal — escalating "got nothing else" beats ─────────────────
+
+~ post_traverse_first
+
+Glitch: Welcome back. Wasn't that neat?
+do GameState.set_flag("glitch_l3_post_traverse_count", 1)
+=> END
+
+~ post_traverse_second
+
+Glitch: I think that was pretty neat.
+do GameState.set_flag("glitch_l3_post_traverse_count", 2)
+=> END
+
+~ post_traverse_done
+
+Glitch: That's all. Just wanted to show you that. Felt you earned it.
+=> END

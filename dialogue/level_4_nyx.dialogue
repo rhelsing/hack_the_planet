@@ -1,9 +1,43 @@
 ~ start
 
-Nyx: [L4 Nyx placeholder] You did it. Splice is finished, we're free.
-- Take me back home.
+if not GameState.get_flag("level_4_dialtone_done", false)
+	=> dialtone_first
+
+Nyx: Hey.
+Nyx: ...
+Nyx: I had a line. It's gone.
+- Bet it was great.
+	Nyx: It was. You wouldn't have liked it.
+	=> closer
+- You said it.
+	Nyx: ...heh.
+	=> closer
+- Don't make it a thing.
+	Nyx: ...that was probably the line.
+	=> closer
+
+~ closer
+
+Nyx: He's locked.
+Nyx: ...I'm not carrying it anymore. [#model=eleven_v3]
+Nyx: Huh.
+Nyx: ...come on. Let's go celebrate.
+- Take me home.
 	do LevelProgression.advance()
 	=> END
 - Stay a moment.
-	Nyx: [L4 Nyx placeholder] Take all the time you need.
+	Nyx: ...
+	Nyx: I'll wait. [#model=eleven_v3]
+	Nyx: ...
+	Nyx: ...okay. Come on.
+	do LevelProgression.advance()
 	=> END
+
+~ dialtone_first
+
+DialTone: First time I've stepped onto a sector in twelve months.
+DialTone: ...the grid hasn't been this quiet since before he came back. [#model=eleven_v3]
+DialTone: You actually pulled it off, runner.
+DialTone: Go on. Talk to her.
+do GameState.set_flag("level_4_dialtone_done", true)
+=> start

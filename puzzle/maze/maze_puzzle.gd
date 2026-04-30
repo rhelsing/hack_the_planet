@@ -208,15 +208,21 @@ var _coin_next_at: float = 0.6
 
 func _ready() -> void:
 	super._ready()
+	# Failures during _ready MUST defer their _finish — the `finished` signal
+	# fires inside _complete, but Puzzles.start hasn't yet registered its
+	# `await instance.finished` (that line runs AFTER add_child returns).
+	# Synchronous emit-then-queue_free leaves the autoload deadlocked on a
+	# never-arriving signal → frozen tree. call_deferred lets the await
+	# subscribe first, then the signal lands and resolves cleanly.
 	if maze_path == "":
 		push_error("MazePuzzle: maze_path is empty — terminal didn't forward it")
-		_finish(false)
+		_finish.call_deferred(false)
 		return
 	_data = MazeData.new()
 	_data.load_path(maze_path)
 	if not _data.is_valid():
 		push_error("MazePuzzle: %s — %s" % [maze_path, _data.error])
-		_finish(false)
+		_finish.call_deferred(false)
 		return
 	print("[maze] loaded %s (%d×%d, time_limit=%.1fs)" % [
 		maze_path, _data.cols, _data.rows, _data.time_limit])

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dkillctr0001"]
+
+[ext_resource type="Script" path="res://level/interactable/kill_counter/kill_counter.gd" id="1_kc"]
+
+[node name="KillCounter" type="Node"]
+script = ExtResource("1_kc")

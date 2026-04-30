@@ -50,6 +50,14 @@ extends CSGBox3D
 ## Set to 0 to disable.
 @export_range(0.0, 100.0) var grapple_avoid_radius: float = 14.0
 
+@export_group("Rail avoidance")
+## Reject any cell whose XZ is within this many meters of the closest point
+## on any Rail's curve (every node in the "rail" group). Rails are Path3D
+## nodes — no collider on the curve itself, only an Area3D for grab
+## detection — so the physics overlap check below doesn't see them. This
+## is the dedicated path. Set to 0 to disable.
+@export_range(0.0, 100.0) var rail_avoid_radius: float = 4.0
+
 @export_group("Determinism")
 ## Fixed RNG seed so the city looks the same across reloads. Change to
 ## reshuffle the layout.
@@ -166,11 +174,26 @@ func _spawn_city() -> void:
 				grapple_xz.append(Vector2(p.x, p.z))
 	var grapple_radius_sq: float = grapple_avoid_radius * grapple_avoid_radius
 
+	# Snapshot rails — store curve + cached inverse transform so the per-cell
+	# check is just a curve get_closest_point + XZ distance compare. No
+	# physics, no allocation in the hot loop.
+	var rails: Array = []
+	if rail_avoid_radius > 0.0:
+		for r in get_tree().get_nodes_in_group(&"rail"):
+			if r is Path3D and (r as Path3D).curve != null:
+				var path3d: Path3D = r as Path3D
+				rails.append({
+					"curve": path3d.curve,
+					"xform": path3d.global_transform,
+					"xform_inv": path3d.global_transform.affine_inverse(),
+				})
+
 	var placed: int = 0
 	var rejected_radius: int = 0
 	var rejected_overlap: int = 0
 	var rejected_path: int = 0
 	var rejected_grapple: int = 0
+	var rejected_rail: int = 0
 	for ix in range(-cells_per_side, cells_per_side + 1):
 		for iz in range(-cells_per_side, cells_per_side + 1):
 			var cx: float = float(ix) * cell_size
@@ -215,6 +238,26 @@ func _spawn_city() -> void:
 					rejected_grapple += 1
 					continue
 
+			# Rail avoidance — sample each rail's curve for the closest point
+			# in path-local, transform back to world, XZ-distance check.
+			# Cheaper than the physics overlap below; runs first.
+			if not rails.is_empty():
+				var cell_world_rail: Vector3 = global_transform * local_pos
+				var hit_rail: bool = false
+				var rail_radius_sq: float = rail_avoid_radius * rail_avoid_radius
+				for rail in rails:
+					var cell_local: Vector3 = (rail.xform_inv as Transform3D) * cell_world_rail
+					var closest_local: Vector3 = (rail.curve as Curve3D).get_closest_point(cell_local)
+					var closest_world: Vector3 = (rail.xform as Transform3D) * closest_local
+					var dxr: float = cell_world_rail.x - closest_world.x
+					var dzr: float = cell_world_rail.z - closest_world.z
+					if dxr * dxr + dzr * dzr < rail_radius_sq:
+						hit_rail = true
+						break
+				if hit_rail:
+					rejected_rail += 1
+					continue
+
 			if space_state != null and _overlaps_level_geometry(
 				space_state, local_pos, Vector3(w, h, d)
 			):
@@ -230,8 +273,8 @@ func _spawn_city() -> void:
 			bld.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(bld)
 			placed += 1
-	print("[city] spawned %d buildings (radius=%d, overlap=%d, path=%d, grapple=%d rejects)" % [
-		placed, rejected_radius, rejected_overlap, rejected_path, rejected_grapple,
+	print("[city] spawned %d buildings (radius=%d, overlap=%d, path=%d, grapple=%d, rail=%d rejects)" % [
+		placed, rejected_radius, rejected_overlap, rejected_path, rejected_grapple, rejected_rail,
 	])
 
 

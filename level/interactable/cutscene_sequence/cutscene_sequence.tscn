@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dcutscene0001"]
+
+[ext_resource type="Script" path="res://level/interactable/cutscene_sequence/cutscene_sequence.gd" id="1_cs"]
+
+[node name="CutsceneSequence" type="Node"]
+script = ExtResource("1_cs")

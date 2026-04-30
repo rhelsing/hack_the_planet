@@ -73,6 +73,11 @@ func _refresh_continue_state() -> void:
 # ── Button handlers ──────────────────────────────────────────────────────
 
 func _on_continue() -> void:
+	# Returning players: drop the locked-first opener AND skip past the
+	# currently-playing opener so the menu rolls into a shuffled track
+	# instead of making them sit through hackers_theme one more time.
+	_set_playlist_lock_first(false)
+	_advance_playlist()
 	var save_service := get_tree().root.get_node_or_null(^"SaveService")
 	if save_service == null:
 		_go_to_game()
@@ -85,6 +90,10 @@ func _on_continue() -> void:
 
 
 func _on_new_game() -> void:
+	# Fresh playthrough: hackers_theme always opens the rotation cycle.
+	# Re-asserts the lock in case the player previously toggled into
+	# Continue/Load and bounced back here.
+	_set_playlist_lock_first(true)
 	# Player picks A/B/C first. save_slots.begin_new_game() resets GameState,
 	# writes the initial slot file, and sets active_slot. We follow up with
 	# a scene change once the picker pops.
@@ -93,7 +102,28 @@ func _on_new_game() -> void:
 
 
 func _on_load() -> void:
+	# Same rationale as Continue: returning players → no fixed opener,
+	# and skip past hackers_theme into the shuffled rotation immediately.
+	_set_playlist_lock_first(false)
+	_advance_playlist()
 	_push_sub_menu(SAVE_SLOTS, {"mode": "load"})
+
+
+# Toggles the playlist's locked-first behavior on the Audio autoload.
+# Test-mode safe: silently no-ops if Audio isn't loaded or lacks the method.
+func _set_playlist_lock_first(on: bool) -> void:
+	var audio := get_tree().root.get_node_or_null(^"Audio")
+	if audio != null and audio.has_method(&"set_playlist_lock_first"):
+		audio.call(&"set_playlist_lock_first", on)
+
+
+# Skip the menu music's current track immediately. Called from Continue /
+# Load so returning players don't hear hackers_theme again — they get
+# whatever the playlist's shuffled tail rolls to next. No-op in test mode.
+func _advance_playlist() -> void:
+	var audio := get_tree().root.get_node_or_null(^"Audio")
+	if audio != null and audio.has_method(&"advance_playlist"):
+		audio.call(&"advance_playlist", 0.8)
 
 
 func _on_settings() -> void:

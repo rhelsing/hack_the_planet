@@ -7,7 +7,13 @@ extends Node
 ## ElevenLabs. Already-cached variants skip.
 ##
 ## Run with:
-##   godot --headless res://tools/prime_all_dialogue.tscn --quit-after 1800
+##   godot --headless res://tools/prime_all_dialogue.tscn --quit-after 432000
+##
+## --quit-after is FRAMES, not seconds — default 60fps means 60 frames per
+## wallclock second. Use a number large enough to cover the worst-case
+## backlog (4 handles × 2 devices × ~344 templates × 2.4s = ~55 min ≈
+## 200_000 frames at 60fps). The script calls get_tree().quit(0) when the
+## queue drains, so the flag is just a safety cap.
 ##
 ## Sequential, polite (≥0.4s between requests) — fine to leave running while
 ## you do other work. Writes mp3s to res://audio/voice_cache/ so they ship
@@ -65,14 +71,19 @@ func _collect_and_queue() -> void:
 		if not voices.has_voice(character):
 			continue
 		var voice_id: String = voices.get_voice_id(character)
-		for variant: String in LineLocalizer.all_variants(template):
-			var path: String = Dialogue._cache_path_write(character, variant, voice_id)
+		# Per-line model override: pull `[#model=v3]` from the template, strip
+		# from the text used for hashing + synthesis. Default = project's
+		# ELEVEN_MODEL_ID. See README §"Per-line model overrides".
+		var line_model: String = TtsText.parse_model_tag(template, ELEVEN_MODEL_ID)
+		var clean_template: String = TtsText.strip_model_tag(template)
+		for variant: String in LineLocalizer.all_variants(clean_template):
+			var path: String = Dialogue._cache_path_write(character, variant, voice_id, line_model)
 			if FileAccess.file_exists(path):
 				_skipped += 1
 				continue
 			# Also check the shipped cache in case write_path is dev:// in
 			# exported builds — Dialogue._cache_path_read does both tiers.
-			var read_path: String = Dialogue._cache_path_read(character, variant, voice_id)
+			var read_path: String = Dialogue._cache_path_read(character, variant, voice_id, line_model)
 			if not read_path.is_empty():
 				_skipped += 1
 				continue
@@ -81,6 +92,7 @@ func _collect_and_queue() -> void:
 				"text": variant,
 				"voice_id": voice_id,
 				"path": path,
+				"model_id": line_model,
 			})
 			_total_queued += 1
 
@@ -264,14 +276,16 @@ func _drain_next() -> void:
 		"Content-Type: application/json",
 		"Accept: audio/mpeg",
 	]
+	var line_model: String = next.get("model_id", ELEVEN_MODEL_ID)
 	var body: Dictionary = {
 		"text": TtsText.for_eleven_labs(next.text),
-		"model_id": ELEVEN_MODEL_ID,
+		"model_id": line_model,
 	}
 	var json: String = JSON.stringify(body)
-	print("[%d/%d] synth: %s | \"%s\"" % [
+	var model_suffix: String = (" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else ""
+	print("[%d/%d] synth: %s%s | \"%s\"" % [
 		_done + 1, _done + 1 + _queue.size(),
-		next.character, next.text.substr(0, 60),
+		next.character, model_suffix, next.text.substr(0, 60),
 	])
 	_http.set_meta("current", next)
 	var err := _http.request(url, headers, HTTPClient.METHOD_POST, json)

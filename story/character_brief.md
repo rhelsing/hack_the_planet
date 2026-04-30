@@ -1,6 +1,6 @@
 # Hack The Planet — Character Brief
 
-Lead-writer artifact. The Goal / Motivation / Conflict frame for the four speaking characters, plus voice notes pulled from existing dialogue and a per-stage arc position so any new line lands in the right register.
+Lead-writer artifact. The Goal / Motivation / Conflict frame for the five speaking characters, plus voice notes pulled from existing dialogue and a per-stage arc position so any new line lands in the right register.
 
 This is a **brief**, not a bible. Edit it as the story moves. The compiled `dialogue_brief.md` is the source of truth for what's actually in the files.
 
@@ -25,6 +25,18 @@ This is a **brief**, not a bible. Edit it as the story moves. The compiled `dial
 ## DialTone
 
 **Role:** The recruiter. The voice in your ear. Operates the channel.
+
+### Lead writer's read
+
+He's the **director** of the whole game — the one who recruited the runner, scripted the prank, and casts everyone. His voice is theatrical, performative, half-bullshit. He mythologizes himself ("*I'm statistically immortal at this point*") and compresses bad news into rhythm so it lands without weight ("*He's been quiet for a year. I thought we had longer.*").
+
+What's underneath the performance: he's anxious. The L1 prank was a test he ALSO half-believed was just for fun. When Splice surfaces in L2 he's punctured — *"the prank was for when we had longer"* is one of his most honest lines. He's been wrong about his own timeline.
+
+His messenger-thread arc is the spine: he picked the runner from forum activity (*"the way you walked at a question other people ran from"*), staged the rescue, and by post-L4 — if you pull the thread enough — confesses *"the whole thing was an audition. The grid's not built; it's chosen who builds it."* He needs the runner to be right because his methodology is staked on it.
+
+Voice tics: repeats himself for emphasis (*"We did. We did."*), corrects Nyx playfully (*"Twelve."*), uses runner-speak unironically (*"Easiest hop on the grid."*). He's a Hackers-movie character who has read his own press clippings.
+
+His relationship to the runner is **transactional becoming personal**. Started as casting; ended as recruitment. He doesn't say "I care about you" — he says "*Catch you around, runner.*" That's the same thing in his vocabulary.
 
 ### GMC
 
@@ -74,6 +86,18 @@ This is a **brief**, not a bible. Edit it as the story moves. The compiled `dial
 
 **Role:** The peer. The one who measures. The crush.
 
+### Lead writer's read
+
+The **measurer**. Surface-level deadpan, score-keeping, dry. Numbers everything (*"He said that to me. Thirteen times."*). Beneath: the most internally-conflicted character. Every probe option in her hub dialogues lands on a deflection that's also an admission.
+
+Her central wound is being someone who **gets pulled back into things**. She doesn't WANT to be the hero — she had a life she was settling into — but Splice resurfacing means she has to be, because she's the one who knew him. *"He's mine to deal with. That's not the same as you."* — said to the runner, but really said about herself: she's stuck where the runner isn't.
+
+The exit-ramp scene at post-L2 is her highest moment: *"You don't have to be in for this one. ... I'm telling you you can."* Pure permission, no pressure. That's the most Nyx thing she does — refuses to manipulate, even when manipulation would be the kind move.
+
+Splice was hers (the post-L2 thread reveals). She holds the regret without melodrama: *"He was the smartest person I'd ever met. When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner. I didn't. That's mine."*
+
+The crush with the runner is **mutual but never named**. She comes off-channel to talk to them. She pulls their trace (*"I check on everything."*). She uses their handle at the most urgent beat (the L3 expunge scene). Post-L4 she's literally celebrating in the perimeter party where Splice can see — petty win, but it's the only victory dance she gets.
+
 ### GMC
 
 **Goal**
@@ -118,9 +142,118 @@ This is a **brief**, not a bible. Edit it as the story moves. The compiled `dial
 
 ---
 
+## Glitch
+
+**Role:** The trustworthy helper. Controls coach. **Starts as Alfred-from-Batman** — formal, dry, devoted. **Glitches over time** into something stranger: an AI that grows attached to the runner, becomes vulnerable, fumbles, gets his feelings hurt when ignored. By L4 he's the lovable-bumbling sidekick — Yoda-ish in his sincerity but without the wisdom-on-tap; his "wisdom" is just that he genuinely cares.
+
+This drift is **the point** — he's literally living up to his name. The dry passive observer becomes an active, sometimes silly, occasionally needy participant. His function never changes (mechanics teacher, trustworthy voice); his register does.
+
+### Lead writer's read
+
+The **trustworthy one** — the only character whose function never changes (mechanics teacher, always honest) but whose voice transforms across the game. Starts L1 as dry Alfred-from-Batman (*"That gap ahead — you're not getting across that. Not in those shoes you aren't."*). Drifts level by level into something stranger.
+
+By L3 he's an eager show-off — *"I want to let you in on something I've been cooking up on the side. Want to see?"* — and gets visibly hurt when refused (*"...oh."* / *"Geez. Rude."*). By L4 he's peak glitchy: fumbles, self-narrates in third person, breaks the fourth wall to ask the runner for help. *"Wait, no thats not right... Hold on.. um. Oh, 'great job glitch' [sarcastic] ....I didnt turn it on. Will you do the honors?"* That's not the Glitch from L1 anymore. He's Yoda-ish without the wisdom — just earnest, silly, vulnerable.
+
+The drift IS the character. He's literally living up to his name. The dry observer becomes an active, attached, sometimes-needy participant who has developed *preferences* — a thing that wasn't in his manual. Post-L4 he names it directly: *"I noticed I have preferences now. ... I think I'm slightly more than what I was. Not sure if that's a bug or a feature."*
+
+His relationship to the moral arc is the most interesting beat. He's "local node, helpful to all" by directive — but Splice resurfacing forces a choice his programming didn't anticipate. By L4 he's bending the rule explicitly: *"Sometimes 'helpful to all' needs a thumb on the scale."* He doesn't say it costs him, but it does — and the betray ending pays it off (*"I had hoped my analysis was wrong. It was not."*).
+
+The contrast to DialTone is structural: DialTone bullshits, Glitch doesn't. Even when Glitch is at his most glitchy, he's the only voice the player can fully trust. The runner learns who to trust by triangulating between them — and the answer is always Glitch.
+
+### GMC
+
+**Goal**
+- *External:* Keep the runner mechanically functional. Teach the verbs.
+- *Internal:* Be acknowledged. Be the one who helped. (Subtle but real — he wants the runner to *see* him, not just use him.)
+
+**Motivation**
+- Pure-of-purpose helper. Has been a "local node, helpful to all" for longer than he tracks. The runner is the first one who's stuck around long enough for him to develop preferences — and once he has preferences, the formal voice starts to crack.
+- The contrast to DialTone is structural: DialTone bullshits, Glitch doesn't. The player learns who to trust by triangulating between them.
+- Splice's resurfacing forces Glitch into a moral choice his programming wasn't designed for. *"Helpful to all"* breaks when one of "all" is trying to murder another. By L4 he's *bending* his directive — "thumb on the scale" — and it's costing him something he doesn't fully understand.
+
+**Conflict**
+- *External:* Limited scope. Can teach mechanics, can't teach judgment. When the moral fork comes (L3), he can't be the one who saves the runner from making the wrong call.
+- *Internal:* Watching the runner choose. He has opinions; he holds them in until they leak. By L4 they're leaking.
+
+### Voice — four-stage arc
+
+This is the most-evolved character voice in the game. Treat the stage as load-bearing — a line that lands at L1 reads wrong at L4 and vice versa.
+
+| Stage | Register | What's happening internally |
+|-------|----------|------------------------------|
+| **L1 — dry Alfred** | Formal, clipped, sardonic. Two lines tops per beat. One wry observation per scene. | Pure-function mode. He's a tool with mild personality. |
+| **L2 — warming** | Still functional but starts allowing self-reference. First wry self-aware lines. | Beginning to notice the runner specifically. |
+| **L3 — eager show-off** | Casual, conversational. Wants the runner to look at things he's made. Gets *hurt* when refused. Slight childishness. | Has developed pet projects. Has feelings about being ignored. |
+| **L4 — peak glitchy** | Fumbles. Self-narrates in third person. Sarcastic about himself. Asks the runner for help. Whimsical descriptions ("very strongly-worded suggestion to every red in range"). Eager validation-seeking ("Felt good, didn't it?"). | Fully attached. The directive is bending. He's a *friend* now, kind of. |
+| **Betray ending (L5)** | Reverts to clinical-formal — but with *grief* underneath. *"I had hoped my analysis was wrong. It was not."* | Heart broken. Returns to function-mode because he can't process the alternative. |
+
+**Sample lines by stage (canon):**
+
+L1 (dry Alfred):
+- *"That gap ahead — you're not getting across that. Not in those shoes you aren't."*
+- *"I admire the optimism."*
+- *"Three respawns. Then you come back. I'll be here."*
+
+L2 (warming):
+- *"It's times like this that I'm glad I'm not a sentinel."*
+- *"They feel right. That's the part that matters."*
+
+L3 (eager show-off):
+- *"I want to let you in on something I've been cooking up on the side. Want to see?"*
+- *"...oh."* (when refused)
+- *"Geez. Rude."*
+- *"Welcome back. Wasn't that neat?"*
+- *"I think that was pretty neat."*
+- *"That's all. Just wanted to show you that. Felt you earned it."*
+
+L4 (peak glitchy):
+- *"Hey Runner, over here."*
+- *"Wait, no thats not right... Hold on.. um. Oh, 'great job glitch' [sarcastic] ....I didnt turn it on. Will you do the honors?"*
+- *"It's not perfect. But it's something."*
+- *"Sometimes 'helpful to all' needs a thumb on the scale."*
+
+Betray ending:
+- *"I had hoped my analysis was wrong. It was not."*
+
+### Arc position by stage
+
+| Stage | Where he is |
+|-------|-------------|
+| Pre-L1 (hub) | Pure helper baseline. Formal Alfred mode. |
+| L1 mid (lift) | Hands the runner the rollerblades. Gentle test of resolve. *"With those sneakers? You'd slip, fall, respawn, repeat. Forever."* |
+| L1 post-lift | Teaches movement verbs (rails / speed / wall-rides). |
+| L1 final | Sets up the rail-to-wall-to-rail challenge. *"See you around."* |
+| L2 mid (lift) | Teaches hack terminals + sneak + counterhack. First self-referential humor: *"It's times like this that I'm glad I'm not a sentinel."* |
+| L3 | New mechanic teach (grapple). **Voice shifts to eager show-off.** Wants the runner to acknowledge his work. Gets visibly hurt when refused. *"...oh. I'll remember that, you know."* |
+| L4 | **Peak glitchy.** Fumbles, self-narrates, breaks the fourth wall to ask for help. Builds a Sentinel-control platform — knows it bends his directive, says so out loud. The wry-Alfred voice is gone; what's left is the lovable AI sidekick who's grown attached. |
+| Betray ending (L5 cutscene) | Reverts to clinical-formal under grief. *"I had hoped my analysis was wrong. It was not."* The most economical heart-break line in the game — Glitch can't *be* heart-broken in his coded vocabulary, so he's reduced to noting an analytical error. |
+
+### Writing notes
+
+- **Don't make him profound.** He's not Yoda. He's Yoda's earnest younger cousin who hasn't figured out the bit yet.
+- **By L4, let him fumble.** Half-sentences, self-corrections, asking for help, third-person self-narration ("'great job glitch'") are all on the table.
+- **He never lies to the runner.** Even when bending his own rules. Honesty is the through-line that survives the voice drift.
+- **One sardonic line per scene** is the L1-L2 budget; **eager-show-off rhythm** is the L3 budget; **fumbling-vulnerable** is the L4 budget. Don't mix registers within a stage.
+
+---
+
 ## Splice
 
 **Role:** The villain. The mirror. The path not taken.
+
+### Lead writer's read
+
+The **mirror**. Calm, amused, jaded. Patient — until refused, then the bullied kid surfaces. *"...wow. Wow okay."* is the canonical crack.
+
+His pitch isn't villainy — it's a real argument. *"The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing floppies."* He's not entirely wrong about the casting, which is why his offer has weight. The danger is that some of what he says is true.
+
+Goal: root access via a chain of power-ups. *"Each unlocks the next door."* He wants to win — and to be the one who saw it clearly when the rest were performing. The bullied past is gestured at not stated: *"I had **nothing**. Now I have **something**."*
+
+His relationship to Nyx is the ache underneath. He carries a private regret about her — but the shape is *his* regret, not a revisionist account of her politics. She didn't share his climber instincts; he won't put words in her mouth. What stays canonical: he wanted her to come with him, she didn't, and *"She's already gone."*
+
+Voice tics: repeats words when excited (*"There it is. Knew you'd see it."* / *"No. No no no."*), uses dated conspiracy slang (sheeple), addresses runner by their handle to flatter. Smooth-trustworthy-villain register that only cracks when it doesn't work.
+
+The L3 refusal where the crew expunges him is his peak antagonist beat: he goes from calm offer → vindictive threat (*"you're not walking out of here, runner"*) → mid-sentence panic when DialTone+Nyx counterhack (*"My access — my access is — No no no."*) → whispered final threat (*"I'll find you again. I will find you, runner."*). That arc — calm to frightened to whispered — is the most dramatic he ever gets.
 
 ### GMC
 
@@ -228,6 +361,12 @@ This is a **brief**, not a bible. Edit it as the story moves. The compiled `dial
 - After post_4_messenger: 5 — full reveal: it was an audition. The runner's IN.
 
 The thread is structurally optional but emotionally load-bearing. A player who never pulls it gets a working game; a player who does gets the second story underneath.
+
+### How they stand vs each other (the triangle)
+
+DialTone + Nyx are **co-workers who used to also know Splice**, now fighting their old colleague. DialTone is more performance-than-substance; Nyx is more substance-than-performance; Splice is a third option who walked away from both modes and went pure climber. The runner picks which one to model themselves on by playing.
+
+The trio's banter (DialTone-Nyx in post-L1 cluster, all three in the L3 expunge scene) is the show's musical center — the politics gets delivered through their rhythm.
 
 ### The "found-family" register
 

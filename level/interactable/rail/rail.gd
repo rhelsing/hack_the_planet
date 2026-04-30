@@ -11,6 +11,9 @@ class_name Rail extends Path3D
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
+	# Group registration so city_builder.gd can find every rail in the level
+	# and steer procedural buildings away from their curves.
+	add_to_group(&"rail")
 	var area: Area3D = get_node_or_null("Area3D")
 	if area != null:
 		area.body_entered.connect(_on_body_entered)

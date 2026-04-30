@@ -9,6 +9,19 @@ extends Node
 
 const SCHEMA_VERSION: int = 3  # v3: persisted coin sets (collected + seen)
 
+## Every level scene that may contain coins. Scanned at boot to populate the
+## global denominator (coin_total). Order doesn't matter; ResourceLoader.exists
+## guards against missing files. Add new levels here as they ship.
+const LEVEL_SCENES: Array[String] = [
+	"res://level/hub.tscn",
+	"res://level/level_1.tscn",
+	"res://level/level_2.tscn",
+	"res://level/level_3.tscn",
+	"res://level/level_4.tscn",
+	"res://level/level_5.tscn",
+]
+const COIN_SCENE_PATH: String = "res://level/interactable/coin/coin.tscn"
+
 var inventory: Array[StringName] = []
 var flags: Dictionary = {}
 var dialogue_visited: Dictionary = {}
@@ -33,6 +46,16 @@ var coin_count: int = 0
 var coin_total: int = 0
 
 
+## Fraction of all known floppies the player has collected. Used to gate
+## optional dialogue depth — exploration thoroughness unlocks lore probes.
+## Returns 0.0 when no coins have been registered yet (avoids div-by-zero
+## on a fresh boot before _scan_all_levels_for_coins fires).
+func coin_pct() -> float:
+	if coin_total <= 0:
+		return 0.0
+	return float(coin_count) / float(coin_total)
+
+
 # ---- Inventory -----------------------------------------------------------
 
 func _ready() -> void:
@@ -40,6 +63,10 @@ func _ready() -> void:
 	# The emit site (level/interactable/coin/coin.gd) is a legacy auto-trigger
 	# interactable, per docs/interactables.md §18.1.
 	Events.coin_collected.connect(_on_coin_collected)
+	# Pre-populate coins_seen with every authored coin across all levels so
+	# the HUD denominator (#/total) is the GRAND total from boot — not the
+	# subset of levels the player has visited so far.
+	_scan_all_levels_for_coins()
 
 
 func has_item(id: StringName) -> bool:
@@ -52,14 +79,32 @@ func add_item(id: StringName) -> void:
 	Events.item_added.emit(id)
 
 
+## Per-coin key. Combines the level scene path with the coin's path WITHIN
+## that scene so two coins at the same runtime tree-position (`/root/Game/
+## Level/Coin0` in level_1 vs level_2) produce different keys. Without
+## namespacing, the dict deduped them and the total stuck at the size of
+## a single level.
+##
+## `coin.owner` is the root node of the scene that authored this coin —
+## i.e. the level scene root. `owner.scene_file_path` is the level tscn.
+## `owner.get_path_to(coin)` is the coin's path inside that scene, which
+## matches what SceneState.get_node_path returns during the boot scan.
+static func _coin_key(coin: Node) -> String:
+	var level_root: Node = coin.owner
+	if level_root != null and not level_root.scene_file_path.is_empty():
+		var rel: NodePath = level_root.get_path_to(coin)
+		return "%s::%s" % [level_root.scene_file_path, str(rel)]
+	return String(coin.get_path())
+
+
 ## Subscriber for Events.coin_collected — coin.gd emits when the player
-## triggers a pickup. We add the path to the persisted set; idempotent.
-## Defensive: also adds to coins_seen in case a coin gets collected
-## without _ready having registered it (shouldn't happen, but cheap).
+## triggers a pickup. We add the namespaced key to the persisted set;
+## idempotent. coins_seen was pre-populated at boot so the denominator
+## doesn't grow on collection — only the numerator.
 func _on_coin_collected(coin: Node) -> void:
 	if coin == null or not is_instance_valid(coin):
 		return
-	var key: String = String(coin.get_path())
+	var key: String = _coin_key(coin)
 	if coins_collected.has(key):
 		return
 	coins_collected[key] = true
@@ -70,13 +115,13 @@ func _on_coin_collected(coin: Node) -> void:
 
 
 ## Coin self-registration. Each coin._ready calls this with itself; the
-## first time we see a given path it joins the seen-set. Path is stable
-## across scene reloads (re-entering a level builds new instances at the
-## same paths) so dedup is robust without authored ids.
+## first time we see a given key it joins the seen-set. With the boot-time
+## scan this is now mostly a no-op for known coins, but kept so coins
+## added at runtime (e.g. spawned by gameplay) still increment the total.
 func register_coin(coin: Node) -> void:
 	if coin == null or not is_instance_valid(coin):
 		return
-	var key: String = String(coin.get_path())
+	var key: String = _coin_key(coin)
 	if coins_seen.has(key):
 		return
 	coins_seen[key] = true
@@ -89,7 +134,33 @@ func register_coin(coin: Node) -> void:
 func is_coin_collected(coin: Node) -> bool:
 	if coin == null:
 		return false
-	return coins_collected.has(String(coin.get_path()))
+	return coins_collected.has(_coin_key(coin))
+
+
+## Boot-time scan: walk every LEVEL_SCENES file via PackedScene + SceneState
+## (no instantiation, no _ready calls) and key-register every coin instance
+## under coins_seen. Result: coin_total reflects the grand total of authored
+## coins across the whole game, not just the levels visited this session.
+func _scan_all_levels_for_coins() -> void:
+	for level_path: String in LEVEL_SCENES:
+		if not ResourceLoader.exists(level_path):
+			continue
+		var packed: PackedScene = load(level_path) as PackedScene
+		if packed == null:
+			continue
+		var state: SceneState = packed.get_state()
+		for i in state.get_node_count():
+			var instance: PackedScene = state.get_node_instance(i)
+			if instance == null:
+				continue
+			if instance.resource_path != COIN_SCENE_PATH:
+				continue
+			# state.get_node_path(i) is the coin's path within the scene file —
+			# the same path owner.get_path_to(coin) produces at runtime.
+			var node_path: NodePath = state.get_node_path(i)
+			var key: String = "%s::%s" % [level_path, str(node_path)]
+			coins_seen[key] = true
+	coin_total = coins_seen.size()
 
 
 ## 0..1 fraction of authored coins collected. Returns 0 when no coins

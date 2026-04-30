@@ -14,7 +14,7 @@ bottom_radius = 0.4
 height = 0.12
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_coin"]
-radius = 0.55
+radius = 0.825
 
 [node name="Coin" type="Area3D" unique_id=1783642324]
 script = ExtResource("1_coin")

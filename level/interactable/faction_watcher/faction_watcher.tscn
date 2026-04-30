@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dfacwatch0001"]
+
+[ext_resource type="Script" path="res://level/interactable/faction_watcher/faction_watcher.gd" id="1_fw"]
+
+[node name="FactionWatcher" type="Node"]
+script = ExtResource("1_fw")

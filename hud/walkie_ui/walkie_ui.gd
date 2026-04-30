@@ -8,6 +8,7 @@ extends CanvasLayer
 @export var typewrite_speed: float = 45.0  # chars per second
 
 @onready var _root: Control = $Root
+@onready var _panel: PanelContainer = $Root/CenterBox/Panel
 @onready var _portrait: TextureRect = $Root/CenterBox/Panel/HBox/PortraitSlot/Portrait
 @onready var _portrait_initial: Label = $Root/CenterBox/Panel/HBox/PortraitSlot/PortraitInitial
 @onready var _name_label: Label = $Root/CenterBox/Panel/HBox/VBox/NameLabel
@@ -46,8 +47,10 @@ func _on_line_started(character: String, text: String) -> void:
 			and bool(_portraits.call(&"has_color", character)):
 		var c: Color = _portraits.call(&"get_color", character) as Color
 		_name_label.add_theme_color_override(&"font_color", c)
+		_apply_panel_border(c)
 	else:
 		_name_label.remove_theme_color_override(&"font_color")
+		_apply_panel_border(Color(0.45, 0.85, 0.55, 0.9))  # default green
 	_text_label.text = ""
 	_root.visible = true
 	var fade := create_tween()
@@ -107,3 +110,16 @@ func _apply_portrait(character: String) -> void:
 			sb = StyleBoxFlat.new()
 			_portrait_initial.add_theme_stylebox_override(&"normal", sb)
 		sb.bg_color = Color(r * 0.6 + 0.2, g * 0.6 + 0.2, b * 0.6 + 0.2, 1.0)
+
+
+# Tint the outer walkie panel's border color to match the speaker. The
+# .tscn ships a green border; we mutate the live stylebox in place per
+# line so the panel re-tints on each speaker swap. Alpha is preserved
+# from the existing border (0.9) regardless of input alpha.
+func _apply_panel_border(color: Color) -> void:
+	if _panel == null:
+		return
+	var sb: StyleBoxFlat = _panel.get_theme_stylebox(&"panel") as StyleBoxFlat
+	if sb == null:
+		return
+	sb.border_color = Color(color.r, color.g, color.b, 0.9)

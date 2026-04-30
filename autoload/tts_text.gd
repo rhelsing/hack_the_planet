@@ -14,6 +14,34 @@ extends RefCounted
 ## must run it through `for_eleven_labs(...)` first.
 
 
+## Per-line model override regex. Lines tagged `[#model=eleven_v3]` (or any
+## valid ElevenLabs model id) get baked + cached on that model instead of
+## the project default. Used by Walkie + Companion (which receive raw text)
+## and by the bake/orphan tools (which scan dialogue files as raw text).
+## DialogueManager parses this tag natively for `.dialogue` lines via
+## `line.get_tag_value("model")`, so the autoload runtime path doesn't go
+## through these helpers — but the bake/orphan paths do.
+const MODEL_TAG_RE: String = "\\[#model=([a-zA-Z0-9_]+)\\]"
+const MODEL_TAG_STRIP_RE: String = "\\[#model=[a-zA-Z0-9_]+\\]"
+
+
+## Returns the model id from a `[#model=<id>]` tag in `text`, or `default`
+## if no tag is present.
+static func parse_model_tag(text: String, default: String) -> String:
+	var re: RegEx = RegEx.create_from_string(MODEL_TAG_RE)
+	var m: RegExMatch = re.search(text)
+	if m == null:
+		return default
+	return m.get_string(1)
+
+
+## Removes the `[#model=<id>]` tag from text. Used before passing the text
+## to TTS / display so the tag itself doesn't reach ElevenLabs or the user.
+static func strip_model_tag(text: String) -> String:
+	var re: RegEx = RegEx.create_from_string(MODEL_TAG_STRIP_RE)
+	return re.sub(text, "", true).strip_edges()
+
+
 ## Convert dialogue-source text into the form sent to ElevenLabs.
 static func for_eleven_labs(text: String) -> String:
 	var out: String = text

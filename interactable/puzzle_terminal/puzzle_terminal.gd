@@ -45,6 +45,11 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## want the conversion to apply, set their `id` to match this. Many zones
 ## can share an id (covering disjoint rooms a single hack should affect).
 @export var convert_zone_id: StringName = &""
+## Direct list of pawns to flip on solve, by NodePath. Bypasses positional
+## ConvertZone lookup — useful when "these specific four enemies" is the
+## right framing rather than "everyone in this room." Same target_factions
+## filter applies (current faction must match).
+@export var convert_targets: Array[NodePath] = []
 
 @export_group("Highlight")
 ## MeshInstance3D nodes (typically inside the imported GLB) that get a green
@@ -62,6 +67,17 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## stays invisible until terminal A is hacked). Listens to Events.flag_set
 ## so the reveal happens live, not just on _ready.
 @export var visible_when_flag: StringName = &""
+
+@export_group("Slide On Solve")
+## Optional Node3D to translate when the puzzle is solved. Empty = no slide.
+@export var slide_target: NodePath
+## World-space offset applied to slide_target's global_position over slide_duration.
+@export var slide_offset: Vector3 = Vector3(10.0, 0.0, 0.0)
+## Tween duration in seconds. Ease-in-out cubic.
+@export var slide_duration: float = 2.0
+## AudioCue id played at slide start (registered in cue_registry.tres).
+## Empty = silent slide.
+@export var slide_sound_cue: StringName = &""
 
 var _default_highlight_cached: Material
 # Cached mesh list for the highlight overlay. Resolved lazily on first
@@ -167,7 +183,23 @@ func _on_puzzle_solved(solved_id: StringName) -> void:
 	if one_shot:
 		collision_layer = 0
 	_apply_faction_conversion()
+	_apply_slide_on_solve()
 	_disconnect_puzzle_signals()
+
+
+func _apply_slide_on_solve() -> void:
+	if slide_target.is_empty():
+		return
+	var node: Node = get_node_or_null(slide_target)
+	if not (node is Node3D):
+		push_warning("PuzzleTerminal %s: slide_target %s is not a Node3D" % [interactable_id, slide_target])
+		return
+	var target := node as Node3D
+	if slide_sound_cue != &"":
+		Audio.play_sfx(slide_sound_cue)
+	var dest: Vector3 = target.global_position + slide_offset
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(target, "global_position", dest, slide_duration)
 
 
 ## Walk every ConvertZone matching `convert_zone_id`, flip every PlayerBody
@@ -183,7 +215,15 @@ func _on_puzzle_solved(solved_id: StringName) -> void:
 ## Duck-typed body access (has_method + get) so this script compiles in
 ## SceneTree-mode tests without forcing the PlayerBody class import.
 func _apply_faction_conversion() -> void:
-	if target_factions.is_empty() or convert_zone_id == &"":
+	if target_factions.is_empty():
+		return
+	# Direct named targets — flip each by NodePath. No body_entered subscribe;
+	# these are static scene nodes, not late-spawned.
+	for path: NodePath in convert_targets:
+		var node: Node = get_node_or_null(path)
+		if node != null:
+			_try_convert_body(node)
+	if convert_zone_id == &"":
 		return
 	var zones: Array = _CONVERT_ZONE_SCRIPT.call(&"zones_for", convert_zone_id) as Array
 	print("[hack] _apply_faction_conversion id=%s zones=%d targets=%s -> %s" % [

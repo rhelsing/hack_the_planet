@@ -23,6 +23,8 @@ const DEFAULT_MUSIC_PATHS := [
 	"res://audio/music/interpersonal_arbitrage.mp3",
 	"res://audio/music/this_is_me_letting_you_go.mp3",
 	"res://audio/music/for_new_drugs.mp3",
+	"res://audio/music/tyler_ono_fast_paced_low.mp3",
+	"res://audio/music/tyler_ono_fast_paced_high.mp3",
 ]
 
 const BUS_MASTER: StringName = &"Master"
@@ -53,6 +55,15 @@ var _walkie_player: AudioStreamPlayer
 var _companion_player: AudioStreamPlayer
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_next: int = 0
+
+## Preloaded SFX streams kept alive for the session so first-play hitches
+## don't happen mid-gameplay. Populated at boot by _preload_all_sfx() —
+## walks res://audio/sfx/ recursively, loads every audio file. Music +
+## voice_cache are intentionally NOT preloaded (music streams are big
+## and dialogue lines are loaded on-demand by the TTS cache path).
+var _preloaded_sfx: Array[AudioStream] = []
+const SFX_PRELOAD_DIRS: Array[String] = ["res://audio/sfx/"]
+const PRELOAD_AUDIO_EXTS: Array[String] = [".mp3", ".wav", ".ogg"]
 
 ## Music playlist state. Three modes:
 ##   1. Single-track loop  — `play_music(stream)`. Force-loops the stream
@@ -96,6 +107,45 @@ func _ready() -> void:
 	_apply_volumes_from_settings()
 	# Resubscribe whenever ui_dev's Settings autoload announces changes.
 	Events.settings_applied.connect(_apply_volumes_from_settings)
+	# Preload every SFX file so first-play decoder hitches don't surface
+	# mid-gameplay. Music intentionally excluded — those streams are big.
+	_preload_all_sfx()
+
+
+## Walk every directory in SFX_PRELOAD_DIRS recursively and load() any audio
+## file. Loaded streams are held in _preloaded_sfx so Godot's resource cache
+## doesn't drop them — the next play_sfx / per-pool .play() hits a warm
+## resource instead of paying decode-table init mid-gameplay.
+##
+## Reports total streams loaded so the count shows up in launch logs and
+## you can sanity-check coverage as you add new SFX folders.
+func _preload_all_sfx() -> void:
+	for root_dir: String in SFX_PRELOAD_DIRS:
+		_preload_dir_recursive(root_dir)
+	print("[Audio] preloaded %d sfx streams from %s" % [
+		_preloaded_sfx.size(), str(SFX_PRELOAD_DIRS)])
+
+
+func _preload_dir_recursive(dir_path: String) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var entry: String = dir.get_next()
+	while not entry.is_empty():
+		var full: String = dir_path.path_join(entry)
+		if dir.current_is_dir():
+			if entry != "." and entry != "..":
+				_preload_dir_recursive(full)
+		else:
+			for ext: String in PRELOAD_AUDIO_EXTS:
+				if entry.ends_with(ext):
+					var stream: AudioStream = load(full) as AudioStream
+					if stream != null:
+						_preloaded_sfx.append(stream)
+					break
+		entry = dir.get_next()
+	dir.list_dir_end()
 
 
 # ---- Public API ---------------------------------------------------------
@@ -202,6 +252,30 @@ func resume_default_playlist_if_overridden(fade_in: float = 1.0) -> void:
 	if not _playlist_overridden:
 		return
 	play_default_playlist(fade_in)
+
+
+## Toggle whether index 0 of the active playlist is pinned (always plays at
+## the start of each cycle). Affects future cycles only — the current track
+## plays out untouched. Used by the main menu to give "New Game" a fixed
+## signature opener while "Continue" / "Load" shuffle every track equally.
+func set_playlist_lock_first(on: bool) -> void:
+	_playlist_lock_first = on
+
+
+## Skip to the next track in the playlist immediately, without waiting for
+## the current track to finish. Used by Continue / Load on the main menu so
+## the player drops out of the locked-first opener (hackers_theme) and into
+## the shuffled rotation without having to listen out the whole opener.
+## Mirrors the natural-end advance in `_on_music_finished`: increment the
+## index, reshuffle on wrap, fade in the new track. No-op on empty playlist.
+func advance_playlist(fade_in: float = 0.8) -> void:
+	if _playlist.is_empty():
+		return
+	_playlist_idx += 1
+	if _playlist_idx >= _playlist.size():
+		_playlist_idx = 0
+		_shuffle_playlist_if_needed()
+	_play_track_no_loop(_playlist[_playlist_idx], fade_in)
 
 
 # Reshuffle the playlist's tail if shuffling is enabled. With `lock_first`,

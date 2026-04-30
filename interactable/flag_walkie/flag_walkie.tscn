@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dflagwalk0001"]
+
+[ext_resource type="Script" path="res://interactable/flag_walkie/flag_walkie.gd" id="1_fw"]
+
+[node name="FlagWalkie" type="Node"]
+script = ExtResource("1_fw")

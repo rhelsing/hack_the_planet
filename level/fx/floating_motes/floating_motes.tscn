@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dmotes0001"]
+[gd_scene load_steps=9 format=3 uid="uid://dmotes0001"]
 
 [ext_resource type="Script" path="res://level/fx/floating_motes/floating_motes.gd" id="1_script"]
 
@@ -28,19 +28,29 @@ turbulence_noise_strength = 0.5
 turbulence_noise_scale = 1.5
 turbulence_noise_speed = Vector3(0.05, 0.1, 0.05)
 
+[sub_resource type="Gradient" id="Gradient_circle"]
+offsets = PackedFloat32Array(0.46, 0.5)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradTex_circle"]
+gradient = SubResource("Gradient_circle")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [sub_resource type="StandardMaterial3D" id="Mat_quad"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.65, 0.92, 1, 1)
-emission_enabled = true
-emission = Color(0.65, 0.92, 1, 1)
-emission_energy_multiplier = 1.5
+albedo_color = Color(0.65, 0.92, 1, 0.3)
+albedo_texture = SubResource("GradTex_circle")
 billboard_mode = 1
 billboard_keep_scale = true
 
 [sub_resource type="QuadMesh" id="Mesh_quad"]
 material = SubResource("Mat_quad")
-size = Vector2(0.08, 0.08)
+size = Vector2(0.04, 0.04)
 
 [node name="FloatingMotes" type="GPUParticles3D"]
 amount = 80

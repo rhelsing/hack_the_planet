@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dflagslide001"]
+
+[ext_resource type="Script" path="res://level/interactable/flag_slide/flag_slide.gd" id="1_fs"]
+
+[node name="FlagSlide" type="Node"]
+script = ExtResource("1_fs")

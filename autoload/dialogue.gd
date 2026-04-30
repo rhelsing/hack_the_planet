@@ -123,20 +123,45 @@ func _on_line_shown(line: Object) -> void:
 	# present). Resolve here so subtitles + TTS see the device-correct text;
 	# preserve `template` so VoicePrimer can enumerate sibling variants.
 	var text: String = LineLocalizer.resolve(template)
+	# Strip ElevenLabs audio tags ([laughs], [whispering], [sighs], etc.) from
+	# the DISPLAY text. They stay intact in `template` so the TTS payload still
+	# contains them — ElevenLabs reads them as audio cues. The visible balloon
+	# only needs them removed. See _strip_audio_tags() for the regex.
+	var display_text: String = _strip_audio_tags(text)
 	# Mutate the line so the dialogue plugin's UI renders our resolved text.
 	# The got_dialogue signal is emitted deferred (see addons/dialogue_manager/
 	# dialogue_manager.gd:129), and we connect first in autoload init — so the
 	# plugin's UI handler reads the mutated `line.text` after this hook runs.
 	if "text" in line:
-		line.text = text
+		line.text = display_text
 	_log('_on_line_shown: character="%s" text="%s"' % [character, text])
 	Events.dialogue_line_shown.emit(StringName(character), text)
+
+	# Per-line bus routing via Dialogue Manager tags. `[#walkie]` placed on a
+	# line plays through the Walkie bus (phone-FX bandpass + distortion) so
+	# off-screen radio interjections sound like they're coming over the wire.
+	# Default = Dialogue bus (clean, in-room voice). The tag itself is parsed
+	# out by the plugin so it never appears in the visible balloon text or in
+	# the TTS payload — that part is automatic.
+	var route_walkie: bool = false
+	if line.has_method("has_tag") and line.has_tag("walkie"):
+		route_walkie = true
+
+	# Per-line model override via `[#model=eleven_v3]` tag. Default = the
+	# project's ELEVEN_MODEL_ID constant (currently `eleven_flash_v2_5`).
+	# Only lines with an explicit model tag get baked + cached on a
+	# different model. See README "Per-line model overrides" for details.
+	var line_model: String = ELEVEN_MODEL_ID
+	if line.has_method("has_tag") and line.has_tag("model"):
+		line_model = str(line.get_tag_value("model"))
 
 	# CRITICAL (2026-04-22 fix): stop any in-flight / queued dialogue audio
 	# before queueing the new line's TTS request. Without this, clicking past
 	# a line while it's still speaking leaves the old audio playing over the
-	# new one — you hear line A's tail mixed with line B.
+	# new one — you hear line A's tail mixed with line B. Stop BOTH buses so
+	# a walkie-tagged line cuts a clean dialogue line and vice versa.
 	Audio.stop_dialogue()
+	Audio.stop_walkie()
 
 	# WYSIWYG TTS: send the entire visible line in the speaker's own voice.
 	# `*asterisks*` render as italic on screen (scroll_balloon converts them
@@ -146,8 +171,13 @@ func _on_line_shown(line: Object) -> void:
 	var tts_template := template.replace("*", "")
 	var tts_text := LineLocalizer.resolve(tts_template)
 	if tts_text.strip_edges().is_empty(): return
-	_log("  speak: [%s] %s" % [character, tts_text])
-	speak_line(character, tts_text)
+	_log("  speak: [%s]%s%s %s" % [
+		character,
+		" [WALKIE]" if route_walkie else "",
+		(" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else "",
+		tts_text,
+	])
+	speak_line(character, tts_text, route_walkie, line_model)
 	VoicePrimer.enqueue_siblings(character, tts_template, tts_text)
 
 
@@ -219,7 +249,7 @@ func start(resource: Resource, title: String = "start", id: StringName = &"") ->
 ## Hashes character+text to a stable filename. Reads through two-tier lookup:
 ## shipped res:// cache wins, then user:// dev cache, else API.
 ## Plays through Audio.play_dialogue so the Dialogue bus drives sidechain.
-func speak_line(character: String, text: String) -> void:
+func speak_line(character: String, text: String, route_walkie: bool = false, model_id: String = ELEVEN_MODEL_ID) -> void:
 	if _voices == null:
 		_log('speak_line: ABORT — voices.tres failed to load (expected %s)' % VOICES_PATH)
 		return
@@ -227,20 +257,29 @@ func speak_line(character: String, text: String) -> void:
 		_log('speak_line: no voice configured for character="%s" — silent' % character)
 		return
 	var voice_id: String = _voices.get_voice_id(character)
-	var read_path: String = _cache_path_read(character, text, voice_id)
+	var read_path: String = _cache_path_read(character, text, voice_id, model_id)
 	if not read_path.is_empty():
-		_log('speak_line: CACHE HIT (%s) → _play_cached' % read_path)
-		_play_cached(read_path)
+		_log('speak_line: CACHE HIT (%s) → _play_cached%s%s' % [
+			read_path,
+			" [WALKIE]" if route_walkie else "",
+			(" [model=%s]" % model_id) if model_id != ELEVEN_MODEL_ID else "",
+		])
+		_play_cached(read_path, route_walkie)
 		return
 
-	_log("speak_line: cache MISS — enqueue ElevenLabs request")
-	var write_path: String = _cache_path_write(character, text, voice_id)
+	_log("speak_line: cache MISS — enqueue ElevenLabs request%s%s" % [
+		" [WALKIE]" if route_walkie else "",
+		(" [model=%s]" % model_id) if model_id != ELEVEN_MODEL_ID else "",
+	])
+	var write_path: String = _cache_path_write(character, text, voice_id, model_id)
 	# Not cached — enqueue a TTS request. Silent until response arrives.
 	_tts_queue.append({
 		"character": character,
 		"text": text,
 		"voice_id": voice_id,
 		"path": write_path,
+		"route_walkie": route_walkie,
+		"model_id": model_id,
 	})
 	_maybe_dispatch_next_tts()
 
@@ -285,8 +324,43 @@ func _capture_player_mouse(on: bool) -> void:
 
 
 ## Stable filename derived from character + text + voice_id. Machine-independent.
-func _cache_filename(character: String, text: String, voice_id: String) -> String:
-	var hash_input: String = "%s__%s__%s" % [character, text, voice_id]
+## Strip ElevenLabs audio tags from a line for display. The TTS payload
+## keeps them intact (so ElevenLabs interprets them as audio cues — laughs,
+## sighs, whispers, etc.) but the visible balloon shouldn't show literal
+## brackets to the player.
+##
+## Matches: `[lowercase]`, `[lowercase with spaces]`, `[lowercase-words]`,
+## `[laughs harder]`, etc. The leading char must be a letter; contents can
+## be letters / digits / spaces / hyphens / underscores. This deliberately
+## does NOT match:
+##   - `[#tag]` — DialogueManager line tags (already parsed out by now)
+##   - `[[a|b]]` — alternations (also already parsed)
+##   - `[COMPOSURE 30%]` — skill check prefix (% is outside the char class)
+##   - `[i]` / `[/i]` — BBCode (added downstream by scroll_balloon, after this)
+func _strip_audio_tags(text: String) -> String:
+	var re_tag: RegEx = RegEx.create_from_string("\\[[a-zA-Z][a-zA-Z0-9 _-]*\\]")
+	var out: String = re_tag.sub(text, "", true)
+	# Collapse runs of whitespace caused by stripped tags ("a [laughs] b" → "a  b" → "a b").
+	var re_space: RegEx = RegEx.create_from_string("\\s+")
+	out = re_space.sub(out, " ", true)
+	return out.strip_edges()
+
+
+## Cache filename hash. By design, the DEFAULT model (eleven_flash_v2_5) is
+## NOT included in the hash — so all existing flash-baked mp3s remain valid
+## without a re-bake when this function evolves. Non-default models APPEND
+## `__<model_id>` to the hash key, producing distinct cache entries that can
+## coexist with the flash version for the same line. This lets a single
+## tagged line be selectively re-baked on `eleven_v3` without invalidating
+## the rest of the cache. See README §"Voice / dialogue audio (TTS cache +
+## variants)" for the per-line `[#model=v3]` workflow.
+func _cache_filename(character: String, text: String, voice_id: String, model_id: String = ELEVEN_MODEL_ID) -> String:
+	var hash_input: String
+	if model_id == ELEVEN_MODEL_ID:
+		# Default model — backward-compat hash (no model suffix).
+		hash_input = "%s__%s__%s" % [character, text, voice_id]
+	else:
+		hash_input = "%s__%s__%s__%s" % [character, text, voice_id, model_id]
 	var hashed: String = hash_input.md5_text().left(15)
 	var safe_char: String = character.to_lower().replace(" ", "_")
 	return "%s_%s.mp3" % [safe_char, hashed]
@@ -298,8 +372,8 @@ func _cache_filename(character: String, text: String, voice_id: String) -> Strin
 ## Editor uses FileAccess (raw mp3 on disk; un-imported just-written files
 ## still resolve). Exports use ResourceLoader (raw source isn't in the .pck;
 ## only the imported .mp3str is — which ResourceLoader resolves via .import).
-func _cache_path_read(character: String, text: String, voice_id: String) -> String:
-	var fname: String = _cache_filename(character, text, voice_id)
+func _cache_path_read(character: String, text: String, voice_id: String, model_id: String = ELEVEN_MODEL_ID) -> String:
+	var fname: String = _cache_filename(character, text, voice_id, model_id)
 	var shipped: String = SHIPPED_CACHE_DIR + fname
 	if OS.has_feature("template"):
 		if ResourceLoader.exists(shipped): return shipped
@@ -312,8 +386,8 @@ func _cache_path_read(character: String, text: String, voice_id: String) -> Stri
 ## here directly so synths show up in `git status` and are committable without
 ## a separate sync step. Exports never reach this function (gated by
 ## OS.has_feature("template") in _maybe_dispatch_next_tts).
-func _cache_path_write(character: String, text: String, voice_id: String) -> String:
-	return SHIPPED_CACHE_DIR + _cache_filename(character, text, voice_id)
+func _cache_path_write(character: String, text: String, voice_id: String, model_id: String = ELEVEN_MODEL_ID) -> String:
+	return SHIPPED_CACHE_DIR + _cache_filename(character, text, voice_id, model_id)
 
 
 func _load_api_key() -> String:
@@ -358,12 +432,13 @@ func _maybe_dispatch_next_tts() -> void:
 		"Content-Type: application/json",
 		"xi-api-key: " + _api_key,
 	]
+	var line_model: String = next.get("model_id", ELEVEN_MODEL_ID)
 	var body: String = JSON.stringify({
 		"text": TtsText.for_eleven_labs(next["text"]),
-		"model_id": ELEVEN_MODEL_ID,
+		"model_id": line_model,
 		"voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
 	})
-	_log('_maybe_dispatch: POST %s (model=%s text_len=%d)' % [url, ELEVEN_MODEL_ID, next["text"].length()])
+	_log('_maybe_dispatch: POST %s (model=%s text_len=%d)' % [url, line_model, next["text"].length()])
 	var err: int = _http.request(url, headers, HTTPClient.METHOD_POST, body)
 	if err != OK:
 		_log("_maybe_dispatch: HTTPRequest.request returned err=%d — clearing in-flight" % err)
@@ -386,7 +461,7 @@ func _on_http_completed(result: int, response_code: int, _headers: PackedStringA
 			file.store_buffer(body)
 			file.close()
 			_log('_on_http_completed: cached %d bytes to %s — playing' % [body.size(), req["path"]])
-			_play_cached(req["path"])
+			_play_cached(req["path"], req.get("route_walkie", false))
 	else:
 		_log('_on_http_completed: FAIL code=%d (body preview: %s)' % [
 			response_code,
@@ -397,7 +472,10 @@ func _on_http_completed(result: int, response_code: int, _headers: PackedStringA
 	_maybe_dispatch_next_tts()
 
 
-func _play_cached(path: String) -> void:
+## Plays a cached mp3. `route_walkie=true` sends through the Walkie bus
+## (phone-FX) instead of the Dialogue bus. Used when a line had a `[#walkie]`
+## tag — radio interjections from off-screen characters.
+func _play_cached(path: String, route_walkie: bool = false) -> void:
 	# Editor + exports need DIFFERENT load paths because Godot ships only the
 	# imported (.mp3str) form of audio resources, not the raw .mp3 source:
 	#   - Exports:   raw mp3 isn't in the .pck. Use ResourceLoader → resolves
@@ -424,6 +502,10 @@ func _play_cached(path: String) -> void:
 		mp3.data = file.get_buffer(file.get_length())
 		file.close()
 		stream = mp3
-	_log("_play_cached: loaded %s, routing through Audio.play_dialogue (Dialogue bus)" % path)
-	# Route through Audio autoload so the Dialogue bus drives sidechain ducking.
-	Audio.play_dialogue(stream)
+	if route_walkie:
+		_log("_play_cached: loaded %s, routing through Audio.play_walkie (Walkie bus, phone-FX)" % path)
+		Audio.play_walkie(stream)
+	else:
+		_log("_play_cached: loaded %s, routing through Audio.play_dialogue (Dialogue bus)" % path)
+		# Route through Audio autoload so the Dialogue bus drives sidechain ducking.
+		Audio.play_dialogue(stream)

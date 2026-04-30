@@ -46,7 +46,12 @@ done
 cd "$REPO_ROOT"
 
 echo "=== [1/3] Priming dialogue + level audio (variants × handles × devices) ==="
-"$GODOT" --headless res://tools/prime_all_dialogue.tscn --quit-after 1800
+# --quit-after is FRAMES (not seconds). Default 60fps means each second = 60
+# frames. Worst-case backlog (~1500 variants × ~2.4s per synth = ~60 min) fits
+# in 432_000 frames (2 hours at 60fps) with comfortable headroom. The script
+# self-terminates via get_tree().quit(0) when the queue drains, so this is just
+# a safety cap, not the expected exit path.
+"$GODOT" --headless res://tools/prime_all_dialogue.tscn --quit-after 432000
 
 echo
 echo "=== [2/3] Re-importing res:// so new mp3s get .import sidecars ==="

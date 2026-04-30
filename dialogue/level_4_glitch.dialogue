@@ -1,5 +1,58 @@
 ~ start
 
-Glitch: [L4 Glitch placeholder] My sensors don't lie — you broke them open.
-Glitch: [L4 Glitch placeholder] Talk to Nyx when you're ready to head back.
+if GameState.get_flag("l4_invention_terminal_solved", false)
+	=> post_solve
+
+# Stage 0 — first contact: pitch + the politics, then Q&A about the device.
+Glitch: Hey — Runner. I — uh. I've been working on something.
+Glitch: That platform. Over there. Step on for a sec.
+Glitch: Trust me. Mostly.
+Glitch: So — I'm not really supposed to take sides. It goes against my programming.
+Glitch: When you stand on it... the reds in range. They kind of listen. To you. For a bit.
+Glitch: It's not perfect. But it's something.
+=> stage_0_menu
+
+~ stage_0_menu
+
+- "Effectively" how?
+	=> stage_0_effectively
+- Why isn't it perfect?
+	=> stage_0_imperfect
+- "Against your programming"?
+	=> stage_0_programming
+- Got it. Heading over.
+	=> END
+
+~ stage_0_effectively
+
+Glitch: While you stand on it, I — uh — transmit a very strongly-worded suggestion to every red in range.
+Glitch: Most of them buy it. They'll fight with you. Briefly.
+Glitch: Step off, and the conversion fades. They go neutral, not hostile.
+=> stage_0_menu
+
+~ stage_0_imperfect
+
+Glitch: It's a probability thing. Not every Sentinel takes the bait.
+Glitch: And this one's the prototype. There'll be a few more. Eventually.
+=> stage_0_menu
+
+~ stage_0_programming
+
+Glitch: Local node, helpful to all. That's the directive.
+Glitch: But Splice has the Sentinels barking and you're the one running.
+Glitch: Sometimes "helpful to all" needs a thumb on the scale.
+=> stage_0_menu
+
+# Stage 1 — player solved the terminal, presumably tried the platform.
+~ post_solve
+
+if GameState.get_flag("l4_glitch_invention_celebrated", false)
+	Glitch: Press on. Whatever's down here — find it. Before he does.
+	=> END
+
+Glitch: Worked! It worked. I had — there were two outcomes plotted. That was the better one.
+Glitch: Felt good, didn't it?
+Glitch: One-off though. I don't have parts to make more. But it bought us a window.
+Glitch: Press on. There's something further in. We'll know it when we see it.
+do GameState.set_flag("l4_glitch_invention_celebrated", true)
 => END

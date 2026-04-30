@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AudioCue" format=3 uid="uid://bq67r1m5pjpwq"]
+
+[ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
+[ext_resource type="AudioStream" path="res://audio/sfx/rocks.mp3" id="2"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2")])
+volume_db_min = -4.0
+volume_db_max = -2.0
+pitch_min = 0.95
+pitch_max = 1.05
+bus = &"SFX"

@@ -6,44 +6,100 @@ if GameState.get_flag("refused_splice", false)
 if GameState.get_flag("betrayed_friends", false)
 	=> already_committed
 
-Splice: Hey. Hey listen — I've been watching you, runner.
+Splice: Easy. Easy.
 do Cutscene.show_video("res://cutscenes/splice_intro.ogv")
-Splice: You may have heard of me. Name's Splice.
-Splice: You're built different. The crew you're running with? They don't see it.
-Splice: Walk with me. Step off their channel. The Gibson's about to belong to whoever's smart enough to take it.
+Splice: The trap was for the conversation. That's all.
+Splice: Splice. You may have heard the name.
+Splice: I've been on your channel since the floppy run. Watching. Not interfering.
+Splice: You're better at this than the crew you came in with realizes. They've got you running their little chores.
+Splice: Step off-channel a minute. Just listen. Walk away if you want.
 - Get off my channel.
 	=> splice_refused
-- Tell me more.
+- Listening.
 	=> splice_consider
+- [if GameState.coin_pct() >= 0.5 /] What about Nyx?
+	=> splice_nyx
 
 ~ splice_consider
 
-Splice: That's what I'm talking about. THAT mindset.
-Splice: You with me, you don't grind anymore. Whole grid responds when you blink. Sentinels? Yours. Routing? Yours. All of it.
-Splice: Just say the word, runner. Just say it.
+Splice: Here's what nobody on that channel will tell you.
+Splice: The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing floppies.
+Splice: I **was** them. I **left** because I figured it out.
+Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
+Splice: Not because you took it. Because you saw it first. The rest are too busy performing.
+- What's the catch?
+	=> splice_catch
+- [if GameState.coin_pct() >= 0.5 /] What about Nyx?
+	=> splice_nyx
 - I'm with you.
 	=> splice_committed
-- Actually — get off my channel.
+- Get off my channel.
+	=> splice_refused
+
+~ splice_catch
+
+Splice: There isn't one. That's what they don't get.
+Splice: They built the "hackers for the people" thing because it's easier to share when you have nothing. I had **nothing**. [pause] Now I have **something**.
+Splice: You're the same. That's why I'm talking to you and not them.
+- And if I say no?
+	=> splice_if_no
+- I'm in.
+	=> splice_committed
+- Get off my channel.
+	=> splice_refused
+
+~ splice_if_no
+
+Splice: Then you go back to your floppy run and your little prank crew. No hard feelings.
+Splice: You'll think about this. Probably tonight.
+Splice: When you do — channel's open.
+- Actually, I'm in.
+	=> splice_committed
+- Got it.
+	=> splice_refused
+
+~ splice_nyx
+
+Splice: ...yeah.
+Splice: I pitched the same thing to her. She almost ran with it... almost.
+Splice: ... she —
+Splice: She's not part of this conversation, runner.
+Splice: Some things I keep mine.
+- "Almost"?
+	Splice: Long time ago. Doesn't matter.
+	=> splice_consider
+- [if GameState.coin_pct() >= 0.8 /] Are you trying to get her back?
+	Splice: I'm trying to get the Gibson. She's **already gone**.
+	=> splice_consider
+- Get off my channel.
 	=> splice_refused
 
 ~ splice_committed
 
-Splice: YES. There it is. I knew. I KNEW.
-Splice: Don't move. I'm coming for you. Stay right where you are.
+Splice: There it is. [laughs softly] Knew you'd see it.
+Splice: Stay where you are. I'm coming for you.
 do GameState.set_flag("betrayed_friends", true)
 do LevelProgression.goto_path("res://level/level_5.tscn")
 => END
 
 ~ splice_refused
 
-Splice: ...wow. Wow okay. Your loss, runner. Truly.
+Splice: ...wow. [sighs] Wow okay. [#model=eleven_v3]
+Splice: [chuckles] You're not walking out of here, runner.
+Splice: Those power-ups in your pocket? They're **keys**. They unlock the whole sector. You don't even know what.
+Splice: So I'm taking them. Every one. And then I'm deleting the part of the wire that has **you** on it.
+Splice: Hold still. This is the —
+Splice: Wait.
+Splice: What — what's happening?
+Splice: My access — my access is —
+Splice: **No**. No no no.
+DialTone: Got him. Go go go. [#walkie]
+Nyx: {{HandlePicker.chosen_name()}}, you have a window. We can't hold this. **Run**. [#walkie]
+Splice: [whispering] I'll find you again. I will **find you**, runner.
+Nyx: Go. Now. [#walkie]
 do GameState.set_flag("refused_splice", true)
 do LevelProgression.advance()
 => END
-
-# Re-trigger guards — if for some reason the dialogue fires again after a
-# decision was already locked, play a one-liner so it's not a parse error
-# and the player isn't forced through the fork twice.
 
 ~ already_refused
 

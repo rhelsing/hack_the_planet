@@ -56,6 +56,15 @@ func _play() -> void:
 	_set_pause_allowed(false)
 	modulate.a = 0.0
 	visible = true
+	# Force the rect to fill the viewport. In editor the layout pass
+	# auto-runs every frame so the anchors resolve fine; in exported
+	# builds a Control that's been `visible = false` since _ready can
+	# stay at size 0,0 (top-left collapse) when shown the first time.
+	# Setting size + position explicitly side-steps the issue without
+	# touching the scene tree wrapper above us.
+	var vp_size: Vector2 = get_viewport().get_visible_rect().size
+	position = Vector2.ZERO
+	size = vp_size
 
 	_title_label.text   = "[color=#ff5577]CONNECTION TERMINATED[/color]"
 	_subline_label.text = "[color=#33ff66]> reconnecting to last checkpoint...[/color]"

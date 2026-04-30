@@ -1,14 +1,14 @@
-[gd_scene load_steps=3 format=3 uid="uid://dconvertz0001"]
+[gd_scene format=3 uid="uid://dconvert00001"]
 
-[ext_resource type="Script" path="res://level/interactable/convert_zone/convert_zone.gd" id="1_cz"]
+[ext_resource type="Script" uid="uid://cb2l67jx7e6r1" path="res://level/interactable/convert_zone/convert_zone.gd" id="1_cz"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_cz"]
-size = Vector3(20.0, 4.0, 20.0)
+size = Vector3(20, 4, 20)
 
-[node name="ConvertZone" type="Area3D"]
+[node name="ConvertZone" type="Area3D" unique_id=45829271]
 collision_layer = 0
-collision_mask = 1
 script = ExtResource("1_cz")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1762024226]
 shape = SubResource("BoxShape3D_cz")
+debug_color = Color(0.88731414, 0.8000621, 3.85046e-07, 1)

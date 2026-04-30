@@ -7,11 +7,13 @@ all dialogue files follow).
 
 **Core idea:** the player has earned a name with the crew (Glitch +
 DialTone + Nyx). The Gibson's old containment routines start failing —
-**Splice**, an exiled black-hat with history with Nyx, is back on the
-grid and rebuilding control. Across L2 → L4, Splice goes from a voice
-on a hijacked channel to a recruiter to an open enemy. The player's
-single meaningful choice is at the L3 midpoint: **refuse Splice or
-betray the crew.** One ending each.
+**Splice**, an exiled black-hat and Nyx's ex, is back on the grid and
+hunting a chain of power-ups that culminates in **root access** to the
+Gibson. Each power-up unlocks the next door; if he reaches the bottom,
+the era of distributed hackers ends. Across L2 → L4, Splice goes from a
+voice on a hijacked channel to a recruiter to an open enemy. The
+player's single meaningful choice is at the L3 midpoint: **refuse
+Splice or betray the crew.** One ending each.
 
 ---
 
@@ -19,8 +21,8 @@ betray the crew.** One ending each.
 
 | Handle | Role | First seen | Voice |
 |---|---|---|---|
-| **Splice** | Antagonist. Exiled hacker, calm menace, never raises his voice. Used to run with Nyx. Owns enough of the Gibson's routing to push his voice into the player's walkie at will. | L2 mid-level (voice only) | TBD — pick from candidate library, leaning Eric / Brian / Glinda for "smooth-trustworthy-villain" |
-| **Nyx (hub presence)** | Joins the hub after L2 — uses the existing CompanionStation ratchet, ratcheting in next to DialTone. Voice on walkie throughout L2-L4. | Hub, post-L2 ratchet | Cecily (already cast) |
+| **Splice** | Antagonist. Exiled hacker, calm menace, never raises his voice — until refused, then anger surfaces. Nyx's ex (revealed via DialTone post-L2 thread). Owns enough of the Gibson's routing to push his voice into the player's walkie at will. Goal: chain of power-ups → root access → end of distributed hackers. | L2 mid-level (voice only) | TBD — pick from candidate library, leaning Eric / Brian / Glinda for "smooth-trustworthy-villain" |
+| **Nyx (hub presence)** | Already in hub from post-L1 (off-channel intimate beat). Continues through L2-L4. Voice on walkie throughout. | Hub, post-L1 onward | Cecily (already cast) |
 
 Glitch and DialTone keep their existing roles. Glitch stays the
 trustworthy tutorial / mechanic-explainer; DialTone stays the
@@ -63,8 +65,8 @@ mission-giver and primary walkie voice; Nyx layers in as the
   enemy_kaykit.tscn / enemy_cop_riot.tscn behaviour, or do we drop in a
   new "splice_sentinel" variant? Cheaper option: same enemy scene with
   a `splice_modified: bool` export that bumps speed/damage.
-- Nyx in hub: ratchet in via CompanionStation pattern after L2 done.
-  New file `dialogue/hub_nyx.dialogue` follows the menu-pattern (see §6).
+- Nyx in hub: already ratcheted in post-L1 (see §6b). Her L2 contribution
+  is on walkie + the post-L2 hub conversation.
 
 ---
 
@@ -209,40 +211,52 @@ main menu and pick differently.
 menu pattern. All five stages are wired:
 
 - `~ stage_intro` — handle pick + Nyx-rescue mission framing + intro
-  menu (Onward / Who's Nyx / What am I looking for / Why can't you go).
-  Sign-off: walkie hand-off + 3 flag sets.
+  menu (Are you who messaged me / I'm in / Who's Nyx / What am I looking
+  for / Why can't you go). Sign-off: walkie hand-off + 3 flag sets.
 - `~ stage_nudge` — one-liner if greeted but L1 not done.
-- `~ stage_post_1` — prank reveal. Menu: Onward / Want to explain /
-  She said dead man.
-- `~ stage_post_2` — Splice surfaces, near miss. Menu: Onward / Who is
-  Splice / How did he get into sentinels / You weren't expecting him.
+- `~ stage_post_1` — prank reveal. Joint scene with Nyx interjecting.
+  Menu: So what's next / So what was that about / [optional messenger
+  callback].
+- `~ stage_post_2` — Splice surfaces, plan reveal. Joint scene with
+  Nyx. Menu: So what's the plan / Who is Splice / How did he get into
+  the sentinels / You weren't expecting him / [messenger callback].
+  `~ post_2_plan` reveals split-up search; `level_3_unlocked` flag
+  fires at "Your portal's queued behind us." (the cinematic moment the
+  player's portal materializes in the hub).
 - `~ stage_post_3` — loyal-only. Menu: Onward / Why'd you let him talk
-  to me alone / What's his angle / You didn't think I'd take it.
-- `~ stage_post_4` — quarantine outcome. Menu: What now / Where's Nyx /
-  About Splice — he's still in there / Sign me out. Final flag set:
-  `game_completed`.
+  to me alone / What's his angle / You didn't think I'd take it /
+  [messenger callback].
+- `~ stage_post_4` — quarantine outcome. Menu: What now / About Splice
+  — he's still in there / [messenger callback] / Sign me out. Final
+  flag set: `game_completed`.
 
 The betray path never reaches `stage_post_3` or `stage_post_4` —
 `splice_committed` exits to the betray ending scene before the player
 returns to hub.
 
-### 6b. Nyx hub dialogue (NEW FILE)
+### 6b. Nyx hub dialogue (`dialogue/hub_nyx.dialogue`)
 
-Nyx ratchets into the hub after `level_2_completed`. Uses
-CompanionStation pattern (same as Glitch1 → Glitch2).
+Nyx ratchets into the hub **after `level_1_completed`** — she's present
+from the moment the runner returns from the prank-rescue. Uses the
+CompanionStation pattern. Sub-stages keyed off `level_X_completed`
+flags (same routing pattern as `dial_tone.dialogue`).
 
-**File:** `dialogue/hub_nyx.dialogue` (new). Follows menu pattern.
-Sub-stages keyed off `level_2_completed`, `level_3_completed`,
-`level_4_completed`, `betrayed_friends` (which she'd never see — but
-worth scaffolding the if-branch for safety).
+**Tone arc:** off-channel intimate beat per stage. She seeks the runner
+out alone (DialTone is busy in his own hub conversation). Each stage
+softens one more layer of armor without ever announcing the warmth.
 
-**Sketch:**
+**Stages:**
 
 | Stage | Greet | Menu probes |
 |---|---|---|
-| Post L2 (just arrived in hub) | "Heard the new voice on the channel. Splice." | About Splice / Why now / What you don't know about him / Onward |
-| Post L3 (after refusal) | "Knew you'd say no." | Why so confident / What's your history with him / Onward |
-| Post L4 (quarantine) | "Not bad, runner." | What happens to him now / About DialTone / Onward |
+| Post-L1 | "Quick word. Off-channel. I pulled your trace. He'll round it down. I'm not going to." | Why off-channel / You pulled my trace / What do you want / See you on the wire |
+| Post-L2 | "You got a second? Off-channel. He doesn't need to hear this part." | What's up (exit-ramp confidence) / You did the saving / Tell me about Splice (ex / power / fear sub-branches) |
+| Post-L3 (loyal only) | TBD — drops one more layer of armor; first half-real compliment | TBD |
+| Post-L4 | Perimeter party. "We're throwing a perimeter party. Splice gets to watch from the inside." | Dancing / Quarantined / I'm out |
+
+The betray path never reaches `~ stage_post_3` or `~ stage_post_4` —
+`splice_committed` exits to the betray ending scene before the player
+returns to the hub.
 
 ### 6c. Walkie content
 
@@ -250,8 +264,11 @@ Walkie lines are short, one-way (per `story/rules_for_dialogue.md`
 TBD section — the walkie spec). Drop `WalkieTrigger` zones in level
 geometry to fire them. Per-level rough budget:
 
-- **L2:** ~6 walkie cues — opening brief, mid-level Splice intercept,
-  Nyx reaction, Splice direct line, chase opening, escape.
+- **L2:** 9 walkie cues shipped — Nyx mission setup, DialTone "kicking
+  sentinel butt is the best," Nyx rogue-sentinel warning, DialTone
+  panic, Splice intro ("Interesting. Do I detect a new trace on the
+  wire?"), Nyx reaction, DialTone Splice exposition, beacon-jam plan,
+  encouragement.
 - **L3:** ~5 walkie cues — opening brief, grapple acknowledgment,
   pre-Splice-offer warning, post-fork reactions (loyal branch only),
   escape.

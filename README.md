@@ -158,3 +158,91 @@ Or set the `ELEVEN_LABS_API_KEY` env var (CI / per-shell override; takes precede
 - `tools/list_voices.gd` — print configured `character → voice_id` mappings from `dialogue/voices.tres`.
 - `tools/browse_voices.gd` — print all available voices from your ElevenLabs account.
 - `tools/find_orphan_voices.gd` — orphan scan as a standalone command (without prime + import).
+- `tools/compile_dialogue_brief.gd` — aggregate every `.dialogue` file + walkie + respawn voice line into a single readable Markdown brief at `story/dialogue_brief.md`. Run after any dialogue/walkie change to refresh. Round-trippable: HTML comments above each chunk identify its source so paste-back edits can be mapped to source files.
+
+### Per-line model overrides
+
+The project default model is `eleven_flash_v2_5` (cheap, fast, neutral delivery). Specific lines can opt into a different model — most often `eleven_v3` for dramatic moments, audio tags (`[laughs]`, `[sighs]`, `[whispering]`, etc.), or richer emotional performance.
+
+**Tag a line with `[#model=<id>]`** to bake + cache + play it on a different model:
+
+In a `.dialogue` file:
+```
+Splice: ...wow. [sighs] Wow okay. [#model=eleven_v3]
+Splice: [whispering] I'll find you again. [#model=eleven_v3]
+```
+
+In a `WalkieTrigger` node's `line` property (a string field in the inspector):
+```
+"Interesting. Do I detect a **new trace** on the wire? [#model=eleven_v3]"
+```
+
+The tag itself is stripped from both the displayed subtitle and the TTS payload (regex match against `[#model=…]` runs in Walkie / Companion / Dialogue paths). DialogueManager parses it natively for `.dialogue` files via `line.has_tag("model")` / `line.get_tag_value("model")`.
+
+**How the cache stays clean during a model swap:**
+
+The cache filename hash includes `model_id` ONLY when it's not the default. So:
+
+| Line | Default flash | Tagged `eleven_v3` |
+|------|---------------|---------------------|
+| Hash key | `character__text__voice_id` | `character__text__voice_id__eleven_v3` |
+| Cache file | `splice_a1b2c3d4.mp3` | `splice_x7y8z9w0.mp3` (different) |
+
+Both versions can coexist on disk. Untagged lines keep using their existing flash mp3s — no rebake needed. Tagged lines synth fresh on the override model.
+
+**Workflow to test a line on `eleven_v3`:**
+
+1. Add the tag: `Splice: line text. [#model=eleven_v3]` in the `.dialogue` file (or walkie node's `line` string).
+2. Run `tools/bake_voices.sh` (or `tools/bake_voices.sh --no-prune` if you don't want orphan removal yet).
+3. The new mp3 synthesizes on `eleven_v3`. The old flash mp3 (different hash) becomes an orphan and gets cleaned on the prune step.
+4. Play the line in-game — it loads from cache and plays on the v3 voice.
+
+**Cost expectation per ElevenLabs Starter tier ($5/mo, 30,000 credits/month):**
+- `eleven_flash_v2_5` (default): ~0.5 credits/character — full-game baseline bake fits comfortably.
+- `eleven_v3`: ~1.0 credits/character — roughly 2× cost. Tagging ~30-60 lines on v3 fits within ~10-20% of a monthly budget. A full v3 migration would exceed Starter limits — bump to Creator ($22/mo) for that.
+
+**Cost-control tips:**
+- Tag *individual lines* (the dramatic moments), not whole files.
+- Listen to a single tagged line first; if v3 isn't dramatically better for that voice, revert the tag. The flash mp3 stays cached so reverting just makes the v3 mp3 an orphan on next prune.
+- Use `tools/bake_voices.sh --no-prune` if you want to A/B both versions on disk before committing.
+
+---
+
+## Maze editor (browser-based authoring tool)
+
+`HackTerminal` puzzles are Witness-style maze traces — strict no-cross path from a perimeter Start node to a perimeter End node, with optional Witness-style "oil/water" cell markers (purple square / blue circle) that the trail must separate into monochromatic regions to solve.
+
+Mazes are authored in a vanilla HTML/CSS/JS app at **`tools/maze_editor/`**. No build step, no server — double-click `index.html` and it runs.
+
+### Editing flow
+
+1. Open `tools/maze_editor/index.html` in a browser.
+2. Set grid size (cols × rows, 3–15 each).
+3. Pick a mode in the toolbar:
+   - **edges** (default) — click an edge slot to toggle, or click-and-drag to paint a continuous run of edges open/closed.
+   - **set start** / **set end** — click any *perimeter* node (edge of grid only) to place. One S, one E.
+   - **water** / **oil** — click any cell interior to drop a marker; click the same cell again to clear.
+4. Optionally toggle **timed** + set a seconds value (5–600). Saved into the file; the in-game puzzle reads it and runs a countdown with a glitch-warning ramp in the last 5 seconds.
+5. **Verify** runs BFS from S to E. Download stays disabled until the maze is solvable.
+6. **Download .maze** — saves a JSON file. Drop it under `puzzle/maze/mazes/` and point a `PuzzleTerminal.maze_path` export at it.
+7. **Load .maze** round-trips an existing file back into the editor for tweaks.
+
+### Format (`.maze` is plain JSON)
+
+```jsonc
+{
+  "version": 1,
+  "cols": 5, "rows": 5,
+  "start": [0, 2], "end": [4, 2],
+  "time_limit": 0,                            // seconds; 0 = untimed
+  "h": [[0,1,0,0], ...],                      // rows × (cols-1)  open horizontal edges
+  "v": [[0,1,1,0,0], ...],                    // (rows-1) × cols  open vertical edges
+  "cells": [[0,1,0,0], ...]                   // (rows-1) × (cols-1)  0=none, 1=water, 2=oil
+}
+```
+
+`cells` is optional (defaults to all-zero). Loaded by `puzzle/maze/maze_data.gd` via `JSON.parse_string` + shape validation. Tested against the level-2 fixture in `tests/test_maze_data.gd`.
+
+### How a level uses a maze
+
+`PuzzleTerminal` (`interactable/puzzle_terminal/puzzle_terminal.gd`) has a `maze_path: String` `@export_file("*.maze")` field. The level scene sets it per-instance — e.g., on `level_2.tscn` the HackTerminal points at `res://puzzle/maze/mazes/l2_hack_terminal.maze`. On interact, `Puzzles.start` injects `maze_path` into the spawned `MazePuzzle` via setup-data; the puzzle reads the file, builds the graph, and runs.

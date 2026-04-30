@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://b450u2nk6dism"]
+
+[ext_resource type="Script" path="res://player/brains/enemy_ai_brain.gd" id="1_brain"]
+
+[node name="EnemyAIBrain" type="Node"]
+script = ExtResource("1_brain")
+nav_mode = 2
+starting_state = 2

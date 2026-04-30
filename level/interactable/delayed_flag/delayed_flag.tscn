@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ddelayflag001"]
+
+[ext_resource type="Script" path="res://level/interactable/delayed_flag/delayed_flag.gd" id="1_df"]
+
+[node name="DelayedFlag" type="Node"]
+script = ExtResource("1_df")

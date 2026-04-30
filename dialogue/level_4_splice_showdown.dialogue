@@ -1,0 +1,35 @@
+~ start
+
+# Pre-battle villain monologue. Splice arrives across the platforms; only
+# Nyx interjects on the walkie channel (Splice can't hear her). DialTone
+# is listening silently. Glitch is absent. Ends straight into the boss
+# battle — no player choices, no menu, just the cinematic.
+
+Splice: {player_handle}.
+Splice: So here we are.
+
+Splice: The world's rigged. You know it. Everybody knows it.
+Splice: They sell you "rules" and they sell you "fair" and they sell you "earn it" — and meanwhile the people who already have everything write the rulebook with their other hand.
+Splice: I figured that out and I started playing.
+
+Nyx: He has no idea what's coming, does he? [#walkie]
+
+Splice: After tonight, the Gibson is mine.
+Splice: Comms. Finance. Routing. Every sentinel that's ever responded to a ping.
+Splice: I don't burn it. I don't have to.
+Splice: I just decide who gets to keep using it.
+Splice: That's the real win. Not destruction. **Permission**.
+
+Splice: Your crew thinks they're the protagonists, runner.
+Splice: DialTone thinks he runs the channel. He ran it because nobody important was listening.
+Splice: Somebody's listening now.
+
+Nyx: God. I can't believe I dated this asshole. [#walkie]
+
+Splice: They're voices in your ear. I'm here.
+Splice: That should tell you something about who's actually in the room.
+Splice: When this is over — when I'm at root — I'm not going to do anything cruel.
+Splice: I want you to know that.
+Splice: I'm just going to do *anything I want*. Forever.
+
+=> END

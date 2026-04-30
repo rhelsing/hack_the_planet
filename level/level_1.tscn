@@ -59,6 +59,7 @@ _data = {
 point_count = 3
 
 [node name="LevelMockup" unique_id=84478335 instance=ExtResource("1_base")]
+howto_caption = "you've got blades. Move fast, Jump far, Grind the rails."
 
 [node name="DirectionalLight3D" parent="." index="1" unique_id=818576006]
 light_energy = 10.115
@@ -139,13 +140,13 @@ visible_when_voice_match = "see me"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.03878, 38.179344, -70.45365)
 
 [node name="Ground6" type="CSGBox3D" parent="." index="10" unique_id=902683074]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -90.20162, 38.179344, -68.405716)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92.05584, 38.179344, -67.57831)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(8, 1, 9.029175)
 
 [node name="Ground7" type="CSGBox3D" parent="." index="11" unique_id=1132893856]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -90.20162, 40.057766, -55.0392)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.02949, 40.057766, -55.0392)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(8, 1, 9.029175)
@@ -387,7 +388,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.01651, 11.949128, 84.1249
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.020943, 1.8218462, 177.37718)
 
 [node name="need_rollerblades" parent="." index="56" unique_id=198651728 instance=ExtResource("12_4h366")]
-transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 4.348541, -62.60135, 3.8437142, 132.523)
+transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 4.348541, -64.004524, -5.6553936, 147.61801)
 voice_character = &"Glitch"
 voice_line = "Why don't you come see me? You seem to be doing something silly."
 one_shot = true
@@ -433,12 +434,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.692368, 8.146176, 121.012
 
 [node name="BouncyPlatform" parent="." index="70" unique_id=1865404956 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.17814, -4.8228517, 213.66563)
+size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform2" parent="." index="71" unique_id=931356739 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.125122, 0.64319134, 213.66563)
+size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform3" parent="." index="72" unique_id=1868365190 instance=ExtResource("17_7fchg")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.337093, 6.4431887, 208.53386)
+size = Vector3(7, 1, 7)
 
 [node name="GlitchStation1" parent="." index="73" unique_id=304176901 instance=ExtResource("22_station")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87.464264, 11.052332, 167.0114)
@@ -470,15 +474,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.253464, 22.38807, -1.4560
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform9" parent="." index="81" unique_id=422630105 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.82228, 40.41702, -39.19512)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -102.32074, 40.41702, -39.19512)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform10" parent="." index="82" unique_id=1335730497 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.82228, 43.435463, -32.046814)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.0584, 43.435463, -32.046814)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform11" parent="." index="83" unique_id=1124889781 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86.452675, 59.619984, -13.898603)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.1175, 59.619984, -13.898603)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform13" parent="." index="84" unique_id=1867714509 instance=ExtResource("17_7fchg")]
@@ -502,7 +506,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -73.586044, 63.227642, -84.04
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform12" parent="." index="89" unique_id=505418945 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.59171, 62.236652, -10.643464)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80.7395, 62.236652, -10.643464)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform6" parent="." index="90" unique_id=500242044 instance=ExtResource("17_7fchg")]
@@ -616,25 +620,52 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.44673, 36.624626, -27.407
 [node name="EnemySpawner8" parent="." index="125" unique_id=1744593281 instance=ExtResource("24_sb0gx")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.986683, 36.624626, -25.471113)
 
-[node name="ElevatorPlatform" parent="." index="126" unique_id=468855729 instance=ExtResource("25_gj5ex")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -91.707695, 44.6271, -22.024652)
+[node name="EnemySpawner38" parent="." index="126" unique_id=437888543 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -74.86725, 36.624626, -13.098545)
+
+[node name="EnemySpawner39" parent="." index="127" unique_id=1642505129 instance=ExtResource("24_sb0gx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.63927, 36.624626, -9.400372)
+
+[node name="ElevatorPlatform" parent="." index="128" unique_id=468855729 instance=ExtResource("25_gj5ex")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94.73377, 44.6271, -22.024652)
 size = Vector3(7, 1, 7)
 amplitude = 15.0
 
-[node name="CsgColliderSwap" type="Node" parent="." index="127" unique_id=1481040347]
+[node name="CsgColliderSwap" type="Node" parent="." index="129" unique_id=1481040347]
 script = ExtResource("27_csgswap")
 
-[node name="EnemyDistanceSleep" type="Node" parent="." index="128" unique_id=649529126]
+[node name="EnemyDistanceSleep" type="Node" parent="." index="130" unique_id=649529126]
 script = ExtResource("28_edsleep")
 
-[node name="Rail" parent="." index="129" unique_id=1687920998 instance=ExtResource("10_aive4")]
+[node name="Rail" parent="." index="131" unique_id=1687920998 instance=ExtResource("10_aive4")]
 transform = Transform3D(0.06400982, 0, 0.99794924, 0, 1, 0, -0.99794924, 0, 0.06400982, -65.059616, 11.744306, 88.640564)
 curve = SubResource("Curve3D_1rq3w")
 
-[node name="Rail2" parent="." index="130" unique_id=1437553195 instance=ExtResource("10_aive4")]
+[node name="Rail2" parent="." index="132" unique_id=1437553195 instance=ExtResource("10_aive4")]
 transform = Transform3D(0.013717893, 0, 0.9999059, 0, 1, 0, -0.9999059, 0, 0.013717893, -61.86731, 10.599958, 39.953575)
 curve = SubResource("Curve3D_172kb")
 
-[node name="Rail3" parent="." index="131" unique_id=1254054247 instance=ExtResource("10_aive4")]
+[node name="Rail3" parent="." index="133" unique_id=1254054247 instance=ExtResource("10_aive4")]
 transform = Transform3D(0.15407237, 0, 0.9880596, 0, 1, 0, -0.9880596, 0, 0.15407237, -63.464203, 10.483322, 131.7774)
 curve = SubResource("Curve3D_56pii")
+
+[node name="Coin17" parent="." index="135" unique_id=491137769 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.945557, 19.536142, 2.0280676)
+
+[node name="Coin18" parent="." index="136" unique_id=1905538006 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.258713, 23.034245, -1.6495479)
+
+[node name="Coin19" parent="." index="137" unique_id=1621811702 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.658035, 27.541553, -8.583773)
+
+[node name="Coin20" parent="." index="138" unique_id=179386676 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.381565, 31.029337, -16.289822)
+
+[node name="Coin21" parent="." index="139" unique_id=1966493756 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.147305, 36.7708, -11.90736)
+
+[node name="Coin22" parent="." index="140" unique_id=105469402 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -68.21217, 36.7708, -11.237762)
+
+[node name="Coin23" parent="." index="141" unique_id=1200270680 instance=ExtResource("11_hdc4k")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.849464, 36.7708, -11.669365)

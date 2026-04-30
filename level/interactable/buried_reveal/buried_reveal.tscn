@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dburiedrev0001"]
+
+[ext_resource type="Script" path="res://level/interactable/buried_reveal/buried_reveal.gd" id="1_br"]
+
+[node name="BuriedReveal" type="Node"]
+script = ExtResource("1_br")

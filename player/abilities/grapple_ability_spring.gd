@@ -19,7 +19,7 @@ extends Ability
 ##      then takes over for a normal arc.
 
 ## How far the aim detector reaches (m). Target beyond this is ignored.
-const MAX_RANGE: float = 25.0
+const MAX_RANGE: float = 37.5
 ## Cosine of the max angle between camera-forward and direction-to-target.
 ## 0.7 ≈ 45° half-cone — forgiving aim.
 const FACING_COS: float = 0.7
@@ -116,7 +116,7 @@ func _update_aim() -> void:
 	_clear_all_prompts()
 
 	var best: Node3D = null
-	var best_score: float = -INF
+	var best_dist: float = -INF
 	for n: Node in get_tree().get_nodes_in_group(&"grappleable"):
 		var t: Node3D = n as Node3D
 		if t == null or not is_instance_valid(t):
@@ -128,18 +128,19 @@ func _update_aim() -> void:
 		var dot: float = to_t.normalized().dot(cam_fwd)
 		if dot < FACING_COS:
 			continue
-		# Pick whichever is closest to dead-center of screen — highest dot
-		# product with camera forward. No distance weighting.
-		if dot > best_score:
-			best_score = dot
+		# Among everything in the cone + within range, pick the FURTHEST —
+		# lets the player chain a bigger leap when multiple hooks are
+		# stacked along the camera line. Closer hooks are still selectable
+		# by aiming such that they're the only one in the cone.
+		if dist > best_dist:
+			best_dist = dist
 			best = t
 	if best != null:
 		_set_target_prompt(best, true)
 	# Log transitions (new aim or dropped aim) rather than every frame.
 	if best != _aim_target:
 		if best != null:
-			var dist: float = (best.global_position - cam_pos).length()
-			print("[grapple] aim locked: %s at dist=%.2f (dot=%.3f)" % [best.name, dist, best_score])
+			print("[grapple] aim locked: %s at dist=%.2f" % [best.name, best_dist])
 		else:
 			print("[grapple] aim dropped")
 	_aim_target = best

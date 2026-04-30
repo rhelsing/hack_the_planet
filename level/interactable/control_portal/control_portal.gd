@@ -67,6 +67,13 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## ID linking this portal to one or more ConvertZone nodes in the level.
 @export var convert_zone_id: StringName = &""
 
+@export_group("Gating")
+## When non-empty, the platform is fully inert until this GameState flag
+## is true: stays grey, no palette tween, no conversion roll. Engagement
+## quietly ignores body_entered while gated. Used to lock a platform
+## behind a hack/puzzle reveal — see Level 4 Glitch's invention.
+@export var require_flag: StringName = &""
+
 @export_group("SFX")
 ## Played once when the player first steps on (any-time replay disabled).
 @export var activation_sound: AudioStream
@@ -115,6 +122,10 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(body: Node) -> void:
 	if not body.is_in_group("player"):
+		return
+	# Locked platforms stay grey + don't fire activation/conversion. The
+	# player can still physically stand on them; they just don't do anything.
+	if require_flag != &"" and not bool(GameState.get_flag(require_flag, false)):
 		return
 	# Cancel any pending revert — player came back before debounce expired.
 	_debounce_timer = -1.0

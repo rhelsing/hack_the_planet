@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://c322soubrisix"
+path="res://.godot/imported/hub_post4_glitch.dialogue-85f8b2a2e2e075da204a45cd1fa08904.tres"
+
+[deps]
+
+source_file="res://dialogue/hub_post4_glitch.dialogue"
+dest_files=["res://.godot/imported/hub_post4_glitch.dialogue-85f8b2a2e2e075da204a45cd1fa08904.tres"]
+
+[params]
+
+defaults=true

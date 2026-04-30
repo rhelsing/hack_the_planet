@@ -81,14 +81,21 @@ func _dispatch_if_idle() -> void:
 		_dispatch_if_idle()
 		return
 	var voice_id: String = voices.get_voice_id(character)
+	# Per-line model override. Walkie lines aren't DialogueLine objects, so
+	# we parse `[#model=v3]` directly from the text (DialogueManager only
+	# extracts tags from .dialogue files). Default model is the project-wide
+	# ELEVEN_MODEL_ID. The tag is stripped from the text before TTS / display
+	# so it never reaches ElevenLabs or the subtitle as literal chars.
+	var line_model: String = TtsText.parse_model_tag(text, ELEVEN_MODEL_ID)
+	var clean_text: String = TtsText.strip_model_tag(text)
 	# Resolve template tokens ({player_handle}, etc.) before the cache key is
 	# computed — different handles = different mp3s. Then kick the sibling
 	# variants into the background primer queue.
-	var resolved_text: String = LineLocalizer.resolve(text)
-	VoicePrimer.enqueue_siblings(character, text, resolved_text)
-	var read_path: String = Dialogue._cache_path_read(character, resolved_text, voice_id)
+	var resolved_text: String = LineLocalizer.resolve(clean_text)
+	VoicePrimer.enqueue_siblings(character, clean_text, resolved_text)
+	var read_path: String = Dialogue._cache_path_read(character, resolved_text, voice_id, line_model)
 	if not read_path.is_empty():
-		_log("dispatch: CACHE HIT %s" % read_path)
+		_log("dispatch: CACHE HIT %s%s" % [read_path, (" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else ""])
 		_queue.pop_front()
 		_play_from_path(read_path, character, resolved_text)
 		return
@@ -107,13 +114,14 @@ func _dispatch_if_idle() -> void:
 		_dispatch_if_idle()
 		return
 
-	_log("dispatch: cache MISS — requesting from ElevenLabs")
-	var write_path: String = Dialogue._cache_path_write(character, resolved_text, voice_id)
+	_log("dispatch: cache MISS — requesting from ElevenLabs%s" % ((" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else ""))
+	var write_path: String = Dialogue._cache_path_write(character, resolved_text, voice_id, line_model)
 	_in_flight = {
 		"character": character,
 		"text": resolved_text,
 		"voice_id": voice_id,
 		"path": write_path,
+		"model_id": line_model,
 	}
 	var url: String = ELEVEN_API_URL % voice_id
 	var headers: PackedStringArray = [
@@ -126,7 +134,7 @@ func _dispatch_if_idle() -> void:
 	# use so spoken emphasis matches the on-screen subtitle WYSIWYG.
 	var body: String = JSON.stringify({
 		"text": TtsText.for_eleven_labs(resolved_text),
-		"model_id": ELEVEN_MODEL_ID,
+		"model_id": line_model,
 		"voice_settings": {"stability": 0.5, "similarity_boost": 0.5},
 	})
 	var err: int = _http.request(url, headers, HTTPClient.METHOD_POST, body)
@@ -160,17 +168,32 @@ func _on_http_completed(_result: int, response_code: int, _headers: PackedString
 
 
 func _play_from_path(path: String, character: String, text: String) -> void:
+	# Two-path load matching Dialogue._play_cached:
+	#   - FileAccess works in editor for raw .mp3 on disk (and for freshly-
+	#     synthed files that haven't been imported yet — no .import sidecar
+	#     means ResourceLoader.load() would return null).
+	#   - ResourceLoader works in exports (raw .mp3 isn't in the .pck; only
+	#     the imported .mp3str form is, which load() resolves via .import).
+	# Try FileAccess first, fall back to ResourceLoader if it fails (catches
+	# stale-import cases where the file is "there" per Godot but FileAccess
+	# can't open it directly).
+	var stream: AudioStream = null
 	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		_log("play: FileAccess.open failed for %s" % path)
-		_dispatch_if_idle()
-		return
-	var mp3 := AudioStreamMP3.new()
-	mp3.data = file.get_buffer(file.get_length())
-	file.close()
+	if file != null:
+		var mp3 := AudioStreamMP3.new()
+		mp3.data = file.get_buffer(file.get_length())
+		file.close()
+		stream = mp3
+	else:
+		stream = load(path) as AudioStream
+		if stream == null:
+			_log("play: both FileAccess and ResourceLoader failed for %s" % path)
+			_dispatch_if_idle()
+			return
+		_log("play: FileAccess failed but ResourceLoader resolved %s" % path)
 	_playing = true
 	line_started.emit(character, text)
-	Audio.play_walkie(mp3)
+	Audio.play_walkie(stream)
 
 
 func _on_walkie_finished() -> void:
@@ -179,3 +202,5 @@ func _on_walkie_finished() -> void:
 	_playing = false
 	line_ended.emit()
 	_dispatch_if_idle()
+
+

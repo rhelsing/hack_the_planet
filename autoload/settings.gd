@@ -17,9 +17,13 @@ const PATH := "user://settings.cfg"
 
 const DEFAULTS := {
 	"audio": {
-		"master_volume_db": 0.0,
-		"music_volume_db": 0.0,
-		"sfx_volume_db": 0.0,
+		# First-launch defaults (used only when settings.cfg has no value
+		# stored). Slider values in the menu show as linear 0..1; these are
+		# their dB equivalents via linear_to_db(): 0.50 → -6.02, 0.33 → -9.63,
+		# 0.65 → -3.74. Returning users keep whatever they last set.
+		"master_volume_db": -6.02,    # ~50% slider
+		"music_volume_db": -20.0,     # 10% slider (linear_to_db(0.1))
+		"sfx_volume_db": -3.74,       # ~65% slider
 		"dialogue_volume_db": 0.0,
 		"ambience_volume_db": 0.0,
 	},
@@ -186,11 +190,18 @@ func _apply_environment(quality: String) -> void:
 			env.glow_enabled = true
 		"max":
 			env.ssr_enabled = true
-			env.ssr_max_steps = 48
+			env.ssr_max_steps = 64
 			env.ssil_enabled = true
 			env.ssao_enabled = true
-			env.sdfgi_enabled = true
-			env.volumetric_fog_density = 0.01
+			# SDFGI explicitly OFF: enabling it triggers a per-toggle voxel
+			# bake of every static MeshInstance in the scene. With the
+			# procedural city (~1600 buildings), the bake is a multi-second
+			# main-thread stall that looks like a freeze. The other Max-only
+			# bumps (SSR 64 steps, denser fog) carry the visual upgrade
+			# without the cost. Re-enable here only if SDFGI gets streaming
+			# / async support OR the city is downsized.
+			env.sdfgi_enabled = false
+			env.volumetric_fog_density = 0.015
 			env.glow_enabled = true
 
 

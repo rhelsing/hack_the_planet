@@ -34,11 +34,21 @@ class_name Beacon
 @export var visible_when_voice_ends: StringName = &""
 @export var visible_when_voice_match: String = ""
 
+## Optional relabel-on-voice-end trigger. When the matched line finishes,
+## `label` flips to `relabel_to`. Same character + substring semantics as
+## the visibility trigger, fully independent — both can be wired on one
+## beacon (e.g., a "trick" marker that appears on one line and changes
+## its name on another). Empty `relabel_when_voice_ends` = no relabel.
+@export var relabel_when_voice_ends: StringName = &""
+@export var relabel_when_voice_match: String = ""
+@export var relabel_to: String = ""
+
 ## Runtime state. The renderer reads this — toggle through `set_visible`
 ## or by setting flags / firing the configured voice line.
 var beacon_visible: bool = true
 
 var _voice_armed: bool = false
+var _relabel_armed: bool = false
 
 
 func _ready() -> void:
@@ -49,7 +59,7 @@ func _ready() -> void:
 	_apply_flag_gates()
 	if visible_when_flag != &"" or hide_when_flag != &"":
 		Events.flag_set.connect(_on_flag_set)
-	if visible_when_voice_ends != &"":
+	if visible_when_voice_ends != &"" or relabel_when_voice_ends != &"":
 		Companion.line_started.connect(_on_line_started)
 		Companion.line_ended.connect(_on_line_ended)
 		Walkie.line_started.connect(_on_line_started)
@@ -88,17 +98,23 @@ func _on_flag_set(id: StringName, value: Variant) -> void:
 
 
 func _on_line_started(character: String, text: String) -> void:
-	if String(visible_when_voice_ends) != character:
-		return
-	if not visible_when_voice_match.is_empty():
-		if not text.to_lower().contains(visible_when_voice_match.to_lower()):
-			return
-	if not _voice_armed:
-		print("[beacon] %s armed by voice: %s '%s'" % [name, character, text])
-	_voice_armed = true
+	if visible_when_voice_ends != &"" and String(visible_when_voice_ends) == character:
+		if visible_when_voice_match.is_empty() or text.to_lower().contains(visible_when_voice_match.to_lower()):
+			if not _voice_armed:
+				print("[beacon] %s armed by voice: %s '%s'" % [name, character, text])
+			_voice_armed = true
+	if relabel_when_voice_ends != &"" and String(relabel_when_voice_ends) == character:
+		if relabel_when_voice_match.is_empty() or text.to_lower().contains(relabel_when_voice_match.to_lower()):
+			if not _relabel_armed:
+				print("[beacon] %s relabel armed by voice: %s '%s'" % [name, character, text])
+			_relabel_armed = true
 
 
 func _on_line_ended() -> void:
+	if _relabel_armed:
+		_relabel_armed = false
+		print("[beacon] %s relabel: '%s' -> '%s'" % [name, label, relabel_to])
+		label = relabel_to
 	if not _voice_armed:
 		return
 	_voice_armed = false

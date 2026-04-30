@@ -17,9 +17,10 @@ const PROGRESSION: Array = [
 	["Hub — Pre-Level-1", [
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_intro"],
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_nudge"],
+		["dialogue_file", "res://dialogue/companion.dialogue"],
 	]],
 	["Level 1 — In-Level", [
-		["walkies", "res://level/level_1.tscn"],
+		["voice_nodes", "res://level/level_1.tscn"],
 		["dialogue_file", "res://dialogue/level_1_glitch.dialogue"],
 		["dialogue_file", "res://dialogue/level_1_glitch_2.dialogue"],
 		["dialogue_file", "res://dialogue/level_1_glitch_3.dialogue"],
@@ -30,7 +31,7 @@ const PROGRESSION: Array = [
 		["dialogue_stage", "res://dialogue/hub_nyx.dialogue", "stage_post_1"],
 	]],
 	["Level 2 — In-Level", [
-		["walkies", "res://level/level_2.tscn"],
+		["voice_nodes", "res://level/level_2.tscn"],
 		["dialogue_file", "res://dialogue/level_2_glitch.dialogue"],
 		["dialogue_file", "res://dialogue/level_2_nyx.dialogue"],
 		["dialogue_file_optional", "res://dialogue/glitch_2.dialogue"],
@@ -40,7 +41,7 @@ const PROGRESSION: Array = [
 		["dialogue_stage", "res://dialogue/hub_nyx.dialogue", "stage_post_2"],
 	]],
 	["Level 3 — In-Level", [
-		["walkies", "res://level/level_3.tscn"],
+		["voice_nodes", "res://level/level_3.tscn"],
 		["dialogue_file_optional", "res://dialogue/level_3_glitch.dialogue"],
 		["dialogue_file", "res://dialogue/level_3_splice_offer.dialogue"],
 	]],
@@ -49,15 +50,18 @@ const PROGRESSION: Array = [
 		["dialogue_stage", "res://dialogue/hub_nyx.dialogue", "stage_post_3"],
 	]],
 	["Level 4 — In-Level", [
-		["walkies", "res://level/level_4.tscn"],
+		["voice_nodes", "res://level/level_4.tscn"],
 		["dialogue_file", "res://dialogue/level_4_glitch.dialogue"],
 		["dialogue_file", "res://dialogue/level_4_dialtone.dialogue"],
 		["dialogue_file", "res://dialogue/level_4_nyx.dialogue"],
+		["dialogue_file", "res://dialogue/level_4_splice_showdown.dialogue"],
 	]],
 	["Hub — Post-Level-4", [
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_post_4"],
 		["dialogue_stage", "res://dialogue/hub_nyx.dialogue", "stage_post_4"],
 		["dialogue_file_optional", "res://dialogue/hub_post4_nyx.dialogue"],
+		["dialogue_file_optional", "res://dialogue/hub_post4_splice.dialogue"],
+		["dialogue_file_optional", "res://dialogue/hub_post4_glitch.dialogue"],
 	]],
 ]
 
@@ -94,28 +98,34 @@ Walkie triggers fire when the player overlaps each one's Area3D. They appear her
 
 func _render_item(item: Array) -> String:
 	match item[0]:
-		"walkies": return _render_walkies(item[1])
+		"voice_nodes": return _render_voice_nodes(item[1])
 		"dialogue_file": return _render_dialogue_file(item[1], false)
 		"dialogue_file_optional": return _render_dialogue_file(item[1], true)
 		"dialogue_stage": return _render_dialogue_stage(item[1], item[2])
 	return ""
 
 
-# --- Walkie extraction --------------------------------------------------
+# --- In-level voice nodes (walkies + respawn voice hints) ---------------
 
-func _render_walkies(scene_path: String) -> String:
+func _render_voice_nodes(scene_path: String) -> String:
 	if not FileAccess.file_exists(scene_path):
 		return "\n*(missing scene: %s)*\n" % _rel(scene_path)
 	var text := FileAccess.get_file_as_string(scene_path)
 	var walkie_id := _find_walkie_ext_id(text)
-	if walkie_id == "":
-		return "\n## Walkie Triggers (`%s`)\n\n*(no walkies in this scene)*\n" % _rel(scene_path)
-	var walkies := _extract_walkies(text, walkie_id)
-	if walkies.is_empty():
-		return "\n## Walkie Triggers (`%s`)\n\n*(walkie ext_resource present but no walkie nodes found)*\n" % _rel(scene_path)
-	var out := "\n## Walkie Triggers (`%s`) — %d total\n" % [_rel(scene_path), walkies.size()]
-	for w in walkies:
-		out += _format_walkie_chunk(w, scene_path)
+	var walkies := _extract_walkies(text, walkie_id) if walkie_id != "" else []
+	var respawn_zones := _extract_respawn_zones(text)
+	var out := ""
+	if walkies.is_empty() and respawn_zones.is_empty():
+		out += "\n## In-Level Voice Nodes (`%s`)\n\n*(no walkies or respawn voice hints in this scene)*\n" % _rel(scene_path)
+		return out
+	if not walkies.is_empty():
+		out += "\n## Walkie Triggers (`%s`) — %d total\n" % [_rel(scene_path), walkies.size()]
+		for w in walkies:
+			out += _format_walkie_chunk(w, scene_path)
+	if not respawn_zones.is_empty():
+		out += "\n## Respawn Voice Hints (`%s`) — %d total\n" % [_rel(scene_path), respawn_zones.size()]
+		for r in respawn_zones:
+			out += _format_respawn_chunk(r, scene_path)
 	return out
 
 
@@ -281,3 +291,61 @@ func _is_other_stage_header(line: String, current_stage: String) -> bool:
 
 func _rel(path: String) -> String:
 	return path.replace("res://", "")
+
+
+# --- Respawn voice hint extraction --------------------------------------
+#
+# RespawnMessageZones expose `voice_character = &"X"` + `voice_line = "..."`
+# inline on the node block (no walkie-trigger ext_resource indirection).
+# Detected purely by property presence on each node chunk.
+
+func _extract_respawn_zones(scene_text: String) -> Array:
+	var nodes: Array = []
+	var chunks := scene_text.split("[node ")
+	for chunk in chunks:
+		var name_re := RegEx.create_from_string('^name="([^"]+)"')
+		var nm := name_re.search(chunk)
+		if nm == null:
+			continue
+		var vc_raw := _grep_kv(chunk, "voice_character", "")
+		if vc_raw == "":
+			continue
+		var character := vc_raw.trim_prefix("&\"").trim_suffix("\"")
+		if character == "":
+			continue
+		var voice_line := _grep_kv(chunk, "voice_line", "")
+		if voice_line.begins_with("\"") and voice_line.ends_with("\""):
+			voice_line = voice_line.substr(1, voice_line.length() - 2)
+		if voice_line == "":
+			continue
+		var transform := _grep_kv(chunk, "transform", "")
+		var pos := _extract_position(transform)
+		nodes.append({
+			"name": nm.get_string(1),
+			"character": character,
+			"line": voice_line,
+			"position": pos,
+		})
+	return nodes
+
+
+func _format_respawn_chunk(r: Dictionary, scene_path: String) -> String:
+	return """
+<!-- source: %s -->
+<!-- type: respawn_voice_hint -->
+<!-- node: %s -->
+<!-- character: %s -->
+
+### `%s` — %s (respawn hint)
+**Position:** %s
+
+> %s
+""" % [
+		_rel(scene_path),
+		r.name,
+		r.character,
+		r.name,
+		r.character,
+		r.position,
+		r.line,
+	]

@@ -174,6 +174,8 @@ DialTone: So we find it first.
 	=> post_2_plan
 - Who is Splice?
 	=> post_2_who
+- How did he get into the sentinels?
+	=> post_2_how
 - You weren't expecting him.
 	=> post_2_admit
 - [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
@@ -225,14 +227,22 @@ DialTone: Run is putting it lightly.
 
 ~ post_2_who_ex
 
-DialTone: He was hers.
-Nyx: Was. Past tense.
+DialTone: They were a thing.
+Nyx: Were. Past tense.
 DialTone: She'd rather we didn't.
 Nyx: I'd rather we didn't.
 DialTone: Short version — bad call. She knows. He didn't take being told no.
 Nyx: Moving on.
 - Sorry I asked.
 	=> post_2_done
+- Onward.
+	=> post_2_done
+
+~ post_2_how
+
+DialTone: Sentinels are old code. He found a backdoor.
+Nyx: He made one.
+DialTone: Either way — they listen to him now.
 - Onward.
 	=> post_2_done
 
@@ -267,22 +277,58 @@ do GameState.set_flag("level_3_unlocked", true)
 
 ~ stage_post_3
 
-DialTone: He made you the offer. We heard it on the channel.
-DialTone: You said no.
+# Runner returns to hub after the L3 escape. Nyx and DialTone are
+# already arguing about what just happened. Player walks in on it.
+# This opening exchange plays before the menu — player is witness.
+
+Nyx: We shouldn't have sent him in. That was too dangerous.
+DialTone: But we got it. He got the disc.
+Nyx: He almost didn't.
+DialTone: He did, though.
+Nyx: He was off the channel for ninety seconds. Splice had him in a room.
+DialTone: And he walked out. With the disc.
+Nyx: Because he said no. Not because of us. Because of him.
+DialTone: ...yeah.
+DialTone: ...yeah, that's true.
+DialTone: We were sloppy. We owe him better.
+Nyx: We can't do that again. We **can't** —
+Nyx: ...
+Nyx: ...sorry. I'm sorry.
+DialTone: ...nothing to be sorry about.
+Nyx: ...hey.
+Nyx: How long have you been standing there?
+DialTone: We didn't hear him in there. Channel was dead.
+DialTone: What did he say?
 => post_3_menu
 
 ~ post_3_menu
 
-- Onward.
+- Bitter. World-rigged. He went on about being wronged.
+	=> post_3_world
+- It got personal. About Nyx.
+	=> post_3_personal
+- What's the plan now?
+	=> post_3_plan
+- I'm ready for the next one.
 	=> post_3_done
-- Why'd you let him talk to me alone?
-	=> post_3_channel
-- What's his angle?
-	=> post_3_angle
-- You didn't think I'd take it?
-	=> post_3_trust
 - [if GameState.get_flag("dialtone_messenger_thread", 0) == 3 /] Let's talk about how I got here.
 	=> post_3_messenger
+
+~ post_3_world
+
+DialTone: ...heh. He always was. Even back when.
+Nyx: He thinks the rules are rigged because they were rigged against him.
+Nyx: Difference is, he wants to be the one rigging them next.
+DialTone: That tracks.
+=> post_3_plan
+
+~ post_3_personal
+
+Nyx: ...yeah.
+Nyx: He's been doing that since I left.
+DialTone: We don't have to talk about that.
+Nyx: It's fine. He's wrong about whatever he said. Anyway.
+=> post_3_plan
 
 ~ post_3_messenger
 
@@ -290,45 +336,28 @@ DialTone: You found the breadcrumbs because I left them. Every dead-drop hint, e
 DialTone: Splice's offer wasn't the first test. It was the third.
 DialTone: You passed all three.
 do GameState.set_flag("dialtone_messenger_thread", 4)
-=> post_3_done
+=> post_3_plan
 
-~ post_3_channel
+~ post_3_plan
 
-DialTone: Couldn't block him. He owns half the routing now. We just listened.
-DialTone: Anything else?
-- What's his angle?
-	=> post_3_angle
-- You didn't think I'd take it?
-	=> post_3_trust
-- Onward.
-	=> post_3_done
-
-~ post_3_angle
-
-DialTone: He wants the Gibson root. We're the only thing in his way.
-DialTone: Reds run patrol. Greens are throwaway. He's saving the heavy ops for us.
-DialTone: Anything else?
-- Why'd you let him talk to me alone?
-	=> post_3_channel
-- You didn't think I'd take it?
-	=> post_3_trust
-- Onward.
-	=> post_3_done
-
-~ post_3_trust
-
-DialTone: Honestly? Not sure. Glad I was wrong.
-DialTone: Anything else?
-- Why'd you let him talk to me alone?
-	=> post_3_channel
-- What's his angle?
-	=> post_3_angle
-- Onward.
+DialTone: He showed his hand. He didn't mean to — he thought he'd already won.
+DialTone: That's our window.
+Nyx: He's cocky now. He'll take a bait we set.
+DialTone: We know where the last disc is. He doesn't know we know.
+DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do. He doesn't know that either.
+Nyx: We don't know what it does.
+DialTone: But the breadcrumbs say it'll turn the tables.
+DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
+- I'm ready.
 	=> post_3_done
 
 ~ post_3_done
 
-DialTone: One sector left. Whatever's at the bottom — we use it. We push him out.
+DialTone: We've got him, runner.
+DialTone: Last sector. Channel stays open this time. We're with you.
+DialTone: ...your call when we move.
+Nyx: He's never said that to anyone. [#model=eleven_v3]
+DialTone: ...nope.
 do GameState.set_flag("level_4_unlocked", true)
 => END
 
