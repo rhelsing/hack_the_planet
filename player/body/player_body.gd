@@ -2273,7 +2273,8 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 	_grind_progress += profile.grind_speed * _grind_direction * delta
 	var length: float = _grind_rail.curve.get_baked_length()
 	var exit_end: bool = _grind_progress >= length or _grind_progress <= 0.0
-	var jumped: bool = intent.jump_pressed
+	var jump_suppressed: bool = (Time.get_ticks_msec() / 1000.0) < _jump_suppressed_until
+	var jumped: bool = intent.jump_pressed and not jump_suppressed
 	pf.progress = clamp(_grind_progress, 0.0, length)
 	# Smoothly lerp the character onto the rail over ~0.2s instead of snapping.
 	# Ease-out curve so the approach feels smooth, not abrupt at the end.

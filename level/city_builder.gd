@@ -172,7 +172,6 @@ func _spawn_city() -> void:
 			if g is Node3D:
 				var p: Vector3 = (g as Node3D).global_position
 				grapple_xz.append(Vector2(p.x, p.z))
-	var grapple_radius_sq: float = grapple_avoid_radius * grapple_avoid_radius
 
 	# Snapshot rails — store curve + cached inverse transform so the per-cell
 	# check is just a curve get_closest_point + XZ distance compare. No
@@ -207,6 +206,12 @@ func _spawn_city() -> void:
 			var d: float = rng.randf_range(min_width, effective_max_width)
 			var h: float = rng.randf_range(min_height, max_height)
 			var local_pos: Vector3 = Vector3(cx, top_y_local + h * 0.5, cz)
+			# Half-diagonal of THIS building's XZ footprint. Inflate every
+			# avoidance radius by this so the check measures rail/path/grapple
+			# vs the building's actual edge, not its center. Without this, a
+			# 28m-wide building 5m from a rail passes a 4m-radius check while
+			# its 14m half-extent straddles the rail.
+			var building_half: float = 0.5 * sqrt(w * w + d * d)
 
 			# Path avoidance: sample the closest point on the curve to this
 			# cell (in path-local space) and compare XZ distance. Ignore Y
@@ -219,7 +224,8 @@ func _spawn_city() -> void:
 				var closest_world: Vector3 = path_node.global_transform * closest_path_local
 				var dx: float = cell_world.x - closest_world.x
 				var dz: float = cell_world.z - closest_world.z
-				if sqrt(dx * dx + dz * dz) < path_avoid_radius:
+				var path_threshold: float = path_avoid_radius + building_half
+				if dx * dx + dz * dz < path_threshold * path_threshold:
 					rejected_path += 1
 					continue
 
@@ -229,9 +235,11 @@ func _spawn_city() -> void:
 			if not grapple_xz.is_empty():
 				var cell_world_xz: Vector3 = global_transform * local_pos
 				var cxz := Vector2(cell_world_xz.x, cell_world_xz.z)
+				var grapple_threshold: float = grapple_avoid_radius + building_half
+				var grapple_threshold_sq: float = grapple_threshold * grapple_threshold
 				var hit_grapple: bool = false
 				for gxz in grapple_xz:
-					if cxz.distance_squared_to(gxz) < grapple_radius_sq:
+					if cxz.distance_squared_to(gxz) < grapple_threshold_sq:
 						hit_grapple = true
 						break
 				if hit_grapple:
@@ -244,14 +252,15 @@ func _spawn_city() -> void:
 			if not rails.is_empty():
 				var cell_world_rail: Vector3 = global_transform * local_pos
 				var hit_rail: bool = false
-				var rail_radius_sq: float = rail_avoid_radius * rail_avoid_radius
+				var rail_threshold: float = rail_avoid_radius + building_half
+				var rail_threshold_sq: float = rail_threshold * rail_threshold
 				for rail in rails:
 					var cell_local: Vector3 = (rail.xform_inv as Transform3D) * cell_world_rail
 					var closest_local: Vector3 = (rail.curve as Curve3D).get_closest_point(cell_local)
 					var closest_world: Vector3 = (rail.xform as Transform3D) * closest_local
 					var dxr: float = cell_world_rail.x - closest_world.x
 					var dzr: float = cell_world_rail.z - closest_world.z
-					if dxr * dxr + dzr * dzr < rail_radius_sq:
+					if dxr * dxr + dzr * dzr < rail_threshold_sq:
 						hit_rail = true
 						break
 				if hit_rail:

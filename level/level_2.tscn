@@ -28,8 +28,9 @@
 [ext_resource type="Resource" uid="uid://bqgoadmxxuq8y" path="res://dialogue/level_2_glitch.dialogue" id="60_l2glitchdlg"]
 [ext_resource type="AudioStream" uid="uid://cmkxnqaxjfjvi" path="res://audio/music/dust_motions.mp3" id="61_dustmotions"]
 [ext_resource type="AudioStream" uid="uid://bo37srf1txc6y" path="res://audio/cutscene/dramatic_braam.mp3" id="62_braam"]
+[ext_resource type="PackedScene" uid="uid://dflagwalk0001" path="res://interactable/flag_walkie/flag_walkie.tscn" id="63_flagwalk"]
 
-[sub_resource type="Curve3D" id="Curve3D_iugbs"]
+[sub_resource type="Curve3D" id="Curve3D_dip6q"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -546,7 +547,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.469543, 1.1705515, -60.88
 [node name="Nyx2" parent="." index="107" unique_id=1915612002 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -7.898148, 0.6830478, -2.5471535)
 character = &"Nyx"
-line = "Hey {player_handle}, we are tracking your signal. This should be an easy one. Point A to Point B."
+line = "Hey {player_handle}, we're tracking your signal. This should be an easy one. Point A to Point B."
 require_flag = &""
 
 [node name="Nyx3" parent="." index="108" unique_id=1109282511 instance=ExtResource("54_walkie")]
@@ -562,94 +563,129 @@ transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -44.886158, 34
 line = "We need to get you out of there runner."
 require_flag = &""
 
-[node name="Nyx6" parent="." index="110" unique_id=624766044 instance=ExtResource("54_walkie")]
-transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 30.412884, 14.665047)
+[node name="SpliceNewTraceWalkie" parent="." index="110" unique_id=-52543054 instance=ExtResource("63_flagwalk")]
 character = &"Splice"
 line = "Interesting. Do I detect a **new trace** on the wire?"
-require_flag = &""
-
-[node name="Nyx7" parent="." index="111" unique_id=803060109 instance=ExtResource("54_walkie")]
-transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 30.412884, 33.760468)
-character = &"Nyx"
-line = "Oh God. This isn't good."
-require_flag = &""
+trigger_flag = &"l2_hack_terminal"
 
 [node name="Nyx8" parent="." index="112" unique_id=2112023856 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -115.14115, 71.95591, 38.656693)
 line = "Nyx is on her way in. Splice is jamming your beacon. You'll need to hack the terminals to find her location."
 require_flag = &""
 
-[node name="EnemySpawner15" parent="." index="114" unique_id=96146603 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner15" parent="." index="113" unique_id=96146603 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.894003, 2.0722532, -15.826503)
 
-[node name="EnemySpawner16" parent="." index="115" unique_id=967723647 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner16" parent="." index="114" unique_id=967723647 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.934942, 2.0722532, -17.490162)
 
-[node name="EnemySpawner22" parent="." index="116" unique_id=1364014809 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner22" parent="." index="115" unique_id=1364014809 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.513054, 26.579395, -34.345562)
 
-[node name="EnemySpawner18" parent="." index="117" unique_id=1369034836 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner18" parent="." index="116" unique_id=1369034836 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.454226, 2.270433, -25.231508)
 
-[node name="EnemySpawner17" parent="." index="118" unique_id=610067395 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner17" parent="." index="117" unique_id=610067395 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.883062, 2.0722532, -13.137095)
 
-[node name="EnemySpawner19" parent="." index="119" unique_id=1818058252 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner19" parent="." index="118" unique_id=1818058252 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.036095, 2.0722532, -47.570618)
 
-[node name="EnemySpawner20" parent="." index="120" unique_id=1492336122 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner20" parent="." index="119" unique_id=1492336122 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.077034, 2.0722532, -49.234276)
 
-[node name="EnemySpawner21" parent="." index="121" unique_id=720549646 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner21" parent="." index="120" unique_id=720549646 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.025154, 2.0722532, -44.88121)
 
-[node name="EnemySpawner" parent="." index="122" unique_id=1759914157 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner" parent="." index="121" unique_id=1759914157 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -158.71867, 71.12198, 28.308245)
 
-[node name="EnemySpawner2" parent="." index="123" unique_id=1156514588 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner2" parent="." index="122" unique_id=1156514588 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -155.67383, 71.12198, 27.023476)
 
-[node name="Rail" parent="." index="124" unique_id=55787822 instance=ExtResource("25_613yi")]
+[node name="Rail" parent="." index="123" unique_id=55787822 instance=ExtResource("25_613yi")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.295723, 23.78452, -55.787514)
-curve = SubResource("Curve3D_iugbs")
+curve = SubResource("Curve3D_dip6q")
 
-[node name="CSGBox3D14" type="CSGBox3D" parent="." index="125" unique_id=1736805575]
+[node name="CSGBox3D14" type="CSGBox3D" parent="." index="124" unique_id=1736805575]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -38.48344, 11.406054, -20.938126)
 use_collision = true
 size = Vector3(8, 20.194336, 8.774902)
 material = ExtResource("26_xr530")
 
-[node name="CSGBox3D15" type="CSGBox3D" parent="." index="126" unique_id=502605319]
+[node name="CSGBox3D15" type="CSGBox3D" parent="." index="125" unique_id=502605319]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -29.742428, 78.88154, 11.608215)
 use_collision = true
 size = Vector3(8, 20.194336, 8.774902)
 material = ExtResource("26_xr530")
 
-[node name="CSGBox3D16" type="CSGBox3D" parent="." index="127" unique_id=1661715798]
+[node name="CSGBox3D16" type="CSGBox3D" parent="." index="126" unique_id=1661715798]
 transform = Transform3D(-0.003263869, 0, 0.9999947, 0, 1, 0, -0.9999947, 0, -0.003263869, -70.33771, 78.88154, 11.608215)
 use_collision = true
 size = Vector3(8, 20.194336, 8.774902)
 material = ExtResource("26_xr530")
 
-[node name="dialtone_talking_splice" parent="." index="128" unique_id=1015246128 instance=ExtResource("54_walkie")]
+[node name="dialtone_talking_splice" parent="." index="127" unique_id=1015246128 instance=ExtResource("54_walkie")]
 transform = Transform3D(4.094627, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -45.281414, 41.610558, 66.09217)
 line = "You cleared them. Good. Listen — someone's hacking sentinels in a way we haven't seen. We think it's Splice. If it is, we need you out. Working on it."
 require_flag = &""
 
-[node name="EnemySpawner3" parent="." index="130" unique_id=582643967 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner3" parent="." index="128" unique_id=582643967 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -292.38852, 71.967735, 48.030693)
 
-[node name="EnemySpawner4" parent="." index="131" unique_id=651853538 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner4" parent="." index="129" unique_id=651853538 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -292.5397, 71.967735, 42.46225)
 
-[node name="EnemySpawner5" parent="." index="132" unique_id=21891871 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner5" parent="." index="130" unique_id=21891871 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -286.9725, 71.967735, 47.330208)
 
-[node name="EnemySpawner6" parent="." index="133" unique_id=1922717170 instance=ExtResource("24_fpfi6")]
+[node name="EnemySpawner6" parent="." index="131" unique_id=1922717170 instance=ExtResource("24_fpfi6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -281.6411, 71.967735, 41.835075)
 
-[node name="splice_musing_1" parent="." index="134" unique_id=1260040209 instance=ExtResource("54_walkie")]
+[node name="splice_musing_1" parent="." index="132" unique_id=1260040209 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -159.71008, 71.95591, 58.543922)
 character = &"Splice"
 line = "The **mouse** looking for the cheese will often find the **trap**."
 require_flag = &""
+
+[node name="Coin8" parent="." index="133" unique_id=227320652 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.172632, 68.77018, 26.091707)
+
+[node name="Coin9" parent="." index="134" unique_id=650266883 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.492573, 68.77018, 58.960724)
+
+[node name="Coin10" parent="." index="135" unique_id=573166150 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.573723, 68.77018, 78.147766)
+
+[node name="Coin11" parent="." index="136" unique_id=579831264 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.949352, 68.77018, 75.02206)
+
+[node name="Coin12" parent="." index="137" unique_id=380121745 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.85079, 68.77018, 74.99896)
+
+[node name="Coin13" parent="." index="138" unique_id=544221014 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -69.580154, 68.77018, 59.403755)
+
+[node name="Coin14" parent="." index="139" unique_id=468263279 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.22572, 68.77018, 28.45771)
+
+[node name="Coin15" parent="." index="140" unique_id=683169626 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.72885, 74.86441, 48.406258)
+
+[node name="Coin16" parent="." index="141" unique_id=1189405289 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -156.85478, 71.22975, 29.506569)
+
+[node name="Coin17" parent="." index="142" unique_id=1921640409 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -207.69247, 71.03986, 74.75658)
+
+[node name="Coin18" parent="." index="143" unique_id=1469787197 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -216.48969, 74.86441, 47.13235)
+
+[node name="Coin19" parent="." index="144" unique_id=1058727801 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -281.0424, 72.07551, 68.80191)
+
+[node name="Coin20" parent="." index="145" unique_id=1225550206 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -288.78445, 72.07551, 70.34294)
+
+[node name="Coin21" parent="." index="146" unique_id=349126616 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -284.0227, 72.07551, 62.472775)

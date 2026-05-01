@@ -239,6 +239,16 @@ func _enter_cinematic(actor: Node3D) -> void:
 	if should_play_walk_anim and skin != null and skin.has_method(&"move"):
 		skin.call(&"move")
 
+	# Snap skin to face the walk direction so the body translates forward,
+	# not sideways/backwards. Phase 2 tweens from here to look_at_target after
+	# arrival. Skipped on small nudges (idle pose, no walk to align).
+	if should_play_walk_anim and skin != null and approach_node != null:
+		var walk_dir: Vector3 = approach_node.global_position - actor.global_position
+		walk_dir.y = 0.0
+		if walk_dir.length_squared() > 0.0001:
+			var walk_yaw_world: float = atan2(walk_dir.x, walk_dir.z) + deg_to_rad(skin_forward_offset_deg)
+			skin.rotation.y = walk_yaw_world - actor.global_rotation.y
+
 	var walk_tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	if approach_node != null:

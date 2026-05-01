@@ -7,7 +7,6 @@ if GameState.get_flag("l4_invention_terminal_solved", false)
 Glitch: Hey — Runner. I — uh. I've been working on something.
 Glitch: That platform. Over there. Step on for a sec.
 Glitch: Trust me. Mostly.
-Glitch: So — I'm not really supposed to take sides. It goes against my programming.
 Glitch: When you stand on it... the reds in range. They kind of listen. To you. For a bit.
 Glitch: It's not perfect. But it's something.
 => stage_0_menu

@@ -209,7 +209,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro2" parent="." index="28" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "I see you've started collecting the Jolt Cola — all the sugar and twice the caffeine. The more you collect, the greater your mods."
+line = "I see you've started collecting the Jolt Cola — all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
 require_flag = &""
 
 [node name="Nyx" parent="." index="29" unique_id=1420528326 instance=ExtResource("3_companion")]

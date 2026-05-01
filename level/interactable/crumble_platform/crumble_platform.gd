@@ -38,21 +38,42 @@ enum Phase { IDLE, SHAKING, CRUMBLING, GONE }
 		size = value
 		_apply_size()
 
+@export_group("Audio")
+## Round-robin pool. One clip per crumble — index cycles across all instances
+## so back-to-back falls don't repeat. Defaults to the 5 glitch-death stingers
+## the maze puzzle uses for its fail SFX.
+@export var glitch_sounds: Array[AudioStream] = [
+	preload("res://audio/sfx/enemy_deaths/glitch_death_1.wav"),
+	preload("res://audio/sfx/enemy_deaths/glitch_death_2.wav"),
+	preload("res://audio/sfx/enemy_deaths/glitch_death_3.wav"),
+	preload("res://audio/sfx/enemy_deaths/glitch_death_4.wav"),
+	preload("res://audio/sfx/enemy_deaths/glitch_death_5.wav"),
+]
+@export_range(-30.0, 12.0) var glitch_volume_db: float = 0.0
+## Loops while the deck is shaking — same hacking-puzzle buzz the maze uses
+## for its slide loop. Stops the moment the deck starts to crumble.
+@export var shake_sound: AudioStream = preload("res://audio/sfx/maze_buzz.mp3")
+@export_range(-30.0, 12.0) var shake_volume_db: float = -6.0
+## Glitch overlay value at the end of the shake phase. The crumble continues
+## from here to 1.0 — keeps the chromatic-aberration ramp continuous instead
+## of popping back to 0 at the start of the fall.
+@export_range(0.0, 1.0) var shake_glitch_peak: float = 0.25
+
 @export_group("Timeline")
 ## Seconds the deck shakes after first contact, before it crumbles.
 @export var shake_duration: float = 3.0
 ## Peak shake amplitude in meters; ramps in quadratically over `shake_duration`
 ## so the destabilization reads as accelerating.
-@export var shake_amplitude: float = 0.05
-## Seconds the deck takes to fall away. Short = "yanked from under you."
-@export var crumble_duration: float = 0.6
+@export var shake_amplitude: float = 0.1
+## Seconds the deck takes to fall away.
+@export var crumble_duration: float = 2.0
 ## Distance the deck drops over `crumble_duration` (with QUAD/EASE_IN curve so
 ## it accelerates into the fall — pulls away from a player who's now in
 ## free-fall under regular gravity).
 @export var crumble_drop: float = 16.0
 ## Total seconds from first contact until the deck snaps back. The remainder
 ## (after shake + crumble) is the "gone" interval.
-@export var reset_after_contact: float = 5.0
+@export var reset_after_contact: float = 10.0
 
 @onready var _deck: Node3D = $Deck
 @onready var _box: CSGBox3D = $Deck/Box
@@ -65,6 +86,12 @@ var _deck_base_position: Vector3 = Vector3.ZERO
 var _phase: int = Phase.IDLE
 var _shake_t: float = 0.0
 var _tween: Tween = null
+var _sfx_player: AudioStreamPlayer3D = null
+var _shake_sfx_player: AudioStreamPlayer3D = null
+
+# Cross-instance round-robin. Static so two platforms breaking back-to-back
+# play different stingers regardless of which instance fires first.
+static var _glitch_idx: int = 0
 
 # Class-level overrides driven by debug panel. NAN = "use my @export."
 # Shared across all instances for global tuning.
@@ -87,6 +114,24 @@ func _ready() -> void:
 	_apply_size()
 	_deck_base_position = _deck.position
 	_trigger.body_entered.connect(_on_body_entered)
+	_sfx_player = AudioStreamPlayer3D.new()
+	_sfx_player.bus = &"SFX"
+	_sfx_player.unit_size = 6.0
+	_sfx_player.max_distance = 35.0
+	_deck.add_child(_sfx_player)
+	# Shake loop — duplicate so we can flip `loop` on without mutating the
+	# shared resource other systems may use unlooped (matches maze_puzzle.gd).
+	if shake_sound != null:
+		var loop_stream: AudioStream = shake_sound.duplicate()
+		if "loop" in loop_stream:
+			loop_stream.loop = true
+		_shake_sfx_player = AudioStreamPlayer3D.new()
+		_shake_sfx_player.bus = &"SFX"
+		_shake_sfx_player.unit_size = 6.0
+		_shake_sfx_player.max_distance = 35.0
+		_shake_sfx_player.stream = loop_stream
+		_shake_sfx_player.volume_db = shake_volume_db
+		_deck.add_child(_shake_sfx_player)
 	_register_debug_panel()
 
 
@@ -103,6 +148,9 @@ func _process(delta: float) -> void:
 		randf_range(-amp, amp),
 		randf_range(-amp, amp),
 		randf_range(-amp, amp))
+	# Subtle glitch overlay during shake — same quadratic ramp, capped at
+	# `shake_glitch_peak`. Crumble continues the ramp from this value to 1.0.
+	_set_glitch_progress(prog * prog * shake_glitch_peak)
 
 
 func _on_body_entered(body: Node) -> void:
@@ -118,6 +166,8 @@ func _on_body_entered(body: Node) -> void:
 func _enter_shaking() -> void:
 	_phase = Phase.SHAKING
 	_shake_t = 0.0
+	if _shake_sfx_player != null:
+		_shake_sfx_player.play()
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	_tween = create_tween()
@@ -127,18 +177,26 @@ func _enter_shaking() -> void:
 
 func _enter_crumbling() -> void:
 	_phase = Phase.CRUMBLING
+	_play_glitch_sfx()
+	if _shake_sfx_player != null and _shake_sfx_player.playing:
+		_shake_sfx_player.stop()
 	var crumble_t: float = _eff_crumble_duration()
 	var drop_target_y: float = _deck_base_position.y - _eff_crumble_drop()
 	# Snap deck back to base before tweening — shake left it at a random
 	# offset; if we don't, the QUAD curve starts from the wrong spot.
 	_deck.position = _deck_base_position
+	# Continue the glitch ramp from wherever shake left it (~shake_glitch_peak)
+	# up to 1.0 — avoids a pop back to 0 at the start of the fall.
+	var glitch_start: float = 0.0
+	if _glitch_overlay != null:
+		glitch_start = float(_glitch_overlay.get_shader_parameter(&"glitch_progress"))
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	_tween = create_tween()
 	_tween.set_parallel(true)
 	_tween.tween_property(_deck, ^"position:y", drop_target_y, crumble_t) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	_tween.tween_method(_set_glitch_progress, 0.0, 1.0, crumble_t * 0.85)
+	_tween.tween_method(_set_glitch_progress, glitch_start, 1.0, crumble_t * 0.85)
 	_tween.chain().tween_callback(_enter_gone)
 
 
@@ -169,6 +227,18 @@ func _reset() -> void:
 func _set_glitch_progress(v: float) -> void:
 	if _glitch_overlay != null:
 		_glitch_overlay.set_shader_parameter(&"glitch_progress", v)
+
+
+func _play_glitch_sfx() -> void:
+	if _sfx_player == null or glitch_sounds.is_empty():
+		return
+	var stream: AudioStream = glitch_sounds[_glitch_idx % glitch_sounds.size()]
+	_glitch_idx = (_glitch_idx + 1) % glitch_sounds.size()
+	if stream == null:
+		return
+	_sfx_player.stream = stream
+	_sfx_player.volume_db = glitch_volume_db
+	_sfx_player.play()
 
 
 func _apply_palette() -> void:

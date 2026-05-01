@@ -1,7 +1,8 @@
 ~ start
 
-Nyx: Hey {{HandlePicker.chosen_name()}}. Still in one piece.
-Nyx: Don't. Anyone would've needed pulling out of that.
+Nyx: Hey {{HandlePicker.chosen_name()}}, still in one piece?
+- Thanks for..
+Nyx: Don't.. anyone would have needed help out of that.
 Nyx: Let's get out of here before Splice warps in.
 do LevelProgression.advance()
 => END

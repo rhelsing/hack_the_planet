@@ -156,8 +156,8 @@ do GameState.set_flag("level_2_unlocked", true)
 ~ stage_post_2
 
 DialTone: {{HandlePicker.chosen_name()}}. You made it back.
-Nyx: We helped him make it back.
-DialTone: We did. We did.
+Nyx: He wouldn't have made it back if we weren't there to pull him out.
+DialTone: That's true. That's true.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
 DialTone: And he tipped his hand. He's hunting something.
@@ -183,7 +183,7 @@ DialTone: So we find it first.
 ~ post_2_plan
 
 DialTone: Three ways to look. Three of us looking.
-DialTone: We split. Stay synced on the channel. First one to spot it pings, we converge.
+DialTone: We split.. stay synced up on the channel..
 DialTone: Your portal's queued behind us.
 do GameState.set_flag("level_3_unlocked", true)
 Nyx: He'll be hunting too. Move fast. Read the room.

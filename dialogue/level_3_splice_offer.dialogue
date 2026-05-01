@@ -55,7 +55,7 @@ Splice: You'll think about this. Probably tonight.
 Splice: When you do — channel's open.
 - Actually, I'm in.
 	=> splice_committed
-- Got it.
+- Get off my channel.
 	=> splice_refused
 
 ~ splice_nyx
@@ -92,7 +92,7 @@ Splice: Hold still. This is the —
 Splice: Wait.
 Splice: What — what's happening?
 Splice: My access — my access is —
-Splice: **No**. No no no.
+Splice: **No**. No no **NO**!
 DialTone: Got him. Go go go. [#walkie]
 Nyx: {{HandlePicker.chosen_name()}}, you have a window. We can't hold this. **Run**. [#walkie]
 Splice: I'll find you again. I will **find you**, runner.

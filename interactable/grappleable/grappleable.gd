@@ -37,5 +37,11 @@ func _ready() -> void:
 ## Called each frame by GrappleAbility — true when the player is facing us
 ## within range. Cheaper than polling from here every tick.
 func set_prompt_visible(v: bool) -> void:
-	if _label != null:
-		_label.visible = v
+	if _label == null:
+		return
+	# Re-format on every show so the bracketed glyph follows the active
+	# device. Without this, the label freezes on whatever was current at
+	# _ready and never flips when the player swaps keyboard↔gamepad.
+	if v:
+		_label.text = Glyphs.format(prompt_text)
+	_label.visible = v
