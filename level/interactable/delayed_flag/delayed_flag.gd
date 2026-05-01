@@ -5,6 +5,12 @@ class_name DelayedFlag
 ## true (or immediately on _ready when `arm_flag` is empty). Single-shot,
 ## persistent — won't re-fire across reloads if `done_flag` is already set.
 ##
+## "Becomes true" is a live transition: if `arm_flag` is already true at
+## _ready (e.g. loaded from a save past this point), we do NOT fire —
+## we wait for a fresh `set_flag` call this session. This stops the
+## chain from re-arming on every load when `arm_flag` is persisted but
+## `done_flag` is session-reset (see GameState._SESSION_RESET_FLAGS).
+##
 ## Use as a general timer utility: "fire flag X seconds after Y", "wait
 ## for cutscene to end + 5s before unlocking the door", etc.
 
@@ -22,10 +28,7 @@ func _ready() -> void:
 	if arm_flag == &"":
 		_run.call_deferred()
 		return
-	if bool(GameState.get_flag(arm_flag, false)):
-		_run.call_deferred()
-	else:
-		Events.flag_set.connect(_on_flag_set)
+	Events.flag_set.connect(_on_flag_set)
 
 
 func _on_flag_set(id: StringName, value: Variant) -> void:

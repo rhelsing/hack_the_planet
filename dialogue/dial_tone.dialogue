@@ -40,7 +40,7 @@ DialTone: Hey — time's ticking.
 
 - Are you who messaged me?
 	DialTone: ...maybe.
-	DialTone: Let's just say I noticed you. The way you asked questions on neon-archive intrigued me.
+	DialTone: Let's just say I noticed you. The way you asked questions on Hacker News intrigued me.
 	DialTone: I wanted to see what you were made of.
 	do GameState.set_flag("dialtone_messenger_thread", 1)
 - Who's Nyx?
@@ -48,7 +48,7 @@ DialTone: Hey — time's ticking.
 - What am I looking for down there?
 	DialTone: Her signal. Drifting in the static — flickering between sectors. You'll know it when you see it.
 - Why can't you go yourself?
-	DialTone: Local node's flagged to my address. I jack in from here, the whole mainframe goes dark.
+	DialTone: Local node's flagged to my address. I jack in from here, it alerts **the authorities**. No joke.
 	DialTone: You're a clean IP — you can slip through.
 - [if !GameState.get_flag("dialtone_greeted", false) /] I'm in. Where's the portal?
 	=> intro_done
@@ -117,8 +117,7 @@ DialTone: What else would you like to know?
 - [if GameState.get_flag("post_1_asked_explain", false) and GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
 	DialTone: Oh, **those**. Yeah. Spent a few weeks just lurking.
 	Nyx: That's a habit, by the way. The lurking.
-	DialTone: You had a particular flavor — kept asking what nobody else was asking.
-	Nyx: Takes one to know one.
+	DialTone: You had a particular flavor — kept asking what nobody else was asking. Wanted to see what you were made of.
 	do GameState.set_flag("dialtone_messenger_thread", 2)
 - So what's next?
 	=> post_1_done
@@ -128,8 +127,8 @@ DialTone: What else would you like to know?
 ~ post_1_done
 
 DialTone: Alright — got the next ping queued. Softball, this time. Real one.
-DialTone: Prove your mettle. Get on the board.
-DialTone: Easiest hop on the grid.
+DialTone: Prove your mettle.
+DialTone: Easiest hop on the grid - Just a standard data grab.
 Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
 => END
@@ -144,8 +143,8 @@ if GameState.get_flag("post_2_opener_seen", false)
 	=> post_2_entry
 
 DialTone: {{HandlePicker.chosen_name()}}. You made it back.
-Nyx: He wouldn't have made it back if we weren't there to pull him out.
-DialTone: That's true. That's true.
+Nyx: He wouldn't have made it back if I wasn't there to pull him out.
+DialTone: Well, that's true.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
 DialTone: And he tipped his hand. He's hunting something.
@@ -175,14 +174,14 @@ DialTone: You got the plan?
 
 - So what's the plan?
 	DialTone: Three ways to look. Three of us looking.
-	DialTone: We split.. stay synced up on the channel..
+	DialTone: We split.. stay synced up on the channel.
 	DialTone: Your portal's queued behind us.
 	do GameState.set_flag("level_3_unlocked", true)
-	Nyx: Splice'll be hunting too. Move fast. Read the room.
+	Nyx: Splice will be hunting too. Move fast.
 - What am I looking for?
 	DialTone: A signature. Something that doesn't fit the sector it's in.
 	DialTone: A file. A routing trick. A door that wasn't there yesterday.
-	DialTone: You'll know.
+	DialTone: You'll know it when you see it.
 	do GameState.set_flag("post_2_asked_target", true)
 - [if GameState.get_flag("post_2_asked_target", false) /] Vague.
 	Nyx: DialTone gets vaguer when he doesn't know.
@@ -227,8 +226,7 @@ DialTone: You got the plan?
 
 ~ post_2_done
 
-DialTone: We move when you do.
-DialTone: Catch up at the next portal when we have it.
+DialTone: Alright let's get moving runner.
 do GameState.set_flag("level_3_unlocked", true)
 => END
 
@@ -252,9 +250,8 @@ Nyx: Because he said no. Not because of us. Because of him.
 DialTone: ...yeah.
 DialTone: ...yeah, that's true.
 DialTone: We were sloppy. We owe him better.
-Nyx: We can't do that again. We just **can't** —
-Nyx: ...
-Nyx: ...sorry. I'm sorry.
+Nyx: We can't do that again. We just **can't** 
+Nyx: sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
 Nyx: ...hey.
 Nyx: How long were you standing there?
@@ -280,7 +277,7 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 ~ post_3_questions
 
 - Bitter. World-rigged. He went on about being wronged.
-	DialTone: ...heh. Splice always was. Even back when.
+	DialTone: heh. Splice always was like that. Even back when.
 	Nyx: He thinks the rules are **rigged** because they were **rigged** against him.
 	Nyx: Difference is, he wants to be the one rigging them next.
 	DialTone: That tracks.
@@ -326,9 +323,9 @@ if !GameState.get_flag("post_3_plan_revealed", false)
 	do GameState.set_flag("post_3_plan_revealed", true)
 DialTone: We've got him, runner.
 DialTone: Last sector.
-DialTone: ...**your** call when we move.
-Nyx: ...He's never said that to anyone. [#model=eleven_v3]
-DialTone: ...nope.
+DialTone: **Your** call when we move.
+Nyx: He's never said that to anyone. [#model=eleven_v3]
+DialTone: nope.
 do GameState.set_flag("level_4_unlocked", true)
 => END
 

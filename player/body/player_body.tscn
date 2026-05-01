@@ -11,6 +11,9 @@
 [ext_resource type="Script" uid="uid://cq4sl3t8j2le1" path="res://player/abilities/grapple_ability_spring.gd" id="10_grapple_ability"]
 [ext_resource type="Script" uid="uid://b8sx8noy3avcu" path="res://player/abilities/god_ability.gd" id="11_god_ability"]
 [ext_resource type="AudioStream" uid="uid://dxn1grindrail" path="res://player/sounds/rail_grind.mp3" id="12_grind"]
+[ext_resource type="AudioStream" uid="uid://bi15bkxydt61b" path="res://audio/sfx/grapple/launch_grapple_until_pass_node.mp3" id="13_grapfire"]
+[ext_resource type="AudioStream" uid="uid://cojmik3qdficg" path="res://audio/sfx/grapple/at_node_grapple.mp3" id="14_grapbite"]
+[ext_resource type="AudioStream" uid="uid://b3mrm0rmpowp" path="res://audio/sfx/grapple/grapples_playing_whole_time_until_landing.mp3" id="15_grapswing"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_e8pdu"]
 radius = 0.4
@@ -75,6 +78,21 @@ volume_db = -2.0
 unique_name_in_owner = true
 stream = ExtResource("12_grind")
 volume_db = -2.0
+
+[node name="GrappleFireSound" type="AudioStreamPlayer3D" parent="." unique_id=337853262]
+unique_name_in_owner = true
+stream = ExtResource("13_grapfire")
+volume_db = 0.0
+
+[node name="GrappleBiteSound" type="AudioStreamPlayer3D" parent="." unique_id=337853263]
+unique_name_in_owner = true
+stream = ExtResource("14_grapbite")
+volume_db = 0.0
+
+[node name="GrappleSwingSound" type="AudioStreamPlayer3D" parent="." unique_id=337853264]
+unique_name_in_owner = true
+stream = ExtResource("15_grapswing")
+volume_db = 0.0
 
 [node name="GrindSparks" type="GPUParticles3D" parent="." unique_id=205210290]
 unique_name_in_owner = true

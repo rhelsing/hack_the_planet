@@ -1972,7 +1972,7 @@ func _on_respawn_message_armed(text: String) -> void:
 # beat, not after a long settle. dies_permanently=true pawns (enemies)
 # skip this entirely; they have no respawn flow and the hint queue stays
 # empty by construction.
-const _RESPAWN_HINT_LEAD_IN: float = 1.0
+const _RESPAWN_HINT_LEAD_IN: float = 3.0
 
 func _emit_pending_respawn_hints() -> void:
 	if dies_permanently or _pending_respawn_messages.is_empty():

@@ -251,8 +251,22 @@ func _thaw_pawn(pawn: Node) -> void:
 func _on_unfreeze_flag_set(id: StringName, value: Variant) -> void:
 	if id != freeze_pawns_until_flag or not bool(value):
 		return
-	print("[stage-thaw] flag %s fired — thawing %d pawns" % [id, _frozen_pawns.size()])
-	for pawn: Node in _frozen_pawns:
+	# Snapshot + validity filter before iterating. Same gotcha as
+	# `_despawn_group` (see comment there): typed `for x: Node in arr`
+	# loops crash on the loop-var assignment when arr holds a freed
+	# Object reference. A frozen pawn can be freed between freeze and
+	# thaw (kill plane, despawn, etc.) — the underlying cause needs
+	# investigation, but this guard keeps the thaw path crash-free.
+	var alive: Array[Node] = []
+	var dead_count: int = 0
+	for pawn in _frozen_pawns:
+		if is_instance_valid(pawn):
+			alive.append(pawn)
+		else:
+			dead_count += 1
+	print("[stage-thaw] flag %s fired — thawing %d pawns (%d freed before thaw)" % [
+		id, alive.size(), dead_count])
+	for pawn: Node in alive:
 		_thaw_pawn(pawn)
 	_frozen_pawns.clear()
 	if Events.flag_set.is_connected(_on_unfreeze_flag_set):

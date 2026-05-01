@@ -50,11 +50,13 @@ Nyx: Talk.
 	Nyx: I pull everyone's trace.
 	Nyx: Don't read into it.
 - What do you want?
-	Nyx: DialTone picked you. He's calling it casting.
-	Nyx: I want him to be wrong.
+	Nyx: DialTone scouted you. He's calling it casting.
+	Nyx: But I have doubts
 	do GameState.set_flag("nyx_post_1_asked_dare", true)
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Wrong about what?
-	Nyx: About you being easy to read.
+- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Doubts about what?
+	Nyx: About you being worth our time.
+	Nyx: About you being any different than others.
+	Nyx: But I would be happy to be proved wrong.
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
 	Nyx: DialTone's smug enough already.
 - All right, see you on the wire.
@@ -160,7 +162,7 @@ if GameState.get_flag("nyx_post_3_opener_seen", false)
 
 Nyx: Hey.
 Nyx: Off-channel.
-Nyx: ...DialTone's busy convincing himself getting you out was his idea. Give it a minute.
+Nyx: DialTone's busy convincing himself getting you out was his idea. Give it a minute.
 do GameState.set_flag("nyx_post_3_opener_seen", true)
 => nyx_post_3_questions
 
@@ -181,8 +183,8 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 
 - About earlier...
 	Nyx: Yeah.
-	Nyx: I don't do that.
-	Nyx: ...the part that's bugging me is I didn't try to hide it.
+	Nyx: I don't do that. Lose my cool.
+	Nyx: The part that's bugging me is I didn't try to hide it.
 	Nyx: From you, I mean. That's new.
 	do GameState.set_flag("nyx_post_3_asked_earlier", true)
 - [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] Glad you didn't.
@@ -190,18 +192,18 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 	Nyx: Don't make me regret it.
 - [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] I didn't see anything.
 	Nyx: Liar.
-	Nyx: ...thanks.
-- You read this one. Didn't you.
-	Nyx: ...maybe.
+	Nyx: thanks.
+- You read this one before. Didn't you?
+	Nyx: maybe.
 	Nyx: I read Splice wrong, once. Big once.
 	Nyx: Been not-trusting that since.
-	Nyx: When you said no to him — I knew before he did. That's new too. [#model=eleven_v3]
+	Nyx: When you said no to him — I knew before he did. That's new too.
 	do GameState.set_flag("nyx_post_3_asked_read", true)
 - [if GameState.get_flag("nyx_post_3_asked_read", false) /] What does that mean?
 	Nyx: Means I don't have to keep guessing on you.
 	Nyx: Don't read into it.
 - [if GameState.get_flag("nyx_post_3_asked_read", false) /] It mattered to you.
-	Nyx: ...yes.
+	Nyx: yes.
 	Nyx: Moving on.
 - All right, see you on the wire.
 	=> nyx_post_3_done
@@ -211,8 +213,8 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 ~ nyx_post_3_done
 
 Nyx: Last sector.
-Nyx: If we land it — I get to stop carrying the last one.
-Nyx: That'd be... new.
+Nyx: If we land it — I get to stop carrying this.
+Nyx: That'd be... refreshing.
 do GameState.set_flag("hub_nyx_post3_done", true)
 => END
 
@@ -238,7 +240,7 @@ Nyx: We're throwing a perimeter party. Splice gets to watch from the inside.
 
 if GameState.get_flag("hub_post4_splice_danced", false)
 	Nyx: ...is Splice dancing? In there?
-	Nyx: ...we didn't see that. [#model=eleven_v3]
+	Nyx: ...we didn't see that.
 	Nyx: Stay as long as you want.
 else
 	Nyx: Back for round two?
