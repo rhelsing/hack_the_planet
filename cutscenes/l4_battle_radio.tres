@@ -7,24 +7,24 @@
 
 [sub_resource type="Resource" id="line_g1_nyx"]
 script = ExtResource("2_line")
-character = &"Nyx"
-text = "Ten down already."
+character = &"DialTone"
+text = "All right it's go time, drop in.."
 channel = "walkie"
-label = "Nyx: ten down already"
+label = "DialTone: all right it's go time"
 
 [sub_resource type="Resource" id="line_g1_dialtone"]
 script = ExtResource("2_line")
-character = &"DialTone"
-text = "Twelve more in your zone. Two more queueing."
+character = &"Nyx"
+text = "Here we go."
 channel = "walkie"
-label = "DialTone: twelve more queueing"
+label = "Nyx: here we go"
 
 [sub_resource type="Resource" id="line_g1_splice"]
 script = ExtResource("2_line")
 character = &"Splice"
-text = "Don't get cocky, runner. I've been farming sentinels since before you had a handle."
+text = "I've been farming sentinels since before you had a handle."
 channel = "walkie"
-label = "Splice: don't get cocky"
+label = "Splice: been farming sentinels"
 
 [sub_resource type="Resource" id="wait_g1"]
 script = ExtResource("4_wait")

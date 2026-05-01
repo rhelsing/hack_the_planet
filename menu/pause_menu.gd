@@ -9,6 +9,7 @@ extends CanvasLayer
 const MAIN_MENU    := "res://menu/main_menu.tscn"
 const SETTINGS     := "res://menu/settings_menu.tscn"
 const SAVE_SLOTS   := "res://menu/save_slots.tscn"
+const CONTROLS     := "res://menu/controls_panel.tscn"
 
 @onready var _root: Control = %Root
 @onready var _buttons: Control = %ButtonsRoot
@@ -17,6 +18,7 @@ const SAVE_SLOTS   := "res://menu/save_slots.tscn"
 @onready var _save_btn:    Button = %SaveBtn
 @onready var _load_btn:    Button = %LoadBtn
 @onready var _settings_btn:Button = %SettingsBtn
+@onready var _controls_btn:Button = %ControlsBtn
 @onready var _checkpoint_btn: Button = %LastCheckpointBtn
 @onready var _restart_btn: Button = %RestartLevelBtn
 @onready var _to_main_btn: Button = %ToMainBtn
@@ -39,6 +41,7 @@ func _wire_buttons() -> void:
 	_save_btn.pressed.connect(_on_save)
 	_load_btn.pressed.connect(_on_load)
 	_settings_btn.pressed.connect(_on_settings)
+	_controls_btn.pressed.connect(_on_controls)
 	_checkpoint_btn.pressed.connect(_on_last_checkpoint)
 	_restart_btn.pressed.connect(_on_restart_level)
 	_to_main_btn.pressed.connect(_on_to_main)
@@ -144,6 +147,10 @@ func _on_load() -> void:
 
 func _on_settings() -> void:
 	_push_sub_menu(SETTINGS, {})
+
+
+func _on_controls() -> void:
+	_push_sub_menu(CONTROLS, {})
 
 
 func _on_last_checkpoint() -> void:

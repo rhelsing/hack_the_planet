@@ -31,6 +31,12 @@ const DEFAULT_MUSIC_PATHS := [
 	"res://audio/music/tina.mp3",
 ]
 
+## Per-track linear-gain overrides for the default rotation. Keys are paths
+## from DEFAULT_MUSIC_PATHS; values are linear gain (1.0 = unchanged, 0.5 =
+## -6 dB, 2.0 = +6 dB). Tracks not listed here play at 1.0. Adjust here when
+## a particular master is too hot or too quiet relative to the rotation.
+const DEFAULT_MUSIC_GAINS: Dictionary = {}
+
 const BUS_MASTER: StringName = &"Master"
 const BUS_MUSIC: StringName = &"Music"
 const BUS_SFX: StringName = &"SFX"
@@ -78,6 +84,9 @@ const PRELOAD_AUDIO_EXTS: Array[String] = [".mp3", ".wav", ".ogg"]
 ##      whatever was current; on `finished` returns to the playlist (or
 ##      stays silent if no playlist was active).
 var _playlist: Array[AudioStream] = []
+## Parallel to _playlist: linear gain per track (1.0 default). Applied as the
+## final volume_db target by _play_track_no_loop after the fade-in completes.
+var _playlist_gains: Array[float] = []
 var _playlist_idx: int = 0
 var _playlist_shuffle: bool = false
 ## When true, _playlist[0] is pinned — it always plays at the start of each
@@ -213,14 +222,21 @@ func play_music(stream: AudioStream, fade_in: float = 0.8) -> void:
 ## A one-shot interrupt (play_oneshot_music) returns to the next playlist
 ## track when it finishes.
 func play_playlist(streams: Array, fade_in: float = 0.8,
-		shuffle: bool = false, lock_first: bool = false) -> void:
+		shuffle: bool = false, lock_first: bool = false,
+		gains: Array = []) -> void:
 	if streams.is_empty():
 		stop_music(0.5)
 		return
 	_playlist = []
-	for s in streams:
+	_playlist_gains = []
+	for i: int in range(streams.size()):
+		var s: Variant = streams[i]
 		if s is AudioStream:
 			_playlist.append(s)
+			var g: float = 1.0
+			if i < gains.size():
+				g = float(gains[i])
+			_playlist_gains.append(g)
 	if _playlist.is_empty():
 		return
 	_playlist_shuffle = shuffle
@@ -229,22 +245,25 @@ func play_playlist(streams: Array, fade_in: float = 0.8,
 	_playlist_idx = 0
 	_oneshot_active = false
 	_playlist_overridden = false
-	_play_track_no_loop(_playlist[_playlist_idx], fade_in)
+	_play_track_no_loop(_playlist[_playlist_idx], fade_in, _gain_for_index(_playlist_idx))
 
 
 ## Convenience: start the project-wide default playlist. Locks the first
 ## track (signature opener), shuffles the rest. Single source of truth lives
-## in DEFAULT_MUSIC_PATHS at the top of this file.
+## in DEFAULT_MUSIC_PATHS at the top of this file. Per-track linear gains
+## come from DEFAULT_MUSIC_GAINS (default 1.0 for any path not in the dict).
 func play_default_playlist(fade_in: float = 1.5) -> void:
 	var streams: Array = []
+	var gains: Array = []
 	for path: String in DEFAULT_MUSIC_PATHS:
 		if ResourceLoader.exists(path):
 			var s: Resource = load(path)
 			if s is AudioStream:
 				streams.append(s)
+				gains.append(float(DEFAULT_MUSIC_GAINS.get(path, 1.0)))
 	if streams.is_empty():
 		return
-	play_playlist(streams, fade_in, true, true)
+	play_playlist(streams, fade_in, true, true, gains)
 
 
 ## Resume the default playlist iff a single-track override (play_music) is
@@ -279,24 +298,53 @@ func advance_playlist(fade_in: float = 0.8) -> void:
 	if _playlist_idx >= _playlist.size():
 		_playlist_idx = 0
 		_shuffle_playlist_if_needed()
-	_play_track_no_loop(_playlist[_playlist_idx], fade_in)
+	_play_track_no_loop(_playlist[_playlist_idx], fade_in, _gain_for_index(_playlist_idx))
+
+
+## Skip to the previous track. Wraps to the end of the current rotation
+## without reshuffling — backward navigation should feel deterministic, not
+## reroll the whole playlist. Used by the `music_prev` input action.
+func previous_playlist_track(fade_in: float = 0.8) -> void:
+	if _playlist.is_empty():
+		return
+	_playlist_idx -= 1
+	if _playlist_idx < 0:
+		_playlist_idx = _playlist.size() - 1
+	_play_track_no_loop(_playlist[_playlist_idx], fade_in, _gain_for_index(_playlist_idx))
 
 
 # Reshuffle the playlist's tail if shuffling is enabled. With `lock_first`,
 # index 0 stays pinned and only [1..end] is shuffled. Called once at start
 # and again whenever the playlist wraps so each cycle is freshly randomized.
+# Shuffles tracks + gains as paired tuples so per-track gain stays bound to
+# its track across rotations.
 func _shuffle_playlist_if_needed() -> void:
 	if not _playlist_shuffle or _playlist.size() <= 1:
 		return
+	var start_i: int = 1 if _playlist_lock_first else 0
+	var indices: Array[int] = []
+	for i: int in range(start_i, _playlist.size()):
+		indices.append(i)
+	indices.shuffle()
+	var new_streams: Array[AudioStream] = []
+	var new_gains: Array[float] = []
 	if _playlist_lock_first:
-		var first: AudioStream = _playlist[0]
-		var rest: Array = _playlist.slice(1)
-		rest.shuffle()
-		_playlist = [first]
-		for s: Variant in rest:
-			_playlist.append(s)
-	else:
-		_playlist.shuffle()
+		new_streams.append(_playlist[0])
+		new_gains.append(_gain_for_index(0))
+	for i: int in indices:
+		new_streams.append(_playlist[i])
+		new_gains.append(_gain_for_index(i))
+	_playlist = new_streams
+	_playlist_gains = new_gains
+
+
+# Defensive helper: returns the gain for index `i`, or 1.0 if out-of-range
+# or _playlist_gains is empty. Keeps the per-track gain plumbing safe even
+# if a future caller forgets to populate gains alongside streams.
+func _gain_for_index(i: int) -> float:
+	if i < 0 or i >= _playlist_gains.size():
+		return 1.0
+	return _playlist_gains[i]
 
 
 ## Interrupt with a single un-looped track. When it finishes, the playlist
@@ -313,20 +361,22 @@ func play_oneshot_music(stream: AudioStream, fade_in: float = 0.5) -> void:
 # Plays `stream` with looping disabled so `finished` will fire and our
 # playlist/one-shot advancer can react. Duplicates the resource so we don't
 # mutate a shared AudioStream's loop flag for callers using play_music on
-# the same MP3.
-func _play_track_no_loop(stream: AudioStream, fade_in: float) -> void:
+# the same MP3. `gain` is linear (1.0 = unchanged); converted to dB and
+# applied as the fade target — for gain=1.0 this is 0 dB (existing behavior).
+func _play_track_no_loop(stream: AudioStream, fade_in: float, gain: float = 1.0) -> void:
 	if stream == null: return
 	var s: AudioStream = stream.duplicate()
 	if "loop" in s:
 		s.set("loop", false)
 	elif "loop_mode" in s:
 		s.set("loop_mode", 0)
+	var target_db: float = linear_to_db(gain) if gain > 0.0 else -80.0
 	_music_player.stream = s
-	_music_player.volume_db = -40.0 if fade_in > 0.0 else 0.0
+	_music_player.volume_db = -40.0 if fade_in > 0.0 else target_db
 	_music_player.play()
 	if fade_in > 0.0:
 		var tween := create_tween()
-		tween.tween_property(_music_player, "volume_db", 0.0, fade_in)
+		tween.tween_property(_music_player, "volume_db", target_db, fade_in)
 
 
 # `_music_player.finished` callback. Only fires for un-looped tracks
@@ -337,7 +387,7 @@ func _on_music_finished() -> void:
 		_oneshot_active = false
 		if _playlist.is_empty():
 			return
-		_play_track_no_loop(_playlist[_playlist_idx], 0.4)
+		_play_track_no_loop(_playlist[_playlist_idx], 0.4, _gain_for_index(_playlist_idx))
 		return
 	if _playlist.is_empty():
 		return
@@ -345,7 +395,22 @@ func _on_music_finished() -> void:
 	if _playlist_idx >= _playlist.size():
 		_playlist_idx = 0
 		_shuffle_playlist_if_needed()
-	_play_track_no_loop(_playlist[_playlist_idx], 0.4)
+	_play_track_no_loop(_playlist[_playlist_idx], 0.4, _gain_for_index(_playlist_idx))
+
+
+## Listens for music_next / music_prev input actions and skips tracks. Gated
+## on a non-empty playlist + no active one-shot so battle-scene music
+## (`play_music` clears _playlist) and post-L4 victory music can't be
+## skipped. Audio autoload runs in PROCESS_MODE_ALWAYS so this also fires
+## while the game is paused — players can re-roll the rotation from the
+## pause menu.
+func _unhandled_input(event: InputEvent) -> void:
+	if _playlist.is_empty() or _oneshot_active:
+		return
+	if event.is_action_pressed(&"music_next"):
+		advance_playlist(0.5)
+	elif event.is_action_pressed(&"music_prev"):
+		previous_playlist_track(0.5)
 
 
 ## Mutates the supplied AudioStream resource so its `loop` (or `loop_mode`)

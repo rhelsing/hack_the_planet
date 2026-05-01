@@ -308,6 +308,7 @@ do GameState.set_flag("glitch_grind_done", true)
 ```
 ~ start
 
+Glitch: I see you are breaking those in quite nicely.
 Glitch: See you around.
 do GameState.set_flag("glitch_chance_done", true)
 => END
@@ -480,32 +481,32 @@ Nyx: Talk.
 <!-- source: level/level_2.tscn -->
 <!-- type: walkie -->
 <!-- node: Nyx2 -->
-<!-- character: Nyx -->
+<!-- character: DialTone -->
 
-### `Nyx2` — Nyx
+### `Nyx2` — DialTone
 **Position:** (-7.898148, 0.6830478, -2.5471535)
 
-> Hey {player_handle}, we're tracking your signal. This should be an easy one. Point A to Point B.
+> Hey runner, we're tracking your signal. This should be an easy one. Point A to Point B.
 
 <!-- source: level/level_2.tscn -->
 <!-- type: walkie -->
 <!-- node: Nyx3 -->
-<!-- character: Nyx -->
+<!-- character: DialTone -->
 
-### `Nyx3` — Nyx
+### `Nyx3` — DialTone
 **Position:** (-41.997135, 33.569866, -18.763172)
 
-> Runner, something is wrong! We're seeing rogue sentinels everywhere.
+> Runner, something is wrong. We're seeing rogue sentinels everywhere.
 
 <!-- source: level/level_2.tscn -->
 <!-- type: walkie -->
 <!-- node: Nyx4 -->
-<!-- character: DialTone -->
+<!-- character: Nyx -->
 
-### `Nyx4` — DialTone
+### `Nyx4` — Nyx
 **Position:** (-44.886158, 34.003185, 4.0391345)
 
-> We need to get you out of there runner.
+> Oh God! Not again...
 
 <!-- source: level/level_2.tscn -->
 <!-- type: walkie -->
@@ -953,7 +954,7 @@ Nyx: Just decide on purpose.
 ### `splice` — Splice
 **Position:** (-149.20332, 33.657597, -29.268335)
 
-> Hm. New trace on the wire. ...is that you, runner?
+> Hm. New trace on the wire... Triangulating now..
 
 <!-- source: level/level_3.tscn -->
 <!-- type: walkie -->
@@ -971,9 +972,9 @@ Nyx: Just decide on purpose.
 <!-- character: Nyx -->
 
 ### `splice3` — Nyx
-**Position:** (-159.27145, 19.015488, -16.319054)
+**Position:** (-157.78203, 19.015488, -16.319054)
 
-> {player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not reading as in that sector anymore. Come in, runner!
+> {player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not even in that sector anymore. Come in, runner!
 
 <!-- source: level/level_3.tscn -->
 <!-- type: walkie -->
@@ -1524,7 +1525,7 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 ### `Walkie4` — DialTone
 **Position:** (59.419647, -12.472181, 48.079144)
 
-> You continue to impress me {player_handle}
+> You continue to impress me {player_handle}.
 
 <!-- source: level/level_4.tscn -->
 <!-- type: walkie -->
@@ -1544,7 +1545,7 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 ### `Walkie6` — Nyx
 **Position:** (138.33058, -12.472181, 48.079144)
 
-> That is pretty cool.
+> That is so **cool**!
 
 <!-- source: level/level_4.tscn -->
 <!-- type: walkie -->
@@ -1584,7 +1585,7 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 ### `Walkie10` — Nyx
 **Position:** (271.81506, -13.0255165, 37.083664)
 
-> {player_handle}, Splice has entered the Sector. Look's like he's taking the bait. Keep it up.
+> {player_handle}. Splice has entered the Sector. Look's like he's taking the bait. Keep it up!
 
 <!-- source: level/level_4.tscn -->
 <!-- type: walkie -->
@@ -1594,7 +1595,7 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 ### `Walkie11` — Nyx
 **Position:** (328.50134, -13.0255165, -7.914814)
 
-> I can't believe what I'm seeing.
+> I can't believe what I'm seeing! Are they actually on the **rail** with you?
 
 <!-- source: level/level_4.tscn -->
 <!-- type: walkie -->
@@ -1802,7 +1803,9 @@ Glitch: Sometimes "helpful to all" needs a thumb on the scale.
 
 ~ post_solve_done
 
-Glitch: One-off though. I don't have parts to make more. But it bought us a window.
+Glitch: Very limited release though. I don't have the parts to make many.
+Glitch: Open to whatever feedback you have.
+Glitch: Wow, I really dont say that very often.
 Glitch: Press on. There's something further in. We'll know it when we see it.
 do GameState.set_flag("l4_glitch_invention_celebrated", true)
 => END
@@ -1817,36 +1820,38 @@ do GameState.set_flag("l4_glitch_invention_celebrated", true)
 ```
 ~ start
 
-# Obligatory tip — runs once. Re-talks route through the entry block
-# for a short greeting + a refresher option, so the player can re-hear
-# the crouch-stand-down beat without replaying the whole speech.
-if GameState.get_flag("level_4_glitch_post_briefed", false)
+# Obligatory opener — runs once. Re-talks route through the entry block
+# for a short greeting, then drop into the questions hub.
+if GameState.get_flag("level_4_glitch_post_opener_seen", false)
 	=> glitch_l4_post_entry
 
-Glitch: Ah. You've moved past the platforms.
+Glitch: Ah. I see you've moved well beyond needing my platforms.
 Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
 Glitch: One thing while I have you.
-Glitch: When you crouch, your allies read it as a stand-down. They stop pressing forward and hold position.
-Glitch: So — no more allies as lambs to the slaughter. Crouch and they'll wait it out.
-Glitch: Carry on.
-do GameState.set_flag("level_4_glitch_post_briefed", true)
-=> END
-
-
-# Re-visit greeting + refresher menu. Self-loops via questions hub.
-
-~ glitch_l4_post_entry
-
-Glitch: Need a refresher?
+Glitch: When you crouch, your sentinels read it as a stand-down. They stop pressing forward and hold position.
+Glitch: So — no more of your sentinel apostles following you like lambs to the slaughter. Crouch and they'll wait it out.
+do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
 
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ glitch_l4_post_entry
+
+Glitch: Anything else, runner?
+=> glitch_l4_post_questions
+
+
+# Single shared question hub. No probes — the crouch tip is one-shot in
+# the opener and there's nothing else to ask. Hub exists per the project
+# DRY pattern (every elegant dialogue file uses the four-block shape; see
+# docs/dialogue_dry_pattern.md). The exit option carries the "Carry on."
+# sign-off so it lands consistently on first visit AND on revisit.
+
 ~ glitch_l4_post_questions
 
-- Refresh the crouch tip.
-	Glitch: When you crouch, your allies read it as a stand-down. They stop pressing forward and hold position.
-	Glitch: So — no more allies as lambs to the slaughter. Crouch and they'll wait it out.
-- Carry on.
+- All right.
 	Glitch: Carry on.
 	=> END
 => glitch_l4_post_questions
@@ -1945,7 +1950,7 @@ Splice: {player_handle}. [#walkie]
 do GameState.set_flag("l4_splice_says_name", true)
 Splice: So here we are. [#walkie]
 Splice: The world's **rigged**. You know it. Everybody knows it. [#walkie]
-Splice: They sell you **"rules"** and they sell you **"fair"** and they sell you **"earn it"** — and meanwhile the people who already have everything **write the rulebook with their other hand**. [#walkie]
+Splice: They sell you **"rules"**, they sell you **"fair"**, they sell you **"earn it"** — and meanwhile the people who already have everything **write the rulebook with their other hand**. [#walkie]
 Splice: I figured that out and I started playing. [#walkie]
 Nyx: He has no idea what's coming, does he? [#walkie]
 # skip-point: halfpipe
@@ -1988,9 +1993,9 @@ do wait(2)
 ## `cutscenes/l4_battle_radio.tres`
 
 ```
-Nyx: Ten down already. [#walkie]
-DialTone: Twelve more in your zone. Two more queueing. [#walkie]
-Splice: Don't get cocky, runner. I've been farming sentinels since before you had a handle. [#walkie]
+DialTone: All right it's go time, drop in.. [#walkie]
+Nyx: Here we go. [#walkie]
+Splice: I've been farming sentinels since before you had a handle. [#walkie]
 do wait(7)
 Splice: You think you can outpace my spawn rate? Try me. [#walkie]
 Nyx: He really thinks numbers will save him. [#walkie]

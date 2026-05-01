@@ -30,10 +30,11 @@ const _GLYPHS: Dictionary = {
 	"interact":      {"keyboard": "E",          "gamepad": "△"},
 	"crouch":        {"keyboard": "Ctrl",       "gamepad": "L3"},
 	"sneak_toggle":  {"keyboard": "Shift",      "gamepad": "L3"},
-	"toggle_skate":  {"keyboard": "R",          "gamepad": "L1"},
 	"pause":         {"keyboard": "Esc",        "gamepad": "Options"},
 	"grapple_fire":  {"keyboard": "G",          "gamepad": "L2"},
 	"flare_shoot":   {"keyboard": "Y",          "gamepad": "R2"},
+	"music_prev":    {"keyboard": "-",          "gamepad": "L1"},
+	"music_next":    {"keyboard": "=",          "gamepad": "R1"},
 	"move":          {"keyboard": "WASD",       "gamepad": "left stick"},
 	"look":          {"keyboard": "the mouse",  "gamepad": "right stick"},
 }

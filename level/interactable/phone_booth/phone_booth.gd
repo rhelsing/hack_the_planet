@@ -11,7 +11,7 @@ class_name PhoneBooth extends Node3D
 ## as UI feedback regardless of camera distance. Re-touching an already-
 ## active booth does NOT replay (gated by _was_active).
 @export var active_sound: AudioStream = preload("res://audio/sfx/checkpoint_active.mp3")
-@export_range(-30.0, 12.0) var active_sound_volume_db: float = 0.0
+@export_range(-30.0, 12.0) var active_sound_volume_db: float = -6.0
 
 ## Optional: when this booth activates (live touch OR continue-from-save
 ## spawn at this position), arm the CutscenePlayer at the given path

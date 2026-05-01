@@ -574,6 +574,69 @@ var _prev_h_vel := Vector3.ZERO
 var _current_lean_pitch := 0.0
 var _current_lean_roll := 0.0
 var _natural_lean_roll := 0.0
+
+
+# ── Halfpipe stick (curved-surface skate adhesion) ──────────────────────
+# Optional: when standing on a body in the `skate_curve_surface` group,
+# the player (or gold ally) tilts to match the curve, gets pulled toward
+# the trough, and accelerates along the curve. Jumping launches off the
+# surface normal (so jumping the lip of a halfpipe sends you outward, not
+# straight up). When disabled, ALL of this is skipped — body behaves
+# identically to before.
+@export_group("Halfpipe stick")
+## Master toggle for player-controlled bodies. Set false on game.tscn's
+## Player to test off-vs-on without touching ally pawns.
+@export var halfpipe_stick_for_player: bool = true
+## Master toggle for gold-ally bodies (faction = gold / group = allies).
+## Independent of the player toggle so you can A/B test each side.
+@export var halfpipe_stick_for_allies: bool = true
+## How far down the body probes for a curve-surface hit. Slightly longer
+## than the capsule's foot-to-center to catch the surface even mid-arc.
+@export var halfpipe_probe_distance: float = 1.5
+## Metadata key a curved-surface body can carry to activate the system.
+## Tag a surface in the scene with `metadata/skate_curve_surface = true`
+## OR with a Node3D script that calls `set_meta(&"skate_curve_surface",
+## true)` in _ready. Editor saves CAN strip the .tscn metadata line if
+## the scene is re-saved without preserving it, so the name-fallback
+## below is the more reliable mechanism for one-off surfaces.
+@export var halfpipe_surface_meta: StringName = &"skate_curve_surface"
+## Node-name fallback: if a collider OR any of its ancestors has a name
+## in this list, treat it as a curve surface even without metadata. Quick
+## and editor-resistant. Add new halfpipe-style surfaces by name.
+@export var halfpipe_surface_names: PackedStringArray = ["HalfPipe"]
+## Force pulling the body along the surface tangent toward the trough.
+## Scales with curve angle. Kept LOW so it doesn't fight uphill momentum —
+## gravity's natural slide is already pulling you down the curve. This is
+## a small "extra magnetism" feel, not a real force.
+@export var halfpipe_stick_strength: float = 6.0
+## Speed-along-trough multiplier for downhill velocity. 1.0 = pure physics.
+## >1.0 = arcade boost on the way down.
+@export var halfpipe_speed_boost: float = 1.4
+## Multiplier on the body's max horizontal speed while on a curve surface.
+## 2.0 = doubled — drop-in builds momentum fast and you can carry it back
+## up the opposite wall. Multiplies into the existing target_vel calc.
+@export var halfpipe_max_speed_multiplier: float = 2.0
+## Walkable-floor angle override while on a curve surface. Default
+## CharacterBody3D `floor_max_angle` is 45° — at that limit you can't walk
+## past the gentle parts of the trough. Bumping to 80° lets you ride
+## almost-vertical walls without slipping. Restored to floor_max_angle's
+## prior value when you leave the surface.
+@export var halfpipe_walk_max_angle_deg: float = 80.0
+## Seconds after a curve-surface jump before stick re-engages — prevents
+## "jumped off the wall, got snapped back to the wall on the way up."
+@export var halfpipe_jump_cooldown_s: float = 0.3
+@export_group("")
+
+var _on_halfpipe: bool = false
+var _halfpipe_normal: Vector3 = Vector3.UP
+var _halfpipe_curve_factor: float = 0.0  # 0 at trough, 1 at vertical wall
+var _halfpipe_jump_timer: float = 0.0
+## Cached floor_max_angle from before we entered a curve surface. Restored
+## the moment we disengage so non-pipe movement uses the project default.
+var _halfpipe_saved_floor_max_angle: float = -1.0
+# Debug-dedupe: print on transitions only. Filter logs with [halfpipe].
+# Single state line per engage/disengage; no per-tick spam.
+var _hp_last_engaged: bool = false
 var _speedup_timer := 999.0
 var _was_moving := false
 var _brake_impulse := 0.0
@@ -2199,6 +2262,21 @@ func _physics_process(delta: float) -> void:
 	var pivot: Vector3 = Vector3(0, _skin.lean_pivot_height, 0)
 	var tilt_basis: Basis = Basis(Vector3.RIGHT, final_pitch) * Basis(Vector3.BACK, final_roll)
 	var full_basis: Basis = Basis(Vector3.UP, new_yaw) * tilt_basis
+	# Halfpipe tilt: align the skin's UP toward the curve surface normal,
+	# weighted by curve_factor (0 at trough = no change, 1 at vertical wall =
+	# full lean against wall). Re-orthogonalizes around the new up so forward
+	# stays roughly forward. Skipped entirely when not on a curve surface.
+	if _on_halfpipe and _halfpipe_curve_factor > 0.0:
+		var current_up: Vector3 = full_basis.y
+		var blend_up: Vector3 = current_up.lerp(_halfpipe_normal, _halfpipe_curve_factor)
+		if blend_up.length_squared() > 0.0001:
+			blend_up = blend_up.normalized()
+			var fwd: Vector3 = full_basis.z
+			fwd = fwd - blend_up * fwd.dot(blend_up)
+			if fwd.length_squared() > 0.0001:
+				fwd = fwd.normalized()
+				var right: Vector3 = blend_up.cross(fwd).normalized()
+				full_basis = Basis(right, blend_up, fwd)
 	# Pivot-compensation offset uses the UNSCALED rotation basis, otherwise
 	# scale gets multiplied into the pivot and drops the skin below the floor.
 	var origin_offset: Vector3 = pivot - full_basis * pivot
@@ -2230,6 +2308,12 @@ func _physics_process(delta: float) -> void:
 		var new_origin: Vector3 = flip_pivot + flip_rot * (t.origin - flip_pivot)
 		_skin.transform = Transform3D(new_basis, new_origin)
 
+	# Halfpipe-stick probe (player + gold-ally only). Sets _on_halfpipe and
+	# applies adhesion + speed boost. No-op when the master toggles are
+	# false. Runs before the jump impulse so the curve-jump override below
+	# can read _on_halfpipe.
+	_update_halfpipe_stick(delta)
+
 	# Horizontal movement.
 	var y_velocity := velocity.y
 	var on_floor := is_on_floor()
@@ -2251,7 +2335,11 @@ func _physics_process(delta: float) -> void:
 		var crouch_mult := 1.0
 		if intent.crouch_held and is_on_floor():
 			crouch_mult = profile.crouch_speed_multiplier
-		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult * _faction_speed_mult
+		# Halfpipe boost: when on a curve surface, max horizontal speed is
+		# multiplied so the player can build skate momentum. Off the curve,
+		# multiplier is 1.0 → no behavior change.
+		var hp_speed_mult: float = halfpipe_max_speed_multiplier if _on_halfpipe else 1.0
+		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult * _faction_speed_mult * hp_speed_mult
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
 	else:
 		h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)
@@ -2291,17 +2379,35 @@ func _physics_process(delta: float) -> void:
 		_attack_visual_timer = maxf(0.0, _attack_visual_timer - delta)
 
 	if is_just_jumping:
+		# Halfpipe override: launch off the surface NORMAL instead of straight
+		# up, so jumping the lip of a halfpipe sends you outward (real skater
+		# physics). Cooldown prevents instant re-snap. When _on_halfpipe is
+		# false, this branch is skipped — regular up-impulse below runs.
+		if _on_halfpipe:
+			var curve_impulse: float = profile.jump_impulse * (1.0 + _halfpipe_curve_factor)
+			print("[halfpipe] JUMP     curve=%.2f impulse=%.1f normal=%s" %
+				[_halfpipe_curve_factor, curve_impulse, _halfpipe_normal])
+			velocity = _halfpipe_normal * curve_impulse
+			_halfpipe_jump_timer = halfpipe_jump_cooldown_s
+			# Disengage cleanly so floor_max_angle restores.
+			_halfpipe_disengage()
+			if pawn_group == "player":
+				_jump_sound.play()
+			_coyote_timer = 0.0
 		# Coyote case: player has been falling, velocity.y is negative. Reset
 		# (not add) so the jump reads as full-strength, like a true ground
 		# jump from a standing start. Ground case: velocity.y ≈ 0 so behavior
 		# is unchanged.
-		if on_floor:
+		elif on_floor:
 			velocity.y += profile.jump_impulse
+			if pawn_group == "player":
+				_jump_sound.play()
+			_coyote_timer = 0.0
 		else:
 			velocity.y = profile.jump_impulse
-		if pawn_group == "player":
-			_jump_sound.play()
-		_coyote_timer = 0.0  # spent — no double-firing
+			if pawn_group == "player":
+				_jump_sound.play()
+			_coyote_timer = 0.0
 	elif is_air_jumping:
 		velocity.y = profile.jump_impulse
 		if pawn_group == "player":
@@ -2945,6 +3051,102 @@ func _register_debug_panel() -> void:
 			"player_body.gd")
 		DebugPanel.add_readout("Skate/pool_size",
 			func() -> String: return "%d clips" % _skate_stride_pool_resolved.size())
+
+
+## Halfpipe-stick tick. Probes downward for a curved-surface body in the
+## halfpipe_surface_group; if hit, sets `_on_halfpipe` + `_halfpipe_normal`
+## + `_halfpipe_curve_factor` for the rest of the frame to consume (skin
+## tilt below + jump impulse override). Also applies a speed boost +
+## adhesion pull along the curve so dropping in feels like gaining speed.
+##
+## Master toggle is per-faction (player vs allies). When the relevant
+## toggle is false, the function early-exits and clears state — body
+## behaves exactly as if this system didn't exist.
+func _update_halfpipe_stick(delta: float) -> void:
+	# Toggle gate. Players, gold allies, and nobody else.
+	var should_run: bool = false
+	if pawn_group == "player":
+		should_run = halfpipe_stick_for_player
+	elif is_in_group(&"allies"):
+		should_run = halfpipe_stick_for_allies
+	if not should_run:
+		_halfpipe_disengage()
+		return
+	# Cooldown after curve-jump prevents instant re-snap.
+	if _halfpipe_jump_timer > 0.0:
+		_halfpipe_jump_timer = maxf(0.0, _halfpipe_jump_timer - delta)
+		_halfpipe_disengage()
+		return
+	# Downcast probe — short ray straight down from the body center.
+	var space_state := get_world_3d().direct_space_state
+	var from: Vector3 = global_position + Vector3(0, 0.5, 0)
+	var to: Vector3 = from - Vector3.UP * halfpipe_probe_distance
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = [self]
+	var hit: Dictionary = space_state.intersect_ray(query)
+	if hit.is_empty():
+		_halfpipe_disengage()
+		return
+	var hit_collider: Node = hit.get("collider")
+	if hit_collider == null:
+		_halfpipe_disengage()
+		return
+	# Walk up parent chain looking for the surface marker — metadata first,
+	# name fallback. Both are checked at each step so a collider one level
+	# deeper than the marked node still resolves.
+	var group_node: Node = hit_collider
+	while group_node != null:
+		if group_node.has_meta(halfpipe_surface_meta):
+			break
+		if halfpipe_surface_names.has(String(group_node.name)):
+			break
+		group_node = group_node.get_parent()
+	if group_node == null:
+		_halfpipe_disengage()
+		return
+	# Latched onto a curve surface. Stash normal + tilt magnitude.
+	_on_halfpipe = true
+	_halfpipe_normal = hit.get("normal", Vector3.UP)
+	var angle_from_up: float = acos(clamp(_halfpipe_normal.dot(Vector3.UP), -1.0, 1.0))
+	_halfpipe_curve_factor = clamp(angle_from_up / (PI * 0.5), 0.0, 1.0)
+	# On engage: bump floor_max_angle so steep walls count as walkable, log
+	# state once. The transition log is the single source of truth — no
+	# per-tick spam.
+	if not _hp_last_engaged:
+		_halfpipe_saved_floor_max_angle = floor_max_angle
+		floor_max_angle = deg_to_rad(halfpipe_walk_max_angle_deg)
+		print("[halfpipe] ENGAGED  surface=%s walk_max=%.0f° speed_mult=%.1f stick=%.1f" %
+			[group_node.name, halfpipe_walk_max_angle_deg, halfpipe_max_speed_multiplier,
+			halfpipe_stick_strength])
+		_hp_last_engaged = true
+	# Tangent along the surface pointing "downhill" (toward trough).
+	var down: Vector3 = Vector3.DOWN
+	var down_along_surface: Vector3 = down - _halfpipe_normal * down.dot(_halfpipe_normal)
+	if down_along_surface.length_squared() < 0.0001:
+		return
+	down_along_surface = down_along_surface.normalized()
+	# Light adhesion pull (gentle nudge toward trough — gravity does most
+	# of the work). Won't fight strong uphill momentum.
+	velocity += down_along_surface * halfpipe_stick_strength * _halfpipe_curve_factor * delta
+	# Speed boost on downhill segments only — uphill momentum is preserved.
+	var v_along: float = velocity.dot(down_along_surface)
+	if v_along > 0.0:
+		velocity += down_along_surface * (halfpipe_speed_boost - 1.0) * v_along * delta
+
+
+## Tear-down for halfpipe state. Clears flags AND restores the body's
+## floor_max_angle to whatever it was before engagement so the next
+## flat-floor section uses the project default.
+func _halfpipe_disengage() -> void:
+	_on_halfpipe = false
+	_halfpipe_curve_factor = 0.0
+	if _hp_last_engaged:
+		# Restore floor_max_angle to its pre-engage value.
+		if _halfpipe_saved_floor_max_angle >= 0.0:
+			floor_max_angle = _halfpipe_saved_floor_max_angle
+			_halfpipe_saved_floor_max_angle = -1.0
+		print("[halfpipe] DISENGAGED")
+		_hp_last_engaged = false
 
 
 func _update_follow_camera(delta: float) -> void:

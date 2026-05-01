@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://b7l65tmj1w4t5"]
+
+[ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="1_theme"]
+[ext_resource type="PackedScene" uid="uid://b3menubtn0001" path="res://menu/menu_button.tscn" id="2_btn"]
+[ext_resource type="Script" path="res://menu/controls_panel.gd" id="3_script"]
+
+[node name="ControlsPanel" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("1_theme")
+script = ExtResource("3_script")
+
+[node name="Center" type="CenterContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Column" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 0)
+
+[node name="Title" type="Label" parent="Center/Column"]
+text = "CONTROLS"
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="Gap" type="Control" parent="Center/Column"]
+custom_minimum_size = Vector2(0, 16)
+
+[node name="Grid" type="GridContainer" parent="Center/Column"]
+unique_name_in_owner = true
+columns = 2
+theme_override_constants/h_separation = 32
+theme_override_constants/v_separation = 6
+
+[node name="Gap2" type="Control" parent="Center/Column"]
+custom_minimum_size = Vector2(0, 24)
+
+[node name="BackBtn" parent="Center/Column" instance=ExtResource("2_btn")]
+unique_name_in_owner = true
+label = "Back"

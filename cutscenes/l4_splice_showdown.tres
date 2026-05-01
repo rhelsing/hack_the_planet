@@ -73,7 +73,7 @@ label = "Splice: world's rigged"
 [sub_resource type="Resource" id="line_4"]
 script = ExtResource("2_line")
 character = &"Splice"
-text = "They sell you **\"rules\"** and they sell you **\"fair\"** and they sell you **\"earn it\"** — and meanwhile the people who already have everything **write the rulebook with their other hand**."
+text = "They sell you **\"rules\"**, they sell you **\"fair\"**, they sell you **\"earn it\"** — and meanwhile the people who already have everything **write the rulebook with their other hand**."
 channel = "walkie"
 bus_override = &"Companion"
 label = "Splice: rules / fair / earn it"

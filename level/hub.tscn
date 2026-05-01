@@ -399,7 +399,7 @@ hide_when_flag = &"hub_terminal_4"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.370292, -0.005376816, -8.102173)
 maze_path = "res://puzzle/maze/mazes/imitation_game_tmp.maze"
 visible_when_flag = &"hub_terminal_4"
-cutscene_video_path = "res://cutscenes/byte.ogv"
+cutscene_video_path = "res://cutscenes/easter_egg.ogv"
 fail_reset_count = -1
 interactable_id = &"hub_terminal_5"
 
