@@ -23,15 +23,62 @@ extends Node3D
 ## isn't ready yet.
 @export var area_collision_layer_unlocked: int = 512
 
+@export_group("Rise on flag")
+## Optional second flag — the terminals (Area3D children) start lowered
+## by `lower_amount` at scene load and tween back to their authored Y
+## the moment this flag flips true on GameState. Independent from the
+## visibility / collision gate above. Empty = no rise behavior; the
+## terminals stay at their authored Y from frame zero.
+@export var rise_flag: StringName = &""
+## Y offset applied to each terminal at _ready when `rise_flag` is set
+## and not already true. Tweened back to 0 on rise. Per-terminal local Y.
+@export var lower_amount: float = 2.0
+@export_range(0.05, 5.0) var rise_duration: float = 1.0
+
+# Captured authored Y per terminal so the tween targets the original pose
+# regardless of when the rise fires.
+var _terminal_authored_y: Dictionary = {}
+var _terminals_risen: bool = false
+
 
 func _ready() -> void:
 	_apply()
+	_setup_rise()
 	Events.flag_set.connect(_on_flag_set)
 
 
-func _on_flag_set(id: StringName, _value: Variant) -> void:
+func _on_flag_set(id: StringName, value: Variant) -> void:
 	if id == gate_flag:
 		_apply()
+	if id == rise_flag and bool(value) and not _terminals_risen:
+		_rise_terminals()
+
+
+# Snapshot each terminal child's authored Y, then drop them by
+# `lower_amount` if the flag isn't already set. On a continued save where
+# `rise_flag` is true, leave them at the authored Y and mark risen so
+# nothing animates. Skipped entirely when `rise_flag` is empty.
+func _setup_rise() -> void:
+	if rise_flag == &"":
+		return
+	for child in get_children():
+		if child is Area3D and child is Node3D:
+			_terminal_authored_y[child] = (child as Node3D).position.y
+	if bool(GameState.get_flag(rise_flag, false)):
+		_terminals_risen = true
+		return
+	for terminal in _terminal_authored_y:
+		(terminal as Node3D).position.y = _terminal_authored_y[terminal] - lower_amount
+
+
+func _rise_terminals() -> void:
+	_terminals_risen = true
+	for terminal in _terminal_authored_y:
+		var t: Node3D = terminal
+		var target_y: float = _terminal_authored_y[terminal]
+		var tw := create_tween()
+		tw.tween_property(t, ^"position:y", target_y, rise_duration) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _apply() -> void:

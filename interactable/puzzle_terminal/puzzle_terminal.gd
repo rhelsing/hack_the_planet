@@ -41,6 +41,11 @@ const _CONVERT_ZONE_SCRIPT: Script = preload("res://level/interactable/convert_z
 ## `puzzle_scene` is a MazePuzzle; ignored by other puzzle types. Empty =
 ## the puzzle scene's own default applies.
 @export_file("*.maze") var maze_path: String = ""
+## Per-terminal cursor speed multiplier on the spawned MazePuzzle. 1.0 =
+## default puzzle speed. 0.5 = half speed (slower, more deliberate). Only
+## relevant for maze puzzles; non-maze puzzles ignore the property when
+## Puzzles.start tries to set it on a puzzle root that doesn't declare it.
+@export_range(0.1, 3.0, 0.05) var cursor_speed_multiplier: float = 1.0
 
 @export_group("Faction Conversion")
 ## On puzzle-solved, every PlayerBody overlapping any ConvertZone with a
@@ -166,6 +171,13 @@ func _ready() -> void:
 
 
 func _apply_visibility_gate() -> void:
+	# Empty `visible_when_flag` = no gate authored on this terminal. Bail
+	# without writing anything so the terminal stays at its default
+	# visibility / collision_layer. Without this guard, external callers
+	# (HubTerminalSequence._apply line 60) trip GameState.get_flag(&"",
+	# false) → false → visible=false, force-hiding ungated terminals.
+	if visible_when_flag == &"":
+		return
 	var unlocked: bool = bool(GameState.get_flag(visible_when_flag, false))
 	visible = unlocked
 	# Drop collision_layer so the InteractionSensor stops scoring us; restore
@@ -218,6 +230,10 @@ func interact(_actor: Node3D) -> void:
 	var setup: Dictionary = {}
 	if maze_path != "":
 		setup["maze_path"] = maze_path
+	# Per-terminal speed override. Always forwarded — non-maze puzzle roots
+	# silently ignore unknown property names (Node.set is no-op on missing
+	# fields), so it's safe to always include.
+	setup["cursor_speed_multiplier"] = cursor_speed_multiplier
 	Puzzles.start(puzzle_scene, interactable_id, setup)
 	# Listen for our specific outcome. Plain connect (NOT ONE_SHOT) — a ONE_SHOT
 	# would disconnect on the first puzzle_solved regardless of whether the id

@@ -621,10 +621,19 @@ var _natural_lean_roll := 0.0
 ## past the gentle parts of the trough. Bumping to 80° lets you ride
 ## almost-vertical walls without slipping. Restored to floor_max_angle's
 ## prior value when you leave the surface.
-@export var halfpipe_walk_max_angle_deg: float = 80.0
+@export var halfpipe_walk_max_angle_deg: float = 85.0
 ## Seconds after a curve-surface jump before stick re-engages — prevents
 ## "jumped off the wall, got snapped back to the wall on the way up."
 @export var halfpipe_jump_cooldown_s: float = 0.3
+## Grace window before disengage actually fires — single-tick probe misses
+## at CSG geometry seams won't toggle floor_max_angle off and bounce you
+## off the wall. Only sustained misses (>= this value) really disengage.
+@export var halfpipe_disengage_grace_s: float = 0.15
+## Jump direction blend: 0.0 = pure world-up, 1.0 = pure surface normal.
+## 0.2 = 80% vertical with a 20% lateral push from the wall angle, so
+## you still pop up off the lip but a vertical wall sends you slightly
+## outward instead of straight up.
+@export_range(0.0, 1.0) var halfpipe_jump_blend: float = 0.2
 @export_group("")
 
 var _on_halfpipe: bool = false
@@ -634,6 +643,10 @@ var _halfpipe_jump_timer: float = 0.0
 ## Cached floor_max_angle from before we entered a curve surface. Restored
 ## the moment we disengage so non-pipe movement uses the project default.
 var _halfpipe_saved_floor_max_angle: float = -1.0
+## Sustained probe-miss accumulator. Single-tick misses at CSG seams won't
+## flip floor_max_angle off and bounce the body. Only when this exceeds
+## halfpipe_disengage_grace_s does the disengage actually fire.
+var _halfpipe_miss_timer: float = 0.0
 # Debug-dedupe: print on transitions only. Filter logs with [halfpipe].
 # Single state line per engage/disengage; no per-tick spam.
 var _hp_last_engaged: bool = false
@@ -2312,7 +2325,7 @@ func _physics_process(delta: float) -> void:
 	# applies adhesion + speed boost. No-op when the master toggles are
 	# false. Runs before the jump impulse so the curve-jump override below
 	# can read _on_halfpipe.
-	_update_halfpipe_stick(delta)
+	_update_halfpipe_stick(delta, intent)
 
 	# Horizontal movement.
 	var y_velocity := velocity.y
@@ -2385,9 +2398,13 @@ func _physics_process(delta: float) -> void:
 		# false, this branch is skipped — regular up-impulse below runs.
 		if _on_halfpipe:
 			var curve_impulse: float = profile.jump_impulse * (1.0 + _halfpipe_curve_factor)
-			print("[halfpipe] JUMP     curve=%.2f impulse=%.1f normal=%s" %
-				[_halfpipe_curve_factor, curve_impulse, _halfpipe_normal])
-			velocity = _halfpipe_normal * curve_impulse
+			print("[halfpipe] JUMP     body=%s pawn=%s jump_pressed=%s on_floor=%s curve=%.2f" %
+				[name, pawn_group, intent.jump_pressed, on_floor, _halfpipe_curve_factor])
+			# Blend world-up with surface normal: 0.0 = pure vertical, 1.0 =
+			# pure normal. A vertical wall still kicks slightly outward; a
+			# gentle slope is essentially straight up.
+			var jump_dir: Vector3 = Vector3.UP.lerp(_halfpipe_normal, halfpipe_jump_blend).normalized()
+			velocity = jump_dir * curve_impulse
 			_halfpipe_jump_timer = halfpipe_jump_cooldown_s
 			# Disengage cleanly so floor_max_angle restores.
 			_halfpipe_disengage()
@@ -3062,8 +3079,9 @@ func _register_debug_panel() -> void:
 ## Master toggle is per-faction (player vs allies). When the relevant
 ## toggle is false, the function early-exits and clears state — body
 ## behaves exactly as if this system didn't exist.
-func _update_halfpipe_stick(delta: float) -> void:
-	# Toggle gate. Players, gold allies, and nobody else.
+func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
+	# Toggle gate. Players, gold allies, and nobody else. Config kill —
+	# disengage immediately, no grace.
 	var should_run: bool = false
 	if pawn_group == "player":
 		should_run = halfpipe_stick_for_player
@@ -3072,7 +3090,8 @@ func _update_halfpipe_stick(delta: float) -> void:
 	if not should_run:
 		_halfpipe_disengage()
 		return
-	# Cooldown after curve-jump prevents instant re-snap.
+	# Cooldown after curve-jump prevents instant re-snap. Intentional
+	# disengage, no grace.
 	if _halfpipe_jump_timer > 0.0:
 		_halfpipe_jump_timer = maxf(0.0, _halfpipe_jump_timer - delta)
 		_halfpipe_disengage()
@@ -3085,11 +3104,11 @@ func _update_halfpipe_stick(delta: float) -> void:
 	query.exclude = [self]
 	var hit: Dictionary = space_state.intersect_ray(query)
 	if hit.is_empty():
-		_halfpipe_disengage()
+		_halfpipe_probe_miss(delta)
 		return
 	var hit_collider: Node = hit.get("collider")
 	if hit_collider == null:
-		_halfpipe_disengage()
+		_halfpipe_probe_miss(delta)
 		return
 	# Walk up parent chain looking for the surface marker — metadata first,
 	# name fallback. Both are checked at each step so a collider one level
@@ -3102,23 +3121,30 @@ func _update_halfpipe_stick(delta: float) -> void:
 			break
 		group_node = group_node.get_parent()
 	if group_node == null:
-		_halfpipe_disengage()
+		_halfpipe_probe_miss(delta)
 		return
+	# Confirmed hit — reset miss accumulator.
+	_halfpipe_miss_timer = 0.0
 	# Latched onto a curve surface. Stash normal + tilt magnitude.
 	_on_halfpipe = true
 	_halfpipe_normal = hit.get("normal", Vector3.UP)
 	var angle_from_up: float = acos(clamp(_halfpipe_normal.dot(Vector3.UP), -1.0, 1.0))
 	_halfpipe_curve_factor = clamp(angle_from_up / (PI * 0.5), 0.0, 1.0)
-	# On engage: bump floor_max_angle so steep walls count as walkable, log
-	# state once. The transition log is the single source of truth — no
-	# per-tick spam.
+	# On first engage: stash the original floor_max_angle so disengage can
+	# fully restore it. Per-tick the angle is set below based on input.
 	if not _hp_last_engaged:
 		_halfpipe_saved_floor_max_angle = floor_max_angle
-		floor_max_angle = deg_to_rad(halfpipe_walk_max_angle_deg)
-		print("[halfpipe] ENGAGED  surface=%s walk_max=%.0f° speed_mult=%.1f stick=%.1f" %
-			[group_node.name, halfpipe_walk_max_angle_deg, halfpipe_max_speed_multiplier,
-			halfpipe_stick_strength])
+		print("[halfpipe] ENGAGED  body=%s on_floor=%s vy=%.2f curve=%.2f" %
+			[name, is_on_floor(), velocity.y, _halfpipe_curve_factor])
 		_hp_last_engaged = true
+	# Input-context floor_max_angle: holding a direction → wall counts as
+	# walkable (climb the curve). Idle → revert to default so move_and_slide
+	# treats the steep wall as a wall and lets gravity slide you down.
+	var has_input: bool = intent.move_direction.length() > 0.1
+	if has_input:
+		floor_max_angle = deg_to_rad(halfpipe_walk_max_angle_deg)
+	else:
+		floor_max_angle = _halfpipe_saved_floor_max_angle
 	# Tangent along the surface pointing "downhill" (toward trough).
 	var down: Vector3 = Vector3.DOWN
 	var down_along_surface: Vector3 = down - _halfpipe_normal * down.dot(_halfpipe_normal)
@@ -3134,18 +3160,33 @@ func _update_halfpipe_stick(delta: float) -> void:
 		velocity += down_along_surface * (halfpipe_speed_boost - 1.0) * v_along * delta
 
 
+## Probe-miss accumulator. Sustained misses (geometry actually ended) get
+## through to disengage; single-tick misses at CSG seams or under-edge
+## hovering are absorbed and the engaged state stays put.
+func _halfpipe_probe_miss(delta: float) -> void:
+	if not _hp_last_engaged:
+		# Wasn't engaged anyway — nothing to grace.
+		_halfpipe_disengage()
+		return
+	_halfpipe_miss_timer += delta
+	if _halfpipe_miss_timer >= halfpipe_disengage_grace_s:
+		_halfpipe_disengage()
+
+
 ## Tear-down for halfpipe state. Clears flags AND restores the body's
 ## floor_max_angle to whatever it was before engagement so the next
 ## flat-floor section uses the project default.
 func _halfpipe_disengage() -> void:
 	_on_halfpipe = false
 	_halfpipe_curve_factor = 0.0
+	_halfpipe_miss_timer = 0.0
 	if _hp_last_engaged:
 		# Restore floor_max_angle to its pre-engage value.
 		if _halfpipe_saved_floor_max_angle >= 0.0:
 			floor_max_angle = _halfpipe_saved_floor_max_angle
 			_halfpipe_saved_floor_max_angle = -1.0
-		print("[halfpipe] DISENGAGED")
+		print("[halfpipe] DISENGAGED body=%s on_floor=%s vy=%.2f" %
+			[name, is_on_floor(), velocity.y])
 		_hp_last_engaged = false
 
 

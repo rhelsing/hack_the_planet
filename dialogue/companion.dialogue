@@ -5,14 +5,19 @@ do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
 Glitch: I'm Glitch.
 Glitch: My sole directive is to be helpful to you here in the Gibson.
 Glitch: One more thing — those phone booths around the grid. Walk near one and it lights up green. Bank that, and you respawn there if you fall.
+=> glitch_1_questions
+
+~ glitch_1_questions
 - Got it.
 	=> done
 - What is the Gibson?
 	Glitch: The Gibson is a supercomputer mainframe — Ellingson Mineral Company runs it.
 	Glitch: Sixty-four racks, networked across the city, processing every financial transaction the company touches.
 	Glitch: It was named for William Gibson — the writer who first called cyberspace by its name. We are inside it now.
-	=> done
-
+	=> glitch_1_questions
+- Did you.. text me?
+	Glitch: I dont text. I am just a program.
+	=> glitch_1_questions
 ~ done
 
 Glitch: Right. Catch you on the other side.

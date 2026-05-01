@@ -4,39 +4,37 @@ if not GameState.get_flag("level_4_dialtone_done", false)
 	=> dialtone_first
 
 Nyx: Hey.
-Nyx: ...
+Nyx: Well.
 Nyx: I had a line. It's gone.
 - Bet it was great.
 	Nyx: It was. You wouldn't have liked it.
 	=> closer
 - You said it.
-	Nyx: ...heh.
+	Nyx: ha.
 	=> closer
 - Don't make it a thing.
-	Nyx: ...that was probably the line.
+	Nyx: that was probably the line.
 	=> closer
 
 ~ closer
 
-Nyx: He's locked.
-Nyx: ...I'm not carrying it anymore. [#model=eleven_v3]
+Nyx: He's quarentined.
+Nyx: ...and I'm not carrying it anymore.
 Nyx: Huh.
-Nyx: ...come on. Let's go celebrate.
+Nyx: Come on. Let's go celebrate.
 - Take me home.
 	do LevelProgression.advance()
 	=> END
-- Stay a moment.
-	Nyx: ...
-	Nyx: I'll wait. [#model=eleven_v3]
-	Nyx: ...
+- Stay a moment. Linger in the moment.
+	Nyx: hmm.
 	Nyx: ...okay. Come on.
 	do LevelProgression.advance()
 	=> END
 
 ~ dialtone_first
 
-DialTone: First time I've stepped onto a sector in twelve months.
-DialTone: ...the grid hasn't been this quiet since before he came back. [#model=eleven_v3]
+DialTone: First time I've stepped onto a sector in twelve months. Feels Good.
+DialTone: ...the grid hasn't been this quiet since before Splice came back.
 DialTone: You actually pulled it off, runner.
 DialTone: Go on. Talk to her.
 do GameState.set_flag("level_4_dialtone_done", true)

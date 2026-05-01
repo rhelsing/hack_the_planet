@@ -48,7 +48,8 @@ Glitch: I'm just bobbing. It's nice.
 
 ~ done
 
-Glitch: Take care, Runner.
+Glitch: Oh — I made one last thing for you.
+Glitch: Well — take care, Runner.
 Glitch: I'll be here. Same place. Bobbing.
 do GameState.set_flag("hub_post4_glitch_celebrated", true)
 => END

@@ -87,6 +87,12 @@ const _TIMER_BAR_WIDTH: float = 600.0
 # (0..1) scales it linearly. 5.0 = balanced — enough pace to feel responsive
 # while leaving room for the junction-grace mechanisms to land.
 const _CURSOR_SPEED_GRID_PER_SEC: float = 5.0
+## Per-instance multiplier on the base cursor speed. 1.0 = default.
+## 0.5 = half speed (more deliberate puzzle, easier to thread tight chicanes).
+## Set via Puzzles.start setup_data — PuzzleTerminal forwards it from its own
+## inspector knob, so designers can author per-terminal pacing without
+## touching the global default.
+@export var cursor_speed_multiplier: float = 1.0
 # Stick noise floor — below this magnitude, no input.
 const _INPUT_DEADZONE: float = 0.18
 # Junction grace: when the cursor crosses a node, perpendicular input above
@@ -426,8 +432,10 @@ func _process(delta: float) -> void:
 		_set_sliding(false)
 		return
 	var input_unit: Vector2 = input_v / magnitude
-	# Magnitude scales speed: half-stick = half-speed.
-	var distance: float = magnitude * _CURSOR_SPEED_GRID_PER_SEC * delta
+	# Magnitude scales speed: half-stick = half-speed. cursor_speed_multiplier
+	# is the per-instance authoring knob (Puzzles.start setup_data path).
+	var distance: float = magnitude * _CURSOR_SPEED_GRID_PER_SEC \
+			* cursor_speed_multiplier * delta
 	# Snapshot pre-step world pos so we can detect *actual* motion (input
 	# may be held but cursor blocked against a wall — no buzz then).
 	var prev_pos: Vector2 = _cursor_world_pos()

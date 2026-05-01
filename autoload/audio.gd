@@ -75,6 +75,16 @@ var _preloaded_sfx: Array[AudioStream] = []
 const SFX_PRELOAD_DIRS: Array[String] = ["res://audio/sfx/"]
 const PRELOAD_AUDIO_EXTS: Array[String] = [".mp3", ".wav", ".ogg"]
 
+## Specific music tracks to preload at boot — opt-in so we don't carry the
+## entire DEFAULT_MUSIC_PATHS list in memory. Used for instant-play victory
+## stings where a hub-entry hitch would be jarring (disco track on the
+## post-L4 hub fires the moment the player enters; no time to defer-load).
+## Held in _preloaded_music so the resource cache can't drop them mid-session.
+const MUSIC_PRELOAD_PATHS: Array[String] = [
+	"res://audio/music/disco_music.mp3",
+]
+var _preloaded_music: Array[AudioStream] = []
+
 ## Music playlist state. Three modes:
 ##   1. Single-track loop  — `play_music(stream)`. Force-loops the stream
 ##      (`_music_player.finished` never fires).
@@ -121,8 +131,10 @@ func _ready() -> void:
 	# Resubscribe whenever ui_dev's Settings autoload announces changes.
 	Events.settings_applied.connect(_apply_volumes_from_settings)
 	# Preload every SFX file so first-play decoder hitches don't surface
-	# mid-gameplay. Music intentionally excluded — those streams are big.
+	# mid-gameplay. Music is excluded by default (those streams are big),
+	# but specific tracks named in MUSIC_PRELOAD_PATHS are pulled in too.
 	_preload_all_sfx()
+	_preload_music_paths()
 
 
 ## Walk every directory in SFX_PRELOAD_DIRS recursively and load() any audio
@@ -137,6 +149,34 @@ func _preload_all_sfx() -> void:
 		_preload_dir_recursive(root_dir)
 	print("[Audio] preloaded %d sfx streams from %s" % [
 		_preloaded_sfx.size(), str(SFX_PRELOAD_DIRS)])
+
+
+## Load every path in MUSIC_PRELOAD_PATHS into _preloaded_music so the
+## resource cache can't evict them, then warm the MP3 decoder for each by
+## firing a single muted play()/stop() pair on a temporary player. The
+## first user-facing play_music() on those tracks then skips both the
+## load AND the decoder-init hitch — important on the post-L4 hub entry
+## where the disco track fires the same frame the scene mounts.
+func _preload_music_paths() -> void:
+	if MUSIC_PRELOAD_PATHS.is_empty():
+		return
+	var prewarm := AudioStreamPlayer.new()
+	prewarm.bus = BUS_MUSIC
+	prewarm.volume_db = -80.0  # inaudible — the play() exists only to seed the decoder
+	add_child(prewarm)
+	for path: String in MUSIC_PRELOAD_PATHS:
+		if not ResourceLoader.exists(path):
+			push_warning("[Audio] music preload path missing: %s" % path)
+			continue
+		var stream: AudioStream = load(path) as AudioStream
+		if stream == null:
+			continue
+		_preloaded_music.append(stream)
+		prewarm.stream = stream
+		prewarm.play()
+		prewarm.stop()
+	prewarm.queue_free()
+	print("[Audio] preloaded + prewarmed %d music streams" % _preloaded_music.size())
 
 
 func _preload_dir_recursive(dir_path: String) -> void:

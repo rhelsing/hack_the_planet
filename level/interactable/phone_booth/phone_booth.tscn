@@ -14,7 +14,7 @@ albedo_color = Color(0.15, 0.35, 0.75, 1)
 size = Vector3(1, 2.0067382, 0.7060547)
 
 [sub_resource type="BoxShape3D" id="Shape_trigger"]
-size = Vector3(13.849243, 6.5039063, 6)
+size = Vector3(20, 20, 20)
 
 [sub_resource type="BoxMesh" id="Mesh_activation_block"]
 size = Vector3(2, 4, 2)

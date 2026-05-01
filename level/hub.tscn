@@ -290,7 +290,7 @@ dialogue_resource = ExtResource("25_p4splice")
 interactable_id = &"npc_post4_splice"
 
 [node name="Glitch" parent="postL4Show" unique_id=265298646 instance=ExtResource("13_companion")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.419893, 11.4545555, -82.48019)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.419893, 10.577156, -82.48019)
 skin_scene = ExtResource("21_robot")
 dialogue_resource = ExtResource("28_p4glitchdlg")
 interactable_id = &"npc_post4_glitch"
@@ -338,6 +338,7 @@ interactable_id = &"npc_post4_nyx"
 [node name="HubTerminalSequence" type="Node3D" parent="." unique_id=265566086]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, 11.15, -85)
 script = ExtResource("32_hubseq")
+rise_flag = &"hub_post4_glitch_celebrated"
 
 [node name="Platform" type="CSGBox3D" parent="HubTerminalSequence" unique_id=1210283843]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6291847, -0.62211037, -2.5329208)
@@ -348,56 +349,62 @@ size = Vector3(31.92456, 0.3, 27.84085)
 [node name="Terminal1" parent="HubTerminalSequence" unique_id=1053539316 instance=ExtResource("30_hackterm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.908371, -0.005376816, -8.038162)
 maze_path = "res://puzzle/maze/mazes/enigma_key.maze"
+cursor_speed_multiplier = 0.5
 fail_reset_count = -1
 interactable_id = &"hub_terminal_1"
 
 [node name="Beacon" parent="HubTerminalSequence/Terminal1" unique_id=1142245822 instance=ExtResource("31_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-label = "01"
+label = "Hack Me"
+visible_when_flag = &"hub_post4_glitch_celebrated"
 hide_when_flag = &"hub_terminal_1"
 
 [node name="Terminal2" parent="HubTerminalSequence" unique_id=1947535266 instance=ExtResource("30_hackterm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.292137, -0.005376816, -8.586952)
 maze_path = "res://puzzle/maze/mazes/strange_loop_core.maze"
+cursor_speed_multiplier = 0.5
 visible_when_flag = &"hub_terminal_1"
 fail_reset_count = -1
 interactable_id = &"hub_terminal_2"
 
 [node name="Beacon" parent="HubTerminalSequence/Terminal2" unique_id=2052843827 instance=ExtResource("31_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-label = "02"
+label = "Me Next"
 visible_when_flag = &"hub_terminal_1"
 hide_when_flag = &"hub_terminal_2"
 
 [node name="Terminal3" parent="HubTerminalSequence" unique_id=1132327626 instance=ExtResource("30_hackterm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.005376816, -8.770508)
 maze_path = "res://puzzle/maze/mazes/the_loom_dat.maze"
+cursor_speed_multiplier = 0.5
 visible_when_flag = &"hub_terminal_2"
 fail_reset_count = -1
 interactable_id = &"hub_terminal_3"
 
 [node name="Beacon" parent="HubTerminalSequence/Terminal3" unique_id=1350840807 instance=ExtResource("31_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-label = "03"
+label = "Me Please"
 visible_when_flag = &"hub_terminal_2"
 hide_when_flag = &"hub_terminal_3"
 
 [node name="Terminal4" parent="HubTerminalSequence" unique_id=1861708816 instance=ExtResource("30_hackterm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7239723, -0.005376816, -8.154709)
 maze_path = "res://puzzle/maze/mazes/entropy_cfg.maze"
+cursor_speed_multiplier = 0.5
 visible_when_flag = &"hub_terminal_3"
 fail_reset_count = -1
 interactable_id = &"hub_terminal_4"
 
 [node name="Beacon" parent="HubTerminalSequence/Terminal4" unique_id=916695589 instance=ExtResource("31_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-label = "04"
+label = "Almost There"
 visible_when_flag = &"hub_terminal_3"
 hide_when_flag = &"hub_terminal_4"
 
 [node name="Terminal5" parent="HubTerminalSequence" unique_id=1221130356 instance=ExtResource("30_hackterm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.370292, -0.005376816, -8.102173)
 maze_path = "res://puzzle/maze/mazes/imitation_game_tmp.maze"
+cursor_speed_multiplier = 0.5
 visible_when_flag = &"hub_terminal_4"
 cutscene_video_path = "res://cutscenes/easter_egg.ogv"
 fail_reset_count = -1
@@ -405,6 +412,6 @@ interactable_id = &"hub_terminal_5"
 
 [node name="Beacon" parent="HubTerminalSequence/Terminal5" unique_id=2041955911 instance=ExtResource("31_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-label = "05"
+label = "Okay I swear I'm the last one"
 visible_when_flag = &"hub_terminal_4"
 hide_when_flag = &"hub_terminal_5"

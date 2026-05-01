@@ -126,12 +126,15 @@ var _launch_side_dir: Vector3 = Vector3.FORWARD
 # all the altitude before release fires.
 var _above_anchor_mode: bool = false
 
-# Long-running "swing whole time until landing" audio. Started on rope-bite,
-# stopped when the player's body becomes is_on_floor() AFTER the swing has
-# released. Tracked separately from the one-shot fire/bite cues because it
-# needs a stop handle and outlives the rope itself (continues through the
-# post-release flight until ground contact).
+# Three dedicated AudioStreamPlayer children for the grapple's three sounds.
+# Direct .play() on a preloaded stream — same foolproof pattern as
+# `_jump_sound` / `_landing_sound` on PlayerBody. Avoids the cue-registry
+# round-robin SFX pool, which was burying these short stings.
+const _FIRE_AUDIO_PATH: String = "res://audio/sfx/grapple/launch_grapple_until_pass_node.mp3"
+const _BITE_AUDIO_PATH: String = "res://audio/sfx/grapple/at_node_grapple.mp3"
 const _SWING_AUDIO_PATH: String = "res://audio/sfx/grapple/grapples_playing_whole_time_until_landing.mp3"
+var _fire_audio_player: AudioStreamPlayer = null
+var _bite_audio_player: AudioStreamPlayer = null
 var _swing_audio_player: AudioStreamPlayer = null
 # True from rope-bite until the post-release flight ends on the ground.
 # `_swinging` flips false on _release; this stays true until landing so the
@@ -146,13 +149,20 @@ func _ready() -> void:
 		powerup_flag = &"powerup_sex"
 	super._ready()
 	_register_debug_sliders()
-	# Long-form swing audio gets its own player so we can start/stop it on
-	# command. SFX bus so the music duck doesn't squash it; load on demand
-	# rather than preload so the initial scene parse doesn't pay for it.
-	_swing_audio_player = AudioStreamPlayer.new()
-	_swing_audio_player.bus = &"SFX"
-	_swing_audio_player.stream = load(_SWING_AUDIO_PATH) as AudioStream
-	add_child(_swing_audio_player)
+	_fire_audio_player = _make_grapple_player(_FIRE_AUDIO_PATH)
+	_bite_audio_player = _make_grapple_player(_BITE_AUDIO_PATH)
+	_swing_audio_player = _make_grapple_player(_SWING_AUDIO_PATH)
+
+
+func _make_grapple_player(path: String) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.bus = &"SFX"
+	var stream: AudioStream = load(path) as AudioStream
+	if stream == null:
+		push_error("[grapple] failed to load %s" % path)
+	p.stream = stream
+	add_child(p)
+	return p
 
 
 func _register_debug_sliders() -> void:
@@ -296,12 +306,14 @@ func _start_swing(target: Node3D) -> void:
 	if body_3d == null:
 		return
 	_clear_all_prompts()
-	# Three-event grapple SFX: fire (the whip-out attack), bite (the
-	# anchor-lock impact, fired below right after the rope physics spawn),
-	# release (in _release). Cues registered in audio/cue_registry.tres;
-	# stream pools currently empty so play_sfx silently no-ops until the
-	# user drops audio files into the .tres files.
-	Audio.play_sfx(&"grapple_fire")
+	# Fire sting: direct AudioStreamPlayer.play() — same pattern as
+	# _jump_sound on PlayerBody. Bite + swing-loop fire below right after
+	# the rope physics spawn.
+	if _fire_audio_player != null:
+		if _fire_audio_player.playing:
+			_fire_audio_player.stop()
+		_fire_audio_player.play()
+		print("[grapple-aud] fire.play()")
 
 	_anchor = target
 	_swinging = true
@@ -406,8 +418,12 @@ func _start_swing(target: Node3D) -> void:
 	_spawn_rope_chain(anchor_pos, body_3d.global_position, approach_vel)
 	# Bite — rope just anchored to the target. Layered on top of fire in
 	# the same frame; the audio sample envelopes give the ear "throw …
-	# thunk." Insert a deferred timer here if a longer beat is needed.
-	Audio.play_sfx(&"grapple_bite")
+	# thunk." Direct .play() on a dedicated player.
+	if _bite_audio_player != null:
+		if _bite_audio_player.playing:
+			_bite_audio_player.stop()
+		_bite_audio_player.play()
+		print("[grapple-aud] bite.play()")
 	# Long-form swing audio kicks in here and runs until the player lands
 	# on the ground after release (poll in _process). Stop any prior swing
 	# audio first in case a rapid re-grapple is firing before the previous
@@ -417,10 +433,13 @@ func _start_swing(target: Node3D) -> void:
 			_swing_audio_player.stop()
 		_swing_audio_player.play()
 		_swing_audio_active = true
-	# Animation: at-bite → "Falling Idle" (mapped to WallSlide state on AjSkin)
-	# for the swing-hang pose. After 2s, transition to Fall so the held
-	# pose breathes; the post-release flight then continues in Fall until
-	# PlayerBody's normal physics-driven state takes over on landing.
+		print("[grapple-aud] swing.play()")
+	# Animation: at-bite → Jump (active leap "Jumping" clip) for the launch
+	# read. After the leap clip's natural length (~0.4s), transition to Fall
+	# (held "Jump" pose) for the swing/descent. Both transitions are
+	# reachable from any grounded or aerial state — see aj_skin.tscn:216.
+	# Previous wall_slide-first version silently no-op'd because no
+	# Idle→WallSlide / Move→WallSlide transition exists.
 	_play_grapple_bite_anim(body)
 
 	_line_renderer = _build_line_renderer()
@@ -430,18 +449,23 @@ func _start_swing(target: Node3D) -> void:
 func _play_grapple_bite_anim(body: Node) -> void:
 	var skin: Variant = body.get(&"_skin")
 	if skin == null or not is_instance_valid(skin):
+		push_error("[grapple-anim] no _skin on body=%s" % body)
 		return
-	if skin.has_method(&"wall_slide"):
-		skin.call(&"wall_slide")
-	await get_tree().create_timer(2.0, true).timeout
-	# Player may have released before the timer fired — body's physics_process
-	# is back on and driving the skin from velocity, so don't fight it.
-	if not _swinging:
-		return
-	if not is_instance_valid(skin):
+	# Launch: Jump state (clip "Jumping") — reachable from Idle/Move/Fall/etc.
+	if skin.has_method(&"jump"):
+		skin.call(&"jump")
+		print("[grapple-anim] jump()")
+	else:
+		push_error("[grapple-anim] skin %s missing jump()" % skin)
+	# After the leap clip's natural length, settle into the held Fall pose
+	# (clip "Jump") for the swing. PlayerBody's physics_process is gated off
+	# during _swinging, so nothing fights us until release.
+	await get_tree().create_timer(0.4, true).timeout
+	if not _swinging or not is_instance_valid(skin):
 		return
 	if skin.has_method(&"fall"):
 		skin.call(&"fall")
+		print("[grapple-anim] fall()")
 
 
 func _tick_swing(delta: float) -> void:

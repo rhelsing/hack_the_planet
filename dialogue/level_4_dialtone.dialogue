@@ -3,8 +3,8 @@
 if GameState.get_flag("level_4_dialtone_done", false)
 	=> revisit
 
-DialTone: First time I've stepped onto a sector in twelve months.
-DialTone: ...the grid hasn't been this quiet since before he came back. [#model=eleven_v3]
+DialTone: First time I've stepped onto a sector in twelve months. Feels good to be back.
+DialTone: The grid hasn't been this quiet since before Splice came back.
 DialTone: You actually pulled it off, runner.
 DialTone: Go on. Talk to her.
 do GameState.set_flag("level_4_dialtone_done", true)
