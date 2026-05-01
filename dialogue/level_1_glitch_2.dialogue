@@ -1,16 +1,8 @@
 ~ start
 
-Glitch: Three things those wheels do that your worn out sneakers didn't.
+Glitch: Two things those wheels do that your worn out sneakers didn't.
 Glitch: One — rails. Hit a pipe with speed, you snap on. Hop off when you want.
 Glitch: Two — speed. Hold a line and your jumps stretch.
-Glitch: Three — wall-rides. Hit a wall sideways at speed. You'll run along it. Sideways jump.
-- Anything else?
-	=> tips
-- Got it.
-	=> done
-
-~ tips
-
 - Got it.
 	=> done
 

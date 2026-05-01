@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/identify_cache_hashes/identify_cache_hashes.gd" id="1_id"]
+
+[node name="IdentifyCacheHashes" type="Node"]
+script = ExtResource("1_id")

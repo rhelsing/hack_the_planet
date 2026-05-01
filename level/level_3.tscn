@@ -640,7 +640,7 @@ brain_scene = ExtResource("24_idlebrain")
 [node name="walkie" parent="." index="117" unique_id=894097875 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -1.4829183, 0.6830478, 12.580291)
 character = &"Nyx"
-line = "Good luck in your sector {player_handle}."
+line = "{player_handle}, you're in. Eyes up — Splice owns half the routing now."
 require_flag = &""
 
 [node name="walkie3" parent="." index="118" unique_id=495772329 instance=ExtResource("9_walkie")]
@@ -675,7 +675,7 @@ spot_angle = 42.43859
 [node name="splice" parent="." index="122" unique_id=1047504630 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -149.20332, 33.657597, -29.268335)
 character = &"Splice"
-line = "Scanning the sector for mice.. ah but am I detecting a **rat**?!"
+line = "Hm. New trace on the wire. ...is that you, runner?"
 require_flag = &""
 
 [node name="splice2" parent="." index="123" unique_id=579269721 instance=ExtResource("9_walkie")]
@@ -687,7 +687,7 @@ require_flag = &""
 [node name="splice3" parent="." index="124" unique_id=1208219810 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -159.27145, 19.015488, -16.319054)
 character = &"Nyx"
-line = "{player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not reading as in that sector anymore. Come in runner?"
+line = "{player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not reading as in that sector anymore. Come in, runner!"
 require_flag = &""
 
 [node name="splice4" parent="." index="125" unique_id=1805706056 instance=ExtResource("9_walkie")]
@@ -704,7 +704,7 @@ require_flag = &""
 [node name="splice6" parent="." index="127" unique_id=432899547 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -186.98592, -2.6929522, -14.204002)
 character = &"Splice"
-line = "I see you have found something. I will be seeing you **very soon**."
+line = "I see you've found something. I will be seeing you **very soon**."
 require_flag = &""
 
 [node name="splice7" parent="." index="128" unique_id=436717905 instance=ExtResource("9_walkie")]

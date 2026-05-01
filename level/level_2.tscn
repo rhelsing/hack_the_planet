@@ -552,7 +552,7 @@ require_flag = &""
 [node name="Nyx3" parent="." index="108" unique_id=1109282511 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -41.997135, 33.569866, -18.763172)
 character = &"Nyx"
-line = "Runner, something is wrong! We are seeing a rogue sentinel."
+line = "Runner, something is wrong! We're seeing rogue sentinels everywhere."
 require_flag = &""
 music_loop = ExtResource("61_dustmotions")
 stinger_oneshot = ExtResource("62_braam")
@@ -576,12 +576,7 @@ require_flag = &""
 
 [node name="Nyx8" parent="." index="112" unique_id=2112023856 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -115.14115, 71.95591, 38.656693)
-line = "Nyx is on her way in. Splice is jamming your beacon. You will need to find her location by hacking the terminals."
-require_flag = &""
-
-[node name="Nyx5" parent="." index="113" unique_id=638732535 instance=ExtResource("54_walkie")]
-transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -23.919643, 10.109025, -37.633957)
-line = "Kicking sentinel butt is the best, isn't it?"
+line = "Nyx is on her way in. Splice is jamming your beacon. You'll need to hack the terminals to find her location."
 require_flag = &""
 
 [node name="EnemySpawner15" parent="." index="114" unique_id=96146603 instance=ExtResource("24_fpfi6")]

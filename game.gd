@@ -23,6 +23,9 @@ var _is_loading: bool = false
 # F12 dev-toggle return state. Populated when entering sentinel_test from
 # another level (path + player position). Cleared on return.
 var _f12_return: Dictionary = {}
+# F9 dev-toggle return state. Populated when jumping to level_5's PlayerSpawn
+# from elsewhere (path + player position). Cleared on return.
+var _f9_return: Dictionary = {}
 
 
 func _ready() -> void:
@@ -56,6 +59,8 @@ func _input(event: InputEvent) -> void:
 		var key := (event as InputEventKey).keycode
 		if key == KEY_F12:
 			_toggle_sentinel_test()
+		elif key == KEY_F9:
+			_toggle_level_5_start()
 		elif key == KEY_F3:
 			EnemyAIBrain.debug_visible = not EnemyAIBrain.debug_visible
 			print("[sentinel] debug overlay = %s" % EnemyAIBrain.debug_visible)
@@ -178,6 +183,39 @@ func _toggle_sentinel_test() -> void:
 		}
 	LevelProgression.goto_path(TEST_PATH)
 	print("[F12] entered sentinel_test (return stashed=%s)" % not _f12_return.is_empty())
+
+
+# F9 round-trip into "fresh start of level 5". Same shape as F12:
+#  - Not in level_5 → stash current level + player position, jump to level_5
+#    (load_level + _spawn_player drops the player at level_5's PlayerSpawn).
+#  - In level_5 WITH stash → pop the stash, restore exact spot.
+#  - In level_5 WITHOUT stash → no-op (we're already where F9 would take us).
+func _toggle_level_5_start() -> void:
+	const LEVEL_5_PATH: String = "res://level/level_5.tscn"
+	var current_path: String = ""
+	if _current_level != null and is_instance_valid(_current_level):
+		current_path = _current_level.scene_file_path
+	var player: Node3D = get_node_or_null(^"Player") as Node3D
+	if current_path == LEVEL_5_PATH:
+		if not _f9_return.is_empty():
+			var stash: Dictionary = _f9_return
+			_f9_return = {}
+			await LevelProgression.goto_path(stash.get("path", ""))
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			if p != null and stash.has("position"):
+				p.global_position = stash["position"]
+			print("[F9] returned to %s" % stash.get("path", ""))
+		else:
+			print("[F9] already in level_5 with no stash — no-op")
+		return
+	# Entering: stash if we have a level + player to remember.
+	if player != null and current_path != "":
+		_f9_return = {
+			"path": current_path,
+			"position": player.global_position,
+		}
+	LevelProgression.goto_path(LEVEL_5_PATH)
+	print("[F9] entered level_5 fresh-start (return stashed=%s)" % not _f9_return.is_empty())
 
 
 func _resolve_initial_level() -> PackedScene:

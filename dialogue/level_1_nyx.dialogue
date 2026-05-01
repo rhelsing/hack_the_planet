@@ -2,13 +2,13 @@
 
 Nyx: Hey there runner.
 do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
-Nyx: Umm.. why are you looking at me like that?
+Nyx: Why are you looking at me like that?
 - DialTone said you needed help?
 	Nyx: Of course he did! He's a child.
 	Nyx: This is just where I like to go to think sometimes.
 	=> tail
 - Are you okay?
-	Nyx: Um.. yeah. Why wouldn't I be?
+	Nyx: Yeah. Why wouldn't I be?
 	- DialTone..
 		Nyx: Oh not this again!
 		=> tail
@@ -17,7 +17,7 @@ Nyx: Umm.. why are you looking at me like that?
 
 Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
 Nyx: I'm going to kill him.
-Nyx: We are gonna have to go have a talk with him.
+Nyx: Let's go have a little chat with him.
 - Head back to the hub.
 	do LevelProgression.advance()
 	=> END

@@ -43,6 +43,12 @@ class_name SceneSetupOnFlag extends Node
 ## switched off. Mesh stays visible; player just can't grind onto them.
 @export var rails_to_disable: Array[NodePath] = []
 
+## When non-empty, every node in the named group is queue_free'd at fire
+## time. Used by L4 post-PLANET-terminal beat to wipe remaining red
+## sentinels (`splice_enemies` group) so the arena clears cleanly even if
+## the player left some alive.
+@export var despawn_group: StringName = &""
+
 
 var _fired: bool = false
 
@@ -74,6 +80,7 @@ func _fire() -> void:
 	_teleport_player()
 	_stage_allies()
 	_disable_rails()
+	_despawn_group()
 	# Disconnect so we never re-react if someone re-fires the flag later.
 	if Events.flag_set.is_connected(_on_flag_set):
 		Events.flag_set.disconnect(_on_flag_set)
@@ -134,6 +141,19 @@ func _stage_allies() -> void:
 		# this would un-toggle them.
 		if ally_skate_mode and pawn.has_method(&"toggle_profile"):
 			pawn.call_deferred(&"toggle_profile")
+
+
+func _despawn_group() -> void:
+	if despawn_group == &"":
+		return
+	# Snapshot before freeing — typed loops over a dict whose Object refs
+	# become invalid mid-iteration crash on the assignment to the loop var.
+	var to_free: Array[Node] = []
+	for n: Node in get_tree().get_nodes_in_group(despawn_group):
+		if is_instance_valid(n):
+			to_free.append(n)
+	for n: Node in to_free:
+		n.queue_free()
 
 
 func _disable_rails() -> void:

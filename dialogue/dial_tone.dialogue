@@ -145,7 +145,6 @@ DialTone: Worth every bit.
 ~ post_1_done
 
 DialTone: Alright — got the next ping queued. Softball, this time. Real one.
-DialTone: Snag them, jack out, meet us back here.
 DialTone: Prove your mettle. Get on the board.
 DialTone: Easiest hop on the grid.
 Nyx: Runner, over here if you have a moment.
@@ -157,7 +156,7 @@ do GameState.set_flag("level_2_unlocked", true)
 ~ stage_post_2
 
 DialTone: {{HandlePicker.chosen_name()}}. You made it back.
-Nyx: We made you make it back.
+Nyx: We helped him make it back.
 DialTone: We did. We did.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
@@ -296,7 +295,7 @@ Nyx: ...
 Nyx: ...sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
 Nyx: ...hey.
-Nyx: How long have you been standing there?
+Nyx: How long were you standing there?
 DialTone: We didn't hear him in there. Channel was dead.
 DialTone: What did he say?
 => post_3_menu
@@ -317,7 +316,7 @@ DialTone: What did he say?
 ~ post_3_world
 
 DialTone: ...heh. He always was. Even back when.
-Nyx: He thinks the rules are rigged because they were rigged against him.
+Nyx: He thinks the rules are **rigged** because they were **rigged** against him.
 Nyx: Difference is, he wants to be the one rigging them next.
 DialTone: That tracks.
 => post_3_plan
@@ -354,9 +353,9 @@ DialTone: We bait him. He walks in expecting another easy win. You hit him with 
 ~ post_3_done
 
 DialTone: We've got him, runner.
-DialTone: Last sector. Channel stays open this time. We're with you.
-DialTone: ...your call when we move.
-Nyx: He's never said that to anyone. [#model=eleven_v3]
+DialTone: Last sector.
+DialTone: ...**your** call when we move.
+Nyx: ...He's never said that to anyone. [#model=eleven_v3]
 DialTone: ...nope.
 do GameState.set_flag("level_4_unlocked", true)
 => END

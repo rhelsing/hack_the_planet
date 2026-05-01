@@ -342,15 +342,17 @@ func _capture_player_mouse(on: bool) -> void:
 ## brackets to the player.
 ##
 ## Matches: `[lowercase]`, `[lowercase with spaces]`, `[lowercase-words]`,
-## `[laughs harder]`, etc. The leading char must be a letter; contents can
-## be letters / digits / spaces / hyphens / underscores. This deliberately
-## does NOT match:
+## `[laughs harder]`, etc. The leading char must be a letter; contents need
+## AT LEAST TWO total chars (letters / digits / spaces / hyphens /
+## underscores). The ≥2-char floor excludes 1-char visual BBCode tags
+## (`[b]`, `[i]`, `[u]`, `[s]`) so this strip is idempotent across
+## already-formatted text. This deliberately does NOT match:
 ##   - `[#tag]` — DialogueManager line tags (already parsed out by now)
 ##   - `[[a|b]]` — alternations (also already parsed)
 ##   - `[COMPOSURE 30%]` — skill check prefix (% is outside the char class)
-##   - `[i]` / `[/i]` — BBCode (added downstream by scroll_balloon, after this)
+##   - `[b]` / `[i]` / `[/b]` / `[/i]` — BBCode (visual styling preserved)
 func _strip_audio_tags(text: String) -> String:
-	var re_tag: RegEx = RegEx.create_from_string("\\[[a-zA-Z][a-zA-Z0-9 _-]*\\]")
+	var re_tag: RegEx = RegEx.create_from_string("\\[[a-zA-Z][a-zA-Z0-9 _-]+\\]")
 	var out: String = re_tag.sub(text, "", true)
 	# Collapse runs of whitespace caused by stripped tags ("a [laughs] b" → "a  b" → "a b").
 	var re_space: RegEx = RegEx.create_from_string("\\s+")

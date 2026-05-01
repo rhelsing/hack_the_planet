@@ -39,13 +39,15 @@ const _HOWTO_PANEL_SCENE := preload("res://hud/components/howto_panel.tscn")
 ## TAU/4 ≈ 90°/s = one full turn every 4 seconds.
 const _SPIN_SPEED: float = TAU / 4.0
 
-## Tint color washed over the floppy's original material. 0 alpha = no tint.
-@export var tint_color: Color = Color(1.0, 0.84, 0.3)
-## 0.0 = no tint (original floppy texture untouched).
-## 1.0 = fully gold (original hidden). 0.2-0.35 = a gentle wash.
-@export_range(0.0, 1.0) var tint_strength: float = 0.25
-## Slight self-illumination intensity — makes the floppy catch the eye.
-@export_range(0.0, 1.0) var tint_emission: float = 0.15
+## Tint color washed over the disc's original material. 0 alpha = no tint.
+## Defaults to neutral white so emission doesn't coat the disc in a hue;
+## set per-instance for a colored highlight.
+@export var tint_color: Color = Color(1.0, 1.0, 1.0)
+## 0.0 = no tint (original disc texture untouched).
+## 1.0 = fully tinted (original hidden). 0.2-0.35 = a gentle wash.
+@export_range(0.0, 1.0) var tint_strength: float = 0.0
+## Slight self-illumination intensity — makes the disc catch the eye.
+@export_range(0.0, 1.0) var tint_emission: float = 0.05
 
 var _visual: Node3D = null
 var _tint_material: StandardMaterial3D

@@ -25,8 +25,6 @@ const DEFAULT_MUSIC_PATHS := [
 	"res://audio/music/for_new_drugs.mp3",
 	"res://audio/music/tyler_ono_fast_paced_low.mp3",
 	"res://audio/music/tyler_ono_fast_paced_high.mp3",
-	"res://audio/music/vibes_a.mp3",
-	"res://audio/music/vibes_b.mp3",
 	"res://audio/music/vibes_c.mp3",
 	"res://audio/music/vibes_d.mp3",
 ]

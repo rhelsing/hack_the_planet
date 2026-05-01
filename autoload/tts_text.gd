@@ -72,4 +72,13 @@ static func for_eleven_labs(text: String) -> String:
 	italic.compile("\\*([^*]+)\\*")
 	for m: RegExMatch in italic.search_all(out):
 		out = out.replace(m.get_string(0), m.get_string(1).to_upper())
+	# Ellipsis → [sigh]. ElevenLabs reads "..." literally as "dot dot dot"
+	# (and Unicode U+2026 "…" as a meaningless beat), neither of which
+	# matches authorial intent. The display path keeps "..." / "…" intact
+	# (subtitles render them as printed); only the TTS payload swaps them
+	# for `[sigh]` so the spoken delivery sells the trailed-off pause.
+	# Handles both the Unicode ellipsis character and the three-dot ASCII
+	# form. Padded with spaces so the cue tag is whitespace-bounded.
+	out = out.replace("…", " [sigh] ")
+	out = out.replace("...", " [sigh] ")
 	return out

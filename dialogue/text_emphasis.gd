@@ -26,14 +26,17 @@ extends RefCounted
 ## a visible label. The TTS path keeps them — v3 reads them as voice cues —
 ## so they only need removal at the display boundary.
 ##
-## Regex matches `[X]` where X starts with a letter and contains
-## alphanumeric + space + underscore + dash. Excludes things with `=`, `#`,
-## `/`, `(`, etc., so DialogueManager tags (`[#walkie]`, `[#model=…]`,
-## `[if … /]`) and BBCode close tags (`[/color]`) are NOT matched here. The
-## visual BBCode tags `[b]`, `[i]`, `[u]` ARE matched, but `format_for_display`
-## adds those AFTER this strip — so callers that strip then format are safe.
+## Regex matches `[X]` where X starts with a letter and contains AT LEAST
+## TWO total characters of alphanumeric + space + underscore + dash. The
+## ≥2-char constraint deliberately excludes the 1-char visual BBCode tags
+## `[b]`, `[i]`, `[u]`, `[s]` — that lets this strip be idempotent on
+## already-formatted text (scroll_balloon double-formats live label vs
+## history log). Also excludes things with `=`, `#`, `/`, `(`, etc., so
+## DialogueManager tags (`[#walkie]`, `[#model=…]`, `[if … /]`) and BBCode
+## close tags (`[/color]`, `[/b]`, `[/i]`) are NOT matched. Multi-char
+## audio cues like `[laughs]`, `[pause]`, `[whispering]` still match.
 static func strip_audio_tags(text: String) -> String:
-	var re_tag: RegEx = RegEx.create_from_string("\\[[a-zA-Z][a-zA-Z0-9 _-]*\\]")
+	var re_tag: RegEx = RegEx.create_from_string("\\[[a-zA-Z][a-zA-Z0-9 _-]+\\]")
 	var out: String = re_tag.sub(text, "", true)
 	# Collapse whitespace runs left by stripped tags ("a [pause] b" → "a  b" → "a b").
 	var re_space: RegEx = RegEx.create_from_string("\\s+")

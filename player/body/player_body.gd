@@ -382,6 +382,11 @@ enum FollowMode { PARENTED, DETACHED }
 ## `attack_active_duration` and clips longer than that (e.g. Mma Kick at
 ## ~1s) get cut off before the strike lands. Mirrors `_dash_visual_timer`.
 @export var attack_visual_duration := 0.8
+## Seconds the player can't jump after attaching to a rail. Prevents the
+## "rail grabs me, I had jump queued" bug where the rail snap fires AND the
+## player launches off it on the same input. Player only — allies aren't
+## affected.
+@export var rail_jump_lockout_seconds: float = 1.5
 ## Horizontal knockback speed (m/s) applied to hit enemies.
 @export var attack_knockback := 14.0
 ## Horizontal speed added to the player on attack (the "jostle" forward).
@@ -494,7 +499,7 @@ enum FollowMode { PARENTED, DETACHED }
 @export var spring_margin := 1.5
 ## Sphere radius used for the spring arm cast. Larger = gives the camera "more
 ## body" so it rounds corners earlier instead of threading thin obstacles.
-@export var spring_cast_radius := 0.2
+@export var spring_cast_radius := 0.4
 
 
 ## Each frame, we find the height of the ground below the player and store it here.
@@ -1752,6 +1757,12 @@ func _on_rail_touched(rail: Node, body: Node) -> void:
 	_grinding = true
 	_grind_snap_t = 0.0
 	_grind_start_pos = global_position
+	# Suppress jump for the snap-in window so a queued jump from approach
+	# doesn't yeet the player off the rail the instant it grabs. Player
+	# only — allies don't typically jump on rails anyway, and locking AI
+	# bodies' jump for a fixed window during a non-jump action is wrong.
+	if pawn_group == "player" and rail_jump_lockout_seconds > 0.0:
+		suppress_jump_for(rail_jump_lockout_seconds)
 	_natural_lean_roll = 0.0
 	_skin.idle()
 	if _grind_sparks != null:

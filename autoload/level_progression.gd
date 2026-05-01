@@ -104,6 +104,9 @@ func _goto(path: String) -> void:
 	# Keeps Player + HUD persistent across level changes. Game.load_level is
 	# now async (wraps the swap in a Transition); awaiting here so callers
 	# (advance, goto_level, goto_path) can save AFTER the mount + transition.
+	var audio := get_tree().root.get_node_or_null(^"Audio")
+	if audio != null and audio.has_method(&"play_sfx"):
+		audio.call(&"play_sfx", &"teleport")
 	var scene := get_tree().current_scene
 	if scene != null and scene.has_method(&"load_level"):
 		await scene.load_level(path)

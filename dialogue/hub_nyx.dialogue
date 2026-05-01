@@ -30,12 +30,12 @@ Nyx: I'm not going to.
 	=> post_1_score
 - What do you want?
 	=> post_1_dare
-- See you on the wire.
+- All right, see you on the wire.
 	=> post_1_done
 
 ~ post_1_alone
 
-Nyx: He gets smugger when there's an audience.
+Nyx: He gets more smug when there's an audience.
 Nyx: This is just for me.
 => post_1_menu
 
@@ -167,7 +167,7 @@ Nyx: ...he's busy convincing himself the plan was his idea. Give it a minute.
 	=> post_3_earlier
 - You read this one. Didn't you.
 	=> post_3_read
-- See you on the wire.
+- All right, see you on the wire.
 	=> post_3_done
 
 ~ post_3_earlier
@@ -225,7 +225,7 @@ Nyx: We're throwing a perimeter party. Splice gets to watch from the inside.
 	=> dancing
 - He's quarantined for good?
 	=> quarantine
-- I'm out.
+- See you on the wire.
 	=> done
 
 ~ dancing

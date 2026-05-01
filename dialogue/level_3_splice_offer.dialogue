@@ -39,7 +39,7 @@ Splice: Not because you took it. Because you saw it first. The rest are too busy
 ~ splice_catch
 
 Splice: There isn't one. That's what they don't get.
-Splice: They built the "hackers for the people" thing because it's easier to share when you have nothing. I had **nothing**. [pause] Now I have **something**.
+Splice: They built the "hackers for the people" thing because it's easier to share when you have nothing. I had **nothing**. Now I have **something**.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
@@ -76,7 +76,7 @@ Splice: Some things I keep mine.
 
 ~ splice_committed
 
-Splice: There it is. [laughs softly] Knew you'd see it.
+Splice: There it is. Knew you'd see it.
 Splice: Stay where you are. I'm coming for you.
 do GameState.set_flag("betrayed_friends", true)
 do LevelProgression.goto_path("res://level/level_5.tscn")
@@ -85,7 +85,7 @@ do LevelProgression.goto_path("res://level/level_5.tscn")
 ~ splice_refused
 
 Splice: ...wow. [sighs] Wow okay. [#model=eleven_v3]
-Splice: [chuckles] You're not walking out of here, runner.
+Splice: You're not walking out of here, runner.
 Splice: Those power-ups in your pocket? They're **keys**. They unlock the whole sector. You don't even know what.
 Splice: So I'm taking them. Every one. And then I'm deleting the part of the wire that has **you** on it.
 Splice: Hold still. This is the —
@@ -95,7 +95,7 @@ Splice: My access — my access is —
 Splice: **No**. No no no.
 DialTone: Got him. Go go go. [#walkie]
 Nyx: {{HandlePicker.chosen_name()}}, you have a window. We can't hold this. **Run**. [#walkie]
-Splice: [whispering] I'll find you again. I will **find you**, runner.
+Splice: I'll find you again. I will **find you**, runner.
 Nyx: Go. Now. [#walkie]
 do GameState.set_flag("refused_splice", true)
 do LevelProgression.advance()

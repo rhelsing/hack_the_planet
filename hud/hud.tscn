@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://ncgcrysyr0vs"]
 
 [ext_resource type="Script" path="res://hud/hud.gd" id="1_root"]
-[ext_resource type="PackedScene" uid="uid://b3hudhealth001" path="res://hud/components/health_bar.tscn" id="2_health"]
 [ext_resource type="PackedScene" uid="uid://b3hudcounters01" path="res://hud/components/counters.tscn" id="3_counters"]
 [ext_resource type="PackedScene" uid="uid://b3objbanner001" path="res://hud/components/objective_banner.tscn" id="4_banner"]
 [ext_resource type="PackedScene" uid="uid://b3toaststack01" path="res://hud/components/toast_stack.tscn" id="5_toasts"]
@@ -13,18 +12,6 @@
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_root")
-
-[node name="TopLeft" type="MarginContainer" parent="."]
-anchor_right = 0.0
-anchor_bottom = 0.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 340.0
-offset_bottom = 56.0
-mouse_filter = 2
-theme = ExtResource("8_theme")
-
-[node name="HealthBar" parent="TopLeft" instance=ExtResource("2_health")]
 
 [node name="TopRight" type="MarginContainer" parent="."]
 anchor_left = 1.0
@@ -68,9 +55,9 @@ theme = ExtResource("8_theme")
 anchor_right = 0.0
 anchor_bottom = 0.0
 offset_left = 16.0
-offset_top = 64.0
+offset_top = 16.0
 offset_right = 120.0
-offset_bottom = 220.0
+offset_bottom = 172.0
 mouse_filter = 2
 theme = ExtResource("8_theme")
 

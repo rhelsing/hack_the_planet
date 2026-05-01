@@ -9,7 +9,7 @@ Items confirmed or corrected from playtest review. Items marked **[CONFIRM]** ne
 | # | Bug | Level | Notes |
 |---|-----|-------|-------|
 | 4 | **Crouching on angled platform — player gets stuck** | L3, L4 | Locks player in place. Occurs on both levels. |
-| 11 | **Terminal next to Glitch visible before dialogue** | L4 | **[CONFIRM]** — Should be hidden until conversation fires. Need to verify current state. |
+| 11 | **Terminal next to Glitch visible before dialogue** | L4 | ✅ **FIXED** — BuriedReveal child added to HackingTerminal, `bury_depth = 3.0`, `reveal_flag = &"l4_glitch_pitched"`, `reveal_after_walkie_line_ends = true`. Walkie2 now writes `persist_flag = &"l4_glitch_pitched"` so the terminal slides up after Glitch's "Will you do the honors?" line ends. ControlPlatform 1+2 now have `require_flag = &"l4_terminal_5"` and `done_flag = &"l4_invention_terminal_solved"`. |
 | 14 | **Have to jump to install God** | L4 | Player gets stuck. Jump shouldn't be required. Needs fix. |
 | 170 | **Player falls under the floor** | L4 | Dial Tone is raised, Nix is on par, but player clips through and ends up under the floor. |
 | 171 | **Post-terminal scene not working** | L4 | Scene doesn't trigger/play. Needs positioning of the other version of Glitch. |
@@ -72,6 +72,6 @@ Items confirmed or corrected from playtest review. Items marked **[CONFIRM]** ne
 
 ### CONFIRM checklist
 
-- [ ] #11 — Terminal next to Glitch: still visible before dialogue?
+- [x] #11 — Terminal next to Glitch: ✅ buried 3u, reveals on Walkie2 line-end via `l4_glitch_pitched` flag
 - [ ] #19 — Dash-B (/B): still showing in bubbles?
 - [ ] #26 — Controller "G to grapple": reads controller binding now?
