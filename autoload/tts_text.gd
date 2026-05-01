@@ -81,4 +81,12 @@ static func for_eleven_labs(text: String) -> String:
 	# only the TTS payload swaps them.
 	out = out.replace("…", " hmm ")
 	out = out.replace("...", " hmm ")
+	# Gamepad face-button glyphs → spoken words. HUD + subtitles render the
+	# Unicode shapes (set in autoload/glyphs.gd); ElevenLabs would read them
+	# as silence or codepoint-name, so reverse them back to "Cross" /
+	# "Circle" / "Square" / "Triangle" right before the synth payload.
+	out = out.replace("✕", "Cross")
+	out = out.replace("○", "Circle")
+	out = out.replace("□", "Square")
+	out = out.replace("△", "Triangle")
 	return out

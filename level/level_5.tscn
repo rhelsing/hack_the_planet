@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://dsplskin0001" path="res://player/skins/splice/splice_skin.tscn" id="4_splice_skin"]
 [ext_resource type="PackedScene" uid="uid://dcsplayer001" path="res://cutscene_engine/cutscene_player.tscn" id="5_csplayer"]
 [ext_resource type="Resource" path="res://cutscenes/l5_walk.tres" id="6_l5walk"]
+[ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="7_city"]
+[ext_resource type="PackedScene" uid="uid://dmotes0001" path="res://level/fx/floating_motes/floating_motes.tscn" id="8_motes"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_proc"]
 sky_top_color = Color(0.02, 0.0, 0.04, 1)
@@ -50,25 +52,25 @@ shadow_enabled = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -30)
 material_override = ExtResource("2_floor")
 use_collision = true
-size = Vector3(8, 1, 70)
+size = Vector3(8, 1, 1400)
 
-[node name="WallLeft" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 1.5, -30)
+[node name="ground_bg" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5479431, -33.400177, 75.50018)
 material_override = ExtResource("2_floor")
 use_collision = true
-size = Vector3(1, 4, 70)
+size = Vector3(2000, 1, 2000)
+script = ExtResource("7_city")
 
-[node name="WallRight" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 1.5, -30)
-material_override = ExtResource("2_floor")
-use_collision = true
-size = Vector3(1, 4, 70)
+[node name="FloatingMotes" parent="." instance=ExtResource("8_motes")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+amount = 80
+visibility_aabb = AABB(-12, -10, -40, 24, 20, 80)
 
 [node name="PlayerSpawn" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 8)
 
 [node name="SpliceLead" parent="." instance=ExtResource("3_companion")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, -4)
 skin_scene = ExtResource("4_splice_skin")
 interactable_id = &"npc_splice_walk_lead"
 prompt_verb = "follow"
@@ -77,6 +79,9 @@ swivel_speed = 0.0
 wave_intervals_sec = Array[float]([])
 monitoring = false
 monitorable = false
+
+[node name="BumpShape" parent="SpliceLead/Bump" index="0"]
+disabled = true
 
 [node name="EndTerminal" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, -60)

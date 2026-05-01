@@ -52,6 +52,32 @@ const FACING_COS: float = 0.7
 ## so the swing kicks off with upward motion, even from above. 0 = disabled.
 @export_range(0.0, 30.0, 0.5) var above_anchor_up_impulse: float = 12.0
 
+@export_group("Too-close stretch")
+## When the player fires from very close to a grappleable, the natural
+## swing arc collapses — short rope after pull_in, tiny radius, no
+## momentum. These two clamps virtually relocate the body outward at fire
+## time so a real pendulum can establish itself. They only activate when
+## the actual offset is BELOW the threshold; normal-range grapples
+## bypass this block entirely and behave identically to before.
+##
+## Example: anchor 10m above and 2m forward of player → offset (~10.2m,
+## ~11° from vertical → tiny swing). After stretch with the defaults
+## below, body is virtually placed at ~17m / ~33° from vertical so the
+## chain spawns with a real arc to swing through.
+##
+## Either clamp set to 0 disables that leg.
+
+## Minimum total distance from anchor at fire. If the player fires from
+## closer, the body's world position is pushed out along the same offset
+## direction to this distance.
+@export_range(0.0, 30.0, 0.5) var min_effective_distance: float = 15.0
+## Minimum horizontal (XZ) component of the offset at fire. Ensures real
+## pendulum arc even when firing from directly under or above. After the
+## radial clamp, if horizontal is still too small, the body is pushed
+## sideways along the existing horizontal direction (or the body's
+## forward axis as a fallback when firing from straight under/over).
+@export_range(0.0, 20.0, 0.5) var min_effective_horizontal: float = 8.0
+
 @export_group("Release launch")
 ## Vertical kick on release. Always applied so apex-release reads as a jump.
 @export_range(0.0, 20.0, 0.25) var release_up_kick: float = 5.0
@@ -100,6 +126,18 @@ var _launch_side_dir: Vector3 = Vector3.FORWARD
 # all the altitude before release fires.
 var _above_anchor_mode: bool = false
 
+# Long-running "swing whole time until landing" audio. Started on rope-bite,
+# stopped when the player's body becomes is_on_floor() AFTER the swing has
+# released. Tracked separately from the one-shot fire/bite cues because it
+# needs a stop handle and outlives the rope itself (continues through the
+# post-release flight until ground contact).
+const _SWING_AUDIO_PATH: String = "res://audio/sfx/grapple/grapples_playing_whole_time_until_landing.mp3"
+var _swing_audio_player: AudioStreamPlayer = null
+# True from rope-bite until the post-release flight ends on the ground.
+# `_swinging` flips false on _release; this stays true until landing so the
+# _process loop knows the swing-audio still owes us a stop.
+var _swing_audio_active: bool = false
+
 
 func _ready() -> void:
 	if ability_id == &"":
@@ -108,6 +146,13 @@ func _ready() -> void:
 		powerup_flag = &"powerup_sex"
 	super._ready()
 	_register_debug_sliders()
+	# Long-form swing audio gets its own player so we can start/stop it on
+	# command. SFX bus so the music duck doesn't squash it; load on demand
+	# rather than preload so the initial scene parse doesn't pay for it.
+	_swing_audio_player = AudioStreamPlayer.new()
+	_swing_audio_player.bus = &"SFX"
+	_swing_audio_player.stream = load(_SWING_AUDIO_PATH) as AudioStream
+	add_child(_swing_audio_player)
 
 
 func _register_debug_sliders() -> void:
@@ -158,6 +203,15 @@ func _process(_delta: float) -> void:
 		_update_line_visual()
 	else:
 		_update_aim()
+	# Swing audio outlives the rope. Started on bite, stopped here when
+	# the player has released AND landed back on the ground. Polling
+	# is_on_floor each frame is cheap (a flag read on CharacterBody3D).
+	if _swing_audio_active and not _swinging:
+		var body := _find_body()
+		if body == null or (body is CharacterBody3D and (body as CharacterBody3D).is_on_floor()):
+			if _swing_audio_player != null and _swing_audio_player.playing:
+				_swing_audio_player.stop()
+			_swing_audio_active = false
 
 
 func _physics_process(delta: float) -> void:
@@ -242,12 +296,51 @@ func _start_swing(target: Node3D) -> void:
 	if body_3d == null:
 		return
 	_clear_all_prompts()
+	# Three-event grapple SFX: fire (the whip-out attack), bite (the
+	# anchor-lock impact, fired below right after the rope physics spawn),
+	# release (in _release). Cues registered in audio/cue_registry.tres;
+	# stream pools currently empty so play_sfx silently no-ops until the
+	# user drops audio files into the .tres files.
+	Audio.play_sfx(&"grapple_fire")
 
 	_anchor = target
 	_swinging = true
 	var anchor_pos: Vector3 = target.global_position
 
 	var offset: Vector3 = body_3d.global_position - anchor_pos
+	# Too-close stretch — virtually push the body outward when firing from
+	# inside the swing-arc minimum. Both clamps are bottom-only: they
+	# branch out only if the actual offset is below the threshold, so
+	# normal-range grapples skip this block entirely.
+	var stretched: bool = false
+	if min_effective_distance > 0.0 \
+			and offset.length() > 0.001 \
+			and offset.length() < min_effective_distance:
+		offset = offset.normalized() * min_effective_distance
+		stretched = true
+	if min_effective_horizontal > 0.0:
+		var horiz: Vector3 = Vector3(offset.x, 0.0, offset.z)
+		var horiz_dist: float = horiz.length()
+		if horiz_dist < min_effective_horizontal:
+			# Pick the horizontal direction to grow into. Existing
+			# horizontal preferred (preserves intent); fall back to the
+			# body's forward axis (-Z) when firing straight under/over.
+			var horiz_dir: Vector3
+			if horiz_dist > 0.001:
+				horiz_dir = horiz.normalized()
+			else:
+				horiz_dir = -body_3d.global_basis.z
+				horiz_dir.y = 0.0
+				if horiz_dir.length_squared() > 0.001:
+					horiz_dir = horiz_dir.normalized()
+				else:
+					horiz_dir = Vector3.FORWARD
+			offset += horiz_dir * (min_effective_horizontal - horiz_dist)
+			stretched = true
+	if stretched:
+		body_3d.global_position = anchor_pos + offset
+		print("[grapple] too-close stretch: offset=%s dist=%.2f" % [
+			offset, offset.length()])
 	_above_anchor_mode = offset.y > 0.0
 	var current_distance: float = offset.length()
 	# Capture the side the player was on (horizontal-only). Release uses this
@@ -311,9 +404,44 @@ func _start_swing(target: Node3D) -> void:
 		_cached_pivot.position = pivot_local
 
 	_spawn_rope_chain(anchor_pos, body_3d.global_position, approach_vel)
+	# Bite — rope just anchored to the target. Layered on top of fire in
+	# the same frame; the audio sample envelopes give the ear "throw …
+	# thunk." Insert a deferred timer here if a longer beat is needed.
+	Audio.play_sfx(&"grapple_bite")
+	# Long-form swing audio kicks in here and runs until the player lands
+	# on the ground after release (poll in _process). Stop any prior swing
+	# audio first in case a rapid re-grapple is firing before the previous
+	# stop condition was met.
+	if _swing_audio_player != null:
+		if _swing_audio_player.playing:
+			_swing_audio_player.stop()
+		_swing_audio_player.play()
+		_swing_audio_active = true
+	# Animation: at-bite → "Falling Idle" (mapped to WallSlide state on AjSkin)
+	# for the swing-hang pose. After 2s, transition to Fall so the held
+	# pose breathes; the post-release flight then continues in Fall until
+	# PlayerBody's normal physics-driven state takes over on landing.
+	_play_grapple_bite_anim(body)
 
 	_line_renderer = _build_line_renderer()
 	get_tree().current_scene.add_child(_line_renderer)
+
+
+func _play_grapple_bite_anim(body: Node) -> void:
+	var skin: Variant = body.get(&"_skin")
+	if skin == null or not is_instance_valid(skin):
+		return
+	if skin.has_method(&"wall_slide"):
+		skin.call(&"wall_slide")
+	await get_tree().create_timer(2.0, true).timeout
+	# Player may have released before the timer fired — body's physics_process
+	# is back on and driving the skin from velocity, so don't fight it.
+	if not _swinging:
+		return
+	if not is_instance_valid(skin):
+		return
+	if skin.has_method(&"fall"):
+		skin.call(&"fall")
 
 
 func _tick_swing(delta: float) -> void:
@@ -332,6 +460,9 @@ func _tick_swing(delta: float) -> void:
 
 
 func _release() -> void:
+	# No release-specific cue in the v2 audio model — the swing-loop
+	# audio (started on bite) is what carries the player through release
+	# and continues until they land on the ground (stopped by _process).
 	var body := _find_body()
 	# Deterministic launch: always up + out from the side the player was on
 	# at fire. The chain's chaotic swing velocity is optionally blended in

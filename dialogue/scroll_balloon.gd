@@ -270,6 +270,7 @@ func apply_dialogue_line() -> void:
 	responses_menu.hide()
 	responses_menu.responses = dialogue_line.responses
 	_style_skill_check_buttons()  # P4 — amber tint for [SKILL PCT%] prefixed responses
+	_style_can_gated_buttons()    # speaker-color outline for [CAN]-prefixed unlock options
 	_dim_visited_responses()  # ported from 3dPFormer
 
 	# Show our balloon
@@ -533,6 +534,61 @@ func _style_skill_check_buttons() -> void:
 		btn.add_theme_color_override("font_color", SKILL_CHECK_COLOR)
 		btn.add_theme_color_override("font_hover_color", SKILL_CHECK_HOVER)
 		btn.add_theme_color_override("font_focus_color", SKILL_CHECK_HOVER)
+
+
+# ── [CAN]-prefixed unlock options ───────────────────────────────────────
+# Response text starting with `[CAN]` (post-`[if /]` gate) marks an option
+# the player unlocked through collectible progress. The marker is purely a
+# render hint — stripped from response.text so it never reaches the chat
+# log, the visited-dim key, or any downstream consumer. The button gets a
+# 2px outline in the current speaker's color (3px radius), no bg fill.
+
+const _CAN_PREFIX_RE := "^\\[CAN\\]\\s*"
+var _can_prefix_regex: RegEx
+
+
+func _style_can_gated_buttons() -> void:
+	if _can_prefix_regex == null:
+		_can_prefix_regex = RegEx.create_from_string(_CAN_PREFIX_RE)
+	var border_color: Color = _current_speaker_color()
+	for child: Node in responses_menu.get_children():
+		if not (child is Button): continue
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		var match: RegExMatch = _can_prefix_regex.search(response.text)
+		if match == null: continue
+		# Strip the marker from BOTH the runtime response object and the
+		# button label. Mutating response.text means the chat log + the
+		# visited-dim key (which read response.text downstream) never see
+		# `[CAN]` either.
+		response.text = response.text.substr(match.get_end())
+		var btn := child as Button
+		btn.text = response.text
+		for state in ["normal", "hover", "pressed", "focus"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color(border_color.r, border_color.g, border_color.b, 0.10) \
+					if state == "hover" else Color(0, 0, 0, 0)
+			sb.border_width_left = 2
+			sb.border_width_top = 2
+			sb.border_width_right = 2
+			sb.border_width_bottom = 2
+			sb.border_color = border_color
+			sb.corner_radius_top_left = 3
+			sb.corner_radius_top_right = 3
+			sb.corner_radius_bottom_left = 3
+			sb.corner_radius_bottom_right = 3
+			btn.add_theme_stylebox_override(state, sb)
+
+
+func _current_speaker_color() -> Color:
+	if not is_instance_valid(dialogue_line): return Color.WHITE
+	var name: String = dialogue_line.character
+	if name.is_empty(): return Color.WHITE
+	if _portraits != null and _portraits.has_method(&"has_color") \
+			and bool(_portraits.call(&"has_color", name)):
+		return _portraits.call(&"get_color", name) as Color
+	return Color.WHITE
 
 
 ## Dims response buttons for choices the player has already taken with this

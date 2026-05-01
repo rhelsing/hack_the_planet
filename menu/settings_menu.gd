@@ -58,7 +58,7 @@ func _bind_from_settings() -> void:
 	_quality.selected = _quality_index(q)
 	var t: String = String(s.call(&"get_value", "graphics", "transition_style", "instant"))
 	_transition.selected = 1 if t == "glitch" else 0
-	var hs: float = float(s.call(&"get_value", "hud", "scale", 2.0))
+	var hs: float = float(s.call(&"get_value", "hud", "scale", 1.5))
 	_hud_scale.value = hs
 	_hud_scale_value.text = "%.1fx" % hs
 

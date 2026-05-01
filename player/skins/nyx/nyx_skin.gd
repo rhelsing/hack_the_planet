@@ -180,6 +180,15 @@ func fall() -> void: state_machine.travel("Fall")
 func jump() -> void: state_machine.travel("Jump")
 func edge_grab() -> void: state_machine.travel("EdgeGrab")
 func wall_slide() -> void: state_machine.travel("WallSlide")
+func walk_lock() -> void:
+	if animation_tree == null: return
+	animation_tree.active = false
+	var ap := _find_anim_player(self)
+	if ap != null and ap.has_animation("Walking"):
+		ap.play("Walking")
+func walk_unlock() -> void:
+	if animation_tree != null:
+		animation_tree.active = true
 
 
 func attack() -> void:

@@ -17,7 +17,7 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 	=> splice_refused
 - Listening.
 	=> splice_consider
-- [if GameState.coin_pct() >= 0.5 /] What about Nyx?
+- [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
 	=> splice_nyx
 
 ~ splice_consider
@@ -29,7 +29,7 @@ Splice: Walk with me, you don't grind anymore. The Gibson responds when you blin
 Splice: Not because you took it. Because you saw it first. The rest are too busy performing.
 - What's the catch?
 	=> splice_catch
-- [if GameState.coin_pct() >= 0.5 /] What about Nyx?
+- [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
 	=> splice_nyx
 - I'm with you.
 	=> splice_committed
@@ -68,7 +68,7 @@ Splice: Some things I keep mine.
 - "Almost"?
 	Splice: Long time ago. Doesn't matter.
 	=> splice_consider
-- [if GameState.coin_pct() >= 0.8 /] Are you trying to get her back?
+- [if GameState.coin_pct() >= 0.8 /] [CAN] Are you trying to get her back?
 	Splice: I'm trying to get the Gibson. She's **already gone**.
 	=> splice_consider
 - Get off my channel.

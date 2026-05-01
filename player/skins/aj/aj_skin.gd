@@ -23,8 +23,14 @@ extends CharacterSkin
 
 const _FOOT_L_BONE := &"mixamorig_LeftFoot"
 const _FOOT_R_BONE := &"mixamorig_RightFoot"
+const _HEAD_BONE := &"mixamorig_Head"
+## Inventory flag that gates the sunglasses visibility. Empty = always
+## visible. Default is `powerup_secret` (the HackMode pickup) — gives AJ
+## the shades the moment the player grabs the L2 power-up.
+@export var sunglasses_flag: StringName = &"powerup_secret"
 @onready var _wheels_left: Node3D = $WheelsLeft
 @onready var _wheels_right: Node3D = $WheelsRight
+@onready var _sunglasses: Node3D = $Sunglasses
 @onready var _dust_particles: GPUParticles3D = %DustParticles
 
 @onready var animation_tree: AnimationTree = %AnimationTree
@@ -122,6 +128,28 @@ func _ready() -> void:
 	_reparent_under_bone(_wheels_right, _FOOT_R_BONE)
 	if _wheels_left != null: _wheels_left.visible = false
 	if _wheels_right != null: _wheels_right.visible = false
+
+	# Sunglasses ride the head bone — local transform on the Sunglasses
+	# node in the .tscn is the offset relative to the head joint, so
+	# tuning is an inspector edit. Visibility is gated by `sunglasses_flag`.
+	_reparent_under_bone(_sunglasses, _HEAD_BONE)
+	_apply_sunglasses_visibility()
+	if sunglasses_flag != &"":
+		Events.flag_set.connect(_on_flag_set_for_sunglasses)
+
+
+func _on_flag_set_for_sunglasses(id: StringName, _value: Variant) -> void:
+	if id == sunglasses_flag:
+		_apply_sunglasses_visibility()
+
+
+func _apply_sunglasses_visibility() -> void:
+	if _sunglasses == null:
+		return
+	if sunglasses_flag == &"":
+		_sunglasses.visible = true
+		return
+	_sunglasses.visible = bool(GameState.get_flag(sunglasses_flag, false))
 
 
 func _collect_mannequin_meshes(n: Node) -> void:
@@ -278,6 +306,15 @@ func idle() -> void:
 		_idle_anim_node.animation = _IDLE_CLIPS[_idle_cycle_index]
 	state_machine.travel("Idle")
 func move() -> void: state_machine.travel("Move")
+func walk_lock() -> void:
+	if animation_tree == null: return
+	animation_tree.active = false
+	var ap := _find_anim_player(self)
+	if ap != null and ap.has_animation("Walking"):
+		ap.play("Walking")
+func walk_unlock() -> void:
+	if animation_tree != null:
+		animation_tree.active = true
 
 
 func set_walk_speed_scale(scale: float) -> void:

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AudioCue" format=3 uid="uid://dvl2ikduji5dg"]
+
+[ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_1.mp3" id="2"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_2.mp3" id="3"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_3.mp3" id="4"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_4.mp3" id="5"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_5.mp3" id="6"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_6.mp3" id="7"]
+[ext_resource type="AudioStream" path="res://audio/sfx/hacking/hacking_7.mp3" id="8"]
+
+[resource]
+script = ExtResource("1")
+streams = Array[AudioStream]([ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8")])
+strict_alternate = true
+volume_db_min = -3.0
+volume_db_max = -1.0
+pitch_min = 0.97
+pitch_max = 1.03
+bus = &"SFX"

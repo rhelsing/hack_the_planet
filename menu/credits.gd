@@ -9,6 +9,14 @@ signal back_requested
 ## credits run ~50 px/s; faster reads punchier for a short list.
 @export var scroll_speed_px_per_s: float = 60.0
 
+## Base size for credits text at hud_scale = 1.0, before the credits
+## multiplier. The .tscn sets 14 as the authored base; we keep it in
+## sync via _apply_text_scale on _ready and on Settings changes.
+const _FONT_BASE: int = 14
+## Credits-specific multiplier on top of Settings.get_hud_scale(). Bump
+## here if credits should always read larger than HUD chrome.
+const _FONT_MULT: float = 1.5
+
 @onready var _column: Control = %ScrollColumn
 @onready var _content: Control = %ScrollContent
 @onready var _text: Label = %ScrollText
@@ -25,11 +33,29 @@ func configure(args: Dictionary) -> void:
 
 
 func _ready() -> void:
-	Events.modal_opened.emit(&"credits")
-	tree_exited.connect(func() -> void: Events.modal_closed.emit(&"credits"))
+	# Only skippable credits (main menu) count as a modal — they actually
+	# block input. Passive in-game credits (hub post-L4, level 5 corridor)
+	# leave _skippable = false and shouldn't suppress prompts or register
+	# with pause_controller.is_any_modal_open(). configure() runs before
+	# _ready so _skippable is reliably set here.
+	if _skippable:
+		Events.modal_opened.emit(&"credits")
+		tree_exited.connect(func() -> void: Events.modal_closed.emit(&"credits"))
+	# Apply the user's text-scale setting to the credits font, then re-apply
+	# whenever Settings changes (so the slider works while the roll is up).
+	_apply_text_scale()
+	Events.settings_applied.connect(_apply_text_scale)
 	# Defer so the layout has resolved column.size and label.size before we
 	# pin the start position + compute the end position.
 	_start_scroll.call_deferred()
+
+
+func _apply_text_scale() -> void:
+	if _text == null:
+		return
+	var s := Settings.get_hud_scale()
+	var size_px: int = int(round(_FONT_BASE * _FONT_MULT * s))
+	_text.add_theme_font_size_override(&"font_size", size_px)
 
 
 func _start_scroll() -> void:

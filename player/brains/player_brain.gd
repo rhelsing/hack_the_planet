@@ -120,6 +120,7 @@ func _update_last_device(event: InputEvent) -> void:
 	# Dedupe: write only on change so observers can subscribe without noise.
 	if kind != last_device:
 		last_device = kind
+		Events.input_device_changed.emit(kind)
 
 
 func tick(_body: Node3D, delta: float) -> Intent:

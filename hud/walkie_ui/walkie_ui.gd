@@ -7,8 +7,20 @@ extends CanvasLayer
 @export var fade_duration: float = 0.18
 @export var typewrite_speed: float = 45.0  # chars per second
 
+# Authored sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
+# in _apply_hud_scale (called at _ready and on Events.settings_applied so
+# the slider takes effect even with a line on screen).
+const _PORTRAIT_SLOT_BASE: Vector2 = Vector2(64, 64)
+const _PORTRAIT_INITIAL_FONT_BASE: int = 32
+const _NAME_FONT_BASE: int = 14
+const _TEXT_FONT_BASE: int = 16
+const _PANEL_MIN_WIDTH_BASE: float = 520.0
+const _HBOX_SEPARATION_BASE: int = 12
+
 @onready var _root: Control = $Root
 @onready var _panel: PanelContainer = $Root/CenterBox/Panel
+@onready var _hbox: HBoxContainer = $Root/CenterBox/Panel/HBox
+@onready var _portrait_slot: Control = $Root/CenterBox/Panel/HBox/PortraitSlot
 @onready var _portrait: TextureRect = $Root/CenterBox/Panel/HBox/PortraitSlot/Portrait
 @onready var _portrait_initial: Label = $Root/CenterBox/Panel/HBox/PortraitSlot/PortraitInitial
 @onready var _name_label: Label = $Root/CenterBox/Panel/HBox/VBox/NameLabel
@@ -34,6 +46,20 @@ func _ready() -> void:
 	# diegetic voices), branch here.
 	Companion.line_started.connect(_on_line_started)
 	Companion.line_ended.connect(_on_line_ended)
+	# HUD scale: portrait + fonts + panel width all read from a single
+	# Settings.hud.scale knob, applied here and live on slider drags.
+	Events.settings_applied.connect(_apply_hud_scale)
+	_apply_hud_scale()
+
+
+func _apply_hud_scale() -> void:
+	var s: float = Settings.get_hud_scale()
+	_portrait_slot.custom_minimum_size = _PORTRAIT_SLOT_BASE * s
+	_portrait_initial.add_theme_font_size_override(&"font_size", int(_PORTRAIT_INITIAL_FONT_BASE * s))
+	_name_label.add_theme_font_size_override(&"font_size", int(_NAME_FONT_BASE * s))
+	_text_label.add_theme_font_size_override(&"normal_font_size", int(_TEXT_FONT_BASE * s))
+	_panel.custom_minimum_size = Vector2(_PANEL_MIN_WIDTH_BASE * s, 0)
+	_hbox.add_theme_constant_override(&"separation", int(_HBOX_SEPARATION_BASE * s))
 
 
 func _on_line_started(character: String, text: String) -> void:

@@ -10,6 +10,11 @@ extends Resource
 @export var rotation_speed := 12.0
 @export var stopping_speed := 1.0
 @export var face_velocity := false
+## Multiplier applied to max_speed while crouched. Per-profile so walk
+## crouch can stay strict (0.45 = 3.6 m/s on default 8) while skate crouch
+## stays gliding (0.71 ≈ 8 m/s on the player's 11.2 m/s skate top speed).
+## Body reads this from the active profile.
+@export_range(0.0, 1.0) var crouch_speed_multiplier: float = 0.45
 
 @export_group("Lean")
 @export var forward_lean_amount := -0.095

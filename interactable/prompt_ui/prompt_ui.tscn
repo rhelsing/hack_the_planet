@@ -1,48 +1,77 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://interactable/prompt_ui/prompt_ui.gd" id="1"]
+
+[sub_resource type="SystemFont" id="mono_font"]
+font_names = PackedStringArray("JetBrainsMono-Regular", "JetBrains Mono", "Menlo", "Consolas", "monospace")
+
+[sub_resource type="StyleBoxFlat" id="panel_style"]
+bg_color = Color(0.05, 0.07, 0.09, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.85, 0.95, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="Theme" id="theme_root"]
+default_font = SubResource("mono_font")
 
 [node name="PromptUI" type="CanvasLayer"]
 layer = 1
 script = ExtResource("1")
 
 [node name="Root" type="Control" parent="."]
+theme = SubResource("theme_root")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="PromptLabel" type="Label" parent="Root"]
-anchors_preset = 7
-anchor_left = 0.5
+[node name="PromptCenter" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 12
 anchor_top = 1.0
-anchor_right = 0.5
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -250.0
-offset_top = -80.0
-offset_right = 250.0
-offset_bottom = -40.0
+offset_top = -100.0
+offset_bottom = -32.0
+
+[node name="PromptPanel" type="PanelContainer" parent="Root/PromptCenter" unique_name_in_owner=true]
+layout_mode = 2
+theme_override_styles/panel = SubResource("panel_style")
+custom_minimum_size = Vector2(220, 0)
+
+[node name="PromptLabel" type="Label" parent="Root/PromptCenter/PromptPanel" unique_name_in_owner=true]
+layout_mode = 2
 horizontal_alignment = 1
-vertical_alignment = 1
 text = ""
 theme_override_font_sizes/font_size = 24
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0.7)
-theme_override_constants/outline_size = 4
 
-[node name="ToastLabel" type="Label" parent="Root"]
-anchors_preset = 7
-anchor_left = 0.5
+[node name="ToastCenter" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 12
 anchor_top = 1.0
-anchor_right = 0.5
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -300.0
-offset_top = -140.0
-offset_right = 300.0
-offset_bottom = -90.0
+offset_top = -168.0
+offset_bottom = -108.0
+
+[node name="ToastPanel" type="PanelContainer" parent="Root/ToastCenter" unique_name_in_owner=true]
+layout_mode = 2
+theme_override_styles/panel = SubResource("panel_style")
+custom_minimum_size = Vector2(260, 0)
+
+[node name="ToastLabel" type="Label" parent="Root/ToastCenter/ToastPanel" unique_name_in_owner=true]
+layout_mode = 2
 horizontal_alignment = 1
-vertical_alignment = 1
 text = ""
 theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(1, 0.7, 0.4, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
-theme_override_constants/outline_size = 5

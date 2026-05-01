@@ -10,6 +10,13 @@ extends Area3D
 @export var character: StringName = &"DialTone"
 @export_multiline var line: String = ""
 @export var fire_once: bool = true
+## Optional audio bus override. Empty = play on the Walkie bus (radio EQ —
+## "I'm on the comms"). Set to `&"Companion"` for diegetic in-world voice
+## (reverb + low-pass = "the speaker is in the room") — used when the
+## character is physically nearby and not actually on a radio. Routes the
+## same TTS-cached audio through a different bus; queue + UI behavior
+## unchanged. See `Walkie.speak(..., bus_override)`.
+@export var bus_override: StringName = &""
 ## Only fire if this flag is true on GameState. Empty string = always allowed.
 ## Default gates on walkie ownership so triggers are silent before Beat 1.
 @export var require_flag: StringName = &"walkie_talkie_owned"
@@ -65,4 +72,4 @@ func _on_body_entered(body: Node) -> void:
 		var audio: Node = get_node_or_null(^"/root/Audio")
 		if audio != null and audio.has_method(&"play_music"):
 			audio.call(&"play_music", music_loop, 1.0)
-	Walkie.speak(String(character), line)
+	Walkie.speak(String(character), line, bus_override)

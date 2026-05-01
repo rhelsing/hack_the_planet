@@ -220,6 +220,10 @@ func interact(actor: Node3D) -> void:
 		push_warning("StealthKillTarget %s: parent %s has no stealth_kill()" % [
 			interactable_id, pawn])
 		return
+	# Successful hack feedback — round-robin through the 7-clip hacking bank
+	# (cue's strict_alternate cycles deterministically, so each kill plays a
+	# different sting until the bank wraps).
+	Audio.play_sfx(&"stealth_hack_success")
 	# Push the pawn from the player's direction so the lying pose orients
 	# their head away from the kill — same skin-tilt the regular knockback
 	# death uses, just no launch.

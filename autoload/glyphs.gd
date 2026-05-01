@@ -16,15 +16,18 @@ extends Node
 ## by PlayerBrain). If no player is in the scene, defaults to "keyboard"
 ## glyphs — the safe assumption for a desktop launch with no input yet.
 
-## Word-form glyph labels — "Cross" instead of "✕". Reads naturally in TTS
-## voice lines (Glitch speaking through ElevenLabs) AND in on-screen labels,
-## so a single mapping covers both. If we ever need pure-visual symbols on
-## the HUD specifically, add a parallel dict and a separate accessor.
+## Gamepad face buttons render as Unicode glyphs (○ △ □ ✕) for HUD and
+## subtitle display. The TTS payload boundary (tts_text.gd:for_eleven_labs)
+## reverse-maps these back to spoken words ("Circle" / "Triangle" /
+## "Square" / "Cross") because ElevenLabs reads the unicode codepoints as
+## silence or codepoint-name. Shoulder buttons (L1/L2/R1/R2/L3) and Options
+## stay as text — they have no natural Unicode equivalent and read fine in
+## both contexts as-is.
 const _GLYPHS: Dictionary = {
-	"jump":          {"keyboard": "Space",      "gamepad": "X"},
-	"dash":          {"keyboard": "Q",          "gamepad": "Circle"},
-	"attack":        {"keyboard": "T",          "gamepad": "Square"},
-	"interact":      {"keyboard": "E",          "gamepad": "Triangle"},
+	"jump":          {"keyboard": "Space",      "gamepad": "✕"},
+	"dash":          {"keyboard": "Q",          "gamepad": "○"},
+	"attack":        {"keyboard": "T",          "gamepad": "□"},
+	"interact":      {"keyboard": "E",          "gamepad": "△"},
 	"crouch":        {"keyboard": "Ctrl",       "gamepad": "L3"},
 	"sneak_toggle":  {"keyboard": "Shift",      "gamepad": "L3"},
 	"toggle_skate":  {"keyboard": "R",          "gamepad": "L1"},

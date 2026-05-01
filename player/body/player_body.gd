@@ -744,6 +744,15 @@ const _LAND_SOUNDS: Array[AudioStream] = [
 var _land_idx: int = 0
 @onready var _grind_sparks: GPUParticles3D = %GrindSparks
 @onready var _grind_sound: AudioStreamPlayer3D = %GrindSound
+@onready var _grind_sound_b: AudioStreamPlayer3D = %GrindSoundB
+# Crossfade-loop state. Two parallel players ping-pong the same clip with
+# `_GRIND_OVERLAP_S` of overlap so long grinds don't expose the loop seam.
+# `_grind_sound_active` is whichever player started most recently — the one
+# we poll for the next swap. The other one drains its tail and stops on its
+# own. Both are killed in lockstep on grind exit.
+const _GRIND_OVERLAP_S: float = 0.5
+var _grind_sound_active: AudioStreamPlayer3D = null
+var _grind_sound_length: float = 0.0
 ## Brain found by type, not by name — lets AI pawns drop in EnemyAIBrain,
 ## NetworkBrain, etc., without the body caring which one.
 @onready var _brain: Brain = _find_first_brain()
@@ -952,6 +961,22 @@ func set_profile_skate() -> void:
 	_current_profile = skate_profile
 	if _skin != null:
 		_skin.set_skate_mode(true)
+
+
+## Force-switch to the walking profile and hide the skin's skate gear.
+## Bypasses the skate_locked / powerup_love gates that toggle_profile
+## respects — used by scripted scenes (level_5 betrayal walk) that need to
+## strip skating regardless of the player's normal progression state.
+func set_profile_walk() -> void:
+	if walk_profile == null:
+		return
+	_current_profile = walk_profile
+	# Always force skate visuals OFF — even if the profile already matched.
+	# Skin state can desync (e.g. wheels visible from a prior session) and
+	# we want this hook to be idempotent for scripted scenes.
+	if _skin != null and _skin.has_method(&"set_skate_mode"):
+		_skin.set_skate_mode(false)
+	print("[player_body] set_profile_walk → walk_profile, skin=%s" % _skin)
 
 
 ## When true, `toggle_profile` refuses to switch skate→walk. Set per-level
@@ -1808,8 +1833,7 @@ func _on_rail_touched(rail: Node, body: Node) -> void:
 	if _grind_sparks != null:
 		_grind_sparks.restart()
 		_grind_sparks.emitting = true
-	if _grind_sound != null:
-		_grind_sound.play()
+	_start_grind_loop()
 
 
 func _on_checkpoint_reached(pos: Vector3) -> void:
@@ -1965,6 +1989,11 @@ func _physics_process(delta: float) -> void:
 		intent.dash_pressed = false
 		intent.crouch_held = false
 		intent.interact_pressed = false
+		# With speed=0 the body's velocity-based yaw derivation freezes at
+		# spawn yaw. Force-face the walk direction via the existing override
+		# so the skin lerps to face Splice.
+		intent.face_yaw_override = Vector3.BACK.signed_angle_to(_betrayal_walk_dir, Vector3.UP)
+		intent.face_yaw_override_set = true
 
 	if _dying:
 		_dying_timer -= delta
@@ -2157,7 +2186,7 @@ func _physics_process(delta: float) -> void:
 		# Skin's crouch state plays the same Crouching pose either way.
 		var crouch_mult := 1.0
 		if intent.crouch_held and is_on_floor():
-			crouch_mult = crouch_speed_multiplier
+			crouch_mult = profile.crouch_speed_multiplier
 		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult * _faction_speed_mult
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
 	else:
@@ -2352,6 +2381,8 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 		if absf(tangent.dot(Vector3.UP)) < 0.99:
 			_grind_sparks.look_at(pf.global_position + tangent, Vector3.UP)
 
+	_tick_grind_loop()
+
 	# Player counter-balance: project world-space move intent onto the camera's
 	# right axis so keyboard "A/D" gives the expected screen-relative lean.
 	# AI pawns have _camera freed (see _ready), so skip — they have no
@@ -2388,8 +2419,44 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 		_grind_rail = null
 		if _grind_sparks != null:
 			_grind_sparks.emitting = false
-		if _grind_sound != null:
-			_grind_sound.stop()
+		_stop_grind_loop()
+
+
+# Crossfade-loop helpers — see `_grind_sound_active` / `_GRIND_OVERLAP_S`
+# above. Two AudioStreamPlayer3Ds ping-pong the same clip; the next one
+# starts when the active one is `_GRIND_OVERLAP_S` from finishing, so their
+# tail/head overlap masks the seam. Stop kills both regardless of state.
+func _start_grind_loop() -> void:
+	if _grind_sound == null:
+		return
+	if _grind_sound_length <= 0.0 and _grind_sound.stream != null:
+		_grind_sound_length = _grind_sound.stream.get_length()
+	_grind_sound.stop()
+	if _grind_sound_b != null:
+		_grind_sound_b.stop()
+	_grind_sound.play()
+	_grind_sound_active = _grind_sound
+
+
+func _tick_grind_loop() -> void:
+	if _grind_sound_active == null or _grind_sound_length <= 0.0:
+		return
+	var pos: float = _grind_sound_active.get_playback_position()
+	if pos < _grind_sound_length - _GRIND_OVERLAP_S:
+		return
+	var other: AudioStreamPlayer3D = _grind_sound_b if _grind_sound_active == _grind_sound else _grind_sound
+	if other == null or other.playing:
+		return
+	other.play()
+	_grind_sound_active = other
+
+
+func _stop_grind_loop() -> void:
+	if _grind_sound != null:
+		_grind_sound.stop()
+	if _grind_sound_b != null:
+		_grind_sound_b.stop()
+	_grind_sound_active = null
 
 
 ## Dash: velocity impulse along move_direction. Edge-triggered off the

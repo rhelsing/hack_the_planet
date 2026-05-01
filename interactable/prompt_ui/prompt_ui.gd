@@ -22,28 +22,52 @@ var _modal_count: int = 0
 var _last_logged_visible: int = -1  # -1 unknown, 0 hidden, 1 visible
 var _last_logged_focus: String = "<unset>"
 
-@onready var _label: Label = $Root/PromptLabel
-@onready var _toast: Label = $Root/ToastLabel
+# Authored sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
+# in _apply_hud_scale (called at _ready and on Events.settings_applied so
+# the slider takes effect live). Mirrors walkie_ui's scaling pattern.
+const _PROMPT_FONT_BASE: int = 24
+const _TOAST_FONT_BASE: int = 20
+const _PROMPT_PANEL_MIN_WIDTH_BASE: float = 220.0
+const _TOAST_PANEL_MIN_WIDTH_BASE: float = 260.0
+
+@onready var _label: Label = $Root/PromptCenter/PromptPanel/PromptLabel
+@onready var _toast: Label = $Root/ToastCenter/ToastPanel/ToastLabel
+@onready var _prompt_panel: PanelContainer = $Root/PromptCenter/PromptPanel
+@onready var _toast_panel: PanelContainer = $Root/ToastCenter/ToastPanel
 @onready var _toast_timer: Timer = _build_toast_timer()
 
 
 func _ready() -> void:
 	layer = 1  # Above HUD (0), below dialogue/puzzle (10) and pause (100)
 	if _label == null:
-		push_error("PromptLabel not found at Root/PromptLabel in prompt_ui.tscn")
+		push_error("PromptLabel not found at Root/PromptCenter/PromptPanel/PromptLabel in prompt_ui.tscn")
 		return
 	_label.text = ""
-	_label.visible = false
+	_prompt_panel.visible = false
 	_toast.text = ""
-	_toast.visible = false
+	_toast_panel.visible = false
 
 	Events.modal_opened.connect(_on_modal_opened)
 	Events.modal_closed.connect(_on_modal_closed)
 	Events.modal_count_reset.connect(_on_modal_reset)
 
+	# HUD scale: font sizes + panel widths read from a single Settings.hud.scale
+	# knob. Live-updates via settings_applied so the slider takes effect even
+	# while a prompt is on screen.
+	Events.settings_applied.connect(_apply_hud_scale)
+	_apply_hud_scale()
+
 	# Sensor may or may not exist yet depending on scene load order. Poll
 	# once here; if not found, connect lazily on first _process tick.
 	_try_connect_sensor()
+
+
+func _apply_hud_scale() -> void:
+	var s: float = Settings.get_hud_scale()
+	_label.add_theme_font_size_override(&"font_size", int(_PROMPT_FONT_BASE * s))
+	_toast.add_theme_font_size_override(&"font_size", int(_TOAST_FONT_BASE * s))
+	_prompt_panel.custom_minimum_size = Vector2(_PROMPT_PANEL_MIN_WIDTH_BASE * s, 0)
+	_toast_panel.custom_minimum_size = Vector2(_TOAST_PANEL_MIN_WIDTH_BASE * s, 0)
 
 
 func _process(_delta: float) -> void:
@@ -107,12 +131,12 @@ func _on_modal_reset() -> void:
 
 func _on_locked(_it: Interactable, reason: String) -> void:
 	_toast.text = reason
-	_toast.visible = true
+	_toast_panel.visible = true
 	_toast_timer.start()
 
 
 func _hide_toast() -> void:
-	_toast.visible = false
+	_toast_panel.visible = false
 	_toast.text = ""
 
 
@@ -123,7 +147,7 @@ func _refresh() -> void:
 	if not focus_alive:
 		_focused = null
 	var should_show := _focused != null and _modal_count == 0
-	_label.visible = should_show
+	_prompt_panel.visible = should_show
 	# Dedupe: only log on visibility OR focus transitions.
 	var focus_str: String = _focused.name if _focused != null else "<null>"
 	var vis_int: int = 1 if should_show else 0

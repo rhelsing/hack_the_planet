@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CueRegistry" load_steps=13 format=3]
+[gd_resource type="Resource" script_class="CueRegistry" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://audio/cue_registry.gd" id="1"]
 [ext_resource type="Resource" path="res://audio/cues/door_open.tres" id="2"]
@@ -12,6 +12,10 @@
 [ext_resource type="Resource" uid="uid://b1coinpickupcue" path="res://audio/cues/coin_pickup.tres" id="10"]
 [ext_resource type="Resource" path="res://audio/cues/rocks.tres" id="11"]
 [ext_resource type="Resource" path="res://audio/cues/teleport.tres" id="12"]
+[ext_resource type="Resource" path="res://audio/cues/portal_appear.tres" id="13"]
+[ext_resource type="Resource" path="res://audio/cues/grapple_fire.tres" id="14"]
+[ext_resource type="Resource" path="res://audio/cues/grapple_bite.tres" id="15"]
+[ext_resource type="Resource" path="res://audio/cues/stealth_hack_success.tres" id="16"]
 
 [resource]
 script = ExtResource("1")
@@ -27,4 +31,8 @@ cues = {
 &"coin_pickup": ExtResource("10"),
 &"rocks": ExtResource("11"),
 &"teleport": ExtResource("12"),
+&"portal_appear": ExtResource("13"),
+&"grapple_fire": ExtResource("14"),
+&"grapple_bite": ExtResource("15"),
+&"stealth_hack_success": ExtResource("16"),
 }

@@ -539,7 +539,11 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 	if horiz > range_cap:
 		return false
 	if vision_cone_deg <= 0.0:
-		return true  # swarm: sphere detection, no cone
+		# Sphere/swarm detection — but still gate on direct LOS so enemies
+		# don't see through walls. Same single-ray probe the cone path uses
+		# below; respects the target's actual 3D position so a target
+		# behind opaque cover stays hidden even within range.
+		return _has_direct_los(body, _target as Node3D)
 	if horiz < 0.0001 or _slice_distances.size() < 2:
 		return true
 	var to_dir: Vector3 = to_target_flat / horiz
@@ -555,19 +559,8 @@ func _can_see_target(body: Node3D, range_cap: float) -> bool:
 	# rebuilding the cone. If clear, we trust the direct check; if blocked,
 	# fall back to the slice for backward compat (slice never said "visible"
 	# when direct ray is blocked, so this strictly broadens detection).
-	var space := body.get_world_3d().direct_space_state
-	if space != null:
-		var eye: Vector3 = body.global_position + Vector3.UP * vision_eye_height
-		var target_chest: Vector3 = _target.global_position + Vector3.UP * 0.6
-		var query := PhysicsRayQueryParameters3D.create(eye, target_chest)
-		var exclude: Array[RID] = []
-		if body is CollisionObject3D:
-			exclude.append((body as CollisionObject3D).get_rid())
-		if _target is CollisionObject3D:
-			exclude.append((_target as CollisionObject3D).get_rid())
-		query.exclude = exclude
-		if space.intersect_ray(query).is_empty():
-			return true  # 3D LOS clear, visible regardless of flat-fan slice
+	if _has_direct_los(body, _target as Node3D):
+		return true  # 3D LOS clear, visible regardless of flat-fan slice
 	var step: float = (2.0 * half_rad) / float(_CONE_SLICES)
 	var slice_f: float = (a_target + half_rad) / step
 	var f_idx: int = clampi(int(floor(slice_f)), 0, _slice_distances.size() - 1)
@@ -772,14 +765,18 @@ func _ensure_target(body: Node3D) -> void:
 		_set_target(best)
 	# Ally crouch stance: when the follow subject (player) is crouched and
 	# this brain has the bubble export set (gold-only via set_faction), drop
-	# any target outside ally_crouched_engage_radius. Effectively a tighter
-	# detection_radius that only fires while the player sneaks. Standing
-	# subject → no-op. Non-follow pawns (no follow_subject_group) → no-op.
+	# any target outside ally_crouched_engage_radius OR blocked by walls.
+	# Effectively a tighter detection_radius that only fires while the
+	# player sneaks AND only on visible threats — gold doesn't charge a
+	# wall-occluded sentinel. Standing subject → no-op. Non-follow pawns
+	# (no follow_subject_group) → no-op.
 	if ally_crouched_engage_radius > 0.0 and follow_subject_group != &"" \
 			and _target != null and _is_follow_subject_crouched(body):
 		var to_t: Vector3 = (_target as Node3D).global_position - body.global_position
 		to_t.y = 0.0
 		if to_t.length() > ally_crouched_engage_radius:
+			_set_target(null)
+		elif not _has_direct_los(body, _target as Node3D):
 			_set_target(null)
 
 
@@ -854,6 +851,29 @@ func _horizontal_distance(a: Vector3, b: Vector3) -> float:
 	var dx := b.x - a.x
 	var dz := b.z - a.z
 	return sqrt(dx * dx + dz * dz)
+
+
+## Single-ray LOS probe from this brain's body eye to the target's chest.
+## Excludes both physics bodies so they don't self-occlude. Returns true if
+## clear, false if anything else gets in the way. Used by both the cone-mode
+## visibility check (Fix 1's vertical-aware fallback) and the sphere-mode
+## branch (so swarm enemies don't see through walls).
+func _has_direct_los(body: Node3D, target: Node3D) -> bool:
+	if body == null or target == null or not is_instance_valid(target):
+		return false
+	var space := body.get_world_3d().direct_space_state
+	if space == null:
+		return true  # no physics yet — let the caller proceed (frame 0 etc.)
+	var eye: Vector3 = body.global_position + Vector3.UP * vision_eye_height
+	var chest: Vector3 = target.global_position + Vector3.UP * 0.6
+	var query := PhysicsRayQueryParameters3D.create(eye, chest)
+	var exclude: Array[RID] = []
+	if body is CollisionObject3D:
+		exclude.append((body as CollisionObject3D).get_rid())
+	if target is CollisionObject3D:
+		exclude.append((target as CollisionObject3D).get_rid())
+	query.exclude = exclude
+	return space.intersect_ray(query).is_empty()
 
 
 ## Trigger the wind-up the moment the target enters strike range and the

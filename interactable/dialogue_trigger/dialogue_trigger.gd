@@ -358,14 +358,18 @@ func _freeze_player_for_cinematic(actor: Node3D, skin: Node3D) -> void:
 	# 4. Reset the skin. Identity basis strips lean/tilt/offset; we preserve
 	#    the skin's uniform_scale so a non-1.0 scale (e.g. AJ at 1.3) doesn't
 	#    get clobbered back to 1.0 for the duration of the cinematic/dialogue.
-	#    idle() / set_skate_mode(false) drop run+skate anims to idle pose.
+	#    idle() drops run/skate anims to the idle pose. We DO NOT touch
+	#    set_skate_mode here — that would hide the rollerblade wheels +
+	#    drop the model height for the duration of the dialogue, which
+	#    reads as "skates vanish mid-conversation." The body's profile
+	#    isn't actually changing during dialogue, so the skin should keep
+	#    showing whatever gear matches the active profile (skating-on-skates,
+	#    walking-without). Exit-side resync at line ~430 is then a no-op.
 	if reset_skin_pose and skin != null:
 		var skin_scale: float = 1.0
 		if "uniform_scale" in skin:
 			skin_scale = float(skin.uniform_scale)
 		skin.transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * skin_scale), Vector3.ZERO)
-		if skin.has_method(&"set_skate_mode"):
-			skin.call(&"set_skate_mode", false)
 		if skin.has_method(&"idle"):
 			skin.call(&"idle")
 

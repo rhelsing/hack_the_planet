@@ -18,6 +18,7 @@ const SAVE_SLOTS   := "res://menu/save_slots.tscn"
 @onready var _load_btn:    Button = %LoadBtn
 @onready var _settings_btn:Button = %SettingsBtn
 @onready var _checkpoint_btn: Button = %LastCheckpointBtn
+@onready var _restart_btn: Button = %RestartLevelBtn
 @onready var _to_main_btn: Button = %ToMainBtn
 @onready var _quit_btn:    Button = %QuitBtn
 
@@ -39,6 +40,7 @@ func _wire_buttons() -> void:
 	_load_btn.pressed.connect(_on_load)
 	_settings_btn.pressed.connect(_on_settings)
 	_checkpoint_btn.pressed.connect(_on_last_checkpoint)
+	_restart_btn.pressed.connect(_on_restart_level)
 	_to_main_btn.pressed.connect(_on_to_main)
 	_quit_btn.pressed.connect(_on_quit_desktop)
 
@@ -57,6 +59,7 @@ func _open() -> void:
 	_capture_mouse(false)
 	_refresh_save_enabled()
 	_refresh_checkpoint_enabled()
+	_refresh_restart_enabled()
 	_resume_btn.grab_focus()
 	Events.menu_opened.emit(&"pause")
 
@@ -90,6 +93,15 @@ func _refresh_checkpoint_enabled() -> void:
 	var ss := get_tree().root.get_node_or_null(^"SaveService")
 	var has_slot: bool = ss != null and bool(ss.call(&"has_active_slot"))
 	_checkpoint_btn.disabled = not has_slot
+
+
+func _refresh_restart_enabled() -> void:
+	# "Restart Level" reloads whatever level is currently mounted under the
+	# Game host. Disabled when no level is loaded (defensive — pause menu
+	# shouldn't open without one). Save state is independent: even without
+	# an active slot, the in-memory restart still works (just no on-disk
+	# persist). So gating is purely on having a level to restart.
+	_restart_btn.disabled = _current_level_path() == ""
 
 
 func _refresh_save_enabled() -> void:
@@ -147,6 +159,44 @@ func _on_last_checkpoint() -> void:
 	if ss == null or not bool(ss.call(&"has_active_slot")):
 		return
 	ss.call(&"load_from_slot", ss.active_slot)
+
+
+func _on_restart_level() -> void:
+	# Reload the currently mounted level. game.gd._spawn_player sees no
+	# pending player_state (we never set one) and overwrites position +
+	# respawn_point with the level's PlayerSpawn marker. Then we save_to_slot
+	# so the on-disk save reflects the fresh-level state — without that, a
+	# quit-and-Continue would resume at the player's prior mid-level
+	# checkpoint, defeating the restart.
+	#
+	# Unpause BEFORE the load so the level swap isn't running under a paused
+	# tree (matches _on_last_checkpoint + _on_to_main).
+	var current_path: String = _current_level_path()
+	if current_path == "":
+		return
+	var pc := get_tree().root.get_node_or_null(^"PauseController")
+	if pc != null and pc.has_method(&"set_paused"):
+		pc.call(&"set_paused", false)
+	await LevelProgression.goto_path(current_path)
+	# Persist after the load so the slot reflects the fresh-level state. No
+	# slot active = dev launching straight into a level = silently skip
+	# (in-memory restart still happened and that's what matters here).
+	var ss := get_tree().root.get_node_or_null(^"SaveService")
+	if ss != null and bool(ss.call(&"has_active_slot")):
+		ss.call(&"save_to_slot", ss.active_slot)
+
+
+# Pull the actually-mounted level's path from Game (which is the running
+# scene root). Returns "" when there's no level (shouldn't happen during
+# pause, but the defensive return keeps _on_restart_level safe).
+func _current_level_path() -> String:
+	var game := get_tree().current_scene
+	if game == null or not ("_current_level" in game):
+		return ""
+	var level: Node = game.get(&"_current_level")
+	if level == null or not is_instance_valid(level):
+		return ""
+	return level.scene_file_path
 
 
 func _on_to_main() -> void:

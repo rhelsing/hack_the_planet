@@ -83,6 +83,13 @@ func _on_flag_set(_id: StringName, _value: Variant) -> void:
 	if _was_locked and not locked_now:
 		_set_interactive(true)
 		_pop_in()
+		# Live "portal-just-appeared" cue. Plays warp7 exclusively (the
+		# stream was removed from the level-warp `teleport` cue rotation
+		# so this beat is unmistakable). Only fired on the locked→unlocked
+		# transition — NOT on the `_ready`-side _pop_in for save-restore,
+		# where the player loaded into a hub that already had the pedestal
+		# revealed and shouldn't hear a fresh appearance sting.
+		Audio.play_sfx(&"portal_appear")
 	_was_locked = locked_now
 	_refresh_tint()
 

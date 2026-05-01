@@ -54,6 +54,15 @@ func edge_grab() -> void: pass
 func wall_slide() -> void: pass
 func attack() -> void: pass
 
+## Lock the skin into a single looping walk clip, bypassing the
+## AnimationTree's state machine. Used by scripted scenes (level_5 betrayal
+## walk) where the body keeps calling move() every tick but the desired
+## visual is a slow Walking animation. Default: no-op. Skins with a Mixamo
+## "Walking" clip + AnimationTree override to disable the tree and play the
+## clip directly on the underlying AnimationPlayer.
+func walk_lock() -> void: pass
+func walk_unlock() -> void: pass
+
 ## Drive the walk-cycle playback speed from outside (PlayerBody passes
 ## h_speed / max_speed each tick). 1.0 = authored, 0.5 = half-speed feet.
 ## No-op default — skins without an AnimationNodeTimeScale wired into their

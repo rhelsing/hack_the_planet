@@ -8,8 +8,8 @@ extends VBoxContainer
 ## skill id matches an owned ability. Non-skill abilities never show one.
 
 ## Base sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
-## at slot-build time. Default Settings hud.scale is 2.0, so the visible
-## default is 2× these — i.e., a 240×68 pill with a 56×56 icon.
+## at slot-build time. Default Settings hud.scale is 1.5, so the visible
+## default is 1.5× these — a 180×51 pill with a 42×42 icon.
 const SLOT_SIZE_BASE := Vector2(120, 34)
 const ICON_SIZE_BASE := Vector2(28, 28)
 const FONT_SIZE_BASE: int = 12
@@ -61,6 +61,10 @@ var _player: Node = null
 ## are never tinted; powerup artwork and the SKATE/HACK/etc text always
 ## render in their real colors regardless of active/inactive/cooldown state.
 var _slots: Dictionary = {}
+## ability_id -> { "label": Label, "text": String, "action": String }.
+## Held so input_device_changed can re-stamp the bracketed glyph without
+## rebuilding the slot.
+var _slot_labels: Dictionary = {}
 
 
 func _ready() -> void:
@@ -70,6 +74,9 @@ func _ready() -> void:
 	# HUD scale changes rebuild the entire row so per-slot sizing picks up
 	# the new value. Cheaper than retrofitting individual nodes' sizes.
 	Events.settings_applied.connect(_on_settings_applied)
+	# Glyphs in pill labels are baked at slot-build time. Re-stamp on device
+	# swap so a player switching keyboard ↔ gamepad sees the right hint.
+	Events.input_device_changed.connect(_on_input_device_changed)
 	call_deferred(&"_bind")
 
 
@@ -98,6 +105,7 @@ func _rebuild_from_player() -> void:
 		if panel != null and is_instance_valid(panel):
 			panel.queue_free()
 	_slots.clear()
+	_slot_labels.clear()
 	var abilities := _player.get_node_or_null(^"Abilities")
 	if abilities == null:
 		print("[pw] PowerupRow._rebuild: no Abilities node under player")
@@ -206,11 +214,7 @@ func _add_slot(ability_id: StringName, enabled: bool) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override(&"font_size", int(FONT_SIZE_BASE * hud_scale))
-	var glyph: String = Glyphs.for_action(action) if action != "" else ""
-	if glyph != "" and glyph != "?":
-		label.text = "%s [%s]" % [text, glyph]
-	else:
-		label.text = text
+	_apply_glyph_text(label, text, action)
 	hbox.add_child(label)
 
 	add_child(slot)
@@ -218,6 +222,25 @@ func _add_slot(ability_id: StringName, enabled: bool) -> void:
 	# on the panel and never cascades; icon and label keep their real colors.
 	slot.self_modulate = COLOR_ACTIVE if enabled else COLOR_INACTIVE
 	_slots[ability_id] = slot
+	_slot_labels[ability_id] = {"label": label, "text": text, "action": action}
+
+
+# Stamp "TEXT [GLYPH]" using the current device's glyph. Skips brackets when
+# the action is empty (passive abilities like Skate) or unknown.
+func _apply_glyph_text(label: Label, text: String, action: String) -> void:
+	var glyph: String = Glyphs.for_action(action) if action != "" else ""
+	if glyph != "" and glyph != "?":
+		label.text = "%s [%s]" % [text, glyph]
+	else:
+		label.text = text
+
+
+func _on_input_device_changed(_device: String) -> void:
+	for id in _slot_labels:
+		var entry: Dictionary = _slot_labels[id]
+		var label: Label = entry["label"]
+		if label != null and is_instance_valid(label):
+			_apply_glyph_text(label, entry["text"], entry["action"])
 
 
 func _is_owned(node: Node) -> bool:

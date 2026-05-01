@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AudioCue" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="AudioCue" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://audio/audio_cue.gd" id="1"]
 [ext_resource type="AudioStream" path="res://audio/sfx/warp1.mp3" id="2"]
@@ -7,7 +7,6 @@
 [ext_resource type="AudioStream" path="res://audio/sfx/warp4.mp3" id="5"]
 [ext_resource type="AudioStream" path="res://audio/sfx/warp5.mp3" id="6"]
 [ext_resource type="AudioStream" path="res://audio/sfx/warp6.mp3" id="7"]
-[ext_resource type="AudioStream" path="res://audio/sfx/warp7.mp3" id="8"]
 
 [resource]
 script = ExtResource("1")
@@ -18,7 +17,6 @@ streams = Array[AudioStream]([
 	ExtResource("5"),
 	ExtResource("6"),
 	ExtResource("7"),
-	ExtResource("8"),
 ])
 strict_alternate = true
 volume_db_min = -2.0

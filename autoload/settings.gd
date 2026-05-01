@@ -38,12 +38,13 @@ const DEFAULTS := {
 	},
 	"hud": {
 		# Single uniform scaler for all HUD content: powerup pills, coin/
-		# walkie/keys counters, beacon waypoint text, hacking-puzzle title/
-		# subline/instructions, and the post-pickup powerup card. Each
-		# consumer multiplies its base sizes (icon px, font_size) by this
-		# value on settings_applied. Range 0.5–5.0; default 2.0 chosen
-		# for legibility at typical resolutions.
-		"scale": 2.0,
+		# walkie/keys counters, walkie/companion subtitle bubble, beacon
+		# waypoint text, hacking-puzzle title/subline/instructions, and
+		# the post-pickup powerup card. Each consumer multiplies its base
+		# sizes (icon px, font_size) by this value on settings_applied.
+		# Range 0.5–5.0; default 1.5 — modestly enlarged from 1.0 base for
+		# legibility while leaving room above to scale up.
+		"scale": 1.5,
 	},
 	"camera": {
 		"mouse_x_sensitivity": 1.0,
@@ -92,7 +93,7 @@ func set_value(section: String, key: String, value) -> void:
 ## authoring range so a stale settings.cfg from before this key existed
 ## (or a hand-edit) can't push consumers into an unusable size.
 func get_hud_scale() -> float:
-	return clampf(float(get_value("hud", "scale", 2.0)), 0.5, 5.0)
+	return clampf(float(get_value("hud", "scale", 1.5)), 0.5, 5.0)
 
 
 func apply() -> void:

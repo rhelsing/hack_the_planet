@@ -50,6 +50,12 @@ signal item_removed(id: StringName)
 @warning_ignore("unused_signal")
 signal flag_set(id: StringName, value: Variant)
 
+# Input-device swap. Emitted by PlayerBrain whenever last_device changes
+# (keyboard ↔ gamepad). Consumers that bake glyphs into UI at build time
+# (powerup pills, dialogue prompts) listen and re-stamp.
+@warning_ignore("unused_signal")
+signal input_device_changed(device: String)
+
 # Pawn faction lifecycle (emitted by PlayerBody.set_faction). Listeners can
 # react to enemy → ally conversions, splice corruption, etc.
 @warning_ignore("unused_signal")

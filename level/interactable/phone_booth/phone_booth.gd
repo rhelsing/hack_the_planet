@@ -27,6 +27,14 @@ class_name PhoneBooth extends Node3D
 @export_range(0.0, 10.0, 0.1) var arm_delay: float = 1.0
 @export var session_played_flag: StringName = &""
 
+## Persistent flag set on GameState the first time the player enters this
+## booth's trigger. Empty = no flag (default — every existing booth in the
+## game leaves it empty). Used by chained beacon UI: Booth A's persist_flag
+## becomes Booth B's beacon `visible_when_flag`, so each activation lights
+## up the next marker. Symmetric to Walkie's persist_flag and WallCage's
+## spawned_flag — same pattern, different sub-system.
+@export var persist_flag: StringName = &""
+
 @onready var _activation_block: MeshInstance3D = get_node_or_null("ActivationBlock")
 
 var _active_sound_player: AudioStreamPlayer
@@ -78,6 +86,8 @@ func _on_body_entered(body: Node3D) -> void:
 	Events.checkpoint_reached.emit(global_position)
 	_activate()
 	_maybe_fire_cutscene()
+	if persist_flag != &"":
+		GameState.set_flag(persist_flag, true)
 
 
 func _maybe_fire_cutscene() -> void:

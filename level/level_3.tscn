@@ -29,6 +29,7 @@
 [ext_resource type="PackedScene" uid="uid://dhnuc5e3b6465" path="res://hud/components/beacon.tscn" id="28_beacon"]
 [ext_resource type="PackedScene" uid="uid://b8ayhsphgct3u" path="res://enemy/enemy_spawner_splice.tscn" id="28_vnjim"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="29_wnvu3"]
+[ext_resource type="PackedScene" uid="uid://dflagwalk0001" path="res://interactable/flag_walkie/flag_walkie.tscn" id="30_flagwalk"]
 
 [sub_resource type="Curve3D" id="Curve3D_wnvu3"]
 resource_local_to_scene = true
@@ -107,12 +108,36 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -200.89238, -3.7677765, -14.7
 
 [node name="Checkpoint3" parent="." index="13" unique_id=547259237 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -260.0197, -11.001432, -14.712277)
+persist_flag = &"l3_checkpoint3_done"
+
+[node name="Beacon" parent="Checkpoint3" unique_id=830101010 instance=ExtResource("28_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+color = Color(0.9176, 0.7412, 0.1333, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"powerup_sex"
+hide_when_flag = &"l3_checkpoint3_done"
 
 [node name="Checkpoint4" parent="." index="14" unique_id=1906565539 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -326.21088, -11.001432, -14.712277)
+persist_flag = &"l3_checkpoint4_done"
+
+[node name="Beacon" parent="Checkpoint4" unique_id=830202020 instance=ExtResource("28_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+color = Color(0.9176, 0.7412, 0.1333, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"l3_checkpoint3_done"
+hide_when_flag = &"l3_checkpoint4_done"
 
 [node name="Checkpoint5" parent="." index="15" unique_id=1399705055 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -326.21088, -11.001432, -176.85666)
+persist_flag = &"l3_checkpoint5_done"
+
+[node name="Beacon" parent="Checkpoint5" unique_id=830303030 instance=ExtResource("28_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+color = Color(0.9176, 0.7412, 0.1333, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"l3_checkpoint4_done"
+hide_when_flag = &"l3_checkpoint5_done"
 
 [node name="PowerupPickup" parent="." index="16" unique_id=221835442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -202.89238, -2.5677795, -11.58714)
@@ -598,9 +623,25 @@ size = Vector3(7, 1, 7)
 
 [node name="PhoneBooth5" parent="." index="104" unique_id=2901889 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.622, 6.1516433, -267.01248)
+persist_flag = &"l3_phonebooth5_done"
+
+[node name="Beacon" parent="PhoneBooth5" unique_id=830505050 instance=ExtResource("28_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+color = Color(0.9176, 0.7412, 0.1333, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"l3_phonebooth6_done"
+hide_when_flag = &"l3_phonebooth5_done"
 
 [node name="PhoneBooth6" parent="." index="105" unique_id=1330154696 instance=ExtResource("17_b3knk")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -154.47919, -10.99559, -180.12953)
+persist_flag = &"l3_phonebooth6_done"
+
+[node name="Beacon" parent="PhoneBooth6" unique_id=830404040 instance=ExtResource("28_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+color = Color(0.9176, 0.7412, 0.1333, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"l3_checkpoint5_done"
+hide_when_flag = &"l3_phonebooth6_done"
 
 [node name="EnemySpawner" parent="." index="107" unique_id=96146603 instance=ExtResource("20_510pp")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9305687, 0, -3.5781903)
@@ -986,3 +1027,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -151.0995, -10.881198, -162.7
 
 [node name="Coin25" parent="." index="203" unique_id=2132792035 instance=ExtResource("29_wnvu3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.45573, -10.881194, -159.1761)
+
+[node name="DialToneTrackerWalkie" parent="." instance=ExtResource("30_flagwalk")]
+character = &"DialTone"
+line = "Nyx is on your tracker now."
+trigger_flag = &"l3_terminal_5"
