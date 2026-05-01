@@ -64,8 +64,11 @@ var _saved_hud_visible: bool = true
 # real time, not a binary on/off).
 var _skip_hold_active: bool = false
 var _skip_progress: float = 0.0
-var _skip_prompt: SkipPromptUI = null
+var _skip_prompt: CanvasLayer = null
 var _skip_prompt_visible: bool = false
+var _skip_prompt_label: Label = null
+var _skip_prompt_bar: ProgressBar = null
+var _skip_prompt_tween: Tween = null
 
 
 # ── Lifecycle ────────────────────────────────────────────────────────────
@@ -138,7 +141,7 @@ func _process(delta: float) -> void:
 	var rate: float = delta / hold_dur
 	if _skip_hold_active:
 		_skip_progress = clampf(_skip_progress + rate, 0.0, 1.0)
-		_skip_prompt.set_progress(_skip_progress)
+		_set_skip_progress(_skip_progress)
 		if _skip_progress >= 1.0:
 			_skip_hold_active = false
 			_skip_progress = 0.0
@@ -146,7 +149,7 @@ func _process(delta: float) -> void:
 			skip()
 	elif _skip_progress > 0.0:
 		_skip_progress = clampf(_skip_progress - rate, 0.0, 1.0)
-		_skip_prompt.set_progress(_skip_progress)
+		_set_skip_progress(_skip_progress)
 		if _skip_progress <= 0.0 and _skip_prompt_visible:
 			_hide_skip_prompt()
 
@@ -555,25 +558,85 @@ func _hide_hud(on: bool) -> void:
 
 
 # ── Skip prompt UI ───────────────────────────────────────────────────────
-# Thin wrappers over the shared SkipPromptUI helper (cutscene_engine/
-# skip_prompt_ui.gd). The same widget is reused by Cutscene.show_video for
-# OGV overlays so the skip UX is identical everywhere.
+# Built on demand the first time it's shown. Layer 75 sits above HUD (0)
+# and walkie subtitles (50) but below pause menu (100), so a hold-prompt
+# during a cutscene can't be obscured by gameplay UI but pause-menu still
+# wins if the player somehow opens it.
 
 func _ensure_skip_prompt() -> void:
 	if _skip_prompt != null:
 		return
-	_skip_prompt = SkipPromptUI.new()
+	_skip_prompt = CanvasLayer.new()
+	_skip_prompt.layer = 75
+	_skip_prompt.process_mode = Node.PROCESS_MODE_ALWAYS  # show even if tree paused
 	add_child(_skip_prompt)
+	# Bottom-center anchor with vertical lift so it sits above the safe area.
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	root.offset_top = -110.0
+	root.offset_bottom = -40.0
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.modulate.a = 0.0
+	_skip_prompt.add_child(root)
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(box)
+	_skip_prompt_label = Label.new()
+	_skip_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_skip_prompt_label.add_theme_font_size_override(&"font_size", 18)
+	_skip_prompt_label.add_theme_color_override(&"font_color", Color(0.95, 0.95, 0.95, 1))
+	_skip_prompt_label.add_theme_constant_override(&"outline_size", 4)
+	_skip_prompt_label.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.85))
+	box.add_child(_skip_prompt_label)
+	_skip_prompt_bar = ProgressBar.new()
+	_skip_prompt_bar.custom_minimum_size = Vector2(220, 6)
+	_skip_prompt_bar.show_percentage = false
+	_skip_prompt_bar.min_value = 0.0
+	_skip_prompt_bar.max_value = 1.0
+	_skip_prompt_bar.value = 0.0
+	box.add_child(_skip_prompt_bar)
+	_skip_prompt.visible = false
 
 
 func _show_skip_prompt() -> void:
 	_ensure_skip_prompt()
-	_skip_prompt.show_for(timeline.skip_action)
+	# Glyphs.format gives the device-correct key label ("E", "Triangle", …)
+	# so the prompt reads correctly regardless of input device.
+	var action_name: String = String(timeline.skip_action)
+	var glyph: String = action_name.to_upper()
+	var glyphs := get_tree().root.get_node_or_null(^"Glyphs")
+	if glyphs != null and glyphs.has_method(&"for_action"):
+		glyph = String(glyphs.call(&"for_action", action_name))
+	_skip_prompt_label.text = "Hold %s to skip" % glyph
+	_skip_prompt_bar.value = 0.0
+	_skip_prompt.visible = true
 	_skip_prompt_visible = true
+	# Fade in. Kill any in-flight fade so a quick re-press doesn't double-tween.
+	if _skip_prompt_tween != null and _skip_prompt_tween.is_valid():
+		_skip_prompt_tween.kill()
+	var root := _skip_prompt.get_child(0) as Control
+	if root != null:
+		_skip_prompt_tween = create_tween()
+		_skip_prompt_tween.tween_property(root, "modulate:a", 1.0, 0.15)
 
 
 func _hide_skip_prompt() -> void:
 	if _skip_prompt == null:
 		return
 	_skip_prompt_visible = false
-	_skip_prompt.hide_prompt()
+	if _skip_prompt_tween != null and _skip_prompt_tween.is_valid():
+		_skip_prompt_tween.kill()
+	var root := _skip_prompt.get_child(0) as Control
+	if root != null:
+		_skip_prompt_tween = create_tween()
+		_skip_prompt_tween.tween_property(root, "modulate:a", 0.0, 0.2)
+		_skip_prompt_tween.tween_callback(func() -> void:
+			if _skip_prompt != null:
+				_skip_prompt.visible = false)
+
+
+func _set_skip_progress(progress: float) -> void:
+	if _skip_prompt_bar != null:
+		_skip_prompt_bar.value = progress

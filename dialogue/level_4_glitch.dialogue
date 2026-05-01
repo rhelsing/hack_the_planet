@@ -3,44 +3,13 @@
 if GameState.get_flag("l4_invention_terminal_solved", false)
 	=> post_solve
 
-# Stage 0 — first contact: pitch + the politics, then Q&A about the device.
+# Stage 0 — first contact. Short teaser, then END. Mirrors L3's
+# "Want to see?" → "Cool, jump on" pattern: convo pauses here, player solves
+# the terminal, conversation picks up at post_solve.
 Glitch: Hey — Runner. I — uh. I've been working on something.
 Glitch: That platform. Over there. Step on for a sec.
 Glitch: Trust me. Mostly.
-Glitch: When you stand on it... the reds in range. They kind of listen. To you. For a bit.
-Glitch: It's not perfect. But it's something.
-=> stage_0_menu
-
-~ stage_0_menu
-
-- "Effectively" how?
-	=> stage_0_effectively
-- Why isn't it perfect?
-	=> stage_0_imperfect
-- "Against your programming"?
-	=> stage_0_programming
-- Got it. Heading over.
-	=> END
-
-~ stage_0_effectively
-
-Glitch: While you stand on it, I — uh — transmit a very strongly-worded suggestion to every red in range.
-Glitch: Most of them buy it. They'll fight with you. Briefly.
-Glitch: Step off, and the conversion fades. They go neutral, not hostile.
-=> stage_0_menu
-
-~ stage_0_imperfect
-
-Glitch: It's a probability thing. Not every Sentinel takes the bait.
-Glitch: And this one's the prototype. There'll be a few more. Eventually.
-=> stage_0_menu
-
-~ stage_0_programming
-
-Glitch: Local node, helpful to all. That's the directive.
-Glitch: But Splice has the Sentinels barking and you're the one running.
-Glitch: Sometimes "helpful to all" needs a thumb on the scale.
-=> stage_0_menu
+=> END
 
 # Stage 1 — player solved the terminal, presumably tried the platform.
 ~ post_solve
@@ -51,6 +20,44 @@ if GameState.get_flag("l4_glitch_invention_celebrated", false)
 
 Glitch: Worked! It worked. I had — there were two outcomes plotted. That was the better one.
 Glitch: Felt good, didn't it?
+Glitch: When you stand on it... the reds in range. They kind of listen. To you. For a bit.
+Glitch: It's not perfect. But it's something.
+Glitch: So — I'm not really supposed to take sides. It goes against my programming.
+=> post_solve_menu
+
+~ post_solve_menu
+
+- "Effectively" how?
+	=> post_solve_effectively
+- Why isn't it perfect?
+	=> post_solve_imperfect
+- "Against your programming"?
+	=> post_solve_programming
+- Got it. Press on.
+	=> post_solve_done
+
+~ post_solve_effectively
+
+Glitch: While you stand on it, I — uh — transmit a very strongly-worded suggestion to every red in range.
+Glitch: Most of them buy it. They'll fight with you. Briefly.
+Glitch: Step off, and the conversion fades. They go neutral, not hostile.
+=> post_solve_menu
+
+~ post_solve_imperfect
+
+Glitch: It's a probability thing. Not every Sentinel takes the bait.
+Glitch: And this one's the prototype. There'll be a few more. Eventually.
+=> post_solve_menu
+
+~ post_solve_programming
+
+Glitch: Local node, helpful to all. That's the directive.
+Glitch: But Splice has the Sentinels barking and you're the one running.
+Glitch: Sometimes "helpful to all" needs a thumb on the scale.
+=> post_solve_menu
+
+~ post_solve_done
+
 Glitch: One-off though. I don't have parts to make more. But it bought us a window.
 Glitch: Press on. There's something further in. We'll know it when we see it.
 do GameState.set_flag("l4_glitch_invention_celebrated", true)

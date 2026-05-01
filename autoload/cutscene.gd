@@ -64,14 +64,7 @@ func show_image(path: String, duration: float = 3.0) -> void:
 ## dialogue beat doesn't step on the moment. The overlay is already gone
 ## by the time the timer ticks — the silence happens against the live
 ## scene, balloon hidden via the mutation hide-cooldown.
-##
-## When `allow_skip` is true, holding `skip_action` for `skip_hold_seconds`
-## stops the video and exits early. The same SkipPromptUI used by timeline
-## cutscenes is shown — input is read via Input.is_action_pressed polling
-## (not _input events) so it bypasses _cutscene_input_block.gd.
-func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0,
-		allow_skip: bool = true, skip_action: StringName = &"interact",
-		skip_hold_seconds: float = 1.5) -> void:
+func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0) -> void:
 	if _canvas != null:
 		push_warning("Cutscene.show_video: cutscene already active, ignoring %s" % path)
 		return
@@ -98,59 +91,13 @@ func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0,
 	Audio.pause_music()
 	player.play()
 
-	# Skip prompt — built lazily, parented under our cutscene canvas so it
-	# dies with the overlay if the player skips or the video ends naturally.
-	# Layer bumped above _LAYER (the video canvas) so the prompt renders ON
-	# TOP of the video. SkipPromptUI._ready sets layer=75 (correct for timeline
-	# cutscenes which sit on layer 0); for OGV overlays at layer 1800, 75 is
-	# fully occluded by the video. This override has to happen AFTER
-	# add_child so it wins against the _ready assignment.
-	var skip_ui: SkipPromptUI = null
-	if allow_skip:
-		skip_ui = SkipPromptUI.new()
-		_canvas.add_child(skip_ui)
-		skip_ui.layer = _LAYER + 1
-
-	# Polling loop — exits on (natural-end via finished signal) OR (duration
-	# elapsed if positive) OR (skip-hold completed). Uses Input.is_action_pressed
-	# so it bypasses _cutscene_input_block.gd, which only eats _input events.
-	#
-	# `done_box` is a one-element Array used as a mutable state-box. GDScript
-	# lambdas capture outer locals by reference for objects/arrays/dicts but
-	# CANNOT reassign back to a captured primitive — `var done: bool` would
-	# stay false forever even after the signal fires. Array indexing mutates
-	# in place so the loop sees the update.
-	var done_box: Array = [false]
-	player.finished.connect(func() -> void: done_box[0] = true, CONNECT_ONE_SHOT)
-	var t_start: float = Time.get_ticks_msec() / 1000.0
-	var hold_progress: float = 0.0
-	var prompt_visible: bool = false
-	while not done_box[0]:
-		await get_tree().process_frame
-		if duration > 0.0:
-			var elapsed: float = Time.get_ticks_msec() / 1000.0 - t_start
-			if elapsed >= duration:
-				break
-		if not allow_skip:
-			continue
-		var dt: float = get_process_delta_time()
-		var rate: float = dt / maxf(skip_hold_seconds, 0.1)
-		var holding: bool = Input.is_action_pressed(skip_action)
-		if holding:
-			if not prompt_visible:
-				skip_ui.show_for(skip_action)
-				prompt_visible = true
-			hold_progress = clampf(hold_progress + rate, 0.0, 1.0)
-			skip_ui.set_progress(hold_progress)
-			if hold_progress >= 1.0:
-				player.stop()
-				break
-		elif hold_progress > 0.0:
-			hold_progress = clampf(hold_progress - rate, 0.0, 1.0)
-			skip_ui.set_progress(hold_progress)
-			if hold_progress <= 0.0 and prompt_visible:
-				skip_ui.hide_prompt()
-				prompt_visible = false
+	if duration > 0.0:
+		await get_tree().create_timer(duration, true).timeout
+	else:
+		# `finished` fires when the video reaches its end. If for some
+		# reason the player gets stopped externally, we still cleanup via
+		# the await returning.
+		await player.finished
 
 	Audio.resume_music()
 	_cleanup()
