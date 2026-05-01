@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://cjyalavkf224o"]
+
+[ext_resource type="Script" path="res://enemy/brains/stealth_sentinel_brain.gd" id="1_brain"]
+
+[node name="StealthSentinelBrain" type="Node"]
+script = ExtResource("1_brain")
+detection_radius = 30.0
+chase_exit_radius = 36.0
+priority_target_groups = Array[StringName]([&"allies"])
+priority_target_radius = 10.0
+vision_cone_deg = 170.0
+vision_debug_visible = true
+vision_eye_height = 1.0
+suspect_duration = 3.0
+chase_max_duration = 8.0
+hostile_zone_radius = 20.0
+hostile_zone_suspect_duration = 0.5
+nav_mode = 0
+aggressive_while_chasing = true
+min_wander_interval = 4.0
+max_wander_interval = 9.0
+curiosity = 0.25
+max_turn_deg = 45.0
+wander_speed_fraction = 0.1
+chase_speed_fraction = 1.0
+attack_cooldown = 1.2
+wind_up_duration = 0.3
+tick_every_n_frames = 1
+vertical_cone_half_height = 1.0
+arc_walk_duration = 4.0
+arc_walk_turn_rate_deg = 25.0
+pause_duration = 4.0
+pause_look_max_deg = 60.0
+pause_look_frequency_hz = 0.4

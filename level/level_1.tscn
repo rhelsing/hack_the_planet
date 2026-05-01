@@ -92,7 +92,8 @@ size = Vector3(21.3042, 1, 16.08847)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.48487, 1.1756706, 177.60532)
 
 [node name="Ground3" parent="." index="7" unique_id=548036433]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 10.89022, 167.0114)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.51528, 10.89022, 167.0114)
+size = Vector3(8.880127, 1, 9.029175)
 
 [node name="glitch_set" type="Node3D" parent="." index="8" unique_id=1837757669]
 script = ExtResource("20_glitchset")
@@ -164,7 +165,7 @@ transform = Transform3D(-0.47453377, 0, 0.8802373, 0, 1, 0, -0.8802373, 0, -0.47
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.03878, 38.679344, -68.84053)
 
 [node name="PowerupPickup" parent="." index="18" unique_id=221835442]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.5902195, 166.35732)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.5902195, 167.09947)
 
 [node name="WalkieTriggerIntro" parent="." index="20" unique_id=1452023600 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -36.48487, 0.33396053, 245.53955)
@@ -199,7 +200,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro8" parent="." index="26" unique_id=686050591 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -73.576866, 65.251625, -34.39029)
-line = "You're on top of the world now runner. Dang I miss it."
+line = "You're on top of the world now runner. "
 require_flag = &""
 
 [node name="WalkieTriggerIntro9" parent="." index="27" unique_id=2006555943 instance=ExtResource("2_walkie")]
@@ -667,3 +668,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.63793, 36.637848, -41.928
 
 [node name="PhoneBooth5" parent="." index="139" unique_id=1578007804 instance=ExtResource("9_4h366")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -78.934525, 65.704, -21.05312)
+
+[node name="PhoneBooth6" parent="." index="140" unique_id=939327447 instance=ExtResource("9_4h366")]
+transform = Transform3D(0.002303793, 0, -0.9999973, 0, 1, 0, 0.9999973, 0, 0.002303793, -94.49195, 11.403441, 164.7407)

@@ -36,6 +36,15 @@ const DEFAULTS := {
 		"quality": "medium",
 		"transition_style": "glitch",  # "glitch" = palette-tinted scanline fade; "instant" disables
 	},
+	"hud": {
+		# Single uniform scaler for all HUD content: powerup pills, coin/
+		# walkie/keys counters, beacon waypoint text, hacking-puzzle title/
+		# subline/instructions, and the post-pickup powerup card. Each
+		# consumer multiplies its base sizes (icon px, font_size) by this
+		# value on settings_applied. Range 0.5–5.0; default 2.0 chosen
+		# for legibility at typical resolutions.
+		"scale": 2.0,
+	},
 	"camera": {
 		"mouse_x_sensitivity": 1.0,
 		"mouse_y_sensitivity": 1.0,
@@ -77,6 +86,13 @@ func set_value(section: String, key: String, value) -> void:
 	data[section][key] = value
 	save_to_disk()
 	apply()
+
+
+## Convenience getter for HUD consumers. Clamped to the slider's
+## authoring range so a stale settings.cfg from before this key existed
+## (or a hand-edit) can't push consumers into an unusable size.
+func get_hud_scale() -> float:
+	return clampf(float(get_value("hud", "scale", 2.0)), 0.5, 5.0)
 
 
 func apply() -> void:

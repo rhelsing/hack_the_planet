@@ -155,6 +155,17 @@ extends Brain
 ## 0.15 = slow creep (still drifting toward target as they wind up).
 @export_range(0.0, 1.0) var wind_up_speed_fraction := 0.15
 
+@export_group("Ally Crouch Stance")
+## When > 0 AND follow_subject_group is set AND the subject is crouched,
+## restrict target acquisition to candidates within this radius (meters)
+## and force IDLE (Vector3.ZERO move) when no target is found. Lets gold
+## allies "stay put" while the player sneaks past distant threats but
+## still react to anything that walks into their personal bubble.
+## 0 (default) = legacy behavior (use detection_radius, fall through to
+## wander when no target). Set by set_faction(&"gold") on conversion;
+## non-ally pawns leave it at 0 and behave identically to before.
+@export var ally_crouched_engage_radius: float = 0.0
+
 @export_group("Follow")
 ## When non-empty AND no enemy is in detection range, the brain follows
 ## the nearest node in this group with three-zone hysteresis: chase if far,
@@ -468,10 +479,17 @@ func tick(body: Node3D, delta: float) -> Intent:
 			# player), use 3-zone hysteresis — chase if far, push away if
 			# in personal space, otherwise wander. _follow_direction returns
 			# Vector3.ZERO to signal "no follow command, wander instead."
+			# Ally crouch stance: when subject is crouched, replace the
+			# wander fallback with full IDLE (Vector3.ZERO). Combined with
+			# the engage-radius gate above, this makes a gold ally STAND
+			# STILL while the player sneaks, only firing CHASE when an
+			# enemy walks into their personal bubble.
 			if follow_subject_group != &"":
 				var follow_dir: Vector3 = _follow_direction(body)
 				if follow_dir != Vector3.ZERO:
 					_intent.move_direction = follow_dir * chase_speed_fraction
+				elif _is_follow_subject_crouched(body):
+					_intent.move_direction = Vector3.ZERO
 				else:
 					_intent.move_direction = _wander_direction(body, delta) * wander_speed_fraction
 			else:
@@ -752,6 +770,32 @@ func _ensure_target(body: Node3D) -> void:
 			_set_target(best)
 	else:
 		_set_target(best)
+	# Ally crouch stance: when the follow subject (player) is crouched and
+	# this brain has the bubble export set (gold-only via set_faction), drop
+	# any target outside ally_crouched_engage_radius. Effectively a tighter
+	# detection_radius that only fires while the player sneaks. Standing
+	# subject → no-op. Non-follow pawns (no follow_subject_group) → no-op.
+	if ally_crouched_engage_radius > 0.0 and follow_subject_group != &"" \
+			and _target != null and _is_follow_subject_crouched(body):
+		var to_t: Vector3 = (_target as Node3D).global_position - body.global_position
+		to_t.y = 0.0
+		if to_t.length() > ally_crouched_engage_radius:
+			_set_target(null)
+
+
+# True when ANY member of follow_subject_group reports `_was_crouched = true`.
+# Used by the ally crouch stance to gate the engage-radius filter and the
+# idle-when-no-target dispatch in the WANDER branch.
+func _is_follow_subject_crouched(body: Node3D) -> bool:
+	if follow_subject_group == &"":
+		return false
+	var tree := body.get_tree()
+	if tree == null:
+		return false
+	for n: Node in tree.get_nodes_in_group(follow_subject_group):
+		if "_was_crouched" in n and bool(n.get(&"_was_crouched")):
+			return true
+	return false
 
 
 # Single mutation point for `_target` — keeps the static `_target_claims`

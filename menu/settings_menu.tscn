@@ -102,6 +102,26 @@ text = "Scene Transition"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 0)
 
+[node name="HudScaleRow" type="HBoxContainer" parent="Center/Panel/Column/Tabs/Graphics"]
+
+[node name="HudScaleLabel" type="Label" parent="Center/Panel/Column/Tabs/Graphics/HudScaleRow"]
+custom_minimum_size = Vector2(200, 0)
+text = "HUD Scale"
+
+[node name="HudScaleSlider" type="HSlider" parent="Center/Panel/Column/Tabs/Graphics/HudScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+min_value = 0.5
+max_value = 5.0
+step = 0.1
+value = 2.0
+
+[node name="HudScaleValue" type="Label" parent="Center/Panel/Column/Tabs/Graphics/HudScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(50, 0)
+text = "2.0x"
+horizontal_alignment = 1
+
 [node name="Gap" type="Control" parent="Center/Panel/Column"]
 custom_minimum_size = Vector2(0, 16)
 

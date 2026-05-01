@@ -4,11 +4,18 @@
 [ext_resource type="Script" uid="uid://dhbvm07mihi2n" path="res://cutscene_engine/steps/cut_step.gd" id="2_cut"]
 [ext_resource type="Script" uid="uid://p8kgvcxxeh78" path="res://cutscene_engine/cutscene_step.gd" id="2_litxp"]
 [ext_resource type="Script" uid="uid://n5yffch0fibx" path="res://cutscene_engine/steps/line_step.gd" id="3_line"]
+[ext_resource type="Script" uid="uid://vcsac5ogqqof" path="res://cutscene_engine/steps/wait_step.gd" id="4_wait"]
+[ext_resource type="Script" uid="uid://bptomihv5rha8" path="res://cutscene_engine/steps/flag_step.gd" id="5_flag"]
 
 [sub_resource type="Resource" id="cut_1"]
 script = ExtResource("2_cut")
 camera = NodePath("../CutsceneCam_Splice")
 label = "shot: Splice cam"
+
+[sub_resource type="Resource" id="wait_initial"]
+script = ExtResource("4_wait")
+seconds = 3.0
+label = "3s anticipation hold on Splice cam before the line lands"
 
 [sub_resource type="Resource" id="line_1"]
 script = ExtResource("3_line")
@@ -16,8 +23,18 @@ character = &"Splice"
 text = "Well, shit."
 label = "Splice: well shit"
 
+[sub_resource type="Resource" id="flag_cage"]
+script = ExtResource("5_flag")
+flag = &"l4_well_shit_cage"
+label = "fire cage slide-up + warp sfx (BuriedReveal listens)"
+
+[sub_resource type="Resource" id="wait_after_cage"]
+script = ExtResource("4_wait")
+seconds = 2.0
+label = "2s breath after cage slams up before walkie hands off"
+
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("2_litxp")]([SubResource("cut_1"), SubResource("line_1")])
-scene_duration = 5.0
+steps = Array[ExtResource("2_litxp")]([SubResource("cut_1"), SubResource("wait_initial"), SubResource("line_1"), SubResource("flag_cage"), SubResource("wait_after_cage")])
+scene_duration = 8.0
 done_flag = &"l4_well_shit_done"

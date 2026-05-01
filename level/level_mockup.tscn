@@ -75,7 +75,7 @@ glow_map_strength = 1.0
 fog_enabled = false
 fog_light_color = Color(0, 0, 0, 1)
 fog_light_energy = 2.31
-fog_density = 0.0309
+fog_density = 0.015
 fog_aerial_perspective = 1.0
 fog_sky_affect = 0.242
 fog_height = 100.0
@@ -104,7 +104,7 @@ light_indirect_energy = 7.337
 light_volumetric_fog_energy = 2.505
 light_specular = 0.0
 shadow_enabled = true
-directional_shadow_max_distance = 40.0
+directional_shadow_max_distance = 80.0
 
 [node name="Ground" type="CSGBox3D" parent="." unique_id=310043039]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 25.485413)

@@ -24,10 +24,11 @@ class_name SceneSetupOnFlag extends Node
 @export_group("Allies")
 ## Group of Marker3Ds that mark spawn positions for staged allies. Every
 ## marker in the group gets one `ally_pawn_scene` instance positioned at
-## its world location, then converted to faction "gold". Existing nodes
-## in the global "allies" group are queue_free'd first so the staged
-## crew is exactly the marker count regardless of how many allies the
-## player had before. Empty group OR null scene = staging disabled.
+## its world location, then converted to faction "gold". Empty group OR
+## null scene = staging disabled. NOTE: this only spawns; if you want to
+## clear existing allies first, set `despawn_group = &"allies"` on this
+## node OR fire a separate SceneSetupOnFlag with despawn_group earlier in
+## the timeline (preferred — see L4 splice showdown setup).
 @export var ally_marker_group: StringName = &""
 @export var ally_pawn_scene: PackedScene = null
 ## When true, each spawned ally toggles into its skate (rollerblade)
@@ -107,14 +108,6 @@ func _teleport_player() -> void:
 func _stage_allies() -> void:
 	if ally_marker_group == &"" or ally_pawn_scene == null:
 		return
-	# Clear existing allies. Snapshot first so freeing mid-iteration can't
-	# trip the "already-freed" trap on typed loops.
-	var to_free: Array[Node] = []
-	for ally: Node in get_tree().get_nodes_in_group(&"allies"):
-		if is_instance_valid(ally):
-			to_free.append(ally)
-	for ally: Node in to_free:
-		ally.queue_free()
 	# Spawn one per marker into the level scene root so the new pawns
 	# don't get cleaned up if this node is ever despawned.
 	var parent: Node = get_tree().current_scene

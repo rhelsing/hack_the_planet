@@ -351,12 +351,12 @@ function init() {
 	refreshStatus();
 
 	document.getElementById("cols").addEventListener("change", (e) => {
-		const v = Math.max(3, Math.min(15, parseInt(e.target.value) || 5));
+		const v = Math.max(3, Math.min(50, parseInt(e.target.value) || 5));
 		e.target.value = v;
 		resize(v, state.rows);
 	});
 	document.getElementById("rows").addEventListener("change", (e) => {
-		const v = Math.max(3, Math.min(15, parseInt(e.target.value) || 5));
+		const v = Math.max(3, Math.min(50, parseInt(e.target.value) || 5));
 		e.target.value = v;
 		resize(state.cols, v);
 	});

@@ -16,6 +16,8 @@ extends Control
 @export var line_thickness: float = 2.0
 @export var fill_alpha: float = 0.7
 @export var hide_distance_under: float = 3.0
+## Authored at hud.scale = 1.0. Multiplied by Settings.get_hud_scale() at
+## draw time so the slider scales waypoint text alongside other HUD chrome.
 @export var font_size: int = 14
 
 # Dedupe state so we only print on transitions, not every frame.
@@ -107,13 +109,15 @@ func _draw() -> void:
 			else:
 				text = d_str
 		if not text.is_empty() and font != null:
-			var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size)
+			# Scaled font_size — single uniform HUD knob from Settings.
+			var fs: int = int(font_size * Settings.get_hud_scale())
+			var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs)
 			var text_pos: Vector2 = screen_pos + Vector2(-text_size.x * 0.5, diamond_radius + 4.0 + text_size.y)
 			# 1px shadow for legibility on bright backgrounds.
 			draw_string(font, text_pos + Vector2(1, 1), text,
-				HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, Color(0, 0, 0, 0.8))
+				HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, Color(0, 0, 0, 0.8))
 			draw_string(font, text_pos, text,
-				HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, draw_color)
+				HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs, draw_color)
 	if drawn_count != _last_drawn_count:
 		_last_drawn_count = drawn_count
 		print("[beacon_layer] drawn=%d (registered=%d)" % [drawn_count, all_beacons.size()])

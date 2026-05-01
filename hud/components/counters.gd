@@ -6,6 +6,15 @@ extends VBoxContainer
 const POP_SCALE := 1.18
 const POP_S := 0.15
 
+# Base sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
+# in _apply_hud_scale (called at _ready and on Events.settings_applied).
+const COIN_ICON_BASE := Vector2(22, 22)
+const COIN_LABEL_FONT_BASE: int = 24
+const WALKIE_MIN_WIDTH_BASE: float = 40.0
+const WALKIE_FONT_BASE: int = 28
+const KEY_ICON_MIN_WIDTH_BASE: float = 32.0
+const KEY_FONT_BASE: int = 26
+
 # Coin icon is now a TextureRect in counters.tscn pointing at
 # res://hud/icons/coin.png (Jolt cola can). Reskin by swapping the texture
 # in the .tscn. Legacy `coin_emoji` export retired with the Label → image
@@ -54,7 +63,25 @@ func _ready() -> void:
 	Walkie.line_ended.connect(_on_walkie_line_ended)
 	Companion.line_started.connect(_on_walkie_line_started)
 	Companion.line_ended.connect(_on_walkie_line_ended)
+	# HUD scale: coin icon + label, walkie chip, and any key icons all
+	# resize from a single Settings.hud.scale knob.
+	Events.settings_applied.connect(_apply_hud_scale)
+	_apply_hud_scale()
 	_refresh()
+
+
+func _apply_hud_scale() -> void:
+	var s := Settings.get_hud_scale()
+	_coin_icon.custom_minimum_size = COIN_ICON_BASE * s
+	_coin_label.add_theme_font_size_override(&"font_size", int(COIN_LABEL_FONT_BASE * s))
+	_walkie_icon.custom_minimum_size = Vector2(WALKIE_MIN_WIDTH_BASE * s, 0)
+	_walkie_icon.add_theme_font_size_override(&"font_size", int(WALKIE_FONT_BASE * s))
+	# Existing key icons (live keys in the row) — re-scale them in place
+	# so the slider takes effect without dropping the inventory.
+	for child in _keys_row.get_children():
+		if child is Label:
+			(child as Label).custom_minimum_size = Vector2(KEY_ICON_MIN_WIDTH_BASE * s, 0)
+			(child as Label).add_theme_font_size_override(&"font_size", int(KEY_FONT_BASE * s))
 
 
 # ── Event handlers ──────────────────────────────────────────────────────
@@ -132,9 +159,10 @@ func _refresh_keys() -> void:
 
 
 func _make_key_icon(id: StringName) -> Label:
+	var s := Settings.get_hud_scale()
 	var lbl := Label.new()
-	lbl.custom_minimum_size = Vector2(32, 0)
-	lbl.add_theme_font_size_override(&"font_size", 26)
+	lbl.custom_minimum_size = Vector2(KEY_ICON_MIN_WIDTH_BASE * s, 0)
+	lbl.add_theme_font_size_override(&"font_size", int(KEY_FONT_BASE * s))
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.text = KEY_ICON
 	lbl.modulate = _color_for_key(id)

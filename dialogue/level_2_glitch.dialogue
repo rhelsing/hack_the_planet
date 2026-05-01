@@ -10,10 +10,13 @@ Glitch: You'll want a briefing on these new abilities.
 
 ~ abilities
 
-Glitch: You now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that splice has modified.
+Glitch: You now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
 Glitch: The second ability and the one you must use now is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
 Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
 Glitch: It's times like this that I'm glad I'm not a sentinel.
+- Splice?
+	Glitch: There are others who can explain Splice better than I can. But..
+	Glitch: He's bad news.
 - Got it.
 	=> done
 

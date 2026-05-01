@@ -232,6 +232,12 @@ var _coin_next_at: float = 0.6
 @onready var _title: Label = %Title
 @onready var _subline: Label = %Subline
 
+## Authored font sizes at hud.scale = 1.0. Re-applied via
+## Settings.get_hud_scale() on _ready and on Events.settings_applied.
+const _TITLE_FONT_BASE: int = 28
+const _SUBLINE_FONT_BASE: int = 20
+const _INSTRUCTIONS_FONT_BASE: int = 16
+
 
 func _ready() -> void:
 	super._ready()
@@ -262,6 +268,21 @@ func _ready() -> void:
 		_subline.visible = true
 	else:
 		_subline.visible = false
+	# Apply HUD scale to title / subline / instructions and listen for live
+	# slider drags so the puzzle re-fits if settings open mid-puzzle.
+	_apply_hud_scale()
+	if not Events.settings_applied.is_connected(_apply_hud_scale):
+		Events.settings_applied.connect(_apply_hud_scale)
+
+
+func _apply_hud_scale() -> void:
+	var s := Settings.get_hud_scale()
+	if _title != null:
+		_title.add_theme_font_size_override(&"font_size", int(_TITLE_FONT_BASE * s))
+	if _subline != null:
+		_subline.add_theme_font_size_override(&"font_size", int(_SUBLINE_FONT_BASE * s))
+	if _instructions != null:
+		_instructions.add_theme_font_size_override(&"font_size", int(_INSTRUCTIONS_FONT_BASE * s))
 	_layout_maze()
 	_path = [_data.start]
 	_time_left = _data.time_limit

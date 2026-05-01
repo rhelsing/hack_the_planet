@@ -17,6 +17,10 @@ extends CanvasLayer
 signal dismissed
 
 const MIN_DISPLAY_S: float = 5.0
+## Authored at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
+## once at _ready (the panel is short-lived, no live re-scale needed).
+const _CAPTION_FONT_BASE: int = 18
+const _HINT_FONT_BASE: int = 14
 ## Placeholder music track played when no per-powerup loop is found at
 ## res://audio/music/howto_{key}.{mp3,ogg}. Reuses the maze hack track for
 ## now — replace per-powerup as the bespoke tracks land.
@@ -42,6 +46,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_start_time = Time.get_ticks_msec() / 1000.0
 	_hint.text = ""  # blank until min-display window passes
+	# Apply the global HUD scale to caption + hint font sizes. Panel is
+	# short-lived (dismiss after read) — no live re-scale subscription.
+	var s: float = Settings.get_hud_scale()
+	_caption.add_theme_font_size_override(&"font_size", int(_CAPTION_FONT_BASE * s))
+	_hint.add_theme_font_size_override(&"font_size", int(_HINT_FONT_BASE * s))
 	# Pause gameplay underneath us. Skip if something else already paused
 	# (e.g., a puzzle) so we don't unpause it on dismiss.
 	if not get_tree().paused:

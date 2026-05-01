@@ -64,7 +64,17 @@ func show_image(path: String, duration: float = 3.0) -> void:
 ## dialogue beat doesn't step on the moment. The overlay is already gone
 ## by the time the timer ticks — the silence happens against the live
 ## scene, balloon hidden via the mutation hide-cooldown.
-func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0) -> void:
+##
+## When `allow_skip` is true (default), holding `skip_action` for
+## `skip_hold_seconds` stops the video and exits the await early. The skip
+## prompt is built inline (no shared class) and parented under `_canvas`
+## so it dies with the overlay. Input is read via `Input.is_action_pressed`
+## polling — `_cutscene_input_block.gd` only eats `_input` events, so the
+## polling sneaks under the block while every other action stays swallowed
+## for the rest of the tree (no door opens, no dialogue advances).
+func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0,
+		allow_skip: bool = true, skip_action: StringName = &"interact",
+		skip_hold_seconds: float = 1.5) -> void:
 	if _canvas != null:
 		push_warning("Cutscene.show_video: cutscene already active, ignoring %s" % path)
 		return
@@ -91,13 +101,99 @@ func show_video(path: String, duration: float = -1.0, post_delay: float = 0.0) -
 	Audio.pause_music()
 	player.play()
 
-	if duration > 0.0:
-		await get_tree().create_timer(duration, true).timeout
-	else:
-		# `finished` fires when the video reaches its end. If for some
-		# reason the player gets stopped externally, we still cleanup via
-		# the await returning.
-		await player.finished
+	# ── Inline skip prompt (only when allow_skip) ────────────────────────
+	# CanvasLayer at _LAYER+1 so it sits ABOVE the video canvas (which is
+	# at _LAYER=1800). Parented under _canvas so _cleanup() frees it too.
+	# Children built once, alpha tweens for fade in/out, bar fills 0→1 as
+	# the player holds the skip action.
+	var skip_layer: CanvasLayer = null
+	var skip_root: Control = null
+	var skip_label: Label = null
+	var skip_bar: ProgressBar = null
+	if allow_skip:
+		skip_layer = CanvasLayer.new()
+		skip_layer.layer = _LAYER + 1
+		skip_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		_canvas.add_child(skip_layer)
+		skip_root = Control.new()
+		skip_root.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		skip_root.offset_top = -110.0
+		skip_root.offset_bottom = -40.0
+		skip_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		skip_root.modulate.a = 0.0
+		skip_layer.add_child(skip_root)
+		var box := VBoxContainer.new()
+		box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.alignment = BoxContainer.ALIGNMENT_CENTER
+		skip_root.add_child(box)
+		skip_label = Label.new()
+		skip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		skip_label.add_theme_font_size_override(&"font_size", 18)
+		skip_label.add_theme_color_override(&"font_color", Color(0.95, 0.95, 0.95, 1))
+		skip_label.add_theme_constant_override(&"outline_size", 4)
+		skip_label.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.85))
+		# Glyph lookup mirrors the cutscene_player prompt — falls back to the
+		# uppercased action name if the Glyphs autoload isn't present.
+		var action_name: String = String(skip_action)
+		var glyph: String = action_name.to_upper()
+		var glyphs := get_tree().root.get_node_or_null(^"Glyphs")
+		if glyphs != null and glyphs.has_method(&"for_action"):
+			glyph = String(glyphs.call(&"for_action", action_name))
+		skip_label.text = "Hold %s to skip" % glyph
+		box.add_child(skip_label)
+		skip_bar = ProgressBar.new()
+		skip_bar.custom_minimum_size = Vector2(220, 6)
+		skip_bar.show_percentage = false
+		skip_bar.min_value = 0.0
+		skip_bar.max_value = 1.0
+		skip_bar.value = 0.0
+		box.add_child(skip_bar)
+
+	# ── Polling loop ─────────────────────────────────────────────────────
+	# Exits on (natural-end via finished signal) OR (duration elapsed if
+	# positive) OR (skip-hold completed). Uses Input.is_action_pressed so
+	# it bypasses _cutscene_input_block.gd, which only eats _input events.
+	#
+	# done_box is a one-element Array used as a mutable state-box. GDScript
+	# lambdas can read outer locals but CANNOT reassign back to a captured
+	# primitive — `var done: bool` would stay false forever even after the
+	# signal fires. Array indexing mutates in place so the loop sees it.
+	var done_box: Array = [false]
+	player.finished.connect(func() -> void: done_box[0] = true, CONNECT_ONE_SHOT)
+	var t_start: float = Time.get_ticks_msec() / 1000.0
+	var hold_progress: float = 0.0
+	var prompt_alpha_target: float = 0.0
+	while not done_box[0]:
+		await get_tree().process_frame
+		if duration > 0.0:
+			var elapsed: float = Time.get_ticks_msec() / 1000.0 - t_start
+			if elapsed >= duration:
+				break
+		if not allow_skip:
+			continue
+		var dt: float = get_process_delta_time()
+		var rate: float = dt / maxf(skip_hold_seconds, 0.1)
+		var holding: bool = Input.is_action_pressed(skip_action)
+		if holding:
+			hold_progress = clampf(hold_progress + rate, 0.0, 1.0)
+			skip_bar.value = hold_progress
+			if prompt_alpha_target < 1.0:
+				prompt_alpha_target = 1.0
+				skip_root.modulate.a = minf(skip_root.modulate.a + dt / 0.15, 1.0)
+			else:
+				skip_root.modulate.a = 1.0
+			if hold_progress >= 1.0:
+				player.stop()
+				break
+		else:
+			if hold_progress > 0.0:
+				hold_progress = clampf(hold_progress - rate, 0.0, 1.0)
+				skip_bar.value = hold_progress
+			if hold_progress <= 0.0 and prompt_alpha_target > 0.0:
+				prompt_alpha_target = 0.0
+			if prompt_alpha_target == 0.0 and skip_root.modulate.a > 0.0:
+				skip_root.modulate.a = maxf(skip_root.modulate.a - dt / 0.2, 0.0)
 
 	Audio.resume_music()
 	_cleanup()

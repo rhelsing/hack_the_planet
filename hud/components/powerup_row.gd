@@ -7,8 +7,12 @@ extends VBoxContainer
 ## Cooldown overlay is driven by Events.skill_cooldown_started when the
 ## skill id matches an owned ability. Non-skill abilities never show one.
 
-const SLOT_SIZE := Vector2(120, 34)
-const ICON_SIZE := Vector2(28, 28)
+## Base sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
+## at slot-build time. Default Settings hud.scale is 2.0, so the visible
+## default is 2× these — i.e., a 240×68 pill with a 56×56 icon.
+const SLOT_SIZE_BASE := Vector2(120, 34)
+const ICON_SIZE_BASE := Vector2(28, 28)
+const FONT_SIZE_BASE: int = 12
 const COLOR_ACTIVE   := Color(0, 1, 1)        # accent_cyan
 const COLOR_INACTIVE := Color(0.10, 0.53, 0.20, 0.7)
 ## Cooldown tint — pill goes yellow at the moment the cooldown starts and
@@ -63,7 +67,15 @@ func _ready() -> void:
 	alignment = BoxContainer.ALIGNMENT_BEGIN
 	add_theme_constant_override(&"separation", 6)
 	Events.skill_cooldown_started.connect(_on_cooldown_started)
+	# HUD scale changes rebuild the entire row so per-slot sizing picks up
+	# the new value. Cheaper than retrofitting individual nodes' sizes.
+	Events.settings_applied.connect(_on_settings_applied)
 	call_deferred(&"_bind")
+
+
+func _on_settings_applied() -> void:
+	if _player != null and is_instance_valid(_player):
+		_rebuild_from_player()
 
 
 func _bind() -> void:
@@ -149,8 +161,9 @@ func _blink_ready(panel: PanelContainer) -> void:
 # ── Slot construction ───────────────────────────────────────────────────
 
 func _add_slot(ability_id: StringName, enabled: bool) -> void:
+	var hud_scale: float = Settings.get_hud_scale()
 	var slot := PanelContainer.new()
-	slot.custom_minimum_size = SLOT_SIZE
+	slot.custom_minimum_size = SLOT_SIZE_BASE * hud_scale
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0, 0.1, 0.06, 0.85)
 	style.border_width_left = 2
@@ -184,7 +197,7 @@ func _add_slot(ability_id: StringName, enabled: bool) -> void:
 	if icon_tex != null:
 		var icon := TextureRect.new()
 		icon.texture = icon_tex
-		icon.custom_minimum_size = ICON_SIZE
+		icon.custom_minimum_size = ICON_SIZE_BASE * hud_scale
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		hbox.add_child(icon)
@@ -192,7 +205,7 @@ func _add_slot(ability_id: StringName, enabled: bool) -> void:
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override(&"font_size", 12)
+	label.add_theme_font_size_override(&"font_size", int(FONT_SIZE_BASE * hud_scale))
 	var glyph: String = Glyphs.for_action(action) if action != "" else ""
 	if glyph != "" and glyph != "?":
 		label.text = "%s [%s]" % [text, glyph]

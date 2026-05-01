@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_body"]
 [ext_resource type="PackedScene" uid="uid://bcvkveqpeyxw7" path="res://player/skins/kaykit/kaykit_skin.tscn" id="2_skin"]
-[ext_resource type="PackedScene" uid="uid://dsplstealth0001" path="res://enemy/brains/splice_stealth_ai.tscn" id="3_brain"]
+[ext_resource type="PackedScene" uid="uid://csentsentinelai01" path="res://enemy/brains/stealth_sentinel_ai.tscn" id="3_brain"]
 [ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="4_profile"]
 [ext_resource type="PackedScene" uid="uid://dstlthkilltgt01" path="res://enemy/stealth_kill_target/stealth_kill_target.tscn" id="5_skt"]
 [ext_resource type="Resource" uid="uid://csentinelskate1" path="res://enemy/sentinel_skate_profile.tres" id="6_skate"]
@@ -17,7 +17,11 @@ walk_profile = ExtResource("4_profile")
 skate_profile = ExtResource("6_skate")
 start_in_walk_mode = true
 walk_anim_speed_scaling = false
-max_health = 1
+aggressive_speed_mult_override = 1.5
+aggressive_damage_override = 2
+aggressive_zeros_brain_timers = false
+max_health = 4
+health_regen_delay = 0.0
 death_sound_auto_load_dir = "res://audio/sfx/enemy_deaths"
 attack_kick_auto_load_dir = "res://audio/sfx/attack_kicks"
 attack_kick_volume_db = -6.0

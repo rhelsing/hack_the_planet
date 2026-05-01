@@ -5,3 +5,4 @@
 [node name="EnemyAIBrain" type="Node"]
 script = ExtResource("1_brain")
 nav_mode = 2
+wind_up_duration = 0.3

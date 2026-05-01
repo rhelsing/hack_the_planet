@@ -95,6 +95,11 @@ func set_faction(new_faction: StringName) -> void:
 	# faction-specific brain config beyond target_groups.
 	if _brain != null and "follow_subject_group" in _brain:
 		_brain.follow_subject_group = &"player" if new_faction == &"gold" else &""
+	# Gold-specific behavior overlay: when the player is crouched, the gold's
+	# brain idles in place and only engages enemies within ally_crouched_engage_radius.
+	# Other factions clear it to 0 (no special crouch behavior). See enemy_ai_brain.gd.
+	if _brain != null and "ally_crouched_engage_radius" in _brain:
+		_brain.ally_crouched_engage_radius = 5.0 if new_faction == &"gold" else 0.0
 	# Skate profile flip is no longer auto on gold conversion — moved to the
 	# explicit caller. ControlPortal converts walk; GodAbility converts ride.
 	# Apply the aggressive package (99 damage, 0 wind-up, 0 cooldown) to red
@@ -140,8 +145,18 @@ func set_aggressive_buffs(active: bool) -> void:
 	# Active uses red's buff entry; inactive restores the current faction's.
 	var buffs_key: StringName = &"red" if active else faction
 	var buffs: Array = _FACTION_BUFFS.get(buffs_key, [1.0, 1]) as Array
-	_faction_speed_mult = float(buffs[0])
-	_faction_attack_damage = int(buffs[1])
+	# Per-pawn overrides: when active, individual splice_stealth (and any
+	# future aggressive pawn) can opt out of red's defaults to keep authored
+	# values for damage, speed mult, and brain timer zeroing. < 0 / true =
+	# legacy behavior preserved.
+	if active and aggressive_speed_mult_override >= 0.0:
+		_faction_speed_mult = aggressive_speed_mult_override
+	else:
+		_faction_speed_mult = float(buffs[0])
+	if active and aggressive_damage_override >= 0:
+		_faction_attack_damage = aggressive_damage_override
+	else:
+		_faction_attack_damage = int(buffs[1])
 	# Invulnerable while aggressive, OR if the underlying faction is red /
 	# splice_stealth. Splice_stealth is always invulnerable to take_hit;
 	# the only kill path is StealthKillTarget's backstab, which calls
@@ -151,11 +166,17 @@ func set_aggressive_buffs(active: bool) -> void:
 		if "attack_cooldown" in _brain:
 			if _brain_default_attack_cooldown < 0.0:
 				_brain_default_attack_cooldown = float(_brain.attack_cooldown)
-			_brain.attack_cooldown = 0.0 if active else _brain_default_attack_cooldown
+			if active and aggressive_zeros_brain_timers:
+				_brain.attack_cooldown = 0.0
+			else:
+				_brain.attack_cooldown = _brain_default_attack_cooldown
 		if "wind_up_duration" in _brain:
 			if _brain_default_wind_up < 0.0:
 				_brain_default_wind_up = float(_brain.wind_up_duration)
-			_brain.wind_up_duration = 0.0 if active else _brain_default_wind_up
+			if active and aggressive_zeros_brain_timers:
+				_brain.wind_up_duration = 0.0
+			else:
+				_brain.wind_up_duration = _brain_default_wind_up
 	# Diagnostic — verify reverted-from-gold bodies actually reset to vanilla.
 	# Compare to the [faction] log line at the bottom of set_faction: a body
 	# that just reverted to green should print here with active=false,
@@ -218,14 +239,15 @@ const _FACTION_TARGETS: Dictionary = {
 }
 # Faction → [speed_multiplier, attack_damage]. Multiplied into the body's
 # move_toward target each tick + passed to take_hit on every connecting
-# swing. Splice (red) is the swarm variant: 1.5× speed + 99 damage +
-# invulnerable + zero cooldown. Splice stealth is the patrol variant:
-# normal speed + one-shot kill but killable + cone-of-view AI (configured
-# on the brain, not here).
+# swing. Red is the swarm variant: 1.5× speed + 2 damage (two-hit kill on
+# player max_health=3 with regen breathing room) + invulnerable + 0.3s
+# wind-up. Splice stealth is the patrol variant: normal speed + one-shot
+# kill (preserved via aggressive_damage_override = 99 on its variant) but
+# killable + cone-of-view AI (configured on the brain, not here).
 const _FACTION_BUFFS: Dictionary = {
 	&"player":         [1.0, 1],
 	&"green":          [1.0, 1],
-	&"red":            [1.5, 99],
+	&"red":            [1.5, 2],
 	&"splice_stealth": [1.0, 99],
 	&"gold":           [1.7, 99],
 }
@@ -321,6 +343,24 @@ enum FollowMode { PARENTED, DETACHED }
 @export var pitch_return_delay := 0.3
 ## Exponential decay rate for pitch return. ~1.5 ≈ 95% back in 2 seconds.
 @export var pitch_return_rate := 1.5
+
+@export_group("Aggressive Override")
+## Speed mult applied during aggressive (HOSTILE + aggressive_while_chasing)
+## mode. < 0 = use red's FACTION_BUFFS row (default behavior). Set per-pawn
+## to keep red's lethality but tune speed independently — e.g. splice_stealth
+## inheriting red's invuln + sphere detection but at 1.5× rather than red's
+## entry-table speed.
+@export var aggressive_speed_mult_override: float = -1.0
+## Attack damage applied during aggressive mode. < 0 = use red's FACTION_BUFFS
+## row. Set per-pawn so a stealth that goes "red-mode" can deal a tunable
+## (e.g. 2-hit-kill) blow instead of red's instant-kill 99.
+@export var aggressive_damage_override: int = -1
+## When false, aggressive mode preserves the brain's authored attack_cooldown
+## + wind_up_duration instead of zeroing them. Default true keeps red's
+## relentless tempo (zero cooldown, no telegraph). Set false on stealth-style
+## variants that want a visible 0.3s wind-up + normal cooldown despite the
+## otherwise-red behavior.
+@export var aggressive_zeros_brain_timers: bool = true
 
 @export_group("Health")
 ## Hits the player can take from enemies before dying. Falling off the world
@@ -1974,12 +2014,21 @@ func _physics_process(delta: float) -> void:
 	if move_direction.length() > 0.01:
 		move_direction = move_direction.normalized()
 
-	# Skin facing.
+	# Skin facing. When the brain sets intent.face_yaw_override_set, that
+	# value wins — lets a brain rotate the pawn during stationary phases
+	# (e.g., stealth patrol's "stop and look side-to-side") where the
+	# velocity-tracking default would freeze yaw because h_vel < 0.5.
+	# Otherwise: existing path — face the velocity direction when moving,
+	# else keep facing _last_input_direction.
 	var h_vel := Vector3(velocity.x, 0.0, velocity.z)
-	var face_target := _last_input_direction
-	if profile.face_velocity and h_vel.length() > 0.5:
-		face_target = h_vel.normalized()
-	var target_angle := Vector3.BACK.signed_angle_to(face_target, Vector3.UP)
+	var target_angle: float
+	if intent.face_yaw_override_set:
+		target_angle = intent.face_yaw_override
+	else:
+		var face_target := _last_input_direction
+		if profile.face_velocity and h_vel.length() > 0.5:
+			face_target = h_vel.normalized()
+		target_angle = Vector3.BACK.signed_angle_to(face_target, Vector3.UP)
 	var new_yaw: float = lerp_angle(_yaw_state, target_angle, profile.rotation_speed * delta)
 	_yaw_state = new_yaw
 

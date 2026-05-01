@@ -40,3 +40,14 @@ var crouch_held: bool = false
 ## can't brake a fast pawn (e.g. red 2.5×) before they slide off. Re-evaluated
 ## every tick — clears automatically the moment the brain stops requesting it.
 var hard_brake: bool = false
+
+## Optional brain-driven yaw target (radians, in the same space the body's
+## _yaw_state uses — i.e. signed_angle_to(Vector3.BACK, forward, UP)). When
+## face_yaw_override_set is true, the body uses this for its skin facing
+## instead of the velocity-tracked default. Lets a brain rotate a stationary
+## pawn — e.g. stealth patrol's "stop and look side-to-side" beat where the
+## body has zero velocity but the brain still wants to swing the head.
+## Smoothing still applies via profile.rotation_speed, so a sudden override
+## flip rotates over ~0.5s instead of popping.
+var face_yaw_override: float = 0.0
+var face_yaw_override_set: bool = false
