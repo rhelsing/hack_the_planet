@@ -546,21 +546,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.469543, 1.1705515, -60.88
 
 [node name="Nyx2" parent="." index="107" unique_id=1915612002 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -7.898148, 0.6830478, -2.5471535)
-character = &"Nyx"
-line = "Hey {player_handle}, we're tracking your signal. This should be an easy one. Point A to Point B."
+character = &"DialTone"
+line = "Hey runner, we're tracking your signal. This should be an easy one. Point A to Point B."
 require_flag = &""
 
 [node name="Nyx3" parent="." index="108" unique_id=1109282511 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -41.997135, 33.569866, -18.763172)
-character = &"Nyx"
-line = "Runner, something is wrong! We're seeing rogue sentinels everywhere."
+character = &"DialTone"
+line = "Runner, something is wrong. We're seeing rogue sentinels everywhere."
 require_flag = &""
 music_loop = ExtResource("61_dustmotions")
 stinger_oneshot = ExtResource("62_braam")
 
 [node name="Nyx4" parent="." index="109" unique_id=1337046534 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -44.886158, 34.003185, 4.0391345)
-line = "We need to get you out of there runner."
+character = &"Nyx"
+line = "Oh God! Not again..."
 require_flag = &""
 
 [node name="SpliceNewTraceWalkie" parent="." index="110" unique_id=-52543054 instance=ExtResource("63_flagwalk")]

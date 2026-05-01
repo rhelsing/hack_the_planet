@@ -25,7 +25,7 @@ script = ExtResource("1_script")
 unique_name_in_owner = true
 anchor_left = 0.0
 anchor_top = 0.0
-anchor_right = 0.2
+anchor_right = 0.4
 anchor_bottom = 1.0
 clip_contents = true
 mouse_filter = 2
@@ -34,7 +34,7 @@ mouse_filter = 2
 unique_name_in_owner = true
 anchor_left = 0.0
 anchor_right = 1.0
-offset_left = 16.0
+offset_left = 48.0
 offset_right = -16.0
 mouse_filter = 2
 
@@ -63,7 +63,7 @@ theme_override_fonts/font = SubResource("Font_credits_bold")
 theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 autowrap_mode = 2
-text = "Game Dev
+text = "Game Development and Story
 Ryan Helsing
 
 Design and Characters
@@ -72,15 +72,13 @@ Laurel Moore
 Music & SFX
 Griffin Knock
 
-Game Design
-Dustin Garner
-
 Sound & Music
 Tyler Ono
 
 Play Testing
 Nolan Cooper
 Kyra Rush
+Dustin Garner
 
 
 
@@ -101,6 +99,9 @@ this is me letting you go — Ryan Helsing
 for new drugs — Ryan Helsing
 Fast Paced (Low Energy) — Tyler Ono
 Fast Paced (High Energy) — Tyler Ono
+Celebration — Tyler Ono
+Tina — Griffin Knock
+Slow Jam — Griffin Knock
 Vibes A — Ryan Helsing & Matthew Saltz
 Vibes B — Ryan Helsing & Matthew Saltz
 Vibes C — Ryan Helsing & Matthew Saltz
@@ -117,6 +118,7 @@ Inigo Quilez — noise / SDFs
 meloonics — 3D menu camera
 KayKit — mannequin character pack + animations
 Mixamo — rigs and motion-capture animations
+Lordicon — animated walkie-talkie icon
 Pixabay creators — incl. Alex_Kizenkov
 
 And every phone booth that still takes a quarter."

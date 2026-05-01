@@ -9,8 +9,8 @@ streams = Array[AudioStream]([
 	ExtResource("2"),
 ])
 strict_alternate = false
-volume_db_min = -2.0
-volume_db_max = 0.0
+volume_db_min = -8.0
+volume_db_max = -6.0
 pitch_min = 1.0
 pitch_max = 1.0
-bus = &"SFX"
+bus = &"Companion"

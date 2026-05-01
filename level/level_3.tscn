@@ -31,7 +31,7 @@
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="29_wnvu3"]
 [ext_resource type="PackedScene" uid="uid://dflagwalk0001" path="res://interactable/flag_walkie/flag_walkie.tscn" id="30_flagwalk"]
 
-[sub_resource type="Curve3D" id="Curve3D_wnvu3"]
+[sub_resource type="Curve3D" id="Curve3D_dvor1"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -40,7 +40,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_dvor1"]
+[sub_resource type="Curve3D" id="Curve3D_ikvvc"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -49,7 +49,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_ikvvc"]
+[sub_resource type="Curve3D" id="Curve3D_apok7"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -58,7 +58,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_apok7"]
+[sub_resource type="Curve3D" id="Curve3D_8reer"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -110,7 +110,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -200.89238, -3.7677765, -14.7
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -260.0197, -11.001432, -14.712277)
 persist_flag = &"l3_checkpoint3_done"
 
-[node name="Beacon" parent="Checkpoint3" unique_id=830101010 instance=ExtResource("28_beacon")]
+[node name="Beacon" parent="Checkpoint3" index="5" unique_id=830101010 instance=ExtResource("28_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.9176, 0.7412, 0.1333, 1)
 label = "CHECKPOINT"
@@ -121,7 +121,7 @@ hide_when_flag = &"l3_checkpoint3_done"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -326.21088, -11.001432, -14.712277)
 persist_flag = &"l3_checkpoint4_done"
 
-[node name="Beacon" parent="Checkpoint4" unique_id=830202020 instance=ExtResource("28_beacon")]
+[node name="Beacon" parent="Checkpoint4" index="5" unique_id=830202020 instance=ExtResource("28_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.9176, 0.7412, 0.1333, 1)
 label = "CHECKPOINT"
@@ -132,7 +132,7 @@ hide_when_flag = &"l3_checkpoint4_done"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -326.21088, -11.001432, -176.85666)
 persist_flag = &"l3_checkpoint5_done"
 
-[node name="Beacon" parent="Checkpoint5" unique_id=830303030 instance=ExtResource("28_beacon")]
+[node name="Beacon" parent="Checkpoint5" index="5" unique_id=830303030 instance=ExtResource("28_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.9176, 0.7412, 0.1333, 1)
 label = "CHECKPOINT"
@@ -625,7 +625,7 @@ size = Vector3(7, 1, 7)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.622, 6.1516433, -267.01248)
 persist_flag = &"l3_phonebooth5_done"
 
-[node name="Beacon" parent="PhoneBooth5" unique_id=830505050 instance=ExtResource("28_beacon")]
+[node name="Beacon" parent="PhoneBooth5" index="5" unique_id=830505050 instance=ExtResource("28_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.9176, 0.7412, 0.1333, 1)
 label = "CHECKPOINT"
@@ -636,7 +636,7 @@ hide_when_flag = &"l3_phonebooth5_done"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -154.47919, -10.99559, -180.12953)
 persist_flag = &"l3_phonebooth6_done"
 
-[node name="Beacon" parent="PhoneBooth6" unique_id=830404040 instance=ExtResource("28_beacon")]
+[node name="Beacon" parent="PhoneBooth6" index="5" unique_id=830404040 instance=ExtResource("28_beacon")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 color = Color(0.9176, 0.7412, 0.1333, 1)
 label = "CHECKPOINT"
@@ -663,7 +663,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.939323, 1.024375, -72.320
 
 [node name="Rail" parent="." index="113" unique_id=2144112405 instance=ExtResource("21_krmuh")]
 transform = Transform3D(-0.16310208, 0, -0.9866092, 0, 1, 0, 0.9866092, 0, -0.16310208, -31.75879, 17.077274, -77.810776)
-curve = SubResource("Curve3D_wnvu3")
+curve = SubResource("Curve3D_dvor1")
 
 [node name="HackingTerminal" parent="." index="114" unique_id=816224979 instance=ExtResource("22_krmuh")]
 transform = Transform3D(-0.02530452, 0, 0.9996798, 0, 1, 0, -0.9996798, 0, -0.02530452, -45.167114, 20.70369, -91.511444)
@@ -717,7 +717,7 @@ spot_angle = 42.43859
 [node name="splice" parent="." index="122" unique_id=1047504630 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -149.20332, 33.657597, -29.268335)
 character = &"Splice"
-line = "Hm. New trace on the wire. ...is that you, runner?"
+line = "Hm. New trace on the wire... Triangulating now.."
 require_flag = &""
 
 [node name="splice2" parent="." index="123" unique_id=579269721 instance=ExtResource("9_walkie")]
@@ -727,9 +727,9 @@ line = "{player_handle}, your signal has stabilized again. Must have been an iss
 require_flag = &""
 
 [node name="splice3" parent="." index="124" unique_id=1208219810 instance=ExtResource("9_walkie")]
-transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -159.27145, 19.015488, -16.319054)
+transform = Transform3D(7.812818, 0, 0, 0, 2.4110703, 0, 0, 0, 5.363489, -157.78203, 19.015488, -16.319054)
 character = &"Nyx"
-line = "{player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not reading as in that sector anymore. Come in, runner!"
+line = "{player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not even in that sector anymore. Come in, runner!"
 require_flag = &""
 
 [node name="splice4" parent="." index="125" unique_id=1805706056 instance=ExtResource("9_walkie")]
@@ -806,7 +806,7 @@ id = &"l3_splice_pen"
 
 [node name="Rail2" parent="." index="138" unique_id=1778040315 instance=ExtResource("21_krmuh")]
 transform = Transform3D(0.2512248, 0, 0.96792877, 0, 1, 0, -0.96792877, 0, 0.2512248, -120.49826, 41.78899, -78.08258)
-curve = SubResource("Curve3D_dvor1")
+curve = SubResource("Curve3D_ikvvc")
 
 [node name="PortalTraverseZone" parent="." index="139" unique_id=2028004941 instance=ExtResource("26_flagzone")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131.90128, 47.011814, -112.61408)
@@ -853,7 +853,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -247.45453, -10.988966, -18.9
 
 [node name="Rail3" parent="." index="149" unique_id=642366563 instance=ExtResource("21_krmuh")]
 transform = Transform3D(-0.10480616, 0, 0.99449265, 0, 1, 0, -0.99449265, 0, -0.10480616, -333.36536, -5.5681477, -143.14302)
-curve = SubResource("Curve3D_ikvvc")
+curve = SubResource("Curve3D_apok7")
 
 [node name="EnemyKayKit" parent="." index="150" unique_id=94915355 instance=ExtResource("26_dq5ba")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -340.49573, -10.96802, -183.48029)
@@ -869,7 +869,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -318.8272, -10.96802, -186.53
 
 [node name="Rail4" parent="." index="154" unique_id=577630271 instance=ExtResource("21_krmuh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -290.7111, -6.5818167, -171.50021)
-curve = SubResource("Curve3D_apok7")
+curve = SubResource("Curve3D_8reer")
 
 [node name="EnemyKayKitSpliceStealth12" parent="." index="155" unique_id=889083938 instance=ExtResource("27_6u0b5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80.2658, 6.1593666, -261.59064)
@@ -1028,7 +1028,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -151.0995, -10.881198, -162.7
 [node name="Coin25" parent="." index="203" unique_id=2132792035 instance=ExtResource("29_wnvu3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.45573, -10.881194, -159.1761)
 
-[node name="DialToneTrackerWalkie" parent="." instance=ExtResource("30_flagwalk")]
-character = &"DialTone"
+[node name="DialToneTrackerWalkie" parent="." index="204" unique_id=2063215685 instance=ExtResource("30_flagwalk")]
 line = "Nyx is on your tracker now."
 trigger_flag = &"l3_terminal_5"

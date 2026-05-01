@@ -21,72 +21,50 @@ DialTone: Hey — over here.
 do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
 DialTone: Name's DialTone.
 DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break her loose.
-=> intro_menu
+=> dialtone_questions
 
-~ intro_menu
+~ stage_nudge
+
+DialTone: Hey — time's ticking.
+=> dialtone_questions
+
+
+# Single shared question hub. Both stage_intro and stage_nudge dump into
+# this menu. Each option contains its own inline mini-dialogue, then
+# falls through to the => dialtone_questions loop at the bottom so the
+# menu re-shows. Visited-dim handles "what have I asked?" via the
+# existing balloon hooks. The exit option text swaps based on whether
+# the player has been greeted yet (sets dialtone_greeted in intro_done).
+
+~ dialtone_questions
 
 - Are you who messaged me?
-	=> intro_messenger
-- I'm in. Where's the portal?
-	=> intro_done
+	DialTone: ...maybe.
+	DialTone: Let's just say I noticed you. The way you asked questions on neon-archive intrigued me.
+	DialTone: I wanted to see what you were made of.
+	do GameState.set_flag("dialtone_messenger_thread", 1)
 - Who's Nyx?
-	=> intro_who
+	DialTone: Nyx. Sharpest hacker on this grid. Usually. Not her day.
 - What am I looking for down there?
-	=> intro_what
+	DialTone: Her signal. Drifting in the static — flickering between sectors. You'll know it when you see it.
 - Why can't you go yourself?
-	=> intro_why
-
-~ intro_messenger
-
-DialTone: ...maybe.
-DialTone: Let's just say I noticed you. The way you asked questions on neon-archive intrigued me.
-DialTone: I wanted to see what you were made of.
-do GameState.set_flag("dialtone_messenger_thread", 1)
-DialTone: Anything else?
-- Who's Nyx?
-	=> intro_who
-- What am I looking for?
-	=> intro_what
-- Why can't you go yourself?
-	=> intro_why
-- Let's go.
+	DialTone: Local node's flagged to my address. I jack in from here, the whole mainframe goes dark.
+	DialTone: You're a clean IP — you can slip through.
+- [if !GameState.get_flag("dialtone_greeted", false) /] I'm in. Where's the portal?
 	=> intro_done
-
-~ intro_who
-
-DialTone: Nyx. Sharpest hacker on this grid. Usually. Not her day.
-DialTone: Anything else?
-- What am I looking for?
-	=> intro_what
-- Why can't you go yourself?
-	=> intro_why
-- Let's go.
+- [if GameState.get_flag("dialtone_greeted", false) /] That's all.
 	=> intro_done
+=> dialtone_questions
 
-~ intro_what
-
-DialTone: Her signal. Drifting in the static — flickering between sectors. You'll know it when you see it.
-DialTone: Anything else?
-- Who is she?
-	=> intro_who
-- Why can't you go yourself?
-	=> intro_why
-- Let's go.
-	=> intro_done
-
-~ intro_why
-
-DialTone: Local node's flagged to my address. I jack in from here, the whole mainframe goes dark.
-DialTone: You're a clean IP — you can slip through.
-DialTone: Anything else?
-- Who is she?
-	=> intro_who
-- What am I looking for?
-	=> intro_what
-- Let's go.
-	=> intro_done
 
 ~ intro_done
+
+# Smart exit. First time through (not yet greeted): hand off the walkie,
+# set the unlocks, advance the arc. Re-entry from stage_nudge: short
+# nudge line and out.
+if GameState.get_flag("dialtone_greeted", false)
+	DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
+	=> END
 
 DialTone: Take this — walkie's on my channel. I'll be in your ear the whole run.
 DialTone: Portal's right behind me. Step on, press enter, you're in.
@@ -97,50 +75,55 @@ do GameState.set_flag("dialtone_greeted", true)
 do GameState.set_flag("level_1_unlocked", true)
 => END
 
-# ── Nudge — greeted but Level 1 not yet completed ────────────────────────
-
-~ stage_nudge
-
-DialTone: Portal's right there, runner. Nyx isn't getting any more un-trapped.
-=> END
-
 # ── Post Level 1 — prank reveal ──────────────────────────────────────────
 
 ~ stage_post_1
+
+# Obligatory opener — runs once. Re-talks route through the entry block
+# for an abbreviated greeting, then drop into the questions hub.
+if GameState.get_flag("post_1_opener_seen", false)
+	=> post_1_entry
 
 DialTone: Ha — look who's back!
 Nyx: How many times have you pulled that same stunt, really? Does it not get old for you?
 DialTone: Never gets old.
 Nyx: It does. Trust me.
-=> post_1_menu
+do GameState.set_flag("post_1_opener_seen", true)
+=> post_1_questions
 
-~ post_1_menu
 
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ post_1_entry
+
+DialTone: What else would you like to know?
+=> post_1_questions
+
+
+# Single shared question hub. "Back to those questions you mentioned"
+# is a flag-gated follow-up that requires both having heard the prank
+# explanation AND having asked DialTone earlier (dialtone_messenger_thread=1).
+
+~ post_1_questions
+
+- So what was that about?
+	DialTone: She tell you? Never stuck. Never **been** stuck. Sharpest node on the grid — the Gibson doesn't lock **her** out.
+	Nyx: DialTone's stalling.
+	DialTone: I wanted to see her face.
+	Nyx: Hope it was worth it.
+	DialTone: Worth every bit.
+	do GameState.set_flag("post_1_asked_explain", true)
+- [if GameState.get_flag("post_1_asked_explain", false) and GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
+	DialTone: Oh, **those**. Yeah. Spent a few weeks just lurking.
+	Nyx: That's a habit, by the way. The lurking.
+	DialTone: You had a particular flavor — kept asking what nobody else was asking.
+	Nyx: Takes one to know one.
+	do GameState.set_flag("dialtone_messenger_thread", 2)
 - So what's next?
 	=> post_1_done
-- So what was that about?
-	=> post_1_explain
+=> post_1_questions
 
-~ post_1_messenger
-
-DialTone: Oh, **those**. Yeah. Spent a few weeks just lurking.
-Nyx: That's a habit, by the way. The lurking.
-DialTone: You had a particular flavor — kept asking what nobody else was asking.
-Nyx: Takes one to know one.
-do GameState.set_flag("dialtone_messenger_thread", 2)
-=> post_1_done
-
-~ post_1_explain
-
-DialTone: She tell you? Never stuck. Never **been** stuck. Sharpest node on the grid — the Gibson doesn't lock **her** out.
-Nyx: He's stalling.
-DialTone: I wanted to see her face.
-Nyx: Hope it was worth it.
-DialTone: Worth every bit.
-- Whatever. Onward.
-	=> post_1_done
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
-	=> post_1_messenger
 
 ~ post_1_done
 
@@ -155,6 +138,11 @@ do GameState.set_flag("level_2_unlocked", true)
 
 ~ stage_post_2
 
+# Obligatory opener — runs once. Re-talks route through the entry block
+# for an abbreviated greeting, then drop into the questions hub.
+if GameState.get_flag("post_2_opener_seen", false)
+	=> post_2_entry
+
 DialTone: {{HandlePicker.chosen_name()}}. You made it back.
 Nyx: He wouldn't have made it back if we weren't there to pull him out.
 DialTone: That's true. That's true.
@@ -165,105 +153,77 @@ DialTone: A power-up. The kind that opens a door to the next door.
 DialTone: If he gets all the way down? Root. After that the grid is his and the rest of us are gone.
 Nyx: Hackers as a thing — done.
 DialTone: So we find it first.
-=> post_2_menu
+do GameState.set_flag("post_2_opener_seen", true)
+=> post_2_questions
 
-~ post_2_menu
+
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ post_2_entry
+
+DialTone: You got the plan?
+=> post_2_questions
+
+
+# Single shared question hub. Inline mini-dialogues per option, with
+# flag-gated follow-ups (Pull that thread / And the prank? / Vague.)
+# that only appear once their parent question has been asked. Loops
+# back via trailing => post_2_questions; "I'm in." exits to post_2_done.
+
+~ post_2_questions
 
 - So what's the plan?
-	=> post_2_plan
-- Who is Splice?
-	=> post_2_who
-- How did he get into the sentinels?
-	=> post_2_how
-- You weren't expecting him.
-	=> post_2_admit
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
-	=> post_2_messenger
-
-~ post_2_plan
-
-DialTone: Three ways to look. Three of us looking.
-DialTone: We split.. stay synced up on the channel..
-DialTone: Your portal's queued behind us.
-do GameState.set_flag("level_3_unlocked", true)
-Nyx: He'll be hunting too. Move fast. Read the room.
+	DialTone: Three ways to look. Three of us looking.
+	DialTone: We split.. stay synced up on the channel..
+	DialTone: Your portal's queued behind us.
+	do GameState.set_flag("level_3_unlocked", true)
+	Nyx: Splice'll be hunting too. Move fast. Read the room.
 - What am I looking for?
-	=> post_2_target
+	DialTone: A signature. Something that doesn't fit the sector it's in.
+	DialTone: A file. A routing trick. A door that wasn't there yesterday.
+	DialTone: You'll know.
+	do GameState.set_flag("post_2_asked_target", true)
+- [if GameState.get_flag("post_2_asked_target", false) /] Vague.
+	Nyx: DialTone gets vaguer when he doesn't know.
+	DialTone: I genuinely don't know what shape it'll take.
 - Why split?
-	=> post_2_why_split
+	DialTone: Three nodes, three angles. Splice can only watch one at a time.
+	DialTone: He'll guess wrong on at least one of us.
+	Nyx: Hopefully two.
+- Who is Splice?
+	DialTone: Black-hat. Exiled.
+	Nyx: He used to run with us.
+	DialTone: Run is putting it lightly.
+	do GameState.set_flag("post_2_asked_who", true)
+- [if GameState.get_flag("post_2_asked_who", false) /] Pull that thread.
+	DialTone: They were a thing.
+	Nyx: Were. Past tense.
+	DialTone: She'd rather we didn't.
+	Nyx: I'd rather we didn't.
+	DialTone: Short version — bad call. She knows. Splice didn't take being told no.
+	Nyx: Moving on.
+- How did he get into the sentinels?
+	DialTone: Sentinels are old code. He found a backdoor.
+	Nyx: He made one.
+	DialTone: Either way — they listen to him now.
+- You weren't expecting him.
+	DialTone: Yeah. He's been quiet for a year. I thought we had longer.
+	Nyx: We didn't.
+	do GameState.set_flag("post_2_asked_admit", true)
+- [if GameState.get_flag("post_2_asked_admit", false) /] And the prank?
+	DialTone: ...the prank was for when we had longer.
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
+	DialTone: The boards. Yeah.
+	DialTone: Honestly? You can clearly run with the best of them.
+	DialTone: If you want in, you're in.
+	Nyx: DialTone's been waiting to say that one.
+	DialTone: A little.
+	do GameState.set_flag("dialtone_messenger_thread", 3)
 - I'm in.
 	=> post_2_done
+=> post_2_questions
 
-~ post_2_target
-
-DialTone: A signature. Something that doesn't fit the sector it's in.
-DialTone: A file. A routing trick. A door that wasn't there yesterday.
-DialTone: You'll know.
-- Vague.
-	Nyx: He gets vaguer when he doesn't know.
-	DialTone: I genuinely don't know what shape it'll take.
-	=> post_2_done
-- Got it.
-	=> post_2_done
-
-~ post_2_why_split
-
-DialTone: Three nodes, three angles. He can only watch one at a time.
-DialTone: He'll guess wrong on at least one of us.
-Nyx: Hopefully two.
-- Got it.
-	=> post_2_done
-
-~ post_2_who
-
-DialTone: Black-hat. Exiled.
-Nyx: He used to run with us.
-DialTone: Run is putting it lightly.
-- Pull that thread.
-	=> post_2_who_ex
-- Onward.
-	=> post_2_done
-
-~ post_2_who_ex
-
-DialTone: They were a thing.
-Nyx: Were. Past tense.
-DialTone: She'd rather we didn't.
-Nyx: I'd rather we didn't.
-DialTone: Short version — bad call. She knows. He didn't take being told no.
-Nyx: Moving on.
-- Sorry I asked.
-	=> post_2_done
-- Onward.
-	=> post_2_done
-
-~ post_2_how
-
-DialTone: Sentinels are old code. He found a backdoor.
-Nyx: He made one.
-DialTone: Either way — they listen to him now.
-- Onward.
-	=> post_2_done
-
-~ post_2_admit
-
-DialTone: Yeah. He's been quiet for a year. I thought we had longer.
-Nyx: We didn't.
-- And the prank?
-	DialTone: ...the prank was for when we had longer.
-	=> post_2_done
-- Onward.
-	=> post_2_done
-
-~ post_2_messenger
-
-DialTone: The boards. Yeah.
-DialTone: Honestly? You can clearly run with the best of them.
-DialTone: If you want in, you're in.
-Nyx: He's been waiting to say that one.
-DialTone: A little.
-do GameState.set_flag("dialtone_messenger_thread", 3)
-=> post_2_done
 
 ~ post_2_done
 
@@ -276,9 +236,11 @@ do GameState.set_flag("level_3_unlocked", true)
 
 ~ stage_post_3
 
-# Runner returns to hub after the L3 escape. Nyx and DialTone are
-# already arguing about what just happened. Player walks in on it.
-# This opening exchange plays before the menu — player is witness.
+# Obligatory opener — the argument + handoff. Runs once. Re-talks route
+# through the entry block for an abbreviated greeting, then drop into
+# the questions hub.
+if GameState.get_flag("post_3_opener_seen", false)
+	=> post_3_entry
 
 Nyx: We shouldn't have sent him in. That was too dangerous.
 DialTone: But we got it. He got the disc.
@@ -290,7 +252,7 @@ Nyx: Because he said no. Not because of us. Because of him.
 DialTone: ...yeah.
 DialTone: ...yeah, that's true.
 DialTone: We were sloppy. We owe him better.
-Nyx: We can't do that again. We **can't** —
+Nyx: We can't do that again. We just **can't** —
 Nyx: ...
 Nyx: ...sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
@@ -298,60 +260,70 @@ Nyx: ...hey.
 Nyx: How long were you standing there?
 DialTone: We didn't hear him in there. Channel was dead.
 DialTone: What did he say?
-=> post_3_menu
+do GameState.set_flag("post_3_opener_seen", true)
+=> post_3_questions
 
-~ post_3_menu
+
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ post_3_entry
+
+DialTone: What's up, {{HandlePicker.chosen_name()}}?
+=> post_3_questions
+
+
+# Single shared question hub. The plan reveal lives as one probe so the
+# player has agency over when to hear it; if they exit via "I'm ready"
+# without asking, post_3_done plays it as a forced reveal first.
+
+~ post_3_questions
 
 - Bitter. World-rigged. He went on about being wronged.
-	=> post_3_world
+	DialTone: ...heh. Splice always was. Even back when.
+	Nyx: He thinks the rules are **rigged** because they were **rigged** against him.
+	Nyx: Difference is, he wants to be the one rigging them next.
+	DialTone: That tracks.
 - It got personal. About Nyx.
-	=> post_3_personal
+	Nyx: ...yeah.
+	Nyx: He's been doing that since I left.
+	DialTone: We don't have to talk about that.
+	Nyx: It's fine. He's wrong about whatever he said. Anyway.
 - What's the plan now?
-	=> post_3_plan
+	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
+	DialTone: That's our window.
+	Nyx: He's cocky now. He'll take a bait we set.
+	DialTone: We know where the last disc is. He doesn't know we know.
+	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do. He doesn't know that either.
+	Nyx: We don't know what it does.
+	DialTone: But the breadcrumbs say it'll turn the tables.
+	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
+	do GameState.set_flag("post_3_plan_revealed", true)
+- [if GameState.get_flag("dialtone_messenger_thread", 0) == 3 /] Let's talk about how I got here.
+	DialTone: You found the breadcrumbs because I left them. Every dead-drop hint, every loose link — placed.
+	DialTone: Splice's offer wasn't the first test. It was the third.
+	DialTone: You passed all three.
+	do GameState.set_flag("dialtone_messenger_thread", 4)
 - I'm ready for the next one.
 	=> post_3_done
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 3 /] Let's talk about how I got here.
-	=> post_3_messenger
+=> post_3_questions
 
-~ post_3_world
-
-DialTone: ...heh. He always was. Even back when.
-Nyx: He thinks the rules are **rigged** because they were **rigged** against him.
-Nyx: Difference is, he wants to be the one rigging them next.
-DialTone: That tracks.
-=> post_3_plan
-
-~ post_3_personal
-
-Nyx: ...yeah.
-Nyx: He's been doing that since I left.
-DialTone: We don't have to talk about that.
-Nyx: It's fine. He's wrong about whatever he said. Anyway.
-=> post_3_plan
-
-~ post_3_messenger
-
-DialTone: You found the breadcrumbs because I left them. Every dead-drop hint, every loose link — placed.
-DialTone: Splice's offer wasn't the first test. It was the third.
-DialTone: You passed all three.
-do GameState.set_flag("dialtone_messenger_thread", 4)
-=> post_3_plan
-
-~ post_3_plan
-
-DialTone: He showed his hand. He didn't mean to — he thought he'd already won.
-DialTone: That's our window.
-Nyx: He's cocky now. He'll take a bait we set.
-DialTone: We know where the last disc is. He doesn't know we know.
-DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do. He doesn't know that either.
-Nyx: We don't know what it does.
-DialTone: But the breadcrumbs say it'll turn the tables.
-DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
-- I'm ready.
-	=> post_3_done
 
 ~ post_3_done
 
+# Forced plan reveal if the player skipped that probe. Idempotent; the
+# flag also guards re-entry so this never plays twice.
+if !GameState.get_flag("post_3_plan_revealed", false)
+	DialTone: Hold on — before you go.
+	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
+	DialTone: That's our window.
+	Nyx: He's cocky now. He'll take a bait we set.
+	DialTone: We know where the last disc is. He doesn't know we know.
+	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do. He doesn't know that either.
+	Nyx: We don't know what it does.
+	DialTone: But the breadcrumbs say it'll turn the tables.
+	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
+	do GameState.set_flag("post_3_plan_revealed", true)
 DialTone: We've got him, runner.
 DialTone: Last sector.
 DialTone: ...**your** call when we move.
@@ -364,47 +336,45 @@ do GameState.set_flag("level_4_unlocked", true)
 
 ~ stage_post_4
 
+# Obligatory opener — runs once. Re-talks route through post_4_entry for
+# a warm greeting, then drop into the questions hub.
+if GameState.get_flag("post_4_opener_seen", false)
+	=> post_4_entry
+
 DialTone: Splice is quarantined. Not gone — but boxed in. The grid's logging it everywhere.
 DialTone: They're calling it "the Gibson run". You're a name now, {{HandlePicker.chosen_name()}}.
 DialTone: ...the music's Nyx's call. I'm contractually dancing.
-=> post_4_menu
+do GameState.set_flag("post_4_opener_seen", true)
+=> post_4_questions
 
-~ post_4_menu
 
+# Re-talk greeting. Fires once per dialogue session because post_4_questions
+# self-loops to itself, never back to entry.
+
+~ post_4_entry
+
+DialTone: Hey {{HandlePicker.chosen_name()}}.
+=> post_4_questions
+
+
+# Single shared question hub.
+
+~ post_4_questions
+
+DialTone: Anything else?
 - What now?
-	=> post_4_what
+	DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
 - About Splice — he's still in there.
-	=> post_4_splice
+	DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
 - [if GameState.get_flag("dialtone_messenger_thread", 0) == 4 /] The whole thing was an audition, wasn't it?
-	=> post_4_messenger
+	DialTone: Yeah. Nyx was never stuck — you know that now. But the casting was real.
+	DialTone: The grid's not built; it's chosen who builds it. I needed someone who'd show up for nothing and figure it out anyway.
+	DialTone: You're in. For real this time.
+	do GameState.set_flag("dialtone_messenger_thread", 5)
 - Sign me out.
 	=> post_4_done
+=> post_4_questions
 
-~ post_4_messenger
-
-DialTone: Yeah. Nyx was never stuck — you know that now. But the casting was real.
-DialTone: The grid's not built; it's chosen who builds it. I needed someone who'd show up for nothing and figure it out anyway.
-DialTone: You're in. For real this time.
-do GameState.set_flag("dialtone_messenger_thread", 5)
-=> post_4_done
-
-~ post_4_what
-
-DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
-DialTone: Anything else?
-- About Splice — he's still in there.
-	=> post_4_splice
-- Sign me out.
-	=> post_4_done
-
-~ post_4_splice
-
-DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
-DialTone: Anything else?
-- What now?
-	=> post_4_what
-- Sign me out.
-	=> post_4_done
 
 ~ post_4_done
 

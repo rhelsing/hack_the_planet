@@ -69,6 +69,12 @@ func _ready() -> void:
 	if GameState.get_flag(FLAG_LEVEL_4_COMPLETED, false):
 		_enter_victory_state()
 	_setup_first_enemies()
+	# Splice's dance unlocks via dialogue: the player offers, Splice accepts
+	# ("...it's a fine song."), `hub_post4_splice_danced` flips true. Listen
+	# for it live so we can put his caged skin into the dance loop the
+	# moment the flag fires. Replay (re-entering hub with the flag already
+	# set) is handled inside _enter_victory_state.
+	Events.flag_set.connect(_on_flag_set_for_splice_dance)
 
 
 # Park the first_enemies group up high until the player finishes the Glitch
@@ -97,6 +103,30 @@ func _on_flag_set_for_first_enemies(id: StringName, value: Variant) -> void:
 	tw.tween_property(first_enemies, ^"position:y", target_y, FIRST_ENEMIES_LOWER_DURATION) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	Events.flag_set.disconnect(_on_flag_set_for_first_enemies)
+
+
+# Splice dance trigger. Fires when the player completes his dance dialogue
+# branch in hub_post4_splice.dialogue (`do GameState.set_flag(
+# "hub_post4_splice_danced", true)`). Loud logs at every gate so a missed
+# dance is immediately obvious in the console.
+func _on_flag_set_for_splice_dance(id: StringName, value: Variant) -> void:
+	if id != &"hub_post4_splice_danced":
+		return
+	if not bool(value):
+		return
+	_start_splice_dance_loop("flag flipped live")
+
+
+func _start_splice_dance_loop(reason: String) -> void:
+	var splice := get_node_or_null(^"postL4Show/Splice")
+	if splice == null:
+		push_warning("[hub] splice-dance(%s) — postL4Show/Splice not found" % reason)
+		return
+	if not splice.has_method(&"enter_dance_loop"):
+		push_warning("[hub] splice-dance(%s) — Splice node lacks enter_dance_loop" % reason)
+		return
+	print("[hub] splice-dance(%s) — kick-off, clips=%s" % [reason, victory_player_dance_clips])
+	splice.call(&"enter_dance_loop", victory_player_dance_clips)
 
 
 func _enter_victory_state() -> void:
@@ -133,6 +163,11 @@ func _enter_victory_state() -> void:
 			var npc := get_node_or_null(path)
 			if npc != null and npc.has_method(&"enter_dance_loop"):
 				npc.call(&"enter_dance_loop", victory_player_dance_clips)
+		# Replay: if the player already convinced Splice to dance in a prior
+		# session and is re-entering the hub, kick him back into the loop.
+		# The flag-set listener won't fire again since the flag's already true.
+		if GameState.get_flag(&"hub_post4_splice_danced", false):
+			_start_splice_dance_loop("re-entry replay")
 	# AJ / Nyx (the player skin — whichever is mounted) idle-dances when
 	# standing still. Skin owns the threshold + interval logic; we just
 	# flip the flag and hand it the clip list. Skin auto-exits the dance

@@ -1,48 +1,60 @@
 ~ start
 
+# Obligatory opener — runs once. Re-talks route through one of two entry
+# greetings depending on whether the player got Splice to dance.
 if GameState.get_flag("hub_post4_splice_danced", false)
-	=> revisit_dancing
+	=> splice_p4_entry_dancing
 if GameState.get_flag("hub_post4_splice_taunted", false)
-	=> revisit_taunted
+	=> splice_p4_entry_taunted
 
 Splice: Look at you. Standing on the right side of the wall.
 Splice: Funny how that works.
-=> menu
+=> splice_p4_questions
 
-~ menu
+
+# Re-talk greetings. Each fires once per dialogue session because the
+# questions hub self-loops to itself, never back to entry.
+
+~ splice_p4_entry_taunted
+
+Splice: Back already? The view from outside the cage that good?
+=> splice_p4_questions
+
+
+~ splice_p4_entry_dancing
+
+Splice: Back already? The DJ's got taste, I'll give them that.
+=> splice_p4_questions
+
+
+# Single shared question hub. The dance-offer beat (with its nested
+# choice) lives in its own block since Dialogue Manager doesn't support
+# options nested inside an option's content.
+
+~ splice_p4_questions
 
 - You shouldn't have come at us.
-	=> told_him
+	Splice: I came at the Gibson. You were **just** in the way.
+	Splice: That'll be on the record forever, runner. Won't it.
 - You okay in there?
-	=> caged
+	Splice: Not really, no.
+	Splice: Quarantine's a soft jail. I get bored, the perimeter listens.
+	Splice: I'm not dancing. I'm watching. Better view, honestly. Front row to every move you make.
 - This is kind of cruel.
-	=> bullied
+	Splice: ...
+	Splice: It is what it is, runner. Don't lose sleep on my behalf.
+	Splice: I wouldn't.
 - You're not getting out. But you can dance.
 	=> dance_offer
 - I won.
-	=> brag
+	Splice: Yeah. You did. Don't get used to it — perimeters fail.
+	Splice: This wasn't the version of me you needed to worry about.
 - Walk away.
-	=> done
+	Splice: Catch you on the wire.
+	do GameState.set_flag("hub_post4_splice_taunted", true)
+	=> END
+=> splice_p4_questions
 
-~ told_him
-
-Splice: I came at the Gibson. You were **just** in the way.
-Splice: That'll be on the record forever, runner. Won't it.
-=> menu
-
-~ caged
-
-Splice: Not really, no.
-Splice: Quarantine's a soft jail. I get bored, the perimeter listens.
-Splice: I'm not dancing. I'm watching. Better view, honestly. Front row to every move you make.
-=> menu
-
-~ bullied
-
-Splice: ...
-Splice: It is what it is, runner. Don't lose sleep on my behalf.
-Splice: I wouldn't.
-=> menu
 
 ~ dance_offer
 
@@ -53,29 +65,7 @@ Splice: You don't get to forgive me, runner.
 	Splice: It's a fine song.
 	Splice: I'm not doing it for you. I'm doing it because it's a fine song. [#model=eleven_v3]
 	do GameState.set_flag("hub_post4_splice_danced", true)
-	=> menu
+	=> splice_p4_questions
 - Fair enough.
 	Splice: Mm.
-	=> menu
-
-~ brag
-
-Splice: Yeah. You did. Don't get used to it — perimeters fail.
-Splice: This wasn't the version of me you needed to worry about.
-=> menu
-
-~ done
-
-Splice: Catch you on the wire.
-do GameState.set_flag("hub_post4_splice_taunted", true)
-=> END
-
-~ revisit_taunted
-
-Splice: Back already? The view from outside the cage that good?
-=> menu
-
-~ revisit_dancing
-
-Splice: Back already? The DJ's got taste, I'll give them that.
-=> menu
+	=> splice_p4_questions

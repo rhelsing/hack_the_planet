@@ -18,7 +18,7 @@ extends Control
 @export var hide_distance_under: float = 3.0
 ## Authored at hud.scale = 1.0. Multiplied by Settings.get_hud_scale() at
 ## draw time so the slider scales waypoint text alongside other HUD chrome.
-@export var font_size: int = 14
+@export var font_size: int = 21
 
 # Dedupe state so we only print on transitions, not every frame.
 var _last_camera_ok: int = -1  # -1 unknown, 0 missing, 1 present

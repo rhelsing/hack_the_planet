@@ -11,8 +11,10 @@ extends CanvasLayer
 ## VISUAL ONLY — no audio. Companion NPCs play their own SFX on disappear;
 ## this overlay stays silent so the two systems don't compete.
 
-## Delay before the FIRST message in a chain appears (lets the player land
-## + orient post-respawn). Subsequent messages in the same chain skip this.
+## Fallback lead-in if `respawn_message_show` is emitted without a pre_delay
+## (or with 0). Authoring callers should pass a non-zero pre_delay so they
+## can sync the visible pop to whatever moment makes sense (typically
+## start_of_death + death_duration + post-respawn beat — see PlayerBody).
 @export var show_delay: float = 0.2
 @export var hold_duration: float = 3.0
 @export var warp_in_duration: float = 0.28
@@ -22,7 +24,10 @@ extends CanvasLayer
 @export var font_size: int = 36
 
 var _label: Label
-var _queue: Array[String] = []
+# Each entry: {"text": String, "pre_delay": float}. pre_delay only applies
+# to the FIRST message of a fresh chain; subsequent ones use 0 lead-in
+# (the gap_between_messages handles spacing within a chain).
+var _queue: Array[Dictionary] = []
 var _playing: bool = false
 # True from the first enqueue of a fresh chain until the queue fully drains.
 # Decides if `show_delay` applies (only on the first message in a chain).
@@ -56,10 +61,10 @@ func _ready() -> void:
 	Events.respawn_message_show.connect(_enqueue)
 
 
-func _enqueue(text: String) -> void:
+func _enqueue(text: String, pre_delay: float = 0.0) -> void:
 	if text.is_empty():
 		return
-	_queue.append(text)
+	_queue.append({"text": text, "pre_delay": pre_delay})
 	_try_play_next()
 
 
@@ -69,8 +74,15 @@ func _try_play_next() -> void:
 	_playing = true
 	var is_first: bool = not _chain_active
 	_chain_active = true
-	var lead_in: float = show_delay if is_first else 0.0
-	var text: String = _queue.pop_front()
+	var entry: Dictionary = _queue.pop_front()
+	var text: String = entry.get("text", "")
+	var caller_pre_delay: float = float(entry.get("pre_delay", 0.0))
+	# Caller-supplied pre_delay wins on the first message; falls back to the
+	# `show_delay` export if the emitter didn't pass one. Subsequent messages
+	# in the chain skip the lead-in entirely (gap_between_messages handles it).
+	var lead_in: float = 0.0
+	if is_first:
+		lead_in = caller_pre_delay if caller_pre_delay > 0.0 else show_delay
 	_label.text = text
 	_label.scale = Vector2.ZERO
 	_label.pivot_offset = _label.size * 0.5

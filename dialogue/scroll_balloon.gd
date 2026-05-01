@@ -360,10 +360,11 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 	# this response option. Skip "End the conversation" — always available.
 	var character: String = dialogue_line.character if is_instance_valid(dialogue_line) else ""
 	if not character.is_empty() and response.text != EXIT_TEXT:
-		# DEBUG: trace what we record at click-time. Compare against the
-		# corresponding [balloon] dim check log when re-entering the menu.
-		print("[balloon] visit RECORDED  char=%s  id=%s  text=%s  → key=\"%s_%s\"" %
-			[character, response.id, response.text, response.id, response.text])
+		# Visit key = text alone (see GameState header). response.id passed
+		# through for backward compat / future per-line discrimination if
+		# we ever need it again, but it's currently ignored by GameState.
+		print("[balloon] visit RECORDED  char=%s  text=%s" %
+			[character, response.text])
 		GameState.visit_dialogue(character, response.id, response.text)
 	next(response.next_id)
 
@@ -612,12 +613,11 @@ func _dim_visited_responses() -> void:
 		if matching.text == EXIT_TEXT:
 			(child as CanvasItem).modulate = Color.WHITE
 			continue
-		var zipped: String = "%s_%s" % [matching.id, matching.text]
-		var was_visited: bool = GameState.has_visited(character, zipped)
-		# DEBUG: emit per-option dim check. Pair with [balloon] visit RECORDED
-		# lines to spot key mismatches between record-time and check-time.
-		print("[balloon] dim CHECK     char=%s  id=%s  text=%s  → key=\"%s\"  visited=%s" %
-			[character, matching.id, matching.text, zipped, was_visited])
+		# Visit key is the text alone — see GameState.visit_dialogue header
+		# for why id is intentionally excluded.
+		var was_visited: bool = GameState.has_visited(character, matching.text)
+		print("[balloon] dim CHECK     char=%s  text=%s  visited=%s" %
+			[character, matching.text, was_visited])
 		if was_visited:
 			(child as CanvasItem).modulate = VISITED_DIM
 			dimmed_count += 1

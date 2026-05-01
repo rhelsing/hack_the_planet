@@ -37,6 +37,11 @@ KayKit Mannequin Character Pack + animations — https://kaykit.itch.io/
 AJ, Splice, Nyx skins + rigs — https://www.mixamo.com/
 
 
+Icons
+
+Lordicon — animated walkie-talkie HUD icon — https://lordicon.com/
+
+
 Animation
 
 Mixamo — humanoid rigs and motion-capture animations — https://www.mixamo.com/

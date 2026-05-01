@@ -1,31 +1,46 @@
 ~ start
 
+# Obligatory opener — runs once. Re-talks route through glitch_l2_entry
+# for the warm "Good luck. Stay low." greeting, then drop into the
+# questions hub so the player can re-read the briefing.
 if GameState.get_flag("level_2_glitch_briefed", false)
-	=> stage_revisit
+	=> glitch_l2_entry
 
 Glitch: That was pretty intense back there.
 Glitch: You'll want a briefing on these new abilities.
-- Please?
-	=> abilities
+=> glitch_l2_questions
 
-~ abilities
 
-Glitch: You now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
-Glitch: The second ability and the one you must use now is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
-Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
-Glitch: It's times like this that I'm glad I'm not a sentinel.
-- Splice?
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ glitch_l2_entry
+
+Glitch: Good luck. Stay low.
+=> glitch_l2_questions
+
+
+# Single shared question hub. "Splice?" is gated on having heard the
+# briefing — the lore probe only opens once Glitch has explained the
+# new tools.
+
+~ glitch_l2_questions
+
+- Brief me on these abilities.
+	Glitch: You now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
+	Glitch: The second ability and the one you must use now is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
+	Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
+	Glitch: It's times like this that I'm glad I'm not a sentinel.
+	do GameState.set_flag("level_2_glitch_asked_brief", true)
+- [if GameState.get_flag("level_2_glitch_asked_brief", false) /] Splice?
 	Glitch: There are others who can explain Splice better than I can. But..
 	Glitch: He's bad news.
 - Got it.
 	=> done
+=> glitch_l2_questions
+
 
 ~ done
 
 do GameState.set_flag("level_2_glitch_briefed", true)
-=> END
-
-~ stage_revisit
-
-Glitch: Good luck. Stay low.
 => END

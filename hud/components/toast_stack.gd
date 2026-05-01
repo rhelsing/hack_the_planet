@@ -99,9 +99,16 @@ func _push(text: String, color: Color) -> void:
 	var toast: HUDToast = TOAST_SCENE.instantiate()
 	add_child(toast)
 	toast.show_message(text, color)
+	# Trim oldest until at MAX_LIVE. queue_free is ASYNC — the node stays
+	# in the tree until the next idle frame, so get_child_count doesn't
+	# decrement until then. We MUST remove_child synchronously to break
+	# out of this loop. Without remove_child, the while() infinite-loops
+	# whenever more than MAX_LIVE toasts pile up (which happens on rapid
+	# F-key warps that fire walkie + multiple level_*_unlocked toasts at
+	# once). This is what caused the F6-onward hub-warp freeze.
 	while get_child_count() > MAX_LIVE:
 		var oldest := get_child(0)
-		if oldest != toast:
-			oldest.queue_free()
-		else:
+		if oldest == toast:
 			break
+		remove_child(oldest)
+		oldest.queue_free()

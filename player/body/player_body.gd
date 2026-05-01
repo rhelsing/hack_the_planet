@@ -78,6 +78,14 @@ func set_faction(new_faction: StringName) -> void:
 	# should hit set_faction directly.
 	var prior_faction: StringName = faction
 	faction = new_faction
+	# Snap max_health to vanilla-green (1) when reverting to green. Without
+	# this, a red splice converted via portal then reverted retains its
+	# scene-baked max_health=4 from enemy_kaykit_splice.tscn — looks green
+	# but takes 4 hits to kill. Narrow scope: green only. Other factions
+	# keep whatever max_health their source scene authored.
+	if new_faction == &"green":
+		max_health = 1
+		_health = mini(_health, max_health)
 	# Rewrite attack target groups from the table. The constants hold
 	# untyped Arrays (Dictionary values can't carry the [StringName] type
 	# annotation), so we use Array.assign() — copies element-by-element
@@ -385,7 +393,7 @@ enum FollowMode { PARENTED, DETACHED }
 ## Vertical lift (m) added to the skin once fully laid flat — pivots at the
 ## feet, so without lift the body's back clips into the floor. Ramps in with
 ## tilt_progress so it's only applied when the body has rotated.
-@export var death_pose_lift := 0.8
+@export var death_pose_lift := 0.6
 ## Seconds without being hit before HP fully refills. Set high to make damage
 ## sticky, low to make the player resilient. 0 disables regen.
 @export var health_regen_delay := 4.0
@@ -529,6 +537,12 @@ enum FollowMode { PARENTED, DETACHED }
 @export var death_sfx_uses_attack_impact_pool: bool = false
 
 @export_group("Camera Occlusion")
+## Yaw offset (degrees) applied to the camera at spawn, on top of the
+## spawn marker's facing yaw. 0 = camera looks the same direction as the
+## marker's blue Z arrow (default snap_to_spawn behavior). Set to rotate
+## the camera around the player at spawn — e.g. 75 = three-quarters back
+## angle, 180 = camera behind the player.
+@export var camera_spawn_yaw_offset_deg: float = 75.0
 ## Smooths SpringArm's instant-snap output into an eased response.
 ## Higher = snappier. ~8 ≈ 95% in 0.37s.
 @export var spring_smooth_rate := 8.0
@@ -722,7 +736,7 @@ var _betrayal_walk_speed: float = 1.5
 # Drained on respawn after a settle window (matches the label's show_delay)
 # so Glitch doesn't start talking before the player has landed and oriented.
 var _pending_voice_lines: Array[Dictionary] = []
-const _VOICE_RESPAWN_DELAY: float = 3.0
+const _VOICE_RESPAWN_DELAY: float = 1.0
 
 @onready var _camera_pivot: Node3D = %CameraPivot
 @onready var _camera: Camera3D = %Camera3D
@@ -1443,6 +1457,7 @@ func _start_death(impact_direction: Vector3) -> void:
 		velocity = Vector3(0.0, death_rise_speed, 0.0)
 		_spawn_death_confetti()
 	died.emit()
+	_emit_pending_respawn_hints()
 
 
 ## Stealth-kill entry point. No knockback launch, no horizontal impulse —
@@ -1482,6 +1497,8 @@ func stealth_kill(impact_direction: Vector3 = Vector3.BACK) -> void:
 		velocity = Vector3.ZERO
 		_spawn_death_confetti()
 	died.emit()
+	_emit_pending_respawn_hints()
+	_drain_pending_voice_lines()
 
 
 ## Per-frame work for the knockback death sequence. Called from the dying
@@ -1576,10 +1593,10 @@ func _finish_death() -> void:
 			_skin.scale = Vector3.ONE * _skin.uniform_scale
 	_skin.idle()
 	respawned.emit()
-	for msg: String in _pending_respawn_messages:
-		Events.respawn_message_show.emit(msg)
-	_pending_respawn_messages.clear()
-	_drain_pending_voice_lines()
+	# Hints + voice already drained at _start_death. Both timers count from
+	# the death event so the message warp-in and Companion line both land at
+	# ~1s after death (mid-rise, before the respawn snap). See
+	# _emit_pending_respawn_hints + _drain_pending_voice_lines.
 	_snap_camera_to_player()
 	set_physics_process(true)
 
@@ -1630,6 +1647,22 @@ func take_hit(impact_direction: Vector3, force: float, damage: int = 1, attacker
 		return
 	var old_health := _health
 	_health -= maxi(damage, 0)
+	# DEBUG: trace each landed hit so we can diagnose "instant kill" reports.
+	# Prints attacker faction + the damage value the attacker thinks it has,
+	# alongside the actual damage applied and resulting hp. Strip once the
+	# red-splice one-shot mystery is closed.
+	var atk_faction: String = "?"
+	var atk_dmg: int = -1
+	if attacker != null and is_instance_valid(attacker):
+		if "faction" in attacker:
+			atk_faction = String(attacker.get(&"faction"))
+		if "_faction_attack_damage" in attacker:
+			atk_dmg = int(attacker.get(&"_faction_attack_damage"))
+	print("[hit-trace] %s ← attacker=%s faction=%s atk_dmg=%d  applied=%d  hp %d → %d" % [
+		name,
+		attacker.name if attacker != null and is_instance_valid(attacker) else "<null>",
+		atk_faction, atk_dmg, damage, old_health, _health,
+	])
 	_regen_timer = 0.0
 	# Additive knockback: direction-along-impact plus a small vertical pop so
 	# the hit reads kinetically regardless of current motion.
@@ -1661,13 +1694,20 @@ func _is_invuln_against(attacker: Node) -> bool:
 		attacker_faction = StringName(attacker.get(&"faction"))
 	match faction:
 		&"red":
-			return attacker_is_player
+			# Was: return attacker_is_player (player couldn't punch reds —
+			# they had to recruit golds via portals). Now: red takes player
+			# damage normally, max_health gates how many hits to kill.
+			return false
 		&"splice_stealth":
-			return true
+			# Was: return true (stealth was unkillable except via
+			# StealthKillTarget backstab). Now: stealth takes any damage —
+			# the backstab path still works (calls stealth_kill() directly,
+			# unrelated to take_hit), it's just no longer the only path.
+			return false
 		&"gold":
-			# Dodge applies vs RED only — not vs splice_stealth. Stealth
-			# is the apex predator; nothing in the posse survives them
-			# (mirrors the player needing backstab to deal with stealth).
+			# Dodge applies vs RED only — not vs splice_stealth. Preserved
+			# as-is: gold posse still has the coin-completion-scaled
+			# survival roll against red attacks.
 			return _gold_dodges_splice and attacker_faction == &"red"
 		_:
 			return false
@@ -1848,6 +1888,24 @@ func _on_respawn_message_armed(text: String) -> void:
 	_pending_respawn_messages.append(text)
 
 
+# Fired from _start_death (and stealth_kill) for non-permanent pawns. Pushes
+# every pending hint with a pre_delay equal to the death duration plus a
+# Lead-in (seconds) from the death event to the first visible frame of the
+# respawn hint. Overlapping with the death sequence is intentional — the
+# message is meant to read alongside the player's "what just happened?"
+# beat, not after a long settle. dies_permanently=true pawns (enemies)
+# skip this entirely; they have no respawn flow and the hint queue stays
+# empty by construction.
+const _RESPAWN_HINT_LEAD_IN: float = 1.0
+
+func _emit_pending_respawn_hints() -> void:
+	if dies_permanently or _pending_respawn_messages.is_empty():
+		return
+	for msg: String in _pending_respawn_messages:
+		Events.respawn_message_show.emit(msg, _RESPAWN_HINT_LEAD_IN)
+	_pending_respawn_messages.clear()
+
+
 func _on_respawn_voice_armed(character: String, line: String) -> void:
 	# Same dedupe-by-last as the message variant.
 	if not _pending_voice_lines.is_empty():
@@ -1924,9 +1982,15 @@ func snap_to_spawn(spawn_xform: Transform3D) -> void:
 	_target_yaw = yaw
 	# Body rotation is reset to identity so skin world-yaw == skin local-yaw.
 	global_rotation = Vector3.ZERO
+	# Camera yaw at spawn = marker yaw + camera_spawn_yaw_offset_deg. Lets
+	# the camera start behind / off-axis from the player without rotating
+	# the player themselves. Player faces marker forward; camera looks at
+	# whatever angle is configured.
+	var cam_yaw: float = yaw + deg_to_rad(camera_spawn_yaw_offset_deg)
+	_target_yaw = cam_yaw
 	if _camera_pivot != null:
 		if _camera_pivot.top_level:
-			_camera_pivot.global_rotation = Vector3(0.0, yaw, 0.0)
+			_camera_pivot.global_rotation = Vector3(0.0, cam_yaw, 0.0)
 		else:
 			_camera_pivot.rotation = Vector3.ZERO
 	velocity = Vector3.ZERO

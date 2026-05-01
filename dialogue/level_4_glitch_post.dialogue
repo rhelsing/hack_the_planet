@@ -1,9 +1,35 @@
 ~ start
 
+# Obligatory tip — runs once. Re-talks route through the entry block
+# for a short greeting + a refresher option, so the player can re-hear
+# the crouch-stand-down beat without replaying the whole speech.
+if GameState.get_flag("level_4_glitch_post_briefed", false)
+	=> glitch_l4_post_entry
+
 Glitch: Ah. You've moved past the platforms.
 Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
 Glitch: One thing while I have you.
 Glitch: When you crouch, your allies read it as a stand-down. They stop pressing forward and hold position.
 Glitch: So — no more allies as lambs to the slaughter. Crouch and they'll wait it out.
 Glitch: Carry on.
+do GameState.set_flag("level_4_glitch_post_briefed", true)
 => END
+
+
+# Re-visit greeting + refresher menu. Self-loops via questions hub.
+
+~ glitch_l4_post_entry
+
+Glitch: Need a refresher?
+=> glitch_l4_post_questions
+
+
+~ glitch_l4_post_questions
+
+- Refresh the crouch tip.
+	Glitch: When you crouch, your allies read it as a stand-down. They stop pressing forward and hold position.
+	Glitch: So — no more allies as lambs to the slaughter. Crouch and they'll wait it out.
+- Carry on.
+	Glitch: Carry on.
+	=> END
+=> glitch_l4_post_questions

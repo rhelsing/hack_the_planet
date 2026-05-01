@@ -27,6 +27,8 @@ const DEFAULT_MUSIC_PATHS := [
 	"res://audio/music/tyler_ono_fast_paced_high.mp3",
 	"res://audio/music/vibes_c.mp3",
 	"res://audio/music/vibes_d.mp3",
+	"res://audio/music/slow_jam.mp3",
+	"res://audio/music/tina.mp3",
 ]
 
 const BUS_MASTER: StringName = &"Master"

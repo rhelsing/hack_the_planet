@@ -363,7 +363,7 @@ var _suspect_zone_material_cached: StandardMaterial3D = null
 # alpha each frame. Hidden when target is standing; flickers ON like a
 # fluorescent bulb on standing→crouched transition; fades to 0 on the
 # reverse. Debounced so rapid crouch toggles don't restart the flicker.
-var _cone_alpha_mult: float = 0.0
+var _cone_alpha_mult: float = 1.0
 # Flicker pattern playback. Each entry is (state, duration_seconds) where
 # state is 0 (off) or 1 (on). Index advances when timer expires; pattern
 # ends with a steady-on phase (handled by clearing the pattern).
@@ -452,8 +452,11 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_ensure_target(body)
 	_refresh_target_crouched()
 	_refresh_effective_ranges()
-	# (Cone is always on now — no _advance_cone_alpha / flicker; the
-	# fan's static red+yellow zones are baked into the visual rebuild.)
+	# Cone alpha multiplier. When NOT actively being hacked it sits at 1.0
+	# (the "always on" baseline this comment used to assume); during a
+	# stealth hack StealthKillTarget calls set_hack_active(true, progress)
+	# and this advance fn drives the stochastic flicker-to-0 envelope.
+	_advance_cone_alpha(delta)
 
 	# Cone yaw + per-slice raycasts run BEFORE alert phase. _can_see_target
 	# (called inside _update_alert_phase) reads _slice_distances; the visual
@@ -636,18 +639,66 @@ func _follow_direction(body: Node3D) -> Vector3:
 	if dist < follow_personal_space:
 		_follow_engaged = false
 		return -dir
+	# Waypoint hop: if any "ally_waypoints" Marker3D sits between me and the
+	# subject (closer to subject than I am), steer toward THAT instead of
+	# straight at the subject. Lets allies hop ramps + corners that simple
+	# straight-line steering would faceplant into. Falls back to direct
+	# steering when no useful waypoint exists.
+	var travel_dir: Vector3 = dir
+	var wp_dir: Vector3 = _waypoint_steer(body, subject, dist)
+	if wp_dir != Vector3.ZERO:
+		travel_dir = wp_dir
 	# Hysteresis: drop out of engaged once we've arrived; jump back in once
 	# we drift past the outer threshold.
 	if _follow_engaged:
 		if dist <= follow_arrive_distance:
 			_follow_engaged = false
 		else:
-			return dir
+			return travel_dir
 	else:
 		if dist > follow_engage_distance:
 			_follow_engaged = true
-			return dir
+			return travel_dir
 	return Vector3.ZERO  # mid-zone → caller falls through to wander
+
+
+## Returns a horizontal direction toward the closest "ally_waypoints"
+## Marker3D that's CLOSER to the subject than I am — i.e. a useful next-hop
+## along the path. Returns ZERO if no waypoint qualifies, in which case the
+## caller steers straight at the subject. Author waypoints by dropping
+## Marker3Ds into level scenes with `groups = ["ally_waypoints"]`.
+func _waypoint_steer(body: Node3D, subject: Node3D, my_dist_to_subject: float) -> Vector3:
+	var tree := body.get_tree()
+	if tree == null:
+		return Vector3.ZERO
+	var subject_pos: Vector3 = subject.global_position
+	var body_pos: Vector3 = body.global_position
+	var best_wp: Node3D = null
+	var best_my_to_wp_sq: float = INF
+	for n: Node in tree.get_nodes_in_group(&"ally_waypoints"):
+		if not (n is Node3D):
+			continue
+		var wp: Node3D = n as Node3D
+		# Only consider waypoints that get me closer to the subject.
+		var dx_s: float = subject_pos.x - wp.global_position.x
+		var dz_s: float = subject_pos.z - wp.global_position.z
+		var wp_to_subject_dist: float = sqrt(dx_s * dx_s + dz_s * dz_s)
+		if wp_to_subject_dist >= my_dist_to_subject:
+			continue
+		# Pick the waypoint nearest to me — natural next-hop.
+		var dx_m: float = wp.global_position.x - body_pos.x
+		var dz_m: float = wp.global_position.z - body_pos.z
+		var my_to_wp_sq: float = dx_m * dx_m + dz_m * dz_m
+		if my_to_wp_sq < best_my_to_wp_sq:
+			best_my_to_wp_sq = my_to_wp_sq
+			best_wp = wp
+	if best_wp == null:
+		return Vector3.ZERO
+	var to_wp: Vector3 = best_wp.global_position - body_pos
+	to_wp.y = 0.0
+	if to_wp.length_squared() < 0.0001:
+		return Vector3.ZERO
+	return to_wp.normalized()
 
 
 func _wander_direction(body: Node3D, delta: float) -> Vector3:
@@ -1483,8 +1534,13 @@ func _rebuild_vision_cone_mesh() -> void:
 	var apex := Vector3.ZERO
 	var forward := Vector3(-sin(_vision_cone_yaw), 0.0, -cos(_vision_cone_yaw))
 	var phase_color: Color = _vision_cone_color_current
-	var apex_color: Color = phase_color
-	var edge_color := Color(phase_color.r, phase_color.g, phase_color.b, phase_color.a * 0.01)
+	# Per-tick alpha multiplier — driven by _advance_cone_alpha. 1.0 in the
+	# steady state ("always on" baseline) and stochastically pulled toward
+	# 0 while the pawn is being stealth-hacked.
+	var apex_color: Color = Color(phase_color.r, phase_color.g, phase_color.b,
+			phase_color.a * _cone_alpha_mult)
+	var edge_color := Color(phase_color.r, phase_color.g, phase_color.b,
+			phase_color.a * 0.01 * _cone_alpha_mult)
 	for i in range(_CONE_SLICES):
 		var a0: float = -half_rad + step * float(i)
 		var a1: float = -half_rad + step * float(i + 1)
@@ -1602,10 +1658,67 @@ func _refresh_effective_ranges() -> void:
 	_effective_suspect_duration = suspect_duration * suspect_mult
 
 
-# Advance _cone_alpha_mult one tick. Standing target → fade to 0 over
-# ~0.15s. Crouched target → walk the flicker pattern if active, otherwise
-# steady at 1.0. Flicker pattern is set up by _on_crouch_transition().
+# Hack-state. Two channels:
+#   _hack_active — true while the player is ACTIVELY holding the
+#     interact key on this pawn. Toggling false (release pre-completion)
+#     drops the override immediately so the cone returns to normal
+#     instead of waiting for the bar to drain.
+#   _hack_progress — 0..1, the hold bar value. Drives the alpha envelope
+#     while _hack_active is true; ignored otherwise.
+var _hack_active: bool = false
+var _hack_progress: float = 0.0
+
+
+# Public hook: caller (StealthKillTarget) writes both channels each tick.
+# active=false → cone returns to normal alpha logic (crouch / stand) on
+# the next frame. active=true → flicker on (1 - progress) envelope, with
+# alpha=0 at progress >= 1.0.
+func set_hack_active(active: bool, progress: float = 0.0) -> void:
+	_hack_active = active
+	_hack_progress = clampf(progress, 0.0, 1.0)
+	if _hack_active:
+		# Cancel any in-flight crouch flicker so it doesn't compete with
+		# the hack-driven envelope.
+		_flicker_pattern.clear()
+
+
+# Advance _cone_alpha_mult one tick. Hack-in-progress drives a stochastic
+# flicker-to-0 envelope; otherwise the cone sits at 1.0 (the "always on"
+# baseline). The legacy crouch/stand fade logic is preserved below but
+# only reachable when explicitly opted in via _legacy_crouch_alpha — kept
+# for any pawn type that wants the old behavior, while regular splice +
+# stealth pawns just stay lit unless being hacked.
 func _advance_cone_alpha(delta: float) -> void:
+	if _hack_active:
+		# Stochastic flicker on a (1 - progress) envelope. ~35% chance per
+		# tick to drop to 0; rest of the time we sit at the envelope. Reads
+		# as a dying signal that's losing power as the hack drains it.
+		if _hack_progress >= 1.0:
+			_cone_alpha_mult = 0.0
+		elif randf() < 0.35:
+			_cone_alpha_mult = 0.0
+		else:
+			_cone_alpha_mult = 1.0 - _hack_progress
+		return
+	# Non-hack steady state. Snap to 1.0 (matches the prior "always on"
+	# behavior). The crouch flicker pattern still ticks if it was started
+	# by _on_crouch_transition — drives a brief fluorescent flash on
+	# standing→crouched, then settles back to 1.0.
+	if not _flicker_pattern.is_empty():
+		_flicker_step_timer -= delta
+		if _flicker_step_timer <= 0.0:
+			_flicker_index += 1
+			if _flicker_index >= _flicker_pattern.size():
+				_flicker_pattern.clear()
+				_cone_alpha_mult = 1.0
+			else:
+				var step: Array = _flicker_pattern[_flicker_index] as Array
+				_cone_alpha_mult = float(step[0])
+				_flicker_step_timer = float(step[1])
+		return
+	_cone_alpha_mult = 1.0
+	# (Legacy crouch/stand alpha fade preserved below for reference; not
+	# reached because the early-returns above cover all live paths.)
 	if _target_crouched:
 		if _flicker_pattern.is_empty():
 			_cone_alpha_mult = 1.0

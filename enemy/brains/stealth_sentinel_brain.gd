@@ -45,16 +45,38 @@ extends EnemyAIBrain
 ## 2.5 seconds per full L-R-L cycle. Lower = slower head turn.
 @export var pause_look_frequency_hz: float = 0.4
 
+## ±fraction applied to each cycle's duration so two sentinels spawned
+## together drift apart instead of head-scanning in lockstep. 0.4 = each
+## walk/pause cycle is randomly between 60%–140% of its configured
+## duration. 0.0 disables jitter (deterministic cycles).
+@export_range(0.0, 1.0) var cycle_jitter: float = 0.4
+
 # Patrol state machine (within WANDER state). Toggles each pause/walk
 # transition. Both phases tick the parent's _wander_direction once per
 # frame (for wall/ledge bounce + the shared _direction state) — only the
 # returned vector differs.
 var _patrol_walking: bool = false
 var _patrol_timer: float = 0.0
+# Random per-pawn phase offset added to the head-scan sine so two pawns
+# entering pause on the same frame still sweep out of phase. Set once at
+# _ready, then constant for the lifetime of this brain.
+var _scan_phase_offset: float = 0.0
 # Anchor body yaw at start of pause; the side-to-side oscillation is
 # applied as an offset around this so we don't drift on each pause cycle.
 var _pause_yaw_anchor: float = 0.0
 var _pause_elapsed: float = 0.0
+
+
+func _ready() -> void:
+	super._ready()
+	# Random initial offset within the full walk+pause cycle so a cluster
+	# of sentinels spawned the same frame don't all hit pause together.
+	# `randf_range` runs per-instance, so each brain gets its own seed.
+	_patrol_timer = randf_range(0.0, arc_walk_duration + pause_duration)
+	# Decide whether we start in walk or pause randomly too — without this,
+	# all pawns start in pause (the default) regardless of timer offset.
+	_patrol_walking = randf() < arc_walk_duration / max(arc_walk_duration + pause_duration, 0.001)
+	_scan_phase_offset = randf() * TAU
 
 
 func tick(body: Node3D, delta: float) -> Intent:
@@ -152,7 +174,14 @@ func _wander_direction(body: Node3D, delta: float) -> Vector3:
 	_patrol_timer -= delta
 	if _patrol_timer <= 0.0:
 		_patrol_walking = not _patrol_walking
-		_patrol_timer = arc_walk_duration if _patrol_walking else pause_duration
+		var d: float = arc_walk_duration if _patrol_walking else pause_duration
+		# Per-cycle jitter — see cycle_jitter export. Without this, two
+		# pawns whose initial offsets happen to align ratchet back into
+		# sync at the next transition. With ±40% (default), cumulative
+		# drift keeps them visibly independent.
+		var lo: float = 1.0 - cycle_jitter
+		var hi: float = 1.0 + cycle_jitter
+		_patrol_timer = d * randf_range(lo, hi)
 		if not _patrol_walking and _body_ref != null:
 			_pause_yaw_anchor = float(_body_ref.get(&"_yaw_state"))
 			_pause_elapsed = 0.0
@@ -169,9 +198,12 @@ func _wander_direction(body: Node3D, delta: float) -> Vector3:
 			_direction = -_direction
 		return _direction
 	# Pause: stand still, oscillate body yaw left-right around anchor.
+	# `_scan_phase_offset` is a per-pawn constant added to the sine phase
+	# so two sentinels who happen to enter pause on the same frame still
+	# sweep at different points in their head-turn cycle.
 	_pause_elapsed += delta
 	var ofs_rad: float = deg_to_rad(pause_look_max_deg) \
-		* sin(_pause_elapsed * pause_look_frequency_hz * TAU)
+		* sin(_pause_elapsed * pause_look_frequency_hz * TAU + _scan_phase_offset)
 	_intent.face_yaw_override = _pause_yaw_anchor + ofs_rad
 	_intent.face_yaw_override_set = true
 	return Vector3.ZERO

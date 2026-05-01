@@ -185,9 +185,9 @@ func _walk_dialogue_files(root: String) -> Array:
 ## Walks tscn files for two voice-line styles inside a node block:
 ##   1. voice_character = &"X" + voice_line = "..." (RespawnMessageZone)
 ##   2. line = "..." (+ optional character = &"X", default "DialTone") on
-##      WalkieTrigger instances. Walkie nodes are detected by matching the
-##      `instance=ExtResource("X")` id against ext_resources whose path
-##      contains "walkie_trigger".
+##      WalkieTrigger AND FlagWalkie instances. Both scenes share the same
+##      `character`/`line` export shape, so the same node-pass logic catches
+##      either — they just need their ext_resource paths recognized.
 func _walk_tscn_voice_lines(root: String) -> Array:
 	var out: Array = []
 	var paths: Array[String] = _list_files(root, ".tscn")
@@ -207,7 +207,10 @@ func _scan_tscn(path: String) -> Array:
 		var ln: String = f1.get_line()
 		if not ln.begins_with("[ext_resource"):
 			continue
-		if not ln.contains("walkie_trigger"):
+		# Match BOTH walkie_trigger.tscn and flag_walkie.tscn — same export
+		# shape (`character` + `line`), different scene files. Add new
+		# walkie-style scenes here as a substring check.
+		if not (ln.contains("walkie_trigger") or ln.contains("flag_walkie")):
 			continue
 		# NOTE: leading space distinguishes `id="..."` from `uid="..."` —
 		# tscn ext_resource lines have both, with `uid="..."` listed first.

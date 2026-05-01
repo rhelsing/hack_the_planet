@@ -26,6 +26,10 @@ var _f12_return: Dictionary = {}
 # F9 dev-toggle return state. Populated when jumping to level_5's PlayerSpawn
 # from elsewhere (path + player position). Cleared on return.
 var _f9_return: Dictionary = {}
+# F1 dev-toggle return state. Splice on level 3, full coins.
+var _f1_return: Dictionary = {}
+# F2 dev-toggle return state. PB5 on level 4 (Splice showdown checkpoint).
+var _f2_return: Dictionary = {}
 
 
 func _ready() -> void:
@@ -61,9 +65,23 @@ func _input(event: InputEvent) -> void:
 			_toggle_sentinel_test()
 		elif key == KEY_F9:
 			_toggle_level_5_start()
+		elif key == KEY_F8:
+			_warp_to_progression(4)  # post-L4 (full victory state)
+		elif key == KEY_F7:
+			_warp_to_progression(3)  # post-L3
+		elif key == KEY_F6:
+			_warp_to_progression(2)  # post-L2
+		elif key == KEY_F5:
+			_warp_to_progression(1)  # post-L1
+		elif key == KEY_F4:
+			_warp_to_progression(0)  # pre-L1 (fresh hub, no flags)
 		elif key == KEY_F3:
 			EnemyAIBrain.debug_visible = not EnemyAIBrain.debug_visible
 			print("[sentinel] debug overlay = %s" % EnemyAIBrain.debug_visible)
+		elif key == KEY_F2:
+			_toggle_l4_final_battle()
+		elif key == KEY_F1:
+			_toggle_l3_splice()
 
 
 ## Public API — LevelProgression + hub pedestals call this to swap levels.
@@ -185,6 +203,94 @@ func _toggle_sentinel_test() -> void:
 	print("[F12] entered sentinel_test (return stashed=%s)" % not _f12_return.is_empty())
 
 
+# F4–F8: editor-only progression warps. Each key drops you into the hub
+# at a specific point in the L1→L4 storyline so you can iterate on a
+# given beat without re-grinding the levels.
+#
+#   F4 → pre-L1     (completed_level=0): fresh hub, intros not done
+#   F5 → post-L1    (completed_level=1): Skate unlocked, L2 pedestal lit
+#   F6 → post-L2    (completed_level=2): Hack unlocked, L3 pedestal lit
+#   F7 → post-L3    (completed_level=3): Grapple unlocked, L4 pedestal lit
+#   F8 → post-L4    (completed_level=4): Godd unlocked, victory state
+#
+# The helper SETS the appropriate flags AND CLEARS higher-level flags so
+# F5 from a post-L4 save actually resets you to post-L1 state instead of
+# leaving L2–L4 progress stale. Dialogue-state flags (e.g. nyx_post_*_seen)
+# are NOT touched — re-pressing the same key won't re-trigger first-time
+# convos. If you need a deep reset, clear the relevant flags by hand.
+#
+# Each level's bundle: level_N_completed + level_N+1_unlocked + the
+# corresponding powerup ("powerup_love" → L1, "powerup_secret" → L2,
+# "powerup_sex" → L3, "powerup_god" → L4). For completed_level >= 1, the
+# intro flags (walkie_talkie_owned, dialtone_greeted, glitch2_done) are
+# also set so you skip the DialTone+Glitch tutorial gate.
+func _warp_to_progression(completed_level: int) -> void:
+	const HUB_PATH: String = "res://level/hub.tscn"
+	# Always grant ALL four powerups on any debug warp. Decouples ability
+	# access from level-completion flags so we can test post-L1 dialogue
+	# states with grapple/god available for traversal.
+	const ALL_POWERUPS: Array[StringName] = [
+		&"powerup_love", &"powerup_secret", &"powerup_sex", &"powerup_god",
+	]
+	var to_set: Array[StringName] = [&"hub_visited"]
+	to_set.append_array(ALL_POWERUPS)
+	var to_clear: Array[StringName] = []
+	for n: int in range(1, 5):
+		var completed: StringName = StringName("level_%d_completed" % n)
+		var unlocked: StringName = StringName("level_%d_unlocked" % n)
+		if n <= completed_level:
+			to_set.append(completed)
+			to_set.append(unlocked)
+		else:
+			to_clear.append(completed)
+			# level_N_unlocked is true once level_(N-1) is in the completed
+			# set OR N is the next-up level after the latest completed one.
+			if completed_level >= 1 and n == completed_level + 1:
+				to_set.append(unlocked)
+			else:
+				to_clear.append(unlocked)
+	# Intros: only after L1 is in. Pre-L1 keeps DialTone/Glitch convos
+	# fresh so the tutorial flow can be re-tested.
+	for f in [&"walkie_talkie_owned", &"dialtone_greeted", &"glitch2_done"]:
+		if completed_level >= 1:
+			to_set.append(f)
+		else:
+			to_clear.append(f)
+	for f: StringName in to_set:
+		if f != &"":
+			GameState.set_flag(f, true)
+	for f: StringName in to_clear:
+		if f != &"":
+			GameState.set_flag(f, false)
+	if GameState.has_method(&"add_item"):
+		GameState.add_item(&"walkie_talkie")
+	var fkey: int = 4 + completed_level
+	# Always do a full reload — the same-scene-skip optimization caused
+	# freezes when level_*_completed flips fired live cascades on existing
+	# hub nodes (NyxPost1/NyxPost2 visibility gates, possibly more). The
+	# full reload tears everything down and rebuilds cleanly, with the
+	# loader UI visible so the 2–5s rebuild reads as "loading" not "hung."
+	print("[F%d] progression=%s — set=%d clear=%d → warping to hub" % [
+		fkey,
+		"pre-L1" if completed_level == 0 else "post-L%d" % completed_level,
+		to_set.size(), to_clear.size(),
+	])
+	await LevelProgression.goto_path(HUB_PATH)
+	_place_player_at_hub_spawn(fkey)
+
+
+func _place_player_at_hub_spawn(fkey: int) -> void:
+	var p: Node3D = get_node_or_null(^"Player") as Node3D
+	var spawn: Node3D = null
+	if _current_level != null and is_instance_valid(_current_level):
+		spawn = _current_level.get_node_or_null(^"PlayerSpawn") as Node3D
+	if p != null and spawn != null:
+		p.global_position = spawn.global_position
+		print("[F%d] teleported to hub PlayerSpawn" % fkey)
+	else:
+		push_warning("[F%d] couldn't place player — p=%s spawn=%s" % [fkey, p, spawn])
+
+
 # F9 round-trip into "fresh start of level 5". Same shape as F12:
 #  - Not in level_5 → stash current level + player position, jump to level_5
 #    (load_level + _spawn_player drops the player at level_5's PlayerSpawn).
@@ -216,6 +322,88 @@ func _toggle_level_5_start() -> void:
 		}
 	LevelProgression.goto_path(LEVEL_5_PATH)
 	print("[F9] entered level_5 fresh-start (return stashed=%s)" % not _f9_return.is_empty())
+
+
+# F1 round-trip into "level 3 right in front of Splice, full coins so the
+# [CAN]-gated dialogue options unlock." Same shape as F9 except the entering
+# branch ALSO teleports to a fixed point (Splice is authored at
+# (0, 28.18, -356.52) per level_3.tscn — drop the player a few units in front
+# so they walk into the prompt) and grants every authored coin. Pressing F1
+# from inside L3 with no stash re-teleports + re-grants (testing convenience).
+func _toggle_l3_splice() -> void:
+	const LEVEL_3_PATH: String = "res://level/level_3.tscn"
+	const SPAWN_POS: Vector3 = Vector3(0.0, 28.18, -350.0)
+	var current_path: String = ""
+	if _current_level != null and is_instance_valid(_current_level):
+		current_path = _current_level.scene_file_path
+	var player: Node3D = get_node_or_null(^"Player") as Node3D
+	if current_path == LEVEL_3_PATH:
+		if not _f1_return.is_empty():
+			var stash: Dictionary = _f1_return
+			_f1_return = {}
+			await LevelProgression.goto_path(stash.get("path", ""))
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			if p != null and stash.has("position"):
+				p.global_position = stash["position"]
+			print("[F1] returned to %s" % stash.get("path", ""))
+			return
+		# In L3 with no stash — re-place + re-grant for repeated testing.
+		if player != null:
+			player.global_position = SPAWN_POS
+		_grant_all_coins()
+		print("[F1] in level_3 without stash — re-placed near Splice + granted coins")
+		return
+	# Entering: stash, warp, place, grant.
+	if player != null and current_path != "":
+		_f1_return = {"path": current_path, "position": player.global_position}
+	await LevelProgression.goto_path(LEVEL_3_PATH)
+	var p: Node3D = get_node_or_null(^"Player") as Node3D
+	if p != null:
+		p.global_position = SPAWN_POS
+	_grant_all_coins()
+	print("[F1] entered level_3 near Splice (return stashed=%s)" % not _f1_return.is_empty())
+
+
+# F2 round-trip into "level 4 at PhoneBooth5, the Splice-showdown checkpoint
+# (it's the booth wired to on_activate_arm_cutscene = SpliceCutscene per
+# level_4.tscn:1170)." Same shape as F1 minus the coin grant.
+func _toggle_l4_final_battle() -> void:
+	const LEVEL_4_PATH: String = "res://level/level_4.tscn"
+	const SPAWN_POS: Vector3 = Vector3(471.46, 35.0, -521.91)
+	var current_path: String = ""
+	if _current_level != null and is_instance_valid(_current_level):
+		current_path = _current_level.scene_file_path
+	var player: Node3D = get_node_or_null(^"Player") as Node3D
+	if current_path == LEVEL_4_PATH:
+		if not _f2_return.is_empty():
+			var stash: Dictionary = _f2_return
+			_f2_return = {}
+			await LevelProgression.goto_path(stash.get("path", ""))
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			if p != null and stash.has("position"):
+				p.global_position = stash["position"]
+			print("[F2] returned to %s" % stash.get("path", ""))
+			return
+		if player != null:
+			player.global_position = SPAWN_POS
+		print("[F2] in level_4 without stash — re-placed at PB5 (showdown booth)")
+		return
+	if player != null and current_path != "":
+		_f2_return = {"path": current_path, "position": player.global_position}
+	await LevelProgression.goto_path(LEVEL_4_PATH)
+	var p: Node3D = get_node_or_null(^"Player") as Node3D
+	if p != null:
+		p.global_position = SPAWN_POS
+	print("[F2] entered level_4 at PB5 (return stashed=%s)" % not _f2_return.is_empty())
+
+
+# Debug helper: copy every authored coin into coins_collected so coin_pct()
+# reads 1.0. Used by F1 to unlock the [CAN]-gated dialogue options on demand.
+func _grant_all_coins() -> void:
+	GameState.coins_collected = GameState.coins_seen.duplicate()
+	GameState.coin_count = GameState.coins_collected.size()
+	print("[debug] granted all coins: %d/%d (pct=%.2f)" % [
+		GameState.coin_count, GameState.coin_total, GameState.coin_pct()])
 
 
 func _resolve_initial_level() -> PackedScene:
@@ -265,6 +453,13 @@ func _mount_level(packed: PackedScene) -> void:
 	add_child(new_level)
 	_current_level = new_level
 	_spawn_player(new_level)
+	# Re-apply graphics quality to the freshly-mounted level's WorldEnvironment.
+	# Each level owns its own [sub_resource Environment] so the user's quality
+	# preset (SSR/SSAO/SSIL/glow/fog) has to be re-stamped after every swap —
+	# otherwise the level's authored env wins and "Max" never sticks. Shader
+	# uniforms (platforms.tres / buildings.tres) persist on their own because
+	# those resources are loaded by path and shared across scenes.
+	Settings.apply()
 
 
 ## Walk the doomed level and reparent any "player"-group node back onto

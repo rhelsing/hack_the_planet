@@ -36,8 +36,22 @@ const _TOAST_PANEL_MIN_WIDTH_BASE: float = 260.0
 @onready var _toast_panel: PanelContainer = $Root/ToastCenter/ToastPanel
 @onready var _toast_timer: Timer = _build_toast_timer()
 
+# Hold-progress bar built lazily on first set_hold_progress call. Reused
+# by any Interactable that wants a "hold to confirm" affordance — see
+# stealth_kill_target.gd. Mirrors the cutscene-skip bar's shape but
+# sized 200% (440×12) and white-on-translucent for legibility against
+# the dark prompt panel directly above it.
+var _hold_bar_center: CenterContainer = null
+var _hold_bar: CircularProgress = null
+var _hold_bar_label: Label = null
+## Caller-overridable hint text. `{glyph}` is replaced with the current
+## device-correct interact glyph (E / △ / etc.). Use {} to access via the
+## Glyphs autoload at refresh time.
+var _hold_bar_hint: String = "Hold {glyph} to hack"
+
 
 func _ready() -> void:
+	add_to_group(&"prompt_ui")
 	layer = 1  # Above HUD (0), below dialogue/puzzle (10) and pause (100)
 	if _label == null:
 		push_error("PromptLabel not found at Root/PromptCenter/PromptPanel/PromptLabel in prompt_ui.tscn")
@@ -169,3 +183,59 @@ func _refresh() -> void:
 ## for hint zones and voice line templates.
 func _pick_glyph() -> String:
 	return Glyphs.for_action(action_name)
+
+
+# ── Hold-progress bar ────────────────────────────────────────────────────
+# Public driver: any Interactable that wants a "hold to confirm" affordance
+# (currently StealthKillTarget) calls this each tick with progress 0..1.
+# v == 0 hides the bar; v > 0 shows it. The bar is built lazily on first
+# call so the load-time cost is paid only when needed.
+func set_hold_progress(progress: float, hint: String = "") -> void:
+	progress = clampf(progress, 0.0, 1.0)
+	_ensure_hold_bar()
+	if hint != "":
+		_hold_bar_hint = hint
+	_hold_bar.value = progress
+	# Re-stamp the label every call so a controller swap mid-hold updates
+	# the glyph live (matches the powerup-pill device-swap pattern).
+	var glyph: String = Glyphs.for_action("interact")
+	_hold_bar_label.text = _hold_bar_hint.replace("{glyph}", glyph)
+	_hold_bar_center.visible = progress > 0.0
+
+
+func _ensure_hold_bar() -> void:
+	if _hold_bar != null and is_instance_valid(_hold_bar):
+		return
+	# Mount above the prompt panel so the label + bar pair reads as one
+	# unit ABOVE the existing "[E] hack" prompt. Prompt sits at offset
+	# -100..-32 from bottom; we sit from -190..-110 (80px tall window for
+	# the VBox containing label + bar + spacing).
+	_hold_bar_center = CenterContainer.new()
+	_hold_bar_center.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_hold_bar_center.offset_top = -190.0
+	_hold_bar_center.offset_bottom = -110.0
+	_hold_bar_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$Root.add_child(_hold_bar_center)
+
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override(&"separation", 8)
+	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_hold_bar_center.add_child(box)
+
+	_hold_bar_label = Label.new()
+	_hold_bar_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hold_bar_label.add_theme_font_size_override(&"font_size", int(20 * Settings.get_hud_scale()))
+	_hold_bar_label.add_theme_color_override(&"font_color", Color(1, 1, 1, 1))
+	_hold_bar_label.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.85))
+	_hold_bar_label.add_theme_constant_override(&"outline_size", 4)
+	_hold_bar_label.text = "Hold E to hack"
+	box.add_child(_hold_bar_label)
+
+	_hold_bar = CircularProgress.new()
+	# Sized for ~80px ring diameter at 1× HUD scale, halo blooming to ~120px.
+	# Easy to spot above the prompt panel without dominating the screen.
+	_hold_bar.radius = 36.0 * Settings.get_hud_scale()
+	_hold_bar.thickness = 9.0 * Settings.get_hud_scale()
+	box.add_child(_hold_bar)
+	_hold_bar_center.visible = false

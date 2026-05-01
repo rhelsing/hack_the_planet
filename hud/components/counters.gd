@@ -9,7 +9,12 @@ const POP_S := 0.15
 # Base sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
 # in _apply_hud_scale (called at _ready and on Events.settings_applied).
 const COIN_ICON_BASE := Vector2(22, 22)
-const COIN_LABEL_FONT_BASE: int = 24
+# Default coin label size at hud.scale = 1.0. Reduced from 24 → 18 so the
+# number sits more snugly inside the cyan card without crowding the icon.
+# The Settings.get_hud_scale() multiplier in _apply_hud_scale still scales
+# this — bumping the HUD slider in settings makes the coin number larger
+# proportionally; this just changes the baseline.
+const COIN_LABEL_FONT_BASE: int = 18
 const WALKIE_MIN_WIDTH_BASE: float = 40.0
 const WALKIE_FONT_BASE: int = 28
 const KEY_ICON_MIN_WIDTH_BASE: float = 32.0
@@ -41,15 +46,26 @@ const KEY_COLORS := {
 }
 const KEY_COLOR_FALLBACK := Color(0, 1, 1)  # accent_cyan
 
-@onready var _coin_row:   HBoxContainer = %CoinRow
-@onready var _coin_icon:  TextureRect   = %CoinIcon
-@onready var _coin_label: Label         = %CoinLabel
-@onready var _keys_row:   HBoxContainer = %KeysRow
-@onready var _walkie_row:  HBoxContainer = %WalkieRow
-@onready var _walkie_icon: Label         = %WalkieIcon
+@onready var _coin_row:   PanelContainer = %CoinRow
+@onready var _coin_icon:  TextureRect    = %CoinIcon
+@onready var _coin_label: Label          = %CoinLabel
+@onready var _keys_row:   HBoxContainer  = %KeysRow
+@onready var _walkie_row:  PanelContainer = %WalkieRow
+@onready var _walkie_icon: TextureRect    = %WalkieIcon
 
 const _WALKIE_IDLE_MODULATE: Color = Color(1, 1, 1, 0.55)
 const _WALKIE_ACTIVE_MODULATE: Color = Color(0.55, 1, 0.65, 1)
+
+# Walkie animation: 34 frames extracted from the Lordicon source GIF
+# (every 3rd frame at 96×96 PNG) live in res://hud/icons/walkie_frames/.
+# Loaded as Texture2D[] at _ready, swapped on the WalkieIcon TextureRect
+# while a comm line is active. _WALKIE_FPS plays back at roughly the
+# original GIF cadence (40 fps source ÷ 3-frame decimation ≈ 13 fps).
+const _WALKIE_FRAME_COUNT: int = 34
+const _WALKIE_FPS: float = 13.0
+var _walkie_frames: Array[Texture2D] = []
+var _walkie_anim_active: bool = false
+var _walkie_anim_t: float = 0.0
 
 
 func _ready() -> void:
@@ -67,15 +83,44 @@ func _ready() -> void:
 	# resize from a single Settings.hud.scale knob.
 	Events.settings_applied.connect(_apply_hud_scale)
 	_apply_hud_scale()
+	_load_walkie_frames()
 	_refresh()
+
+
+func _load_walkie_frames() -> void:
+	for i in range(1, _WALKIE_FRAME_COUNT + 1):
+		var path: String = "res://hud/icons/walkie_frames/walkie_%02d.png" % i
+		var tex: Texture2D = load(path) as Texture2D
+		if tex != null:
+			_walkie_frames.append(tex)
+	# Park on frame 0 (idle pose) until a line plays.
+	if _walkie_frames.size() > 0:
+		_walkie_icon.texture = _walkie_frames[0]
+
+
+func _process(delta: float) -> void:
+	# Cheap guard: only tick the texture-swap when the icon's actually
+	# animating. Idle path is a single bool check → no allocations, no work.
+	if not _walkie_anim_active:
+		return
+	if _walkie_frames.is_empty():
+		return
+	_walkie_anim_t += delta * _WALKIE_FPS
+	var idx: int = int(_walkie_anim_t) % _walkie_frames.size()
+	_walkie_icon.texture = _walkie_frames[idx]
 
 
 func _apply_hud_scale() -> void:
 	var s := Settings.get_hud_scale()
 	_coin_icon.custom_minimum_size = COIN_ICON_BASE * s
 	_coin_label.add_theme_font_size_override(&"font_size", int(COIN_LABEL_FONT_BASE * s))
-	_walkie_icon.custom_minimum_size = Vector2(WALKIE_MIN_WIDTH_BASE * s, 0)
-	_walkie_icon.add_theme_font_size_override(&"font_size", int(WALKIE_FONT_BASE * s))
+	# Walkie icon migrated from Label("📞") to TextureRect (Lordicon PNG).
+	# Scale its bounding box uniformly — texture stretches to fit. WALKIE_FONT_BASE
+	# is now repurposed as the icon's pixel size at scale 1.0 since 28px gave a
+	# good visual match before; the icon container reads as ~40px including the
+	# card padding, matching the prior emoji's footprint.
+	var walkie_px: int = int(WALKIE_FONT_BASE * s)
+	_walkie_icon.custom_minimum_size = Vector2(walkie_px, walkie_px)
 	# Existing key icons (live keys in the row) — re-scale them in place
 	# so the slider takes effect without dropping the inventory.
 	for child in _keys_row.get_children():
@@ -129,10 +174,21 @@ func _on_walkie_line_started(_character: String, _text: String) -> void:
 	if not _walkie_row.visible:
 		return
 	_walkie_icon.modulate = _WALKIE_ACTIVE_MODULATE
+	# Kick the frame loop. _process advances _walkie_anim_t and swaps
+	# textures; reset to 0 so chained lines (cutscenes) restart from the
+	# idle pose rather than mid-animation.
+	_walkie_anim_active = true
+	_walkie_anim_t = 0.0
 
 
 func _on_walkie_line_ended() -> void:
 	_walkie_icon.modulate = _WALKIE_IDLE_MODULATE
+	# Freeze the animation on frame 0 (idle pose). _process won't fire
+	# while inactive; explicit texture set covers any in-flight final tick.
+	_walkie_anim_active = false
+	_walkie_anim_t = 0.0
+	if _walkie_frames.size() > 0:
+		_walkie_icon.texture = _walkie_frames[0]
 
 
 func _refresh_coins() -> void:

@@ -83,7 +83,7 @@ func _on_body_entered(body: Node3D) -> void:
 	# it shouldn't move the player's respawn point to wherever the enemy was.
 	if not body.is_in_group("player"):
 		return
-	Events.checkpoint_reached.emit(global_position)
+	Events.checkpoint_reached.emit(_compute_safe_respawn_pos(body))
 	_activate()
 	_maybe_fire_cutscene()
 	if persist_flag != &"":
@@ -116,6 +116,106 @@ func _arm_after_delay() -> void:
 		return
 	if cs.has_method(&"arm"):
 		cs.call(&"arm")
+
+
+# Ring-search around the booth for a respawn-safe spot: at least 3 and at
+# most 5 units away horizontally, sitting on a roughly-flat surface near
+# the booth's own Y, with at least 1 unit of platform clearance in every
+# cardinal direction. Returns the validated spot raised 1 unit above the
+# ground hit. Falls back to the booth's own global_position when nothing
+# in the ring validates (better to respawn at the pivot than refuse to
+# respawn). The booth's own StaticBody3D RID is excluded from the cast so
+# the down-ray can't be eaten by the booth's collider on tightly-placed
+# variants.
+func _compute_safe_respawn_pos(actor: Node3D) -> Vector3:
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	if space == null:
+		return global_position
+	# Exclude the booth's own collider (so the down-ray can't be eaten by
+	# its own roof) and the player's collider (so the wall-clearance shape
+	# cast doesn't false-positive on the player who's standing inside the
+	# trigger when this runs).
+	var exclude: Array[RID] = []
+	var sb := get_node_or_null(^"StaticBody3D")
+	if sb is StaticBody3D:
+		exclude.append((sb as StaticBody3D).get_rid())
+	if actor is CollisionObject3D:
+		exclude.append((actor as CollisionObject3D).get_rid())
+	var booth_y: float = global_position.y
+	# Mid-radius first; the inside-of-mid then outside-of-mid order keeps
+	# the picked spot biased toward 4 units away when multiple candidates
+	# would validate.
+	var radii: Array = [4.0, 3.0, 5.0]
+	for radius: float in radii:
+		for i in range(8):
+			var angle: float = float(i) * (TAU / 8.0)
+			var dir := Vector3(cos(angle), 0.0, sin(angle))
+			var candidate := global_position + dir * radius
+			var ground: Vector3 = _raycast_ground(space, candidate, booth_y, exclude)
+			if ground.x == INF:
+				continue
+			if not _has_safe_clearance(space, ground, exclude):
+				continue
+			return ground + Vector3.UP
+	return global_position
+
+
+# Cast a 30-unit ray down from booth.y + 5 above the candidate XZ. Accepts
+# the hit only when (a) the surface normal is mostly up (filters walls and
+# steep ramps that the body would slide off of) and (b) the hit Y is
+# within 10 units of the booth (filters rays that punched into a deep pit
+# below). Returns Vector3(INF,INF,INF) on miss/reject.
+func _raycast_ground(space: PhysicsDirectSpaceState3D, candidate: Vector3, booth_y: float, exclude: Array[RID]) -> Vector3:
+	var origin := Vector3(candidate.x, booth_y + 5.0, candidate.z)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * 30.0)
+	query.exclude = exclude
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return Vector3(INF, INF, INF)
+	if (hit["normal"] as Vector3).y < 0.7:
+		return Vector3(INF, INF, INF)
+	var pos: Vector3 = hit["position"]
+	if absf(pos.y - booth_y) > 10.0:
+		return Vector3(INF, INF, INF)
+	return pos
+
+
+# Verify the candidate has both edge AND wall clearance:
+#   1. Edge — four cardinal offsets ±1 unit X/Z must each land on ground
+#      within 1 unit of the candidate Y. Catches platform edges (no ground
+#      to the side) and step-downs (ground is there but a unit below).
+#   2. Wall — a 1-unit-radius sphere centered just above the spawn point
+#      (ground.y + 1.1) must overlap NO physics geometry. Catches walls,
+#      pillars, railings, hazards, anything else within 1 unit
+#      horizontally at the player's body level. The +1.1 lift keeps the
+#      sphere off the ground (otherwise it'd false-positive on the very
+#      floor we're respawning onto).
+# Both must pass for a candidate to be picked.
+func _has_safe_clearance(space: PhysicsDirectSpaceState3D, ground_pos: Vector3, exclude: Array[RID]) -> bool:
+	# Edge probes.
+	var offsets: Array = [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1)]
+	for offset: Vector3 in offsets:
+		var probe := ground_pos + offset
+		var origin := Vector3(probe.x, ground_pos.y + 0.5, probe.z)
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * 5.0)
+		query.exclude = exclude
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			return false
+		var hit_y: float = (hit["position"] as Vector3).y
+		if absf(hit_y - ground_pos.y) > 1.0:
+			return false
+	# Wall / obstacle clearance — sphere overlap test at chest height.
+	var sphere := SphereShape3D.new()
+	sphere.radius = 1.0
+	var shape_query := PhysicsShapeQueryParameters3D.new()
+	shape_query.shape = sphere
+	shape_query.transform = Transform3D(Basis.IDENTITY, ground_pos + Vector3(0, 1.1, 0))
+	shape_query.exclude = exclude
+	var hits: Array = space.intersect_shape(shape_query, 1)
+	if not hits.is_empty():
+		return false
+	return true
 
 
 func _activate() -> void:

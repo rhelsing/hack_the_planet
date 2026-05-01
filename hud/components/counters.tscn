@@ -3,27 +3,89 @@
 [ext_resource type="Script" path="res://hud/components/counters.gd" id="1_counters"]
 [ext_resource type="Theme" uid="uid://b3menutheme001" path="res://menu/menu_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" uid="uid://bcmg238q0hyhe" path="res://hud/icons/coin.png" id="3_coin"]
+[ext_resource type="Texture2D" path="res://hud/icons/walkie_talkie.png" id="4_walkie"]
+
+; Cyan-card stylebox — matches the powerup slot recipe in powerup_row.gd
+; (dark-green-bg + 2px cyan border + 6px radius). Two variants below: the
+; walkie chip uses the compact (6/2) padding since it's icon-only; the coin
+; counter uses the roomier (12/6) padding so the icon + number have a
+; little breathing room inside the box.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0, 0.1, 0.06, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 1, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 6.0
+content_margin_top = 2.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_coin_card"]
+bg_color = Color(0, 0.1, 0.06, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 1, 1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
 
 [node name="Counters" type="VBoxContainer"]
-custom_minimum_size = Vector2(140, 0)
+custom_minimum_size = Vector2(220, 0)
 alignment = 0
 theme = ExtResource("2_theme")
 script = ExtResource("1_counters")
 
-[node name="CoinRow" type="HBoxContainer" parent="."]
+; Top row stacks the walkie chip + coin counter horizontally so they sit
+; together at the top-right of the HUD. alignment=END right-aligns within
+; the parent VBox column so both cards hug the right edge regardless of
+; HUD scale or window size.
+[node name="TopRow" type="HBoxContainer" parent="."]
 unique_name_in_owner = true
 alignment = 2
+theme_override_constants/separation = 8
 
-[node name="CoinIcon" type="TextureRect" parent="CoinRow"]
+[node name="WalkieRow" type="PanelContainer" parent="TopRow"]
+unique_name_in_owner = true
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="WalkieIcon" type="TextureRect" parent="TopRow/WalkieRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+texture = ExtResource("4_walkie")
+expand_mode = 1
+stretch_mode = 5
+pivot_offset = Vector2(20, 20)
+
+[node name="CoinRow" type="PanelContainer" parent="TopRow"]
+unique_name_in_owner = true
+theme_override_styles/panel = SubResource("StyleBoxFlat_coin_card")
+
+[node name="CoinHBox" type="HBoxContainer" parent="TopRow/CoinRow"]
+alignment = 2
+
+[node name="CoinIcon" type="TextureRect" parent="TopRow/CoinRow/CoinHBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(22, 22)
 texture = ExtResource("3_coin")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CoinLabel" type="Label" parent="CoinRow"]
+[node name="CoinLabel" type="Label" parent="TopRow/CoinRow/CoinHBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 0)
+custom_minimum_size = Vector2(60, 0)
 text = "0"
 theme_override_colors/font_color = Color(0, 1, 1, 1)
 theme_override_font_sizes/font_size = 24
@@ -33,15 +95,3 @@ horizontal_alignment = 2
 unique_name_in_owner = true
 alignment = 2
 theme_override_constants/separation = 2
-
-[node name="WalkieRow" type="HBoxContainer" parent="."]
-unique_name_in_owner = true
-alignment = 2
-
-[node name="WalkieIcon" type="Label" parent="WalkieRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 0)
-text = "📞"
-theme_override_font_sizes/font_size = 28
-horizontal_alignment = 1
-pivot_offset = Vector2(20, 16)

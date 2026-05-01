@@ -23,8 +23,8 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never free. DialTone runs it the way he ran you — picks the right runner, writes the right story, keeps the rest of the **sheeple** busy chasing soda cans.
-Splice: I **was** them. I **left** because I figured it out.
+Splice: The grid was never free. DialTone runs it the way he ran you — picks his runner, writes the story, keeps the rest of the **sheeple** chasing soda cans like it matters.
+Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: Not because you took it. Because you saw it first. The rest are too busy performing.
 - What's the catch?
@@ -39,7 +39,7 @@ Splice: Not because you took it. Because you saw it first. The rest are too busy
 ~ splice_catch
 
 Splice: There isn't one. That's what they don't get.
-Splice: They built the "hackers for the people" thing because it's easier to share when you have nothing. I had **nothing**. Now I have **something**.
+Splice: They built the "hackers for the people" thing because it's easier to share when you have nothing. I had **nothin'**. Now I've got **something**.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
@@ -86,15 +86,15 @@ do LevelProgression.goto_path("res://level/level_5.tscn")
 
 Splice: ...wow. [sighs] Wow okay. [#model=eleven_v3]
 Splice: You're not walking out of here, runner.
-Splice: Those power-ups in your pocket? They're **keys**. They unlock the whole sector. You don't even know what.
-Splice: So I'm taking them. Every one. And then I'm deleting the part of the wire that has **you** on it.
+Splice: Those power-ups in your pocket? They're **keys**. They unlock the whole sector — you don't even know what.
+Splice: So I'm taking them. Every one. Then I'm deleting the part of the wire that has **you** on it.
 Splice: Hold still. This is the —
 Splice: Wait.
 Splice: What — what's happening?
 Splice: My access — my access is —
 Splice: **No**. No no **NO**!
 DialTone: Got him. Go go go. [#walkie]
-Nyx: {{HandlePicker.chosen_name()}}, you have a window. We can't hold this. **Run**. [#walkie]
+Nyx: {{HandlePicker.chosen_name()}}, you've got a window. We can't hold this. **Run**. [#walkie]
 Splice: I'll find you again. I will **find you**, runner.
 Nyx: Go. Now. [#walkie]
 do GameState.set_flag("refused_splice", true)

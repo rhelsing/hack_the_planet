@@ -40,7 +40,7 @@ Glitch: So — I'm not really supposed to take sides. It goes against my program
 
 Glitch: While you stand on it, I — uh — transmit a very strongly-worded suggestion to every red in range.
 Glitch: Most of them buy it. They'll fight with you. Briefly.
-Glitch: Step off, and the conversion fades. They go neutral, not hostile.
+Glitch: Step off, and the conversion fades. They snap back to their original programming — adversarial, but manageable.
 => post_solve_menu
 
 ~ post_solve_imperfect
@@ -58,7 +58,9 @@ Glitch: Sometimes "helpful to all" needs a thumb on the scale.
 
 ~ post_solve_done
 
-Glitch: One-off though. I don't have parts to make more. But it bought us a window.
+Glitch: Very limited release though. I don't have the parts to make many.
+Glitch: Open to whatever feedback you have.
+Glitch: Wow, I really dont say that very often.
 Glitch: Press on. There's something further in. We'll know it when we see it.
 do GameState.set_flag("l4_glitch_invention_celebrated", true)
 => END

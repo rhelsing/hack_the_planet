@@ -1,15 +1,16 @@
-[gd_resource type="Resource" script_class="CutsceneTimeline" format=3]
+[gd_resource type="Resource" script_class="CutsceneTimeline" format=3 uid="uid://db4y3wg0xsshf"]
 
 [ext_resource type="Script" uid="uid://dipkkotkrot6s" path="res://cutscene_engine/cutscene_timeline.gd" id="1_tl"]
 [ext_resource type="Script" uid="uid://n5yffch0fibx" path="res://cutscene_engine/steps/line_step.gd" id="2_line"]
 [ext_resource type="Script" uid="uid://p8kgvcxxeh78" path="res://cutscene_engine/cutscene_step.gd" id="3_step"]
-[ext_resource type="Script" path="res://cutscene_engine/steps/wait_step.gd" id="4_wait"]
+[ext_resource type="Script" uid="uid://vcsac5ogqqof" path="res://cutscene_engine/steps/wait_step.gd" id="4_wait"]
 
 [sub_resource type="Resource" id="line_splice_1"]
 script = ExtResource("2_line")
 character = &"Splice"
 text = "There you are. ...I knew you'd see it eventually."
 channel = "walkie"
+bus_override = &"Companion"
 label = "Splice: there you are"
 
 [sub_resource type="Resource" id="wait_1"]
@@ -106,6 +107,7 @@ script = ExtResource("2_line")
 character = &"Splice"
 text = "You wanted in. ...you're in."
 channel = "walkie"
+bus_override = &"Companion"
 label = "Splice: you wanted in"
 
 [sub_resource type="Resource" id="wait_9"]
@@ -118,6 +120,7 @@ script = ExtResource("2_line")
 character = &"Splice"
 text = "Just won't be anyone left to know it."
 channel = "walkie"
+bus_override = &"Companion"
 label = "Splice: anyone left to know it"
 
 [sub_resource type="Resource" id="wait_10"]
@@ -130,13 +133,13 @@ script = ExtResource("2_line")
 character = &"Splice"
 text = "Don't stop walking."
 channel = "walkie"
+bus_override = &"Companion"
 label = "Splice: don't stop walking"
 
 [resource]
 script = ExtResource("1_tl")
 steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_1"), SubResource("wait_4"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_4")])
 freeze_player = false
-hide_hud = false
 scene_duration = 0.0
-allow_skip = false
 done_flag = &"l5_walk_done"
+allow_skip = false

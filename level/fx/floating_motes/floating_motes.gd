@@ -55,6 +55,13 @@ func _process(_delta: float) -> void:
 
 
 func _apply_quality(_args: Variant = null) -> void:
+	# Settings.apply() now fires on every level mount, which means this
+	# handler can be triggered AFTER the old level (and this node) has been
+	# removed from the tree via remove_child() but BEFORE queue_free completes.
+	# get_tree() returns null in that window. Bail gracefully — the new
+	# level's own FloatingMotes will pick up the settings on its own _ready.
+	if not is_inside_tree():
+		return
 	var s := get_tree().root.get_node_or_null(^"Settings")
 	var q: String = "high"
 	if s != null and s.has_method(&"get_value"):

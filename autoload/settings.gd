@@ -183,7 +183,12 @@ func _apply_environment(quality: String) -> void:
 		return
 	match quality:
 		"low":
-			env.ssr_enabled = false
+			# SSR on at 8 steps — minimum trace length so the cheapest preset
+			# still shows a near-cropped player reflection on platforms (the
+			# game's signature look). 8 is half of medium's 16; reflections
+			# fade out within ~2-3m of the surface.
+			env.ssr_enabled = true
+			env.ssr_max_steps = 8
 			env.ssil_enabled = false
 			env.ssao_enabled = false
 			env.sdfgi_enabled = false

@@ -70,10 +70,17 @@ enum Phase { IDLE, SHAKING, CRUMBLING, GONE }
 ## Distance the deck drops over `crumble_duration` (with QUAD/EASE_IN curve so
 ## it accelerates into the fall — pulls away from a player who's now in
 ## free-fall under regular gravity).
-@export var crumble_drop: float = 16.0
+@export var crumble_drop: float = 100.0
 ## Total seconds from first contact until the deck snaps back. The remainder
 ## (after shake + crumble) is the "gone" interval.
-@export var reset_after_contact: float = 10.0
+@export var reset_after_contact: float = 8.0
+## Seconds to fade `glitch_progress` from 1.0 → 0.0 when the deck respawns.
+## Mirrors the crumble's 0→1 ramp but in reverse — visual reads as the
+## chromatic-aberration tearing collapsing back into clean geometry. A
+## glitch stinger from `glitch_sounds` fires once at the start of this
+## fade (same round-robin pool the crumble pulls from). 0 = instant snap
+## (legacy behavior), no fade and no respawn SFX.
+@export_range(0.0, 2.0, 0.05) var stabilize_duration: float = 0.6
 
 @onready var _deck: Node3D = $Deck
 @onready var _box: CSGBox3D = $Deck/Box
@@ -221,7 +228,25 @@ func _reset() -> void:
 	_deck.position = _deck_base_position
 	_box.visible = true
 	_box.use_collision = true
-	_set_glitch_progress(0.0)
+	# Reverse the disappear: glitch tears DOWN from 1.0 → 0.0 so the
+	# stabilize reads as the chromatic-aberration collapsing back to
+	# clean geometry. Same `glitch_sounds` pool stings once at the
+	# start, advancing the same static round-robin index — so a crumble
+	# and a respawn alternate through the 5 clips together. Tween-fade
+	# only when stabilize_duration > 0; 0 = legacy instant snap.
+	if stabilize_duration > 0.0:
+		_play_glitch_sfx()
+		# Make sure the overlay is at 1.0 going in (the crumble tween
+		# parked it there). Then fade out with QUAD/EASE_OUT, mirroring
+		# the crumble's QUAD/EASE_IN buildup.
+		_set_glitch_progress(1.0)
+		if _tween != null and _tween.is_valid():
+			_tween.kill()
+		_tween = create_tween()
+		_tween.tween_method(_set_glitch_progress, 1.0, 0.0, stabilize_duration) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	else:
+		_set_glitch_progress(0.0)
 
 
 func _set_glitch_progress(v: float) -> void:

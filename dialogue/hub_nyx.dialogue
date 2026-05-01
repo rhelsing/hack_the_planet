@@ -17,190 +17,198 @@ elif GameState.get_flag("level_1_completed", false)
 
 ~ stage_post_1
 
-Nyx: Quick word. Off-channel.
-Nyx: I pulled your trace. He'll round it down.
-Nyx: I'm not going to.
-=> post_1_menu
+# Obligatory opener — runs once. Re-talks route through the entry block
+# for an abbreviated greeting, then drop into the questions hub.
+if GameState.get_flag("nyx_post_1_opener_seen", false)
+	=> nyx_post_1_entry
 
-~ post_1_menu
+Nyx: Quick word. Off-channel.
+Nyx: I pulled your trace. DialTone will keep it light.
+Nyx: I'm not going to.
+do GameState.set_flag("nyx_post_1_opener_seen", true)
+=> nyx_post_1_questions
+
+
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ nyx_post_1_entry
+
+Nyx: Talk.
+=> nyx_post_1_questions
+
+
+# Single shared question hub. "What do you want?" gates two follow-ups
+# (Wrong about what? / Why?) on a flag set when that probe is asked.
+
+~ nyx_post_1_questions
 
 - Why off-channel?
-	=> post_1_alone
+	Nyx: DialTone gets more smug when there's an audience.
+	Nyx: This is just for me.
 - You pulled my trace?
-	=> post_1_score
+	Nyx: I pull everyone's trace.
+	Nyx: Don't read into it.
 - What do you want?
-	=> post_1_dare
-- All right, see you on the wire.
-	=> post_1_done
-
-~ post_1_alone
-
-Nyx: He gets more smug when there's an audience.
-Nyx: This is just for me.
-=> post_1_menu
-
-~ post_1_score
-
-Nyx: I pull everyone's trace.
-Nyx: Don't read into it.
-=> post_1_menu
-
-~ post_1_dare
-
-Nyx: He picked you. He's calling it casting.
-Nyx: I want him to be wrong.
-- Wrong about what?
+	Nyx: DialTone picked you. He's calling it casting.
+	Nyx: I want him to be wrong.
+	do GameState.set_flag("nyx_post_1_asked_dare", true)
+- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Wrong about what?
 	Nyx: About you being easy to read.
-	=> post_1_menu
-- Why?
-	Nyx: He's smug enough already.
-	=> post_1_menu
-
-~ post_1_done
-
-Nyx: Mm. We'll see.
-=> END
+- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
+	Nyx: DialTone's smug enough already.
+- All right, see you on the wire.
+	Nyx: Mm. We'll see.
+	=> END
+=> nyx_post_1_questions
 
 # ── Post Level 2 ─────────────────────────────────────────────────────────
 
 ~ stage_post_2
 
-Nyx: You got a second?
-Nyx: Off-channel. He doesn't need to hear this part.
-=> post_2_menu
+# Obligatory opener — runs once. Re-talks route through the entry block
+# for an abbreviated greeting, then drop into the questions hub.
+if GameState.get_flag("nyx_post_2_opener_seen", false)
+	=> nyx_post_2_entry
 
-~ post_2_menu
+Nyx: You got a second?
+Nyx: Off-channel. DialTone doesn't need to hear this part.
+do GameState.set_flag("nyx_post_2_opener_seen", true)
+=> nyx_post_2_questions
+
+
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ nyx_post_2_entry
+
+Nyx: Anything else, runner?
+=> nyx_post_2_questions
+
+
+# Single shared question hub. Inline mini-dialogues per option, with
+# flag-gated follow-ups (Splice sub-probes only appear after asking about
+# Splice; "You make it sound routine." after "the saving"). The
+# stay-or-log-out decision is its own block — it's a one-way exit beat,
+# not a probe.
+
+~ nyx_post_2_questions
 
 - What's up?
-	=> post_2_main
+	=> nyx_post_2_stay_or_go
 - You did the saving this time.
-	=> post_2_save
-- Tell me about Splice.
-	=> post_2_splice
-
-~ post_2_main
-
-Nyx: His plan's a good plan. It's also more dangerous than the last two.
-Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
-- Are you telling me to log out?
-	Nyx: I'm telling you you can.
-	=> post_2_choice
-- Would you?
-	Nyx: I can't. He's mine to deal with.
-	Nyx: That's not the same as you.
-	=> post_2_choice
-- Not logging out.
-	=> post_2_stay
-
-~ post_2_save
-
-Nyx: Anyone would have needed pulling out of that. Don't make it a thing.
-- You make it sound routine.
+	Nyx: Anyone would have needed pulling out of that. Don't make it a thing.
+	do GameState.set_flag("nyx_post_2_asked_save", true)
+- [if GameState.get_flag("nyx_post_2_asked_save", false) /] You make it sound routine.
 	Nyx: It's not routine.
 	Nyx: You're not the first runner I've yanked off a hot wire. Won't be the last.
 	Nyx: ...probably.
-	=> post_2_menu
 - Thanks anyway.
 	Nyx: Mm.
-	=> post_2_menu
-
-~ post_2_splice
-
-Nyx: Of course. Everyone wants to ask about Splice.
-Nyx: What do you want to know.
-- Who was he to you?
-	=> post_2_ex
-- What's he actually after?
-	=> post_2_what
-- Why does he scare you?
-	=> post_2_scare
-
-~ post_2_ex
-
-Nyx: He was the smartest person I'd ever met.
-Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
-Nyx: I didn't. That's mine.
-- Does he still listen to you?
+- Tell me about Splice.
+	Nyx: Of course. Everyone wants to ask about Splice.
+	Nyx: What do you want to know.
+	do GameState.set_flag("nyx_post_2_asked_splice", true)
+- [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Who was he to you?
+	Nyx: He was the smartest person I'd ever met.
+	Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
+	Nyx: I didn't. That's mine.
+	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
+- [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
 	Nyx: He never did. He performed listening.
-	=> post_2_splice
-- Got it.
-	=> post_2_menu
+- [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
+	Nyx: Power. He's convinced he's owed it.
+	Nyx: He's not wrong about being wronged. He is wrong about what to do with it.
+- [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Why does he scare you?
+	Nyx: He doesn't scare me. I scare me — for ever signing off on him.
+	Nyx: He just confirms the read.
+- All right, see you on the wire.
+	=> END
+=> nyx_post_2_questions
 
-~ post_2_what
 
-Nyx: Power. He's convinced he's owed it.
-Nyx: He's not wrong about being wronged. He is wrong about what to do with it.
-- Got it.
-	=> post_2_menu
+~ nyx_post_2_stay_or_go
 
-~ post_2_scare
+Nyx: DialTone's plan is a good plan. It's also more dangerous than the last two.
+Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
+- Are you telling me to log out?
+	Nyx: I'm telling you you can.
+	=> nyx_post_2_choice
+- Would you?
+	Nyx: I can't. Splice is mine to deal with.
+	Nyx: That's not the same as you.
+	=> nyx_post_2_choice
+- Not logging out.
+	Nyx: Then catch up. Portal's behind him.
+	Nyx: Don't fall off anything.
+	=> END
 
-Nyx: He doesn't scare me. I scare me — for ever signing off on him.
-Nyx: He just confirms the read.
-- Got it.
-	=> post_2_menu
-
-~ post_2_choice
+~ nyx_post_2_choice
 
 Nyx: Whatever you decide, I won't take it personally.
 Nyx: Just decide on purpose.
-=> END
-
-~ post_2_stay
-
-Nyx: Then catch up. Portal's behind him.
-Nyx: Don't fall off anything.
 => END
 
 # ── Post Level 3 ─────────────────────────────────────────────────────────
 
 ~ stage_post_3
 
+# Obligatory opener — runs once. Re-talks route through the entry block
+# for an abbreviated greeting, then drop into the questions hub.
+if GameState.get_flag("nyx_post_3_opener_seen", false)
+	=> nyx_post_3_entry
+
 Nyx: Hey.
 Nyx: Off-channel.
-Nyx: ...he's busy convincing himself the plan was his idea. Give it a minute.
-=> post_3_menu
+Nyx: ...DialTone's busy convincing himself getting you out was his idea. Give it a minute.
+do GameState.set_flag("nyx_post_3_opener_seen", true)
+=> nyx_post_3_questions
 
-~ post_3_menu
+
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ nyx_post_3_entry
+
+Nyx: {{HandlePicker.chosen_name()}}. What's up?
+=> nyx_post_3_questions
+
+
+# Single shared question hub. Sub-replies (Glad you didn't / Liar / etc.)
+# are flag-gated follow-ups that appear after their parent probe is asked.
+
+~ nyx_post_3_questions
 
 - About earlier...
-	=> post_3_earlier
-- You read this one. Didn't you.
-	=> post_3_read
-- All right, see you on the wire.
-	=> post_3_done
-
-~ post_3_earlier
-
-Nyx: Yeah.
-Nyx: I don't do that.
-Nyx: ...the part that's bugging me is I didn't try to hide it.
-Nyx: From you, I mean. That's new.
-- Glad you didn't.
+	Nyx: Yeah.
+	Nyx: I don't do that.
+	Nyx: ...the part that's bugging me is I didn't try to hide it.
+	Nyx: From you, I mean. That's new.
+	do GameState.set_flag("nyx_post_3_asked_earlier", true)
+- [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] Glad you didn't.
 	Nyx: Mm.
 	Nyx: Don't make me regret it.
-	=> post_3_menu
-- I didn't see anything.
+- [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] I didn't see anything.
 	Nyx: Liar.
 	Nyx: ...thanks.
-	=> post_3_menu
-
-~ post_3_read
-
-Nyx: ...maybe.
-Nyx: I read him wrong, once. Big once.
-Nyx: Been not-trusting that since.
-Nyx: When you said no to him — I knew before he did. That's new too. [#model=eleven_v3]
-- What does that mean?
+- You read this one. Didn't you.
+	Nyx: ...maybe.
+	Nyx: I read Splice wrong, once. Big once.
+	Nyx: Been not-trusting that since.
+	Nyx: When you said no to him — I knew before he did. That's new too. [#model=eleven_v3]
+	do GameState.set_flag("nyx_post_3_asked_read", true)
+- [if GameState.get_flag("nyx_post_3_asked_read", false) /] What does that mean?
 	Nyx: Means I don't have to keep guessing on you.
 	Nyx: Don't read into it.
-	=> post_3_menu
-- It mattered to you.
+- [if GameState.get_flag("nyx_post_3_asked_read", false) /] It mattered to you.
 	Nyx: ...yes.
 	Nyx: Moving on.
-	=> post_3_menu
+- All right, see you on the wire.
+	=> nyx_post_3_done
+=> nyx_post_3_questions
 
-~ post_3_done
+
+~ nyx_post_3_done
 
 Nyx: Last sector.
 Nyx: If we land it — I get to stop carrying the last one.
@@ -208,55 +216,47 @@ Nyx: That'd be... new.
 do GameState.set_flag("hub_nyx_post3_done", true)
 => END
 
-# ── Post Level 4 — perimeter party (copied from hub_post4_nyx.dialogue) ──
+# ── Post Level 4 — perimeter party ──────────────────────────────────────
 
 ~ stage_post_4
 
+# Obligatory opener — runs once. Re-talks route through nyx_post_4_entry,
+# which picks the right re-entry greeting based on whether the player has
+# spotted Splice dancing in the cage.
 if GameState.get_flag("hub_post4_nyx_celebrated", false)
-	=> celebrated
+	=> nyx_post_4_entry
 
 Nyx: There you are. Took your sweet time.
 Nyx: We're throwing a perimeter party. Splice gets to watch from the inside.
-=> menu
+=> nyx_post_4_questions
 
-~ menu
 
-- You're really dancing in front of him.
-	=> dancing
-- He's quarantined for good?
-	=> quarantine
-- See you on the wire.
-	=> done
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
 
-~ dancing
-
-Nyx: We absolutely are.
-Nyx: He spent a year in the static planning this. He gets to see us happy. That's the bit.
-=> menu
-
-~ quarantine
-
-Nyx: For now. Forever's a luxury we don't get on this grid.
-Nyx: But for now? Yes. He's boxed.
-=> menu
-
-~ done
-
-Nyx: Go pick a song. Save me one.
-do GameState.set_flag("hub_post4_nyx_celebrated", true)
-=> END
-
-~ celebrated
+~ nyx_post_4_entry
 
 if GameState.get_flag("hub_post4_splice_danced", false)
-	=> celebrated_splice_dancing
+	Nyx: ...is Splice dancing? In there?
+	Nyx: ...we didn't see that. [#model=eleven_v3]
+	Nyx: Stay as long as you want.
+else
+	Nyx: Back for round two?
+=> nyx_post_4_questions
 
-Nyx: Back for round two? Splice still hates this. Stay as long as you want.
-=> menu
 
-~ celebrated_splice_dancing
+# Single shared question hub.
 
-Nyx: ...is Splice dancing? In there?
-Nyx: ...we didn't see that. [#model=eleven_v3]
-Nyx: Stay as long as you want.
-=> menu
+~ nyx_post_4_questions
+
+- You're really dancing in front of him.
+	Nyx: We absolutely are.
+	Nyx: Splice spent a year in the static planning this. He gets to see us happy. That's the bit.
+- He's quarantined for good?
+	Nyx: For now. Forever's a luxury we don't get on this grid.
+	Nyx: But for now? Yes. He's boxed.
+- See you on the wire.
+	Nyx: Go pick a song. Save me one.
+	do GameState.set_flag("hub_post4_nyx_celebrated", true)
+	=> END
+=> nyx_post_4_questions

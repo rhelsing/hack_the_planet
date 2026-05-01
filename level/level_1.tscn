@@ -92,7 +92,7 @@ size = Vector3(21.3042, 1, 16.08847)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.48487, 1.1756706, 177.60532)
 
 [node name="Ground3" parent="." index="7" unique_id=548036433]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.51528, 10.89022, 167.0114)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.51528, 10.942929, 167.0114)
 size = Vector3(8.880127, 1, 9.029175)
 
 [node name="glitch_set" type="Node3D" parent="." index="8" unique_id=1837757669]
@@ -141,7 +141,7 @@ visible_when_voice_match = "see me"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.03878, 38.179344, -70.45365)
 
 [node name="Ground6" type="CSGBox3D" parent="." index="10" unique_id=902683074]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92.05584, 38.179344, -67.57831)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.89878, 38.179344, -74.45572)
 material_override = ExtResource("8_hdc4k")
 use_collision = true
 size = Vector3(8, 1, 9.029175)
@@ -165,7 +165,7 @@ transform = Transform3D(-0.47453377, 0, 0.8802373, 0, 1, 0, -0.8802373, 0, -0.47
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.03878, 38.679344, -68.84053)
 
 [node name="PowerupPickup" parent="." index="18" unique_id=221835442]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.5902195, 167.09947)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.653832, 167.09947)
 
 [node name="WalkieTriggerIntro" parent="." index="20" unique_id=1452023600 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -36.48487, 0.33396053, 245.53955)
@@ -188,7 +188,7 @@ line = "Wow look at you go. I wish I wasn't confined to the hub."
 require_flag = &""
 
 [node name="WalkieTriggerIntro7" parent="." index="24" unique_id=241515978 instance=ExtResource("2_walkie")]
-transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -62.10861, 37.101547, -72.20322)
+transform = Transform3D(12.809321, 0, 0, 0, 2.8658574, 0, 0, 0, 20.009705, -79.25249, 37.101547, -72.20322)
 line = "Runner. Nyx is in your vicinity! Wiring her location to you now!"
 require_flag = &""
 
@@ -210,7 +210,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro2" parent="." index="28" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "I see you've started collecting the Jolt Cola — all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
+line = "I see you've started collecting the cans. Jolt. All the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
 require_flag = &""
 
 [node name="Nyx" parent="." index="29" unique_id=1420528326 instance=ExtResource("3_companion")]
@@ -448,7 +448,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.17814, -4.8228517, 213.66
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform2" parent="." index="73" unique_id=931356739 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.125122, 0.64319134, 213.66563)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.39659, 0.64319134, 216.08199)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform3" parent="." index="74" unique_id=1868365190 instance=ExtResource("17_7fchg")]
@@ -670,4 +670,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.63793, 36.637848, -41.928
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -78.934525, 65.704, -21.05312)
 
 [node name="PhoneBooth6" parent="." index="140" unique_id=939327447 instance=ExtResource("9_4h366")]
-transform = Transform3D(0.002303793, 0, -0.9999973, 0, 1, 0, 0.9999973, 0, 0.002303793, -94.49195, 11.403441, 164.7407)
+transform = Transform3D(0.002303793, 0, -0.9999973, 0, 1, 0, 0.9999973, 0, 0.002303793, -94.49195, 11.56875, 164.7407)

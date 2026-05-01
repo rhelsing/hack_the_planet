@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CueRegistry" load_steps=17 format=3]
+[gd_resource type="Resource" script_class="CueRegistry" load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://audio/cue_registry.gd" id="1"]
 [ext_resource type="Resource" path="res://audio/cues/door_open.tres" id="2"]
@@ -16,6 +16,7 @@
 [ext_resource type="Resource" path="res://audio/cues/grapple_fire.tres" id="14"]
 [ext_resource type="Resource" path="res://audio/cues/grapple_bite.tres" id="15"]
 [ext_resource type="Resource" path="res://audio/cues/stealth_hack_success.tres" id="16"]
+[ext_resource type="Resource" path="res://audio/cues/end_card_type.tres" id="17"]
 
 [resource]
 script = ExtResource("1")
@@ -35,4 +36,5 @@ cues = {
 &"grapple_fire": ExtResource("14"),
 &"grapple_bite": ExtResource("15"),
 &"stealth_hack_success": ExtResource("16"),
+&"end_card_type": ExtResource("17"),
 }

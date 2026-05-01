@@ -202,18 +202,33 @@ func get_flag(id: StringName, default_value: Variant = null) -> Variant:
 
 
 # ---- Dialogue-visited tracking ------------------------------------------
-# Called from .dialogue files via `general/states=["GameState", ...]`.
-# `zipped` is "<response_id>_<response_text>" to uniquely identify a choice.
+# Visit key is `text + "→" + next_id` (scoped per character). Reasoning:
+#
+# - response.id alone fails: Dialogue Manager assigns ids by file location,
+#   so the same probe text in two sibling menus gets two different ids,
+#   and visiting one never dimmed the other.
+# - text alone fails when two responses share text but route to different
+#   destinations (rare but possible — same wording, different outcome).
+# - text + next_id captures semantic identity: same question text routing
+#   to the same destination block = "same question." Sibling menus that
+#   each list "Why can't you go yourself?" → `nudge_why` all collapse to
+#   one key; a hypothetical "Yes" → `happy_branch` vs "Yes" → `sad_branch`
+#   stays distinct.
+#
+# `response_id` arg is kept for source compatibility but ignored.
 
-func visit_dialogue(character: String, response_id: String, text: String) -> void:
-	var zipped := "%s_%s" % [response_id, text]
+func visit_dialogue(character: String, _response_id: String, text: String, next_id: String = "") -> void:
 	if not dialogue_visited.has(character):
 		dialogue_visited[character] = {}
-	dialogue_visited[character][zipped] = true
+	dialogue_visited[character][_zip(text, next_id)] = true
 
 
-func has_visited(character: String, zipped: String) -> bool:
-	return dialogue_visited.get(character, {}).has(zipped)
+func has_visited(character: String, text: String, next_id: String = "") -> bool:
+	return dialogue_visited.get(character, {}).has(_zip(text, next_id))
+
+
+func _zip(text: String, next_id: String) -> String:
+	return "%s→%s" % [text, next_id]
 
 
 # ---- Save / load (called by ui_dev's SaveService) -----------------------

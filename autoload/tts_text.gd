@@ -72,15 +72,16 @@ static func for_eleven_labs(text: String) -> String:
 	italic.compile("\\*([^*]+)\\*")
 	for m: RegExMatch in italic.search_all(out):
 		out = out.replace(m.get_string(0), m.get_string(1).to_upper())
-	# Ellipsis → "hmm". ElevenLabs reads "..." literally as "dot dot dot"
-	# (and Unicode U+2026 "…" as a meaningless beat); the bracketed
-	# `[sigh]` form gets read literally on flash_v2_5 as the word "sigh"
-	# rather than performing a sigh (audio cues are v3-only). Plain "hmm"
-	# is the safe fallback that flash speaks naturally as a beat. Display
-	# path keeps "..." / "…" intact (subtitles render them as printed);
-	# only the TTS payload swaps them.
-	out = out.replace("…", " hmm ")
-	out = out.replace("...", " hmm ")
+	# Ellipsis → "hmm" — ONLY when the entire line is just dots. Mid-sentence
+	# ellipses pass through untouched: ElevenLabs handles them as natural
+	# pauses, and baking "hmm" into mid-sentence positions made dialogue
+	# read like the character was thinking out loud at the wrong beat.
+	# Standalone-ellipsis lines (author wrote `Speaker: ...` as a beat-only
+	# line) still convert because the literal "dot dot dot" reading is
+	# nonsensical there and "hmm" is the intended thinking-pause sound.
+	var stripped: String = out.strip_edges()
+	if stripped == "..." or stripped == ".." or stripped == "…":
+		out = " hmm "
 	# Gamepad face-button glyphs → spoken words. HUD + subtitles render the
 	# Unicode shapes (set in autoload/glyphs.gd); ElevenLabs would read them
 	# as silence or codepoint-name, so reverse them back to "Cross" /

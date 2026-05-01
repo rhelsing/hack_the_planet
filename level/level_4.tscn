@@ -50,7 +50,7 @@
 [ext_resource type="PackedScene" path="res://level/interactable/scene_setup_on_flag/scene_setup_on_flag.tscn" id="55_scnsetup"]
 [ext_resource type="PackedScene" uid="uid://ddelayflag001" path="res://level/interactable/delayed_flag/delayed_flag.tscn" id="56_delayflag"]
 
-[sub_resource type="Curve3D" id="Curve3D_7d07o"]
+[sub_resource type="Curve3D" id="Curve3D_h0kaq"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -59,7 +59,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_h0kaq"]
+[sub_resource type="Curve3D" id="Curve3D_ht88j"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -68,7 +68,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_ht88j"]
+[sub_resource type="Curve3D" id="Curve3D_e61q6"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -77,7 +77,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_e61q6"]
+[sub_resource type="Curve3D" id="Curve3D_c4upc"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -146,12 +146,14 @@ script = ExtResource("4_edsleep")
 
 [node name="ControlPlatform1" parent="." index="17" unique_id=1807246559 instance=ExtResource("5_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.494255, -6.271326, 16.36369)
+size = Vector3(7, 0.4, 7)
 convert_zone_id = &"l4_arena"
 require_flag = &"l4_terminal_5"
 done_flag = &"l4_invention_terminal_solved"
 
 [node name="ControlPlatform2" parent="." index="18" unique_id=1894314890 instance=ExtResource("5_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 138.5868, -14.757157, 49.831856)
+size = Vector3(7, 0.4, 7)
 convert_zone_id = &"l4_arena"
 require_flag = &"l4_terminal_5"
 done_flag = &"l4_invention_terminal_solved"
@@ -384,18 +386,23 @@ slide_sound = ExtResource("47_rocks")
 
 [node name="BouncyPlatform" parent="." index="49" unique_id=1780514145 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.724133, -14.896849, 43.36602)
+size = Vector3(5, 1, 5)
 
 [node name="BouncyPlatform2" parent="." index="50" unique_id=370638165 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.724133, -11.491228, 34.739628)
+size = Vector3(5, 1, 5)
 
 [node name="BouncyPlatform3" parent="." index="51" unique_id=2085251712 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.89088, -9.977741, 32.305363)
+size = Vector3(5, 1, 5)
 
 [node name="BouncyPlatform4" parent="." index="52" unique_id=65127266 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.89088, -9.977741, 17.489632)
+size = Vector3(5, 1, 5)
 
 [node name="BouncyPlatform5" parent="." index="53" unique_id=1904037309 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.192898, -9.977741, 17.489632)
+size = Vector3(5, 1, 5)
 
 [node name="EnemyKayKit" parent="." index="54" unique_id=94915355 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.001137, -8.103248, 33.18333)
@@ -416,8 +423,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.394535, -14.21927, 17.425
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 13.082044, -14.673597, -1.3057218, 23.978725)
 character = &"Glitch"
 line = "Hey Runner, over here."
-require_flag = &""
 bus_override = &"Companion"
+require_flag = &""
 
 [node name="Walkie3" parent="." index="60" unique_id=686050591 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 13.082044, -30.812723, -12.973331, 32.116066)
@@ -428,13 +435,13 @@ require_flag = &""
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 24.053465, -2.831017, 16.366661)
 character = &"Glitch"
 line = "Wait, no thats not right... Hold on.. um. Oh, \"great job glitch\" ....I didnt turn it on. Will you do the honors?"
+bus_override = &"Companion"
 require_flag = &""
 persist_flag = &"l4_glitch_pitched"
-bus_override = &"Companion"
 
 [node name="Walkie4" parent="." index="62" unique_id=275374149 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 59.419647, -12.472181, 48.079144)
-line = "You continue to impress me {player_handle}"
+line = "You continue to impress me {player_handle}."
 require_flag = &""
 
 [node name="Walkie5" parent="." index="63" unique_id=1096454541 instance=ExtResource("13_walkie")]
@@ -446,7 +453,7 @@ require_flag = &""
 [node name="Walkie6" parent="." index="64" unique_id=297640600 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 138.33058, -12.472181, 48.079144)
 character = &"Nyx"
-line = "That is pretty cool."
+line = "That is so **cool**!"
 require_flag = &""
 
 [node name="Walkie7" parent="." index="65" unique_id=1613663873 instance=ExtResource("13_walkie")]
@@ -468,13 +475,13 @@ require_flag = &""
 [node name="Walkie10" parent="." index="68" unique_id=381632140 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 271.81506, -13.0255165, 37.083664)
 character = &"Nyx"
-line = "{player_handle}, Splice has entered the Sector. Look's like he's taking the bait. Keep it up."
+line = "{player_handle}. Splice has entered the Sector. Look's like he's taking the bait. Keep it up!"
 require_flag = &""
 
 [node name="Walkie11" parent="." index="69" unique_id=1790476080 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 2.5907276, 328.50134, -13.0255165, -7.914814)
 character = &"Nyx"
-line = "I can't believe what I'm seeing."
+line = "I can't believe what I'm seeing! Are they actually on the **rail** with you?"
 require_flag = &""
 
 [node name="Walkie12" parent="." index="70" unique_id=1458611608 instance=ExtResource("13_walkie")]
@@ -668,21 +675,27 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 154.51968, -17.377993, 33.789
 
 [node name="BouncyPlatform6" parent="." index="116" unique_id=260379718 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.9707, -18.061516, 45.695683)
+size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform7" parent="." index="117" unique_id=831727790 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.79668, -18.061516, 45.695683)
+size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform8" parent="." index="118" unique_id=1944369152 instance=ExtResource("17_m36c5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.18866, -18.061516, 45.695683)
+size = Vector3(7, 1, 7)
 
 [node name="CrumblePlatform" parent="." index="119" unique_id=613152501 instance=ExtResource("23_827q6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.13732, -17.88818, 45.510216)
+size = Vector3(7, 1, 7)
 
 [node name="CrumblePlatform2" parent="." index="120" unique_id=1076850285 instance=ExtResource("23_827q6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.977486, -17.88818, 45.510216)
+size = Vector3(7, 1, 7)
 
 [node name="CrumblePlatform3" parent="." index="121" unique_id=699689877 instance=ExtResource("23_827q6")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.6323, -17.88818, 45.510216)
+size = Vector3(7, 1, 7)
 
 [node name="EnemyKayKitSplice16" parent="." index="122" unique_id=387754080 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 290.52283, -17.377989, 38.374817)
@@ -802,6 +815,10 @@ material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(29.36796, 2.6129785, 10.207743)
 material = ExtResource("17_sdk3c")
+
+[node name="AllyWaypoint_BigRamp32_Top" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 464.0, -11.7, -275.4)
+groups = ["ally_waypoints"]
 
 [node name="big33" type="CSGBox3D" parent="." index="151" unique_id=1991760012]
 transform = Transform3D(-0.017033443, 0, -0.9998549, 0, 1, 0, 0.9998549, 0, -0.017033443, 455.14432, 1.6902246, -271.5152)
@@ -935,15 +952,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 473.40186, 2.7789016, -255.76
 
 [node name="Rail" parent="." index="189" unique_id=584524852 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.05427049, 0, 0.9985263, 0, 1, 0, -0.9985263, 0, 0.05427049, 317.7961, -15.262541, -3.9363518)
-curve = SubResource("Curve3D_7d07o")
+curve = SubResource("Curve3D_h0kaq")
 
 [node name="Rail2" parent="." index="190" unique_id=195334167 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.2513599, 0, 0.9678937, 0, 1, 0, -0.9678937, 0, 0.2513599, 323.27863, -16.471245, -142.0285)
-curve = SubResource("Curve3D_h0kaq")
+curve = SubResource("Curve3D_ht88j")
 
 [node name="Rail3" parent="." index="191" unique_id=1223991201 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.03549255, 0, 0.9993699, 0, 1, 0, -0.9993699, 0, 0.03549255, 487.89822, 4.785468, -295.13412)
-curve = SubResource("Curve3D_ht88j")
+curve = SubResource("Curve3D_e61q6")
 
 [node name="EnemySpawner13" parent="." index="192" unique_id=1810548121 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.06946, 26.671904, -406.64682)
@@ -997,7 +1014,7 @@ material = ExtResource("17_sdk3c")
 
 [node name="Rail4" parent="." index="202" unique_id=1161704299 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.023280619, 0, 0.999729, 0, 1, 0, -0.999729, 0, 0.023280619, 475.61304, 28.395216, -440.52612)
-curve = SubResource("Curve3D_e61q6")
+curve = SubResource("Curve3D_c4upc")
 
 [node name="GlitchPostPlatforms" parent="." index="203" unique_id=1299642312 instance=ExtResource("8_companion")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 365.06467, -8.128251, -249.55788)

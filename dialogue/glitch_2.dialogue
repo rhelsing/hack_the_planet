@@ -27,13 +27,12 @@ Glitch: Pick a handle.
 Glitch: {{HandlePicker.reaction()}}
 => warn
 
-# ── Return convos: existing greeting flow ────────────────────────────────
+# ── Return convos: greeting + sentinel-warning gate, then questions hub ──
 
 ~ stage_after_pick
 
 if GameState.get_flag("glitch2_done", false)
-	Glitch: At your service.
-	=> menu
+	=> glitch_2_entry
 
 Glitch: Well executed.
 => warn
@@ -43,39 +42,38 @@ Glitch: Well executed.
 ~ warn
 
 if GameState.get_flag("glitch2_warned", false)
-	=> menu
+	=> glitch_2_questions
 
 Glitch: By the way, I should warn you. The Gibson has some security measures in place. Sentinels.
 Glitch: Their function is to purge anything that doesn't belong here. Including you.
 Glitch: Press {{Glyphs.for_action("attack")}}. A single strike makes them go "poof".
 do GameState.set_flag("glitch2_warned", true)
-=> menu
+=> glitch_2_questions
 
-~ menu
 
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ glitch_2_entry
+
+Glitch: At your service.
+=> glitch_2_questions
+
+
+# Single shared question hub.
+
+~ glitch_2_questions
+
+- Refresh the controls.
+	Glitch: Press {{Glyphs.for_action("jump")}} to jump. Tap twice to chain a second.
+	Glitch: Press {{Glyphs.for_action("dash")}} to dash mid-flight. The same dash will sidestep an incoming attack.
+	Glitch: Press {{Glyphs.for_action("attack")}} to strike.
+- About those Sentinels...
+	Glitch: Several configurations. In time, you may find some can be repurposed.
 - Onward.
 	=> done
-- Refresh the controls.
-	=> controls
-- About those Sentinels...
-	=> sentinels_variety
+=> glitch_2_questions
 
-~ controls
-
-Glitch: Press {{Glyphs.for_action("jump")}} to jump. Tap twice to chain a second.
-Glitch: Press {{Glyphs.for_action("dash")}} to dash mid-flight. The same dash will sidestep an incoming attack.
-Glitch: Press {{Glyphs.for_action("attack")}} to strike.
-Glitch: Anything else?
-- About those Sentinels...
-	=> sentinels_variety
-- That's all.
-	=> done
-
-~ sentinels_variety
-
-Glitch: Several configurations. In time, you may find some can be repurposed.
-- Interesting.
-	=> done
 
 ~ done
 

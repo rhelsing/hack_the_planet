@@ -57,7 +57,15 @@ func _apply_hud_scale() -> void:
 	_portrait_slot.custom_minimum_size = _PORTRAIT_SLOT_BASE * s
 	_portrait_initial.add_theme_font_size_override(&"font_size", int(_PORTRAIT_INITIAL_FONT_BASE * s))
 	_name_label.add_theme_font_size_override(&"font_size", int(_NAME_FONT_BASE * s))
-	_text_label.add_theme_font_size_override(&"normal_font_size", int(_TEXT_FONT_BASE * s))
+	# RichTextLabel has per-style size overrides — without explicit bold +
+	# italics overrides, **bold** spans (from the emphasis-marker converter)
+	# fall back to the theme default and don't scale with HUD size. Set all
+	# four to the same value so emphasized text matches body text.
+	var text_size: int = int(_TEXT_FONT_BASE * s)
+	_text_label.add_theme_font_size_override(&"normal_font_size", text_size)
+	_text_label.add_theme_font_size_override(&"bold_font_size", text_size)
+	_text_label.add_theme_font_size_override(&"italics_font_size", text_size)
+	_text_label.add_theme_font_size_override(&"bold_italics_font_size", text_size)
 	_panel.custom_minimum_size = Vector2(_PANEL_MIN_WIDTH_BASE * s, 0)
 	_hbox.add_theme_constant_override(&"separation", int(_HBOX_SEPARATION_BASE * s))
 

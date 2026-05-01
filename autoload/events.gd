@@ -106,8 +106,14 @@ signal menu_closed(id: StringName)
 # fades a centered label. Latest-armed wins; cleared after one show.
 @warning_ignore("unused_signal")
 signal respawn_message_armed(text: String)
+## `pre_delay` is seconds the overlay should wait before warping in the FIRST
+## message of a fresh chain (subsequent messages still use overlay-internal
+## `gap_between_messages`). Lets the emitter sync the visible pop to the
+## respawn moment — e.g. PlayerBody fires this at start_of_death and passes
+## `_PLAYER_DEATH_DURATION + post_respawn_beat` so the hint warps in shortly
+## after the player is back on their feet, not during the death animation.
 @warning_ignore("unused_signal")
-signal respawn_message_show(text: String)
+signal respawn_message_show(text: String, pre_delay: float)
 
 # Voiced sibling of respawn_message_*. Same arm-on-entry / fire-on-respawn
 # semantics, but routes to the Companion bus (reverb voice) instead of the

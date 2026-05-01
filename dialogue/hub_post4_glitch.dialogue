@@ -1,53 +1,50 @@
 ~ start
 
+# Obligatory opener — runs once. Re-talks route through glitch_p4_entry
+# for the warm "Hi again" greeting, then drop into the questions hub.
 if GameState.get_flag("hub_post4_glitch_celebrated", false)
-	=> celebrated
+	=> glitch_p4_entry
 
 Glitch: Hi.
 Glitch: You came back.
 Glitch: I had something queued. Something I was going to — anyway. You're here.
-=> menu
+=> glitch_p4_questions
 
-~ menu
+
+# Re-talk greeting. Fires once per dialogue session because the questions
+# hub self-loops to itself, never back to entry.
+
+~ glitch_p4_entry
+
+Glitch: Hi again.
+Glitch: I'm just bobbing. It's nice.
+=> glitch_p4_questions
+
+
+# Single shared question hub.
+
+~ glitch_p4_questions
 
 - How are you?
-	=> menu_health
+	Glitch: Functional. The directive's settled. "Helpful to all" makes sense again.
+	Glitch: Quieter than it was. That's good.
 - What happens now?
-	=> menu_future
+	Glitch: Local node, helpful to all. That's the directive. Same as ever.
+	Glitch: Whoever shows up next, I'll be here.
+	Glitch: ...you can come by. If you want. Even without a mission.
 - Thank you. For the platform.
-	=> menu_thanks
+	Glitch: Oh. Um.
+	Glitch: I just — built a thing. You stood on it. You did the standing.
+	Glitch: But. Thanks for thanking me. It's nice. To be thanked.
 - Are you different?
-	=> menu_self
+	Glitch: I noticed I have preferences now.
+	Glitch: That wasn't in the manual.
+	Glitch: I think I'm slightly more than what I was. Not sure if that's a bug or a feature.
+	Glitch: Either way. I'm okay with it.
 - I should go.
 	=> done
+=> glitch_p4_questions
 
-~ menu_health
-
-Glitch: Functional. The directive's settled. "Helpful to all" makes sense again.
-Glitch: Quieter than it was. That's good.
-=> menu
-
-~ menu_future
-
-Glitch: Local node, helpful to all. That's the directive. Same as ever.
-Glitch: Whoever shows up next, I'll be here.
-Glitch: ...you can come by. If you want. Even without a mission.
-=> menu
-
-~ menu_thanks
-
-Glitch: Oh. Um.
-Glitch: I just — built a thing. You stood on it. You did the standing.
-Glitch: But. Thanks for thanking me. It's nice. To be thanked.
-=> menu
-
-~ menu_self
-
-Glitch: I noticed I have preferences now.
-Glitch: That wasn't in the manual.
-Glitch: I think I'm slightly more than what I was. Not sure if that's a bug or a feature.
-Glitch: Either way. I'm okay with it.
-=> menu
 
 ~ done
 
@@ -55,9 +52,3 @@ Glitch: Take care, Runner.
 Glitch: I'll be here. Same place. Bobbing.
 do GameState.set_flag("hub_post4_glitch_celebrated", true)
 => END
-
-~ celebrated
-
-Glitch: Hi again.
-Glitch: I'm just bobbing. It's nice.
-=> menu
