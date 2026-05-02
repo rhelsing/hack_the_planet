@@ -33,7 +33,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_dialtone_2"]
 script = ExtResource("2_line")
 character = &"DialTone"
-text = "I picked you. That's on me."
+text = "I picked you. Don't know what I was looking at."
 channel = "walkie"
 label = "DialTone: I picked you"
 
@@ -57,7 +57,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_nyx_1"]
 script = ExtResource("2_line")
 character = &"Nyx"
-text = "Sane move was log out. I told you that. This? This was something else."
+text = "Sane move was log out. I told you that. You picked the worst version of staying."
 channel = "walkie"
 label = "Nyx: sane move was log out"
 
@@ -106,7 +106,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_splice_3"]
 script = ExtResource("2_line")
 character = &"Splice"
-text = "Just won't be anyone left to know it."
+text = "Just you and the grid now. ...quiet, isn't it."
 channel = "walkie"
 bus_override = &"Companion"
 label = "Splice: anyone left to know it"

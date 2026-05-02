@@ -5,7 +5,21 @@ extends CanvasLayer
 ## lookup with placeholder fallback), fades out when the line ends.
 
 @export var fade_duration: float = 0.18
-@export var typewrite_speed: float = 45.0  # chars per second
+## Chars-per-second for the walkie subtitle typewriter. 55 matches the
+## dialogue scroll balloon's `typing_seconds_per_char = 0.018` so the two
+## UIs share a feel. _SILENT_CPS in walkie.gd / companion.gd is matched
+## to this; bump both together if you change one.
+@export var typewrite_speed: float = 55.0
+
+@export_group("Typing Clicks")
+## Per-character keyboard click cue. See audio/typing_clicks.gd for the gate.
+@export var typing_cue: StringName = &"end_card_type"
+## Only fire on every Nth character (1 = every char, 2 = every other, …).
+@export_range(1, 8) var typing_every_n_chars: int = 2
+## Chance gate stacked on top of every_n_chars. 1.0 = always.
+@export_range(0.0, 1.0) var typing_chance: float = 0.55
+## Skip whitespace entirely — keeps clicks from firing on word gaps.
+@export var typing_skip_whitespace: bool = true
 
 # Authored sizes at hud.scale = 1.0. Multiplied by Settings.get_hud_scale()
 # in _apply_hud_scale (called at _ready and on Events.settings_applied so
@@ -29,6 +43,11 @@ const _HBOX_SEPARATION_BASE: int = 12
 var _portraits: Resource  # VoicePortraits; keyed character → Texture2D
 var _typewrite_tween: Tween
 var _fade_tween: Tween
+## Bumped on every line_started / line_ended / _cancel_tweens. The async
+## typewriter loop captures the value at start and bails the moment it
+## diverges, so chained line transitions can't have an old loop stomp on
+## the new line's visible_characters.
+var _typewrite_seq: int = 0
 
 
 func _ready() -> void:
@@ -108,16 +127,16 @@ func _on_line_started(character: String, text: String) -> void:
 		var c: Color = _portraits.call(&"get_color", character) as Color
 		color_hex = "#" + c.to_html(false)
 	var formatted: String = TextEmphasis.format_for_display(text, color_hex)
-	# Show text fully on line start. The typewrite-via-visible_ratio path
-	# was unreliable for chained cutscene lines (rapid line_ended →
-	# line_started transitions could leave visible_ratio at 0 with text
-	# loaded, rendering as an invisible subtitle even though _root was
-	# visible and modulate.a was 1.0). The line's natural audio duration
-	# gives the player time to read; explicit typewriting can come back
-	# later as a separate effect once the chain-transition bug is
-	# understood at a deeper level.
+	# Typewriter via visible_characters. Sequence-guarded: if a chained
+	# line_started lands mid-loop, the prior loop's `seq != mine` check
+	# bails on its next await without touching visible state. Each loop
+	# pass also fires a gated keystroke click via TypingClicks. The earlier
+	# visible_ratio approach got stuck at 0 across chain transitions; the
+	# integer counter + bail-fast pattern matches level_5's end card.
 	_text_label.text = formatted
-	_text_label.visible_ratio = 1.0
+	_text_label.visible_characters = 0
+	_typewrite_seq += 1
+	_run_typewriter(_typewrite_seq)
 
 
 func _on_line_ended() -> void:
@@ -144,6 +163,27 @@ func _cancel_tweens() -> void:
 		_typewrite_tween.kill()
 	if _fade_tween != null and _fade_tween.is_valid():
 		_fade_tween.kill()
+	# Bump the sequence so any in-flight typewriter loop bails on its
+	# next await. Don't snap visible_characters here — line_started owns
+	# that (it sets back to 0 before kicking the new loop), and line_ended
+	# leaves the fully-revealed text in place during fade-out.
+	_typewrite_seq += 1
+
+
+func _run_typewriter(my_seq: int) -> void:
+	var step: float = 1.0 / max(typewrite_speed, 1.0)
+	var total: int = _text_label.get_total_character_count()
+	var parsed: String = _text_label.get_parsed_text()
+	for i in total:
+		if my_seq != _typewrite_seq:
+			return
+		_text_label.visible_characters = i + 1
+		var ch: String = parsed.substr(i, 1) if i < parsed.length() else ""
+		TypingClicks.play(i, ch, typing_cue, typing_every_n_chars,
+				typing_chance, typing_skip_whitespace)
+		await get_tree().create_timer(step).timeout
+	if my_seq == _typewrite_seq:
+		_text_label.visible_characters = -1  # show all (Godot convention)
 
 
 func _apply_portrait(character: String) -> void:

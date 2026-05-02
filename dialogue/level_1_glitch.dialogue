@@ -1,6 +1,6 @@
 ~ start
 
-Glitch: That gap ahead — you're not getting across **that**. Not in **those shoes** you aren't.
+Glitch: That gap ahead — you're not getting across that. Not in **those shoes** you aren't.
 Glitch: I've got something for you. A small upgrade.
 - What did you have in mind?
 	=> offer
@@ -18,7 +18,7 @@ Glitch: I admire the optimism.
 
 ~ doubt_2
 
-Glitch: Three respawns. Then you come back.
+Glitch: Three respawns. Then you come right back.
 Glitch: I'll be here.
 - ...alright, what's the upgrade?
 	=> offer
@@ -34,7 +34,7 @@ Glitch: Shall we?
 
 ~ sales
 
-Glitch: **Exclusive** Gibson hardware. Modeled on physics that don't strictly exist.
+Glitch: **Exclusive** Gibson hardware. Modeled on physics that don't quite exist.
 Glitch: They feel **right**. That's the part that matters.
 - I'm in.
 	=> done

@@ -1,6 +1,6 @@
 ~ start
 
 Glitch: I see you are breaking those in quite nicely.
-Glitch: See you around.
+Glitch: I'll be seeing you.
 do GameState.set_flag("glitch_chance_done", true)
 => END

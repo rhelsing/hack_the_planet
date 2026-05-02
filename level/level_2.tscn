@@ -646,7 +646,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -281.6411, 71.967735, 41.8350
 [node name="splice_musing_1" parent="." index="132" unique_id=1260040209 instance=ExtResource("54_walkie")]
 transform = Transform3D(11.373005, 0, 0, 0, 2.4110703, 0, 0, 0, 3.0751052, -159.71008, 71.95591, 58.543922)
 character = &"Splice"
-line = "The **mouse** looking for the cheese will often find the **trap**."
+line = "The **mouse** looking for the cheese often finds the **trap**."
 require_flag = &""
 
 [node name="Coin8" parent="." index="133" unique_id=227320652 instance=ExtResource("23_3c4pw")]

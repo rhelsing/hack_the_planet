@@ -24,6 +24,10 @@ const FLAG_LEVEL_4_COMPLETED: StringName = &"level_4_completed"
 # the ratchet for first_enemies: park the group +20 Y until set, lower on
 # flip, skip the raise entirely on resume once persisted.
 const FLAG_GLITCH2_DONE: StringName = &"glitch2_done"
+## Solving the 5th puzzle terminal (last in the hub sequence) swaps the
+## victory music — disco out, the "How To Sex" cue in. Used to gate an
+## easter-egg video; now it's a music reward instead.
+const FLAG_HUB_TERMINAL_5: StringName = &"hub_terminal_5"
 const FIRST_ENEMIES_RAISE_Y: float = 20.0
 const FIRST_ENEMIES_LOWER_DURATION: float = 1.5
 
@@ -32,6 +36,11 @@ const FIRST_ENEMIES_LOWER_DURATION: float = 1.5
 @export var victory_specular_fade_s: float = 1.5
 @export var victory_music: AudioStream = preload("res://audio/music/disco_music.mp3")
 @export var victory_music_fade_in_s: float = 2.0
+## Replaces victory_music once `hub_terminal_5` flips true (5th hub puzzle
+## solved). Plays on entry if the flag is already set, or live-swaps if
+## the player solves the puzzle while in the hub.
+@export var puzzle5_music: AudioStream = preload("res://audio/music/howto_sex.mp3")
+@export var puzzle5_music_fade_in_s: float = 2.0
 ## Placeholder burst — confetti for v1, swap to a real firework scene later.
 @export var firework_scene: PackedScene = preload("res://enemy/confetti_burst.tscn")
 @export var firework_radius: float = 20.0
@@ -75,6 +84,10 @@ func _ready() -> void:
 	# moment the flag fires. Replay (re-entering hub with the flag already
 	# set) is handled inside _enter_victory_state.
 	Events.flag_set.connect(_on_flag_set_for_splice_dance)
+	# Live music swap when the 5th hub puzzle is solved this session. The
+	# entry-time branch in _enter_victory_state covers replays where the
+	# flag is already true on load.
+	Events.flag_set.connect(_on_flag_set_for_puzzle5_music)
 
 
 # Park the first_enemies group up high until the player finishes the Glitch
@@ -117,6 +130,16 @@ func _on_flag_set_for_splice_dance(id: StringName, value: Variant) -> void:
 	_start_splice_dance_loop("flag flipped live")
 
 
+func _on_flag_set_for_puzzle5_music(id: StringName, value: Variant) -> void:
+	if id != FLAG_HUB_TERMINAL_5:
+		return
+	if not bool(value):
+		return
+	if puzzle5_music == null:
+		return
+	Audio.play_music(puzzle5_music, puzzle5_music_fade_in_s)
+
+
 func _start_splice_dance_loop(reason: String) -> void:
 	var splice := get_node_or_null(^"postL4Show/Splice")
 	if splice == null:
@@ -135,7 +158,12 @@ func _enter_victory_state() -> void:
 	if light != null:
 		var tw := create_tween()
 		tw.tween_property(light, "light_specular", victory_specular, victory_specular_fade_s)
-	if victory_music != null:
+	# Music: disco by default, but if the player has already solved the 5th
+	# hub puzzle on a prior session, jump straight to the puzzle-5 reward
+	# track. The live swap below handles in-session solves.
+	if bool(GameState.get_flag(FLAG_HUB_TERMINAL_5, false)) and puzzle5_music != null:
+		Audio.play_music(puzzle5_music, puzzle5_music_fade_in_s)
+	elif victory_music != null:
 		Audio.play_music(victory_music, victory_music_fade_in_s)
 	# DialTone (or whoever's wired) cycles through their dance clips for the
 	# duration of the hub session. CompanionNPC.enter_dance_loop disables its

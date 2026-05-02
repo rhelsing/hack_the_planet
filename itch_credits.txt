@@ -101,6 +101,12 @@ ChatGPT by OpenAI — code, dialogue, design iteration — https://openai.com/ch
 ElevenLabs — text-to-speech voice synthesis (also listed under Voice) — https://elevenlabs.io/
 
 
+Logos & Brands
+
+Jolt Cola — vintage logo used in-game (brand believed defunct).
+RISC architecture — the world runs on it.
+
+
 Special Thanks
 
 And every phone booth that still takes a quarter.

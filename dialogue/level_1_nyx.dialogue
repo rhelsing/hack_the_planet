@@ -1,7 +1,7 @@
 ~ start
 
 Nyx: Hey there runner.
-do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
+# do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
 Nyx: Why are you looking at me like that?
 - DialTone said you needed help?
 	Nyx: Of course he did! He's a child.

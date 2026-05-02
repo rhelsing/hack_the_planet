@@ -1,7 +1,7 @@
 ~ start
 
 Glitch: Hey — you made it across!
-do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
+# do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
 Glitch: I'm Glitch.
 Glitch: My sole directive is to be helpful to you here in the Gibson.
 Glitch: One more thing — those phone booths around the grid. Walk near one and it lights up green. Bank that, and you respawn there if you fall.

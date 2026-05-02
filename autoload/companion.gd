@@ -78,9 +78,9 @@ func _dispatch_if_idle() -> void:
 	var text: String = next.text
 	var voices: Resource = Dialogue._voices
 	if voices == null or not voices.has_voice(character):
-		_log('dispatch: no voice for "%s" — skipping' % character)
+		_log('dispatch: no voice for "%s" — display-only' % character)
 		_queue.pop_front()
-		_dispatch_if_idle()
+		_play_silent(character, text)
 		return
 	var voice_id: String = voices.get_voice_id(character)
 	# Per-line model override (see walkie.gd dispatch for rationale — same
@@ -107,15 +107,15 @@ func _dispatch_if_idle() -> void:
 	# leaking the key + costing API calls. Editor playtests still synth as
 	# normal — OS.has_feature("template") is true ONLY in exports.
 	if OS.has_feature("template"):
-		_log("dispatch: cache MISS in exported build — silent fallback")
+		_log("dispatch: cache MISS in exported build — display-only")
 		_queue.pop_front()
-		_dispatch_if_idle()
+		_play_silent(character, resolved_text)
 		return
 
 	if Dialogue._api_key.is_empty():
-		_log("dispatch: cache MISS + no API key — skipping line")
+		_log("dispatch: cache MISS + no API key — display-only")
 		_queue.pop_front()
-		_dispatch_if_idle()
+		_play_silent(character, resolved_text)
 		return
 
 	_log("dispatch: cache MISS — requesting from ElevenLabs%s" % ((" [model=%s]" % line_model) if line_model != ELEVEN_MODEL_ID else ""))
@@ -195,4 +195,31 @@ func _on_companion_finished() -> void:
 		return
 	_playing = false
 	line_ended.emit()
+
+
+## Display-only line: emits line_started, plays the open click, holds for a
+## duration matched to walkie_ui's typewriter, emits line_ended. Used when
+## TTS synthesis is unavailable so consumers awaiting line_ended don't hang
+## and walkie_ui still renders the subtitle. cps matches scroll_balloon's
+## typing speed.
+## Match walkie_ui.typewrite_speed so the autoload's timer expires no
+## sooner than the typewriter completes. Raw text.length() is ≥ visible
+## char count (emphasis markers strip), so chars/CPS is a safe upper bound
+## on typewriter duration — the line is guaranteed fully visible before
+## the tail pad starts counting.
+const _SILENT_CPS: float = 55.0
+## Hold the fully-displayed line on screen this long after the typewriter
+## finishes, before emitting line_ended (which triggers walkie_ui's fade).
+const _SILENT_TAIL_PAD: float = 4.0
+
+func _play_silent(character: String, text: String) -> void:
+	_playing = true
+	line_started.emit(character, text)
+	Audio.play_sfx(&"ui_move")
+	var duration: float = float(text.length()) / _SILENT_CPS + _SILENT_TAIL_PAD
+	await get_tree().create_timer(duration).timeout
+	if _playing:
+		_playing = false
+		line_ended.emit()
+		_dispatch_if_idle()
 	_dispatch_if_idle()

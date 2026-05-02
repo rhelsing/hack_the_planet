@@ -40,6 +40,20 @@ const YOU_CHOICE_COLOR := "#8FA08F"
 ## The action to use to skip typing the dialogue
 @export var skip_action: StringName = &"ui_cancel"
 
+@export_group("Typing Clicks")
+## Per-character keyboard click cue. See audio/typing_clicks.gd for the gate.
+@export var typing_cue: StringName = &"end_card_type"
+## Override DialogueLabel.seconds_per_step for the scroll balloon. Lower = faster.
+## Set to <= 0 to leave whatever the .tscn / addon default is untouched.
+@export var typing_seconds_per_char: float = 0.018
+## Only fire on every Nth character (1 = every char, 2 = every other, …).
+@export_range(1, 8) var typing_every_n_chars: int = 2
+## Chance gate stacked on top of every_n_chars. 1.0 = always.
+@export_range(0.0, 1.0) var typing_chance: float = 0.6
+## Skip whitespace (space/newline/tab) entirely — keeps the click pattern from
+## firing on word gaps.
+@export var typing_skip_whitespace: bool = true
+
 ## A sound player for voice lines (if they exist).
 @onready var audio_stream_player: AudioStreamPlayer = %AudioStreamPlayer
 
@@ -149,6 +163,14 @@ func _ready() -> void:
 	mutation_cooldown.timeout.connect(_on_mutation_cooldown_timeout)
 	add_child(mutation_cooldown)
 
+	# Per-character keystroke clicks. The DialogueLabel emits `spoke` once
+	# per revealed character; we gate via TypingClicks. seconds_per_char is
+	# applied here so the inspector knob actually reaches the addon node.
+	if typing_seconds_per_char > 0.0:
+		dialogue_label.seconds_per_step = typing_seconds_per_char
+	if not dialogue_label.spoke.is_connected(_on_dialogue_label_spoke):
+		dialogue_label.spoke.connect(_on_dialogue_label_spoke)
+
 	if auto_start:
 		if not is_instance_valid(dialogue_resource):
 			assert(false, DMConstants.get_error_message(DMConstants.ERR_MISSING_RESOURCE_FOR_AUTOSTART))
@@ -158,6 +180,11 @@ func _ready() -> void:
 ## UI "tick" sound as the player navigates between response choices.
 func _on_response_focused(_control: Control) -> void:
 	Audio.play_sfx(&"ui_move")
+
+
+func _on_dialogue_label_spoke(letter: String, letter_index: int, _speed: float) -> void:
+	TypingClicks.play(letter_index, letter, typing_cue, typing_every_n_chars,
+			typing_chance, typing_skip_whitespace)
 
 
 ## P4.5 — render a colored banner in the scroll log when a skill check resolves.

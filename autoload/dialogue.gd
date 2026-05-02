@@ -38,6 +38,13 @@ const TtsText: GDScript = preload("res://autoload/tts_text.gd")
 # the model, so consider clearing res://audio/voice_cache/ after swapping.
 const ELEVEN_MODEL_ID: String = "eleven_flash_v2_5"
 
+## Master kill-switch for runtime TTS synthesis. When true, `_api_key` is
+## forced empty at boot — every dispatcher (Dialogue/Walkie/Companion) sees
+## a missing key and takes its existing silent-skip branch. Flip to false
+## to re-enable bake/regen workflows. Voice cache is unaffected; cache HITS
+## still play normally.
+const TTS_DISABLED: bool = true
+
 ## Toggle via `Dialogue.verbose = false` to silence the trace logs.
 @export var verbose: bool = true
 
@@ -64,7 +71,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	_voices = load(VOICES_PATH)
-	_api_key = _load_api_key()
+	_api_key = "" if TTS_DISABLED else _load_api_key()
 	_log("ready. voices=%s api_key=%s cache=%s" % [
 		"loaded" if _voices != null else "<MISSING>",
 		"present (%d chars)" % _api_key.length() if not _api_key.is_empty() else "<NOT SET — TTS will be silent>",

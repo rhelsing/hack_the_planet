@@ -44,19 +44,16 @@ Nyx: Talk.
 ~ nyx_post_1_questions
 
 - Why off-channel?
-	Nyx: DialTone gets more smug when there's an audience.
-	Nyx: This is just for me.
+	Nyx: DialTone gets worse with an audience.
 - You pulled my trace?
 	Nyx: I pull everyone's trace.
-	Nyx: Don't read into it.
 - What do you want?
 	Nyx: DialTone scouted you. He's calling it casting.
 	Nyx: But I have doubts
 	do GameState.set_flag("nyx_post_1_asked_dare", true)
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Doubts about what?
-	Nyx: About you being worth our time.
-	Nyx: About you being any different than others.
-	Nyx: But I would be happy to be proved wrong.
+	Nyx: Whether you're going to waste our time.
+	Nyx: Prove me wrong then.
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
 	Nyx: DialTone's smug enough already.
 - All right, see you on the wire.
@@ -74,7 +71,7 @@ if GameState.get_flag("nyx_post_2_opener_seen", false)
 	=> nyx_post_2_entry
 
 Nyx: You got a second?
-Nyx: Off-channel. DialTone doesn't need to hear this part.
+Nyx: Off-channel.
 do GameState.set_flag("nyx_post_2_opener_seen", true)
 => nyx_post_2_questions
 
@@ -114,15 +111,15 @@ Nyx: Anything else, runner?
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Who was he to you?
 	Nyx: He was the smartest person I'd ever met.
 	Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
-	Nyx: I didn't. That's mine.
+	Nyx: I didn't. That's — yeah.
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
-	Nyx: He never did. He performed listening.
+	Nyx: He never listened. He just waited for his turn to talk.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
-	Nyx: He's not wrong about being wronged. He is wrong about what to do with it.
+	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Why does he scare you?
-	Nyx: He doesn't scare me. I scare me — for ever signing off on him.
+	Nyx: He doesn't scare me. What scares me is I vouched for him.
 	Nyx: He just confirms the read.
 - All right, see you on the wire.
 	=> END
@@ -148,7 +145,7 @@ Nyx: You don't have to be in for this one. Anyone who jacked out right now would
 ~ nyx_post_2_choice
 
 Nyx: Whatever you decide, I won't take it personally.
-Nyx: Just decide on purpose.
+Nyx: Just don't drift into it.
 => END
 
 # ── Post Level 3 ─────────────────────────────────────────────────────────
@@ -200,8 +197,7 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 	Nyx: When you said no to him — I knew before he did. That's new too.
 	do GameState.set_flag("nyx_post_3_asked_read", true)
 - [if GameState.get_flag("nyx_post_3_asked_read", false) /] What does that mean?
-	Nyx: Means I don't have to keep guessing on you.
-	Nyx: Don't read into it.
+	Nyx: Means I think I can stop waiting for you to disappoint me.
 - [if GameState.get_flag("nyx_post_3_asked_read", false) /] It mattered to you.
 	Nyx: yes.
 	Nyx: Moving on.
@@ -213,7 +209,7 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 ~ nyx_post_3_done
 
 Nyx: Last sector.
-Nyx: If we land it — I get to stop carrying this.
+Nyx: If we land it — I'm done with Splice. Actually done. That'd be something.
 Nyx: That'd be... refreshing.
 do GameState.set_flag("hub_nyx_post3_done", true)
 => END
@@ -255,8 +251,7 @@ else
 	Nyx: We absolutely are.
 	Nyx: Splice spent a year in the static planning this. He gets to see us happy. That's the bit.
 - He's quarantined for good?
-	Nyx: For now. Forever's a luxury we don't get on this grid.
-	Nyx: But for now? Yes. He's boxed.
+	Nyx: For now. Yes. But he's been there before.
 - See you on the wire.
 	Nyx: Go pick a song. Save me one.
 	do GameState.set_flag("hub_post4_nyx_celebrated", true)

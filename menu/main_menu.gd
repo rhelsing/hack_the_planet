@@ -191,10 +191,10 @@ func _go_to_game(show_intro: bool = false) -> void:
 	# New Game only: play the intro cinematic before the loading sequence.
 	# Cutscene.show_video pauses music + ambience for the duration and resumes
 	# them on its own. Awaits naturally to the video's end via `finished`.
-	if show_intro and ResourceLoader.exists(INTRO_VIDEO_PATH):
-		var cs := get_tree().root.get_node_or_null(^"Cutscene")
-		if cs != null and cs.has_method(&"show_video"):
-			await cs.call(&"show_video", INTRO_VIDEO_PATH, -1.0)
+	# if show_intro and ResourceLoader.exists(INTRO_VIDEO_PATH):
+	# 	var cs := get_tree().root.get_node_or_null(^"Cutscene")
+	# 	if cs != null and cs.has_method(&"show_video"):
+	# 		await cs.call(&"show_video", INTRO_VIDEO_PATH, -1.0)
 	var sl := get_tree().root.get_node_or_null(^"SceneLoader")
 	if sl != null and sl.has_method(&"goto"):
 		print("[main_menu] using SceneLoader.goto")
