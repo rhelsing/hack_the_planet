@@ -608,27 +608,41 @@ var _natural_lean_roll := 0.0
 ## Scales with curve angle. Kept LOW so it doesn't fight uphill momentum —
 ## gravity's natural slide is already pulling you down the curve. This is
 ## a small "extra magnetism" feel, not a real force.
-@export var halfpipe_stick_strength: float = 6.0
+@export var halfpipe_stick_strength: float = 120.0
+## Extra downhill push when the player has NO movement input. With
+## floor_max_angle held high, the body would otherwise stand glued to a
+## steep wall — this is the "you let go of the stick, you slide" force.
+## Only fires when intent.move_direction.length() < 0.1. Scales with
+## curve_factor so flat trough = no idle slide, vertical wall = full pull.
+@export var halfpipe_idle_slide_strength: float = 600.0
 ## Speed-along-trough multiplier for downhill velocity. 1.0 = pure physics.
 ## >1.0 = arcade boost on the way down.
 @export var halfpipe_speed_boost: float = 1.4
 ## Multiplier on the body's max horizontal speed while on a curve surface.
 ## 2.0 = doubled — drop-in builds momentum fast and you can carry it back
 ## up the opposite wall. Multiplies into the existing target_vel calc.
-@export var halfpipe_max_speed_multiplier: float = 2.0
+@export var halfpipe_max_speed_multiplier: float = 1.45
 ## Walkable-floor angle override while on a curve surface. Default
 ## CharacterBody3D `floor_max_angle` is 45° — at that limit you can't walk
 ## past the gentle parts of the trough. Bumping to 80° lets you ride
 ## almost-vertical walls without slipping. Restored to floor_max_angle's
 ## prior value when you leave the surface.
-@export var halfpipe_walk_max_angle_deg: float = 85.0
+@export var halfpipe_walk_max_angle_deg: float = 90.0
+## Floor-snap distance override while engaged. Godot's default
+## floor_snap_length (0.1m) is too short to keep the body kissed to a
+## curving surface when moving fast tangentially: each tick the body
+## advances linearly, the surface curves away from that tangent, the
+## snap-cast misses, is_on_floor() drops to false, gravity yanks the
+## body back into the surface, re-collides, snap re-engages. That's the
+## "way-up-only" bounce — going DOWN the curve self-clings; going UP
+## self-detaches. Bumping snap reach lets the cast find the surface
+## again before the body goes airborne. Saved + restored on disengage,
+## same lifecycle as floor_max_angle. Set to 0.0 to disable the override
+## entirely and use whatever the body's default snap is.
+@export var halfpipe_snap_length: float = 1.5
 ## Seconds after a curve-surface jump before stick re-engages — prevents
 ## "jumped off the wall, got snapped back to the wall on the way up."
 @export var halfpipe_jump_cooldown_s: float = 0.3
-## Grace window before disengage actually fires — single-tick probe misses
-## at CSG geometry seams won't toggle floor_max_angle off and bounce you
-## off the wall. Only sustained misses (>= this value) really disengage.
-@export var halfpipe_disengage_grace_s: float = 0.15
 ## Jump direction blend: 0.0 = pure world-up, 1.0 = pure surface normal.
 ## 0.2 = 80% vertical with a 20% lateral push from the wall angle, so
 ## you still pop up off the lip but a vertical wall sends you slightly
@@ -643,13 +657,16 @@ var _halfpipe_jump_timer: float = 0.0
 ## Cached floor_max_angle from before we entered a curve surface. Restored
 ## the moment we disengage so non-pipe movement uses the project default.
 var _halfpipe_saved_floor_max_angle: float = -1.0
-## Sustained probe-miss accumulator. Single-tick misses at CSG seams won't
-## flip floor_max_angle off and bounce the body. Only when this exceeds
-## halfpipe_disengage_grace_s does the disengage actually fire.
-var _halfpipe_miss_timer: float = 0.0
+## Cached floor_snap_length from before engagement. Same lifecycle as
+## _halfpipe_saved_floor_max_angle — saved on first engage, restored on
+## disengage. -1.0 sentinel means "nothing saved yet."
+var _halfpipe_saved_floor_snap_length: float = -1.0
 # Debug-dedupe: print on transitions only. Filter logs with [halfpipe].
 # Single state line per engage/disengage; no per-tick spam.
 var _hp_last_engaged: bool = false
+# Penetration-debug dedupe: store last logged signed depth (rounded to 0.1)
+# so the per-tick log only fires when the depth actually moves a notch.
+var _hp_last_pen_bucket: float = 999.0
 var _speedup_timer := 999.0
 var _was_moving := false
 var _brake_impulse := 0.0
@@ -812,7 +829,7 @@ var _betrayal_walk_speed: float = 1.5
 # Drained on respawn after a settle window (matches the label's show_delay)
 # so Glitch doesn't start talking before the player has landed and oriented.
 var _pending_voice_lines: Array[Dictionary] = []
-const _VOICE_RESPAWN_DELAY: float = 1.0
+const _VOICE_RESPAWN_DELAY: float = 2.0
 
 @onready var _camera_pivot: Node3D = %CameraPivot
 @onready var _camera: Camera3D = %Camera3D
@@ -1534,6 +1551,7 @@ func _start_death(impact_direction: Vector3) -> void:
 		_spawn_death_confetti()
 	died.emit()
 	_emit_pending_respawn_hints()
+	_drain_pending_voice_lines()
 
 
 ## Stealth-kill entry point. No knockback launch, no horizontal impulse —
@@ -2355,9 +2373,17 @@ func _physics_process(delta: float) -> void:
 		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult * _faction_speed_mult * hp_speed_mult
 		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
 	else:
-		h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)
-		if profile.stopping_speed > 0.0 and h_vel.length_squared() < profile.stopping_speed * profile.stopping_speed:
-			h_vel = Vector3.ZERO
+		# Halfpipe wall escape: when engaged on a curve steeper than the
+		# trough, skip horizontal friction so gravity-along-surface
+		# (g·sin(θ)) can actually slide the body. Without this, friction
+		# zeros the slide every tick and the player stands glued to a
+		# vertical wall. Trough (curve ≈ 0) still gets full friction so
+		# you don't coast forever on flat ground.
+		var on_halfpipe_wall: bool = _on_halfpipe and _halfpipe_curve_factor > 0.1
+		if not on_halfpipe_wall:
+			h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)
+			if profile.stopping_speed > 0.0 and h_vel.length_squared() < profile.stopping_speed * profile.stopping_speed:
+				h_vel = Vector3.ZERO
 
 	velocity = Vector3(h_vel.x, y_velocity + _gravity * delta, h_vel.z)
 
@@ -2785,6 +2811,29 @@ func _dbg_collect_cameras(n: Node, out: Array) -> void:
 
 
 func _register_debug_panel() -> void:
+	# Halfpipe live-tune knobs. Edits take effect on the next physics tick;
+	# the lifecycle save/restore in _update_halfpipe_stick + _halfpipe_disengage
+	# keeps non-halfpipe behavior unaffected.
+	DebugPanel.add_slider("Halfpipe/walk_max_angle_deg", 0.0, 90.0, 1.0,
+		func() -> float: return halfpipe_walk_max_angle_deg,
+		func(v: float) -> void: halfpipe_walk_max_angle_deg = v,
+		"player_body.gd")
+	DebugPanel.add_slider("Halfpipe/snap_length", 0.0, 5.0, 0.05,
+		func() -> float: return halfpipe_snap_length,
+		func(v: float) -> void: halfpipe_snap_length = v,
+		"player_body.gd")
+	DebugPanel.add_slider("Halfpipe/stick_strength", 0.0, 300.0, 5.0,
+		func() -> float: return halfpipe_stick_strength,
+		func(v: float) -> void: halfpipe_stick_strength = v,
+		"player_body.gd")
+	DebugPanel.add_slider("Halfpipe/idle_slide_strength", 0.0, 1000.0, 10.0,
+		func() -> float: return halfpipe_idle_slide_strength,
+		func(v: float) -> void: halfpipe_idle_slide_strength = v,
+		"player_body.gd")
+	DebugPanel.add_slider("Halfpipe/max_speed_multiplier", 0.0, 3.0, 0.05,
+		func() -> float: return halfpipe_max_speed_multiplier,
+		func(v: float) -> void: halfpipe_max_speed_multiplier = v,
+		"player_body.gd")
 	DebugPanel.add_enum("Camera/Follow/mode", PackedStringArray(["PARENTED", "DETACHED"]),
 		func() -> int: return int(follow_mode),
 		func(v: int) -> void:
@@ -3081,7 +3130,7 @@ func _register_debug_panel() -> void:
 ## behaves exactly as if this system didn't exist.
 func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
 	# Toggle gate. Players, gold allies, and nobody else. Config kill —
-	# disengage immediately, no grace.
+	# disengage immediately.
 	var should_run: bool = false
 	if pawn_group == "player":
 		should_run = halfpipe_stick_for_player
@@ -3090,61 +3139,94 @@ func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
 	if not should_run:
 		_halfpipe_disengage()
 		return
-	# Cooldown after curve-jump prevents instant re-snap. Intentional
-	# disengage, no grace.
+	# Cooldown after curve-jump prevents instant re-snap.
 	if _halfpipe_jump_timer > 0.0:
 		_halfpipe_jump_timer = maxf(0.0, _halfpipe_jump_timer - delta)
 		_halfpipe_disengage()
 		return
-	# Downcast probe — short ray straight down from the body center.
+	# Grapple is the second explicit-release input (jump is the first,
+	# handled in the jump-impulse branch). Player only — allies don't
+	# grapple. Pressing fires regardless of aim target so the contract is
+	# predictable: press grapple = leave the curve.
+	if pawn_group == "player" and Input.is_action_just_pressed(&"grapple_fire"):
+		_halfpipe_disengage()
+		return
+	# Probe direction is state-dependent. When NOT engaged, cast straight
+	# down — that's the "drop in from above" entry path. When engaged,
+	# cast back along the LAST KNOWN surface normal so we hit the wall
+	# beside us instead of empty space below us. Without this, a 70° wall
+	# is missed by every downward ray (the wall isn't below the body, it's
+	# next to it) and the body chatters in and out of engagement.
+	var probe_dir: Vector3 = Vector3.DOWN
+	if _hp_last_engaged and _halfpipe_normal.length_squared() > 0.0001:
+		probe_dir = -_halfpipe_normal
 	var space_state := get_world_3d().direct_space_state
 	var from: Vector3 = global_position + Vector3(0, 0.5, 0)
-	var to: Vector3 = from - Vector3.UP * halfpipe_probe_distance
+	var to: Vector3 = from + probe_dir * halfpipe_probe_distance
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [self]
 	var hit: Dictionary = space_state.intersect_ray(query)
-	if hit.is_empty():
-		_halfpipe_probe_miss(delta)
+	# Resolve whether the hit is a halfpipe surface (metadata or name match
+	# walking up the parent chain). Returns null if no qualifying hit.
+	var fresh_normal: Vector3 = Vector3.ZERO
+	if not hit.is_empty():
+		var hit_collider: Node = hit.get("collider")
+		if hit_collider != null:
+			var group_node: Node = hit_collider
+			while group_node != null:
+				if group_node.has_meta(halfpipe_surface_meta):
+					break
+				if halfpipe_surface_names.has(String(group_node.name)):
+					break
+				group_node = group_node.get_parent()
+			if group_node != null:
+				fresh_normal = hit.get("normal", Vector3.UP)
+	# No hit this tick. If we were engaged, STAY engaged — only jump,
+	# grapple, config-off, or post-jump cooldown disengage. Skip force
+	# application: a stale normal would push the body in the wrong
+	# direction as the surface curves away from us.
+	if fresh_normal == Vector3.ZERO:
 		return
-	var hit_collider: Node = hit.get("collider")
-	if hit_collider == null:
-		_halfpipe_probe_miss(delta)
-		return
-	# Walk up parent chain looking for the surface marker — metadata first,
-	# name fallback. Both are checked at each step so a collider one level
-	# deeper than the marked node still resolves.
-	var group_node: Node = hit_collider
-	while group_node != null:
-		if group_node.has_meta(halfpipe_surface_meta):
-			break
-		if halfpipe_surface_names.has(String(group_node.name)):
-			break
-		group_node = group_node.get_parent()
-	if group_node == null:
-		_halfpipe_probe_miss(delta)
-		return
-	# Confirmed hit — reset miss accumulator.
-	_halfpipe_miss_timer = 0.0
-	# Latched onto a curve surface. Stash normal + tilt magnitude.
+	# Fresh hit — refresh state and apply forces.
 	_on_halfpipe = true
-	_halfpipe_normal = hit.get("normal", Vector3.UP)
+	_halfpipe_normal = fresh_normal
 	var angle_from_up: float = acos(clamp(_halfpipe_normal.dot(Vector3.UP), -1.0, 1.0))
 	_halfpipe_curve_factor = clamp(angle_from_up / (PI * 0.5), 0.0, 1.0)
-	# On first engage: stash the original floor_max_angle so disengage can
-	# fully restore it. Per-tick the angle is set below based on input.
+	# On first engage: stash the original floor_max_angle and bump it so
+	# steep walls count as walkable for the duration of the engagement.
 	if not _hp_last_engaged:
 		_halfpipe_saved_floor_max_angle = floor_max_angle
+		floor_max_angle = deg_to_rad(halfpipe_walk_max_angle_deg)
+		# Snap-length override only when the export is non-zero; 0.0 means
+		# "leave snap alone" so the knob can be killed without code edits.
+		# Actual per-tick value is computed below (tapers by curve_factor).
+		if halfpipe_snap_length > 0.0:
+			_halfpipe_saved_floor_snap_length = floor_snap_length
 		print("[halfpipe] ENGAGED  body=%s on_floor=%s vy=%.2f curve=%.2f" %
 			[name, is_on_floor(), velocity.y, _halfpipe_curve_factor])
 		_hp_last_engaged = true
-	# Input-context floor_max_angle: holding a direction → wall counts as
-	# walkable (climb the curve). Idle → revert to default so move_and_slide
-	# treats the steep wall as a wall and lets gravity slide you down.
-	var has_input: bool = intent.move_direction.length() > 0.1
-	if has_input:
-		floor_max_angle = deg_to_rad(halfpipe_walk_max_angle_deg)
-	else:
-		floor_max_angle = _halfpipe_saved_floor_max_angle
+	# Per-tick snap taper. Snap-cast goes along world -up_direction; on a
+	# near-vertical wall that pulls the upright capsule SIDEWAYS into the
+	# slanted wall geometry by ~radius. Taper keeps strong snap at the
+	# trough (where the way-up bounce was) and zero snap at vertical
+	# (where penetration starts). curve_factor 0 = flat → full snap;
+	# curve_factor 1 = vertical → no snap, normal collision handles it.
+	if halfpipe_snap_length > 0.0:
+		floor_snap_length = halfpipe_snap_length * (1.0 - _halfpipe_curve_factor)
+	# Penetration diagnostic — signed distance from probe-hit-point along
+	# the surface normal. Negative = body center is INSIDE the wall by
+	# that many meters. Deduped per 0.1m bucket so the log only fires when
+	# depth moves a notch. Strip after we've fixed the snap geometry.
+	var hit_point: Vector3 = hit.get("position", global_position)
+	var pen: float = (global_position - hit_point).dot(_halfpipe_normal)
+	var pen_bucket: float = roundf(pen * 10.0) / 10.0
+	if pen_bucket != _hp_last_pen_bucket:
+		_hp_last_pen_bucket = pen_bucket
+		print("[halfpipe-pen] curve=%.2f snap=%.2f pen=%+.2f body=(%.1f,%.1f,%.1f) hit=(%.1f,%.1f,%.1f) normal=(%.2f,%.2f,%.2f)" % [
+			_halfpipe_curve_factor, floor_snap_length, pen,
+			global_position.x, global_position.y, global_position.z,
+			hit_point.x, hit_point.y, hit_point.z,
+			_halfpipe_normal.x, _halfpipe_normal.y, _halfpipe_normal.z])
 	# Tangent along the surface pointing "downhill" (toward trough).
 	var down: Vector3 = Vector3.DOWN
 	var down_along_surface: Vector3 = down - _halfpipe_normal * down.dot(_halfpipe_normal)
@@ -3154,39 +3236,38 @@ func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
 	# Light adhesion pull (gentle nudge toward trough — gravity does most
 	# of the work). Won't fight strong uphill momentum.
 	velocity += down_along_surface * halfpipe_stick_strength * _halfpipe_curve_factor * delta
+	# Idle slide: when the player isn't pressing a direction, push them
+	# down the surface tangent so they don't stand glued to the wall.
+	var has_input: bool = intent.move_direction.length() > 0.1
+	if not has_input:
+		velocity += down_along_surface * halfpipe_idle_slide_strength * _halfpipe_curve_factor * delta
 	# Speed boost on downhill segments only — uphill momentum is preserved.
 	var v_along: float = velocity.dot(down_along_surface)
 	if v_along > 0.0:
 		velocity += down_along_surface * (halfpipe_speed_boost - 1.0) * v_along * delta
 
 
-## Probe-miss accumulator. Sustained misses (geometry actually ended) get
-## through to disengage; single-tick misses at CSG seams or under-edge
-## hovering are absorbed and the engaged state stays put.
-func _halfpipe_probe_miss(delta: float) -> void:
-	if not _hp_last_engaged:
-		# Wasn't engaged anyway — nothing to grace.
-		_halfpipe_disengage()
-		return
-	_halfpipe_miss_timer += delta
-	if _halfpipe_miss_timer >= halfpipe_disengage_grace_s:
-		_halfpipe_disengage()
-
-
 ## Tear-down for halfpipe state. Clears flags AND restores the body's
 ## floor_max_angle to whatever it was before engagement so the next
-## flat-floor section uses the project default.
+## flat-floor section uses the project default. Only called from
+## intentional-release sites: jump impulse, grapple input, post-jump
+## cooldown, and the master-toggle config kill.
 func _halfpipe_disengage() -> void:
 	_on_halfpipe = false
 	_halfpipe_curve_factor = 0.0
-	_halfpipe_miss_timer = 0.0
+	_hp_last_pen_bucket = 999.0
 	if _hp_last_engaged:
 		# Restore floor_max_angle to its pre-engage value.
 		if _halfpipe_saved_floor_max_angle >= 0.0:
 			floor_max_angle = _halfpipe_saved_floor_max_angle
 			_halfpipe_saved_floor_max_angle = -1.0
-		print("[halfpipe] DISENGAGED body=%s on_floor=%s vy=%.2f" %
-			[name, is_on_floor(), velocity.y])
+		# Restore floor_snap_length too. Sentinel -1.0 means we never
+		# overrode it (export was 0.0), so we leave it alone.
+		if _halfpipe_saved_floor_snap_length >= 0.0:
+			floor_snap_length = _halfpipe_saved_floor_snap_length
+			_halfpipe_saved_floor_snap_length = -1.0
+		print("[halfpipe] DISENGAGED body=%s on_floor=%s vy=%.2f snap=%.2f" %
+			[name, is_on_floor(), velocity.y, floor_snap_length])
 		_hp_last_engaged = false
 
 

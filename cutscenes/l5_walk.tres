@@ -21,7 +21,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_dialtone_1"]
 script = ExtResource("2_line")
 character = &"DialTone"
-text = "Channel's open. They wanted to hear me say it."
+text = "Channel's open. She wanted to hear me admit it."
 channel = "walkie"
 label = "DialTone: channel's open"
 
@@ -42,18 +42,6 @@ script = ExtResource("4_wait")
 seconds = 7.0
 label = "wait 7"
 
-[sub_resource type="Resource" id="line_glitch_1"]
-script = ExtResource("2_line")
-character = &"Glitch"
-text = "I had hoped my analysis was wrong. It was not."
-channel = "walkie"
-label = "Glitch: analysis was wrong"
-
-[sub_resource type="Resource" id="wait_4"]
-script = ExtResource("4_wait")
-seconds = 7.0
-label = "wait 7"
-
 [sub_resource type="Resource" id="line_glitch_2"]
 script = ExtResource("2_line")
 character = &"Glitch"
@@ -69,7 +57,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_nyx_1"]
 script = ExtResource("2_line")
 character = &"Nyx"
-text = "Sane move was log out. I told you that."
+text = "Sane move was log out. I told you that. This? This was something else."
 channel = "walkie"
 label = "Nyx: sane move was log out"
 
@@ -81,7 +69,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_nyx_2"]
 script = ExtResource("2_line")
 character = &"Nyx"
-text = "I told myself I'd read you right. ...that's twice now."
+text = "I told myself I'd read you right. ...that's twice now. I won't be doing this again."
 channel = "walkie"
 label = "Nyx: that's twice now"
 
@@ -93,7 +81,7 @@ label = "wait 7"
 [sub_resource type="Resource" id="line_nyx_3"]
 script = ExtResource("2_line")
 character = &"Nyx"
-text = "Bye, runner."
+text = "Goodbye, runner."
 channel = "walkie"
 label = "Nyx: bye runner"
 
@@ -128,6 +116,19 @@ script = ExtResource("4_wait")
 seconds = 7.0
 label = "wait 7"
 
+[sub_resource type="Resource" id="line_splice_great"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Isn't this great?"
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: isnt this great"
+
+[sub_resource type="Resource" id="wait_great"]
+script = ExtResource("4_wait")
+seconds = 7.0
+label = "wait 7"
+
 [sub_resource type="Resource" id="line_splice_4"]
 script = ExtResource("2_line")
 character = &"Splice"
@@ -138,7 +139,7 @@ label = "Splice: don't stop walking"
 
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_1"), SubResource("wait_4"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_4")])
+steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_great"), SubResource("wait_great"), SubResource("line_splice_4")])
 freeze_player = false
 scene_duration = 0.0
 done_flag = &"l5_walk_done"

@@ -28,8 +28,6 @@ var _f12_return: Dictionary = {}
 var _f9_return: Dictionary = {}
 # F1 dev-toggle return state. Splice on level 3, full coins.
 var _f1_return: Dictionary = {}
-# F2 dev-toggle return state. PB5 on level 4 (Splice showdown checkpoint).
-var _f2_return: Dictionary = {}
 
 
 func _ready() -> void:
@@ -79,7 +77,7 @@ func _input(event: InputEvent) -> void:
 			EnemyAIBrain.debug_visible = not EnemyAIBrain.debug_visible
 			print("[sentinel] debug overlay = %s" % EnemyAIBrain.debug_visible)
 		elif key == KEY_F2:
-			_toggle_l4_final_battle()
+			_warp_to_halfpipe()
 		elif key == KEY_F1:
 			_toggle_l3_splice()
 
@@ -364,37 +362,27 @@ func _toggle_l3_splice() -> void:
 	print("[F1] entered level_3 near Splice (return stashed=%s)" % not _f1_return.is_empty())
 
 
-# F2 round-trip into "level 4 at PhoneBooth5, the Splice-showdown checkpoint
-# (it's the booth wired to on_activate_arm_cutscene = SpliceCutscene per
-# level_4.tscn:1170)." Same shape as F1 minus the coin grant.
-func _toggle_l4_final_battle() -> void:
+# F2 halfpipe drop-in for tuning the curve-stick feel without skating
+# all the way over each iteration. L4-only — no-ops elsewhere with a log.
+# Coordinates picked to land above the halfpipe center (origin Y 24.4,
+# trough below); player free-falls onto the inner surface.
+func _warp_to_halfpipe() -> void:
 	const LEVEL_4_PATH: String = "res://level/level_4.tscn"
-	const SPAWN_POS: Vector3 = Vector3(471.46, 35.0, -521.91)
+	const HALFPIPE_DROP_POS: Vector3 = Vector3(465.6, 50.0, -566.78)
 	var current_path: String = ""
 	if _current_level != null and is_instance_valid(_current_level):
 		current_path = _current_level.scene_file_path
-	var player: Node3D = get_node_or_null(^"Player") as Node3D
-	if current_path == LEVEL_4_PATH:
-		if not _f2_return.is_empty():
-			var stash: Dictionary = _f2_return
-			_f2_return = {}
-			await LevelProgression.goto_path(stash.get("path", ""))
-			var p: Node3D = get_node_or_null(^"Player") as Node3D
-			if p != null and stash.has("position"):
-				p.global_position = stash["position"]
-			print("[F2] returned to %s" % stash.get("path", ""))
-			return
-		if player != null:
-			player.global_position = SPAWN_POS
-		print("[F2] in level_4 without stash — re-placed at PB5 (showdown booth)")
+	if current_path != LEVEL_4_PATH:
+		print("[F2] not on level_4 (current=%s) — halfpipe warp skipped" % current_path)
 		return
-	if player != null and current_path != "":
-		_f2_return = {"path": current_path, "position": player.global_position}
-	await LevelProgression.goto_path(LEVEL_4_PATH)
-	var p: Node3D = get_node_or_null(^"Player") as Node3D
-	if p != null:
-		p.global_position = SPAWN_POS
-	print("[F2] entered level_4 at PB5 (return stashed=%s)" % not _f2_return.is_empty())
+	var player: Node3D = get_node_or_null(^"Player") as Node3D
+	if player == null:
+		print("[F2] no Player node — halfpipe warp skipped")
+		return
+	player.global_position = HALFPIPE_DROP_POS
+	if "velocity" in player:
+		player.set(&"velocity", Vector3.ZERO)
+	print("[F2] dropped player at halfpipe %s" % HALFPIPE_DROP_POS)
 
 
 # Debug helper: copy every authored coin into coins_collected so coin_pct()

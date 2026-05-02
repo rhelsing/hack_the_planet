@@ -1,0 +1,17 @@
+WINDOWS
+
+Run Hack The Planet.exe. SmartScreen will gatekeep — click "More info" → "Run anyway". It's not signed because game jam.
+
+
+MAC
+
+Unzip and open. macOS will refuse the first time — right-click → Open → Open.
+Apple Silicon and Intel both supported.
+
+Hardcore route if right-click doesn't work:
+xattr -cr ~/Downloads/Hack\ The\ Planet.app
+
+
+LINUX
+
+May need to: chmod +x "Hack The Planet.x86_64"

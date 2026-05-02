@@ -259,8 +259,11 @@ func apply_dialogue_line() -> void:
 	# P3: convert emphasis markers to BBCode for the live label.
 	#   **word** → [b][color=<speaker>]WORD[/color][/b]
 	#   *word*   → [i]word[/i]
-	# Safe to mutate dialogue_line.text — it's a fresh object per line;
-	# the TTS side reads raw text from the plugin's got_dialogue signal.
+	# Stash the raw `**word**` form in meta BEFORE mutating — `got_dialogue`
+	# is emitted call_deferred (see dialogue_manager.gd:129) so dialogue.gd's
+	# TTS hook fires AFTER this mutation. Without the meta, runtime hashes
+	# the BBCode form while the prebake hashes the raw form → cache miss.
+	dialogue_line.set_meta(&"raw_text", dialogue_line.text)
 	dialogue_line.text = TextEmphasis.format_for_display(
 		dialogue_line.text, _speaker_color(dialogue_line.character))
 

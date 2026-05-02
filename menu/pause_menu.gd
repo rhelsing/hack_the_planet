@@ -13,6 +13,9 @@ const CONTROLS     := "res://menu/controls_panel.tscn"
 
 @onready var _root: Control = %Root
 @onready var _buttons: Control = %ButtonsRoot
+# Parent VBox holding Title + Gap + ButtonsRoot. Hide the whole column when
+# a sub-menu opens so the "-- PAUSED --" label doesn't overlap the panel.
+@onready var _column: Control = _buttons.get_parent() as Control
 @onready var _stack: Control = %MenuStack
 @onready var _resume_btn:  Button = %ResumeBtn
 @onready var _save_btn:    Button = %SaveBtn
@@ -73,7 +76,7 @@ func _close() -> void:
 		if is_instance_valid(c):
 			c.queue_free()
 	_stack_children.clear()
-	_buttons.visible = true
+	_column.visible = true
 	_capture_mouse(true)
 	Events.menu_closed.emit(&"pause")
 
@@ -242,7 +245,7 @@ func _push_sub_menu(path: String, args: Dictionary) -> void:
 		inst.connect(&"back_requested", _pop_sub_menu.bind(inst), CONNECT_ONE_SHOT)
 	_stack.add_child(inst)
 	_stack_children.append(inst)
-	_buttons.visible = false
+	_column.visible = false
 
 
 func _pop_sub_menu(inst: Node) -> void:
@@ -250,5 +253,5 @@ func _pop_sub_menu(inst: Node) -> void:
 		inst.queue_free()
 	_stack_children.erase(inst)
 	if _stack_children.is_empty():
-		_buttons.visible = true
+		_column.visible = true
 		_resume_btn.grab_focus()

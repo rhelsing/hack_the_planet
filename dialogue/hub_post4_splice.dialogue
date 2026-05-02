@@ -41,7 +41,7 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 	Splice: Quarantine's a soft jail. I get bored, the perimeter listens.
 	Splice: I'm not dancing. I'm watching. Better view, honestly. Front row to every move you make.
 - This is kind of cruel.
-	Splice: ...
+	Splice: Hmm
 	Splice: It is what it is, runner. Don't lose sleep on my behalf.
 	Splice: I wouldn't.
 - You're not getting out. But you can dance.
@@ -58,12 +58,12 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 
 ~ dance_offer
 
-Splice: ...don't.
+Splice: Don't.
 Splice: You don't get to forgive me, runner.
 - I'm not. It's a good song.
-	Splice: ...
+	Splice: hmm
 	Splice: It's a fine song.
-	Splice: I'm not doing it for you. I'm doing it because it's a fine song. [#model=eleven_v3]
+	Splice: I'm not doing it for you... I'm doing it because it's a fine song.
 	do GameState.set_flag("hub_post4_splice_danced", true)
 	=> splice_p4_questions
 - Fair enough.

@@ -117,7 +117,17 @@ func _on_line_shown(line: Object) -> void:
 	var character: String = ""
 	var template: String = ""
 	if "character" in line: character = str(line.character)
-	if "text" in line: template = str(line.text)
+	# Prefer `raw_text` meta if the balloon stashed it before mutating
+	# `line.text` to BBCode-formatted display form (scroll_balloon.gd does
+	# this — got_dialogue is emitted deferred, so by the time we get here
+	# `line.text` already has `**word**` swapped to `[b][color=…]WORD[/color][/b]`).
+	# Hashing the BBCode form would miss every prebaked mp3 (which is keyed
+	# off the raw `**word**` source). Falls back to `line.text` for callers
+	# that don't go through the balloon.
+	if line.has_meta(&"raw_text"):
+		template = str(line.get_meta(&"raw_text"))
+	elif "text" in line:
+		template = str(line.text)
 	# `template` is post-mustache (DialogueManager already ran `{{ }}`) but
 	# pre-LineLocalizer (our `{jump}` / `{player_handle}` tokens are still
 	# present). Resolve here so subtitles + TTS see the device-correct text;
@@ -164,11 +174,12 @@ func _on_line_shown(line: Object) -> void:
 	Audio.stop_walkie()
 
 	# WYSIWYG TTS: send the entire visible line in the speaker's own voice.
-	# `*asterisks*` render as italic on screen (scroll_balloon converts them
-	# to BBCode `[i]…[/i]`) but we strip the literal `*` chars from the TTS
-	# payload so ElevenLabs doesn't try to pronounce them. No per-span voice
-	# routing — the speaker reads everything.
-	var tts_template := template.replace("*", "")
+	# Keep the raw `**word**` markers in the hash input so runtime matches
+	# what `tools/prime_all_dialogue.gd` keys off (it hashes the raw line
+	# from the .dialogue file, asterisks intact). The asterisk strip + bold
+	# uppercasing happens at the ElevenLabs payload boundary in
+	# _maybe_dispatch_next_tts via TtsText.for_eleven_labs.
+	var tts_template := template
 	var tts_text := LineLocalizer.resolve(tts_template)
 	if tts_text.strip_edges().is_empty(): return
 	_log("  speak: [%s]%s%s %s" % [

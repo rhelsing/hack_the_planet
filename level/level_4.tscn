@@ -172,6 +172,8 @@ forbid_enemy_jump = true
 transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 504.63608, -10.281461, -568.85205)
 skin_scene = ExtResource("9_nyxskin")
 dialogue_resource = ExtResource("16_l4nyx")
+redirect_target = NodePath("../DialTone")
+redirect_unless_flag = "level_4_dialtone_done"
 interactable_id = &"npc_nyx_l4"
 
 [node name="BuriedReveal" parent="Nyx" index="5" unique_id=641539165 instance=ExtResource("39_buriedrev")]
@@ -1380,38 +1382,38 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 401.8174, -17.3349, -243.4148
 [node name="EnemyKayKit44" parent="." index="281" unique_id=1569453482 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 399.33386, -17.3349, -250.22375)
 
-[node name="AllyWaypoint_BigRamp32_Top" type="Marker3D" parent="." index="282" unique_id=729887909]
+[node name="AllyWaypoint_BigRamp32_Top" type="Marker3D" parent="." index="282" groups=["ally_waypoints"] unique_id=729887909]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 453.32825, -17.32906, -275.4)
 
-[node name="AllyWaypoint_BigRamp32_Top11" type="Marker3D" parent="." index="283" unique_id=715531967]
+[node name="AllyWaypoint_BigRamp32_Top11" type="Marker3D" parent="." index="283" groups=["ally_waypoints"] unique_id=715531967]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 449.01236, -17.32906, -253.52295)
 
-[node name="AllyWaypoint_BigRamp32_Top12" type="Marker3D" parent="." index="284" unique_id=67019209]
+[node name="AllyWaypoint_BigRamp32_Top12" type="Marker3D" parent="." index="284" groups=["ally_waypoints"] unique_id=67019209]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 433.42407, -17.32906, -253.52295)
 
-[node name="AllyWaypoint_BigRamp32_Top2" type="Marker3D" parent="." index="285" unique_id=1078044818]
+[node name="AllyWaypoint_BigRamp32_Top2" type="Marker3D" parent="." index="285" groups=["ally_waypoints"] unique_id=1078044818]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 478.0077, -7.0963817, -275.4)
 
-[node name="AllyWaypoint_BigRamp32_Top3" type="Marker3D" parent="." index="286" unique_id=1914292266]
+[node name="AllyWaypoint_BigRamp32_Top3" type="Marker3D" parent="." index="286" groups=["ally_waypoints"] unique_id=1914292266]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 479.79425, -7.0963817, -267.69604)
 
-[node name="AllyWaypoint_BigRamp32_Top4" type="Marker3D" parent="." index="287" unique_id=1314631319]
+[node name="AllyWaypoint_BigRamp32_Top4" type="Marker3D" parent="." index="287" groups=["ally_waypoints"] unique_id=1314631319]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 462.32086, -7.0963817, -267.69604)
 
-[node name="AllyWaypoint_BigRamp32_Top5" type="Marker3D" parent="." index="288" unique_id=1919661093]
+[node name="AllyWaypoint_BigRamp32_Top5" type="Marker3D" parent="." index="288" groups=["ally_waypoints"] unique_id=1919661093]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 462.32086, -7.0963817, -238.99982)
 
-[node name="AllyWaypoint_BigRamp32_Top6" type="Marker3D" parent="." index="289" unique_id=1453253581]
+[node name="AllyWaypoint_BigRamp32_Top6" type="Marker3D" parent="." index="289" groups=["ally_waypoints"] unique_id=1453253581]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 453.72958, -7.0963817, -238.99982)
 
-[node name="AllyWaypoint_BigRamp32_Top7" type="Marker3D" parent="." index="290" unique_id=443383298]
+[node name="AllyWaypoint_BigRamp32_Top7" type="Marker3D" parent="." index="290" groups=["ally_waypoints"] unique_id=443383298]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 453.72958, -0.6325648, -253.08945)
 
-[node name="AllyWaypoint_BigRamp32_Top8" type="Marker3D" parent="." index="291" unique_id=630518738]
+[node name="AllyWaypoint_BigRamp32_Top8" type="Marker3D" parent="." index="291" groups=["ally_waypoints"] unique_id=630518738]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 453.72958, 3.8106077, -270.31558)
 
-[node name="AllyWaypoint_BigRamp32_Top9" type="Marker3D" parent="." index="292" unique_id=1379187150]
+[node name="AllyWaypoint_BigRamp32_Top9" type="Marker3D" parent="." index="292" groups=["ally_waypoints"] unique_id=1379187150]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.57523, 3.8106077, -268.53415)
 
-[node name="AllyWaypoint_BigRamp32_Top10" type="Marker3D" parent="." index="293" unique_id=439814458]
+[node name="AllyWaypoint_BigRamp32_Top10" type="Marker3D" parent="." index="293" groups=["ally_waypoints"] unique_id=439814458]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.57523, 3.8106077, -261.38675)
