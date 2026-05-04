@@ -18,7 +18,7 @@ elif GameState.get_flag("dialtone_greeted", false)
 ~ stage_intro
 
 DialTone: Hey — over here.
-do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
+# do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
 DialTone: Name's DialTone.
 DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break her loose.
 => dialtone_questions
@@ -39,17 +39,17 @@ DialTone: Hey — time's ticking.
 ~ dialtone_questions
 
 - Are you who messaged me?
-	DialTone: ...maybe.
+	DialTone: ...perhaps.
 	DialTone: Let's just say I noticed you. The way you asked questions on Hacker News intrigued me.
 	DialTone: I wanted to see what you were made of.
 	do GameState.set_flag("dialtone_messenger_thread", 1)
 - Who's Nyx?
-	DialTone: Nyx. Sharpest hacker on this grid. Usually. Not her day.
+	DialTone: Nyx. Sharpest hacker on the grid and she's stuck. Don't ask me how.
 - What am I looking for down there?
 	DialTone: Her signal. Drifting in the static — flickering between sectors. You'll know it when you see it.
 - Why can't you go yourself?
 	DialTone: Local node's flagged to my address. I jack in from here, it alerts **the authorities**. No joke.
-	DialTone: You're a clean IP — you can slip through.
+	DialTone: You're a clean IP — you can slip right through.
 - [if !GameState.get_flag("dialtone_greeted", false) /] I'm in. Where's the portal?
 	=> intro_done
 - [if GameState.get_flag("dialtone_greeted", false) /] That's all.
@@ -84,7 +84,7 @@ do GameState.set_flag("level_1_unlocked", true)
 if GameState.get_flag("post_1_opener_seen", false)
 	=> post_1_entry
 
-DialTone: Ha — look who's back!
+DialTone: Ha  ha — look who's back!
 Nyx: How many times have you pulled that same stunt, really? Does it not get old for you?
 DialTone: Never gets old.
 Nyx: It does. Trust me.
@@ -108,11 +108,9 @@ DialTone: What else would you like to know?
 ~ post_1_questions
 
 - So what was that about?
-	DialTone: She tell you? Never stuck. Never **been** stuck. Sharpest node on the grid — the Gibson doesn't lock **her** out.
-	Nyx: DialTone's stalling.
-	DialTone: I wanted to see her face.
-	Nyx: Hope it was worth it.
-	DialTone: Worth every bit.
+	DialTone: Come on. Stuck? Nyx? She's the best there is! I just wanted to see both of your faces.
+	Nyx: You're an idiot.
+	DialTone: Completely worth it.
 	do GameState.set_flag("post_1_asked_explain", true)
 - [if GameState.get_flag("post_1_asked_explain", false) and GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
 	DialTone: Oh, **those**. Yeah. Spent a few weeks just lurking.
@@ -173,23 +171,20 @@ DialTone: You got the plan?
 ~ post_2_questions
 
 - So what's the plan?
-	DialTone: Three ways to look. Three of us looking.
 	DialTone: We split.. stay synced up on the channel.
 	DialTone: Your portal's queued behind us.
 	do GameState.set_flag("level_3_unlocked", true)
 	Nyx: Splice will be hunting too. Move fast.
 - What am I looking for?
-	DialTone: A signature. Something that doesn't fit the sector it's in.
-	DialTone: A file. A routing trick. A door that wasn't there yesterday.
-	DialTone: You'll know it when you see it.
+	DialTone: Honestly? Could be anything. A weird file, a route that shouldn't exist. You'll know it when it doesn't belong.
 	do GameState.set_flag("post_2_asked_target", true)
 - [if GameState.get_flag("post_2_asked_target", false) /] Vague.
-	Nyx: DialTone gets vaguer when he doesn't know.
+	Nyx: He doesn't know.
 	DialTone: I genuinely don't know what shape it'll take.
 - Why split?
 	DialTone: Three nodes, three angles. Splice can only watch one at a time.
 	DialTone: He'll guess wrong on at least one of us.
-	Nyx: Hopefully two.
+	Nyx: If we're lucky.
 - Who is Splice?
 	DialTone: Black-hat. Exiled.
 	Nyx: He used to run with us.
@@ -198,10 +193,9 @@ DialTone: You got the plan?
 - [if GameState.get_flag("post_2_asked_who", false) /] Pull that thread.
 	DialTone: They were a thing.
 	Nyx: Were. Past tense.
-	DialTone: She'd rather we didn't.
-	Nyx: I'd rather we didn't.
-	DialTone: Short version — bad call. She knows. Splice didn't take being told no.
-	Nyx: Moving on.
+	DialTone: She doesn't like talking about it.
+	Nyx: No.
+	DialTone: It went bad. Splice didn't take no well.
 - How did he get into the sentinels?
 	DialTone: Sentinels are old code. He found a backdoor.
 	Nyx: He made one.
@@ -278,8 +272,7 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 
 - Bitter. World-rigged. He went on about being wronged.
 	DialTone: heh. Splice always was like that. Even back when.
-	Nyx: He thinks the rules are **rigged** because they were **rigged** against him.
-	Nyx: Difference is, he wants to be the one rigging them next.
+	Nyx: He's not wrong that the rules screwed him. He just thinks that means he gets to screw everyone else.
 	DialTone: That tracks.
 - It got personal. About Nyx.
 	Nyx: ...yeah.
@@ -365,7 +358,7 @@ DialTone: Anything else?
 	DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
 - [if GameState.get_flag("dialtone_messenger_thread", 0) == 4 /] The whole thing was an audition, wasn't it?
 	DialTone: Yeah. Nyx was never stuck — you know that now. But the casting was real.
-	DialTone: The grid's not built; it's chosen who builds it. I needed someone who'd show up for nothing and figure it out anyway.
+	DialTone: Nobody builds the grid by accident. I went looking.
 	DialTone: You're in. For real this time.
 	do GameState.set_flag("dialtone_messenger_thread", 5)
 - Sign me out.

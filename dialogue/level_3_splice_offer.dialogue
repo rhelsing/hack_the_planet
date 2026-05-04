@@ -10,7 +10,7 @@ Splice: Easy. Easy.
 do Cutscene.show_video("res://cutscenes/splice_intro.ogv")
 Splice: The trap was for the conversation. That's all.
 Splice: Splice. You may have heard the name.
-Splice: I've been following your signal since your first run. Watching. Not interfering.
+Splice: I've been on your signal since the first run. You didn't know. That was the point.
 Splice: You're better at this than the crew you came in with realizes. They've got you running their little chores.
 Splice: Step off-channel a minute. Just listen. Walk away if you want.
 - Get off my channel.
@@ -26,7 +26,7 @@ Splice: Here's what nobody on that channel will tell you.
 Splice: The grid was never free. DialTone runs it the way he ran you — picks his runner, writes the story, keeps the rest of the **sheeple** chasing soda cans like it matters.
 Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
-Splice: Not because you took it. Because you saw it first. The rest are too busy performing.
+Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
 - What's the catch?
 	=> splice_catch
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
@@ -39,7 +39,7 @@ Splice: Not because you took it. Because you saw it first. The rest are too busy
 ~ splice_catch
 
 Splice: There isn't one. That's what they don't get.
-Splice: They built the "hackers for the people" thing because it's easier to share when you have nothing. I had **nothin'**. Now I've got **something**.
+Splice: They built the "hackers for the people" thing because none of them had anything worth keeping. I had **nothin'**. Now I've got **something**.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
@@ -69,7 +69,7 @@ Splice: Some things I keep mine.
 	Splice: Long time ago. Doesn't matter.
 	=> splice_consider
 - [if GameState.coin_pct() >= 0.8 /] [CAN] Are you trying to get her back?
-	Splice: I'm trying to get the Gibson. She's **already gone**.
+	Splice: I'm trying to get the Gibson. Nyx made her call a long time ago.
 	=> splice_consider
 - Get off my channel.
 	=> splice_refused

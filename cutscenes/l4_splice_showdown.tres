@@ -73,7 +73,7 @@ label = "Splice: world's rigged"
 [sub_resource type="Resource" id="line_4"]
 script = ExtResource("2_line")
 character = &"Splice"
-text = "They sell you **\"rules\"**, they sell you **\"fair\"**, they sell you **\"earn it\"** — and meanwhile the people who already have everything **write the rulebook with their other hand**."
+text = "They sold you **\"fair\"**. They sold you **\"earn it\"**. Meanwhile the people who **wrote those words** already had everything."
 channel = "walkie"
 bus_override = &"Companion"
 label = "Splice: rules / fair / earn it"
@@ -185,21 +185,21 @@ script = ExtResource("3_cut")
 camera = NodePath("../CutsceneCam_Splice")
 label = "shot 3: back to Splice"
 
-[sub_resource type="Resource" id="line_14"]
-script = ExtResource("2_line")
-character = &"Splice"
-text = "They're voices in your ear. **I'm here**."
-channel = "walkie"
-bus_override = &"Companion"
-label = "Splice: voices in your ear"
-
 [sub_resource type="Resource" id="line_15"]
 script = ExtResource("2_line")
 character = &"Splice"
-text = "That should tell you something about who's **actually in the room**."
+text = "Notice who showed up."
 channel = "walkie"
 bus_override = &"Companion"
-label = "Splice: who's in the room"
+label = "Splice: notice who showed up"
+
+[sub_resource type="Resource" id="line_15b"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "They're in your ear. I'm standing right here."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: standing right here"
 
 [sub_resource type="Resource" id="line_16"]
 script = ExtResource("2_line")
@@ -235,7 +235,8 @@ label = "music out: one_love"
 
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("2_rp5n3")]([SubResource("flag_outset_started"), SubResource("cut_splice_1"), SubResource("stinger_braam"), SubResource("music_in"), SubResource("wait_stinger_ring"), SubResource("line_1"), SubResource("flag_says_name"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_nyx_1"), SubResource("skip_halfpipe"), SubResource("cut_halfpipe"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10"), SubResource("line_11"), SubResource("line_12"), SubResource("line_13"), SubResource("line_dialtone_workshop"), SubResource("skip_finale"), SubResource("cut_splice_2"), SubResource("line_14"), SubResource("line_15"), SubResource("line_16"), SubResource("line_17"), SubResource("line_18"), SubResource("music_out")])
+steps = Array[ExtResource("2_rp5n3")]([SubResource("flag_outset_started"), SubResource("cut_splice_1"), SubResource("stinger_braam"), SubResource("music_in"), SubResource("wait_stinger_ring"), SubResource("line_1"), SubResource("flag_says_name"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_nyx_1"), SubResource("skip_halfpipe"), SubResource("cut_halfpipe"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10"), SubResource("line_11"), SubResource("line_12"), SubResource("line_13"), SubResource("line_dialtone_workshop"), SubResource("skip_finale"), SubResource("cut_splice_2"), SubResource("line_15"), SubResource("line_15b"), SubResource("line_16"), SubResource("line_17"), SubResource("line_18"), SubResource("music_out")])
 hide_hud = true
 scene_duration = 90.0
 done_flag = &"l4_splice_cutscene_done"
+allow_step_through = true

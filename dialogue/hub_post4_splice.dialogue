@@ -38,7 +38,7 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 	Splice: That'll be on the record forever, runner. Won't it.
 - You okay in there?
 	Splice: Not really, no.
-	Splice: Quarantine's a soft jail. I get bored, the perimeter listens.
+	Splice: Quarantine's a soft jail. I get bored, I poke the walls. See what gives.
 	Splice: I'm not dancing. I'm watching. Better view, honestly. Front row to every move you make.
 - This is kind of cruel.
 	Splice: Hmm
@@ -47,8 +47,7 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 - You're not getting out. But you can dance.
 	=> dance_offer
 - I won.
-	Splice: Yeah. You did. Don't get used to it — perimeters fail.
-	Splice: This wasn't the version of me you needed to worry about.
+	Splice: Yeah. You did. Perimeters fail, runner. And I've got time.
 - Walk away.
 	Splice: Catch you on the wire.
 	do GameState.set_flag("hub_post4_splice_taunted", true)
