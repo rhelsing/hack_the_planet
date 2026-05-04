@@ -976,6 +976,7 @@ func _ready() -> void:
 		sphere.radius = spring_cast_radius
 		_spring.shape = sphere
 		_spring.margin = spring_margin
+		_spring.add_excluded_object(self.get_rid())
 	_setup_pawn_audio()
 	if is_active_player:
 		_register_debug_panel()
