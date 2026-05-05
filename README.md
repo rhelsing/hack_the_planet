@@ -347,3 +347,9 @@ A sequence of terminals where solving each one unlocks the next:
 - [ ] If converting enemies: set `convert_zone_id`, drop `ConvertZone` siblings, set `target_factions` + `resulting_faction`.
 - [ ] If hidden until prereq: set `visible_when_flag`. (Most chains prefer `required_flag` so terminal stays visible-but-locked.)
 - [ ] If anything else gates on this solve (beacon, NPC, dialogue): wire those nodes' `visible_when_flag` / `hide_when_flag` to this terminal's `interactable_id`.
+
+---
+
+## Inspiration
+
+- [Sakana AI — Digital Ecosystem](https://pub.sakana.ai/digital-ecosystem/)
