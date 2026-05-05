@@ -66,13 +66,14 @@ The four-corner moral question (open / closed, for humans / for power) is no lon
 
 ## Tooling ambition: web-based level designer
 
-Level authoring today happens in the Godot editor — slow for the kind of iteration the game wants. A lightweight **HTML/CSS level designer**, in the same spirit as the puzzle authoring we already do, would compress the loop dramatically.
+Level authoring today happens in the Godot editor — slow for the kind of iteration the game wants. A lightweight **browser-based level designer** — a Three.js-style 3D canvas where placing a thing is as easy as a click — would compress the loop dramatically.
 
+- **Three.js-type 3D canvas.** Not a DOM grid; a real 3D viewport in the browser. Click to add a block, drag to extend, scroll to rotate the camera. Simple. The web is the substrate because iteration there is faster than any native editor.
 - **Whole-level scope.** Not a single puzzle widget — the entire playspace. Block out geometry, place pickups, set checkpoints, drop enemy spawns.
-- **3D grid as the substrate.** Platformers work natively on a 3D grid; that's the right authoring abstraction. Rough cell placement first; **fine-tuning (offsets, rotations, exact heights) comes later** in Godot. The web tool's job is fast layout, not pixel-precision.
+- **3D grid as the underlying coordinate system.** Platformers work natively on a 3D grid; that's the right authoring abstraction. Rough cell placement first; **fine-tuning (offsets, rotations, exact heights) comes later** in Godot. The web tool's job is fast layout, not pixel-precision.
 - **Smart object placement.** Snap-to-grid, semantic objects (rail / wall / checkpoint / enemy) rather than raw meshes, sane defaults so a level can be roughed in without thinking about transforms.
-- **Output:** a serializable format (JSON / tres) that Godot ingests and instantiates into a real level scene. The web tool authors intent; Godot resolves it into nodes.
-- **Why HTML/CSS:** same reasoning as the puzzle authoring — cheap to build, instant feedback, no editor reload cycle, and the abstractions can stay close to the design language ("place a rail here," not "instance a CSGBox3D").
+- **Compiles to a Godot scene.** The web tool exports to a format Godot ingests — JSON parsed at import time into a real `.tscn`, or `.tres` resources the level loader instantiates. The web tool authors intent; Godot resolves it into nodes.
+- **Why the browser:** same reasoning as the puzzle authoring — cheap to build, instant feedback, no editor reload cycle, and the abstractions stay close to the design language ("place a rail here," not "instance a CSGBox3D").
 
 ### Wiring as a first-class authoring primitive
 
