@@ -10,6 +10,11 @@ extends CanvasLayer
 
 const VISITED_DIM: Color = Color(0.5, 0.5, 0.5, 1.0)
 const EXIT_TEXT: String = "End the conversation"
+## Tag authors put on response options that end (or short-circuit) the
+## conversation, e.g. `- Got it. [#exit]`. Tagged options are never dimmed
+## and never recorded as visits — so "Got it." stays available the next
+## time the player talks to this NPC.
+const EXIT_TAG: String = "exit"
 const PORTRAITS_PATH: String = "res://dialogue/voice_portraits.tres"
 
 ## Per-character speaker colors used for the log entries and the current
@@ -57,6 +62,16 @@ var locals: Dictionary = {}
 
 var _locale: String = TranslationServer.get_locale()
 
+## Last NPC speaker seen on a real TYPE_DIALOGUE line. Used as the visit-key
+## scope when DM hands us a synthetic TYPE_RESPONSE line (`character=''`),
+## which happens when a `do` mutation (or anything that isn't CUE/GOTO) sits
+## between the last spoken line and the response set — DM's lookahead doesn't
+## fold the responses into the speaker's line, so dialogue_line.character is
+## empty on the menu render. Without this fallback, the click handler bails
+## and visits never reach GameState. Reset implicitly: a fresh conversation
+## creates a fresh balloon instance, so this defaults back to "".
+var _last_known_speaker: String = ""
+
 ## The current line
 var dialogue_line: DialogueLine:
 	set(value):
@@ -68,6 +83,20 @@ var dialogue_line: DialogueLine:
 		_skip_next_snapshot = false
 
 		if value:
+			# Track the last real speaker so the visit-write/visit-read fallback
+			# works when DM hands us a synthetic TYPE_RESPONSE line. See the
+			# `_last_known_speaker` docstring above.
+			if not String(value.character).is_empty():
+				_last_known_speaker = value.character
+			# DBG: log every dialogue_line transition with type/char/text/responses.
+			var dbg_type: String = "<unknown>"
+			if value.has_method("get") and "type" in value:
+				dbg_type = String(value.type)
+			var dbg_resp_count: int = 0
+			if "responses" in value and value.responses != null:
+				dbg_resp_count = value.responses.size()
+			print("[balloon] line SET        type=%s  char='%s'  text='%s'  responses=%d" %
+				[dbg_type, value.character, value.text, dbg_resp_count])
 			dialogue_line = value
 			apply_dialogue_line()
 		else:
@@ -351,6 +380,13 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 	# Confirm sound for UI feedback on selection.
 	Audio.play_sfx(&"ui_confirm")
 
+	# DBG: log every click before any gating, so we can see whether a click
+	# that "should have" recorded a visit actually reached this handler.
+	var dbg_char: String = dialogue_line.character if is_instance_valid(dialogue_line) else "<no_line>"
+	var dbg_text: String = dialogue_line.text if is_instance_valid(dialogue_line) else "<no_line>"
+	print("[balloon] click RAW       resp.text='%s'  resp.id=%s  dl.char='%s'  dl.text='%s'" %
+		[response.text, response.id, dbg_char, dbg_text])
+
 	# P2: log the line the NPC just finished saying, then the player's choice.
 	# Setting _skip_next_snapshot=true prevents the dialogue_line setter from
 	# re-logging the same line when the next line arrives.
@@ -361,14 +397,20 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 
 	# Record the visit so subsequent conversations with this character dim
 	# this response option. Skip "End the conversation" — always available.
-	var character: String = dialogue_line.character if is_instance_valid(dialogue_line) else ""
-	if not character.is_empty() and response.text != EXIT_TEXT:
+	var character: String = _resolve_speaker()
+	if character.is_empty():
+		print("[balloon] click SKIPPED   reason=empty_character  resp.text='%s'" % response.text)
+	elif _is_exit_response(response):
+		print("[balloon] click SKIPPED   reason=exit  resp.text='%s'" % response.text)
+	else:
 		# Visit key = text alone (see GameState header). response.id passed
 		# through for backward compat / future per-line discrimination if
 		# we ever need it again, but it's currently ignored by GameState.
 		print("[balloon] visit RECORDED  char=%s  text=%s" %
 			[character, response.text])
 		GameState.visit_dialogue(character, response.id, response.text)
+		print("[balloon] visit POST       dict[%s]=%s" %
+			[character, GameState.dialogue_visited.get(character, {}).keys()])
 	next(response.next_id)
 
 
@@ -595,6 +637,24 @@ func _current_speaker_color() -> Color:
 	return Color.WHITE
 
 
+## Returns the current NPC speaker for visit-key scoping. Falls back to the
+## last seen speaker when DM hands us a synthetic TYPE_RESPONSE line with
+## empty character (see `_last_known_speaker`).
+func _resolve_speaker() -> String:
+	if is_instance_valid(dialogue_line) and not String(dialogue_line.character).is_empty():
+		return dialogue_line.character
+	return _last_known_speaker
+
+
+## True for response options that should never dim and never record a visit —
+## either the legacy EXIT_TEXT exact-match or any option carrying the [#exit]
+## tag (e.g. `- Got it. [#exit]`, `- That's all? [#exit]`).
+func _is_exit_response(response: DialogueResponse) -> bool:
+	if response == null: return false
+	if response.text == EXIT_TEXT: return true
+	return EXIT_TAG in response.tags
+
+
 ## Dims response buttons for choices the player has already taken with this
 ## character. Called from apply_dialogue_line after responses_menu populates.
 ##
@@ -602,9 +662,18 @@ func _current_speaker_color() -> Color:
 ## `item.set_meta("response", response)` — use that instead of matching by
 ## button text (which loses identity if two responses share the same text).
 func _dim_visited_responses() -> void:
-	if not is_instance_valid(dialogue_line): return
-	var character: String = dialogue_line.character
-	if character.is_empty(): return
+	if not is_instance_valid(dialogue_line):
+		print("[balloon] dim BAIL       reason=no_dialogue_line")
+		return
+	var character: String = _resolve_speaker()
+	if character.is_empty():
+		print("[balloon] dim BAIL       reason=empty_character  dl.text='%s'  resp_count=%d" %
+			[dialogue_line.text, dialogue_line.responses.size() if dialogue_line.responses != null else -1])
+		return
+	# DBG: dump the full visited dict for this character so we can see what
+	# the read side is searching against.
+	print("[balloon] dim DICT       dict[%s].keys=%s" %
+		[character, GameState.dialogue_visited.get(character, {}).keys()])
 	var dimmed_count := 0
 	var total_count := 0
 	for child: Node in responses_menu.get_children():
@@ -613,7 +682,7 @@ func _dim_visited_responses() -> void:
 		total_count += 1
 		var matching: DialogueResponse = child.get_meta("response")
 		if matching == null: continue
-		if matching.text == EXIT_TEXT:
+		if _is_exit_response(matching):
 			(child as CanvasItem).modulate = Color.WHITE
 			continue
 		# Visit key is the text alone — see GameState.visit_dialogue header

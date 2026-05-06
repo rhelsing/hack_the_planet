@@ -35,7 +35,7 @@ Glitch: Good luck. Stay low.
 - [if GameState.get_flag("level_2_glitch_asked_brief", false) /] Splice?
 	Glitch: There are others who can explain Splice better than I can. But..
 	Glitch: He's bad news.
-- Got it.
+- Got it. [#exit]
 	=> done
 => glitch_l2_questions
 

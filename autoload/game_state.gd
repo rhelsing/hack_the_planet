@@ -220,7 +220,11 @@ func get_flag(id: StringName, default_value: Variant = null) -> Variant:
 func visit_dialogue(character: String, _response_id: String, text: String, next_id: String = "") -> void:
 	if not dialogue_visited.has(character):
 		dialogue_visited[character] = {}
-	dialogue_visited[character][_zip(text, next_id)] = true
+	var key: String = _zip(text, next_id)
+	var was_already: bool = dialogue_visited[character].has(key)
+	dialogue_visited[character][key] = true
+	print("[gs] visit_dialogue   char=%s  key='%s'  already=%s  total_for_char=%d" %
+		[character, key, was_already, dialogue_visited[character].size()])
 
 
 func has_visited(character: String, text: String, next_id: String = "") -> bool:
@@ -229,6 +233,17 @@ func has_visited(character: String, text: String, next_id: String = "") -> bool:
 
 func _zip(text: String, next_id: String) -> String:
 	return "%s→%s" % [text, next_id]
+
+
+# DBG helper — flatten dialogue_visited into a short readable summary so the
+# from_dict / reset logs don't dump huge dicts. Format: "char1:N,char2:M".
+func _summarize_visited(d: Dictionary) -> String:
+	if d.is_empty(): return "<empty>"
+	var parts: Array[String] = []
+	for k: String in d.keys():
+		var inner: Dictionary = d.get(k, {})
+		parts.append("%s:%d" % [k, inner.size()])
+	return ",".join(parts)
 
 
 # ---- Save / load (called by ui_dev's SaveService) -----------------------
@@ -264,6 +279,13 @@ const _SESSION_RESET_FLAGS: Array[StringName] = [
 
 
 func from_dict(d: Dictionary) -> void:
+	# DBG: log every from_dict invocation. dialogue_visited is in-memory only
+	# between checkpoints, so any from_dict here REPLACES it. If a visit got
+	# made between the last save and this load, it's lost.
+	var prior_visits: Dictionary = dialogue_visited.duplicate(true)
+	var incoming_visits: Dictionary = d.get("dialogue_visited", {})
+	print("[gs] from_dict CALLED  prior=%s  incoming=%s" %
+		[_summarize_visited(prior_visits), _summarize_visited(incoming_visits)])
 	var loaded_inv: Array = d.get("inventory", [])
 	inventory.clear()
 	for entry: Variant in loaded_inv:
@@ -286,6 +308,7 @@ func from_dict(d: Dictionary) -> void:
 
 ## Full reset — used by "New Game" and by tests.
 func reset() -> void:
+	print("[gs] reset CALLED      prior=%s" % _summarize_visited(dialogue_visited))
 	inventory.clear()
 	flags.clear()
 	dialogue_visited.clear()

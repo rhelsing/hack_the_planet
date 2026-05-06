@@ -15,7 +15,7 @@ elif GameState.get_flag("glitch_l3_portal_revealed", false)
 Glitch: {{HandlePicker.chosen_name()}}, you've been progressing through the Gibson at an impressive rate.
 Glitch: I want to let you in on something I've been cooking up on the side.
 Glitch: Want to see?
-- Yeah, show me.
+- Yeah, show me. [#exit]
 	=> show
 - Nope, I'm busy.
 	=> first_no
@@ -31,9 +31,9 @@ do GameState.set_flag("glitch_l3_portal_revealed", true)
 Glitch: ...oh.
 Glitch: I'll remember that, you know.
 Glitch: One more chance — you sure?
-- Alright, show me.
+- Alright, show me. [#exit]
 	=> show
-- Still pass.
+- Still pass. [#exit]
 	=> second_no
 
 ~ second_no

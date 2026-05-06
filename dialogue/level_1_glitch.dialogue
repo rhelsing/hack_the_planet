@@ -27,7 +27,7 @@ Glitch: I'll be here.
 
 Glitch: It's a surprise.
 Glitch: Shall we?
-- Let's do it.
+- Let's do it. [#exit]
 	=> done
 - Tell me more first.
 	=> sales
@@ -36,7 +36,7 @@ Glitch: Shall we?
 
 Glitch: **Exclusive** Gibson hardware. Modeled on physics that don't quite exist.
 Glitch: They feel **right**. That's the part that matters.
-- I'm in.
+- I'm in. [#exit]
 	=> done
 
 ~ done

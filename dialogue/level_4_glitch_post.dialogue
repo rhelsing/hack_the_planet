@@ -31,7 +31,7 @@ Glitch: Anything else, runner?
 
 ~ glitch_l4_post_questions
 
-- All right.
+- All right. [#exit]
 	Glitch: Carry on.
 	=> END
 => glitch_l4_post_questions

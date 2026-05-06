@@ -33,7 +33,7 @@ Glitch: So — I'm not really supposed to take sides. It goes against my program
 	=> post_solve_imperfect
 - "Against your programming"?
 	=> post_solve_programming
-- Got it. Press on.
+- Got it. Press on. [#exit]
 	=> post_solve_done
 
 ~ post_solve_effectively
