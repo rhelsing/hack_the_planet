@@ -1,5 +1,13 @@
 # Hack The Planet
 
+> **"Bake audio"** = run `tools/prime_all_dialogue.tscn` (TTS voice cache for every `.dialogue`, level walkie, and cutscene LineStep). Not `tools/bake_audio.gd` — that's just the 6 placeholder SFX synths.
+>
+> ```
+> /Applications/Godot.app/Contents/MacOS/Godot --headless res://tools/prime_all_dialogue.tscn --quit-after 432000
+> ```
+>
+> Skips already-cached variants. Outputs mp3s to `res://audio/voice_cache/`. The full pipeline (prime + import + orphan scan) lives in `tools/bake_voices.sh`, but prefer the prime tool alone — the shell wrapper prunes orphans by default and over-deletes.
+
 - [x] Rollerblade - add wheels
 - [x] Checkpoints -> Phone booth
 - [x] Floppy Disks as Collectables
