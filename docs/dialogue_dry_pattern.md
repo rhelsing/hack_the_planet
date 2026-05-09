@@ -270,6 +270,130 @@ The side block is **explicitly NOT a probe hub** — no self-loop, no return
 to questions, exits straight to END. This is fine; the player chose a
 decision-branch, not a question.
 
+### Rule 9 — Mark exit options with `[#exit]`
+
+Options that end the conversation (route to `=> *_done` or directly to
+`=> END`) must carry the `[#exit]` tag:
+
+```
+- Onward. [#exit]
+    => done
+- Got it. [#exit]
+    => done
+```
+
+Tagged options are never dimmed and never recorded as visits. The player
+must always be able to leave a hub, even after exhausting every probe. The
+legacy literal `End the conversation` text-match still works as a fallback,
+but `[#exit]` is the canonical declaration.
+
+### Rule 10 — Sub-hubs are side blocks; their exit `[#exit]`-routes back
+
+When a probe naturally splits into a sub-menu, factor it into its own
+labelled block (Rule 8 already covered this for one-way decision branches —
+this rule generalizes it to repeating sub-hubs). The sub-hub's exit option
+uses `[#exit]` and gotos back to the parent's question hub:
+
+```
+- About those Sentinels...
+    => sentinels_subhub
+
+~ sentinels_subhub
+
+- Are they conscious?
+    Glitch: ...
+- Where do they come from?
+    Glitch: ...
+- Back. [#exit]
+    => glitch_2_questions
+=> sentinels_subhub
+```
+
+The dim engine walks the sub-hub structurally and only dims the parent
+("About those Sentinels...") once every visible non-`[#exit]` child has
+been picked. Flat probes (no sub-hub) dim on visit alone — same as before.
+
+**Entry + exit speaker beats.** A sub-hub feels conversational, not
+clinical, when the parent option speaks one short line before opening
+the menu and the `[#exit]` option speaks one short line on the way back.
+Convention is two lines max, in-character:
+
+```
+- About those Sentinels...
+    Glitch: Ask away.
+    => sentinels_subhub
+
+~ sentinels_subhub
+- Several configurations?
+    Glitch: ...
+- Back. [#exit]
+    Glitch: Very well.
+    => glitch_2_questions
+=> sentinels_subhub
+```
+
+Both beats are optional but recommended — without them the sub-hub
+transition feels abrupt. Don't put more than ~2 lines on entry/exit;
+the player's there to read the probes, not the framing.
+
+**`[#decision]` for one-shot side-blocks.** When a probe routes to a
+Rule-8 side block with mutually exclusive endpoints (a one-way decision
+rather than a sub-hub of probes), tag the probe with `[#decision]`:
+
+```
+- [if /] Can I trust them? [#decision]
+    => sentinels_trust_branch
+```
+
+Decision-tagged options report fully-explored on first visit — the dim
+engine doesn't recurse into the side block to demand every endpoint be
+picked. Pair with a `[if !decision_made_flag /]` gate if you also want the
+option to disappear once chosen.
+
+**Hidden children don't block dim.** A child option that has never been
+shown to the player (gated out of every render so far) doesn't count
+toward parent completion. Players can't engage with content they've never
+seen, so the dim engine treats a never-seen child as already-handled. As
+soon as the gate flips and the child appears, it gets the new-unlock
+green outline (Phase B) and from then on must be picked or it'll block.
+
+### Rule 11 — Vector nudges live in the option's body, after the speaker line
+
+Use `do StoryVec.nudge(&"axis_name", delta)` to push a story vector axis.
+Place the nudge AT THE END of the option body so it fires after the player
+has read the response — same convention as `do GameState.set_flag(...)`:
+
+```
+- I trust DialTone on this.
+    Nyx: He'll appreciate hearing it.
+    do StoryVec.nudge(&"humanity", 1)
+- I'll figure out my own angle.
+    Nyx: Suit yourself.
+    do StoryVec.nudge(&"humanity", -1)
+```
+
+Nudges are small (1 or 2). Patterns of choices drift the vector, not single
+lines — same as Disco Elysium's skill drift. Most options call no nudge.
+
+### Rule 12 — Gate on named regions, not raw axis numbers
+
+When a piece of content should appear based on the vector, prefer named
+regions over raw thresholds:
+
+```
+# RIGHT — designer thinks in regions, names stay stable
+- [if StoryVec.in_region("pro_ai_pro_people") /] You and Glitch click.
+
+# WRONG — magic numbers drift as we tune; readers can't tell what 3 means
+- [if StoryVec.value("ai_tech") > 3 /] You and Glitch click.
+```
+
+Region definitions live in `dialogue/story_vec_config.tres` (designer-owned
+file). Add new regions there; reference them by name in `.dialogue` files.
+
+Raw `value(axis)` reads are allowed for one-off thresholds (tutorial gates,
+debug paths) but should be rare in narrative content.
+
 ---
 
 ## Visited-dim integration (FYI)

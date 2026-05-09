@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/test_balloon_new_unlock_render.gd" id="1"]
+
+[node name="TestBalloonNewUnlockRender" type="Node"]
+script = ExtResource("1")

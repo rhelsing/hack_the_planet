@@ -134,6 +134,16 @@ func _stage_allies() -> void:
 	var parent: Node = get_tree().current_scene
 	if parent == null:
 		return
+	# Index-based stagger delay so simultaneous red→gold conversions don't all
+	# duplicate skin materials in the same frame. Bulk BaseMaterial3D creation
+	# stalls/crashes the Metal driver on Intel Macs; spreading the conversions
+	# across frames lets pipeline-state-object compiles complete one at a time.
+	# 50ms per pawn → 4 pawns clear in 0.2s. Pawns are typically frozen during
+	# this window via `freeze_pawns_until_flag` (e.g. Splice showdown), so the
+	# stagger is invisible. If you use this node WITHOUT freezing, the stagger
+	# will show as pawns recoloring one-by-one — set it back to call_deferred
+	# in that case.
+	var _stagger_idx: int = 0
 	for marker: Node in get_tree().get_nodes_in_group(ally_marker_group):
 		if not (marker is Node3D):
 			continue
@@ -177,16 +187,35 @@ func _stage_allies() -> void:
 				(skin_immediate as Node3D).rotation.y = yaw
 		# Pawn template is a red minion; convert immediately so it joins
 		# the player rather than fights them. Deferred so PlayerBody._ready
-		# completes before set_faction reconfigures brain/buffs.
+		# completes before set_faction reconfigures brain/buffs. First pawn
+		# (idx=0) goes through call_deferred (next idle frame); the rest get
+		# a Timer-based delay so they each land on a separate frame.
 		if pawn.has_method(&"set_faction"):
-			pawn.call_deferred(&"set_faction", &"gold")
+			var pawn_for_faction: Node = pawn
+			if _stagger_idx == 0:
+				pawn.call_deferred(&"set_faction", &"gold")
+			else:
+				get_tree().create_timer(_stagger_idx * 0.05).timeout.connect(
+					func() -> void:
+						if is_instance_valid(pawn_for_faction):
+							pawn_for_faction.call(&"set_faction", &"gold")
+				)
 		# Optional: flip the pawn into skate (rollerblade) mode. Toggle is
 		# called AFTER set_faction so brain/skin reconfiguration is done.
 		# pawn_template starts in walk mode → one toggle = skate. Idempotent
 		# only under that assumption; if a future template defaults to skate
-		# this would un-toggle them.
+		# this would un-toggle them. Same stagger as set_faction so toggle
+		# strictly follows the conversion.
 		if ally_skate_mode and pawn.has_method(&"toggle_profile"):
-			pawn.call_deferred(&"toggle_profile")
+			var pawn_for_toggle: Node = pawn
+			if _stagger_idx == 0:
+				pawn.call_deferred(&"toggle_profile")
+			else:
+				get_tree().create_timer(_stagger_idx * 0.05 + 0.001).timeout.connect(
+					func() -> void:
+						if is_instance_valid(pawn_for_toggle):
+							pawn_for_toggle.call(&"toggle_profile")
+				)
 		# Optional pawn freeze. Applied SYNCHRONOUSLY (not call_deferred) so
 		# the pawn never gets a single physics tick of motion between
 		# spawn and freeze. set_faction / toggle_profile run on the
@@ -197,6 +226,7 @@ func _stage_allies() -> void:
 		if freeze_pawns_until_flag != &"":
 			_frozen_pawns.append(pawn)
 			_freeze_pawn(pawn)
+		_stagger_idx += 1
 
 
 # Targeted freeze. Stops the body + brain from ticking (no physics

@@ -86,6 +86,16 @@ var _player: Node3D = null  # cached so _process can position-snap each tick
 
 func _ready() -> void:
 	SaveService.set_current_level(&"level_5")
+	# Level 5 keeps the original (identity-basis) PlayerSpawn marker — every
+	# other level rotated theirs ~180° around Y so the character faces NPCs
+	# at spawn. PlayerBody.camera_spawn_yaw_offset_deg defaults to -105 to
+	# compensate for rotated markers; level 5 needs the original 75 to put
+	# the camera directly behind the character. Override before _spawn_player
+	# fires (game.gd._mount_level adds us as a child first, runs our _ready,
+	# THEN calls _spawn_player → snap_to_spawn → reads this value).
+	var p := get_tree().get_first_node_in_group(&"player")
+	if p != null and "camera_spawn_yaw_offset_deg" in p:
+		p.camera_spawn_yaw_offset_deg = 75.0
 	# Match level_mockup's atmosphere — load its scene, lift the
 	# WorldEnvironment's environment resource, swap into ours. Cheap one-time
 	# extraction; instance is freed immediately. The runtime_boost script on

@@ -264,6 +264,15 @@ func _process(delta: float) -> void:
 	if _idle_time_s >= _next_dance_swap_at_s:
 		_swap_to_random_dance_clip()
 		_next_dance_swap_at_s = _idle_time_s + _pick_dance_interval()
+	# Counteract Mixamo dance clips that bake Y-motion into the root track
+	# (worst offender: "Dancing Twerk" — bobs the whole character up and
+	# down each cycle, leaving them noticeably off the ground). Pinning the
+	# Model node's local Y to 0 every frame the dance is active keeps the
+	# visual grounded without re-exporting the .glb. Cheap; runs only while
+	# `_idle_dance_active`. Same skate-mode mutation point.
+	var model := get_node_or_null("Model") as Node3D
+	if model != null and model.position.y != 0.0:
+		model.position.y = 0.0
 
 
 # Swap the Idle state's underlying clip to a random dance + restart the Idle

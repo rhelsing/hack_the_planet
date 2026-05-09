@@ -104,7 +104,23 @@ var _default_tint_arm_right: Color
 var _default_tint_leg_left: Color
 var _default_tint_leg_right: Color
 
+# Per-instance memo of the last albedo applied to each mannequin part. Keyed
+# by part name (e.g. "Mannequin_Head"). _apply_part_tints early-outs any part
+# whose color matches the cached entry — repeat conversions of an already-
+# correctly-tinted pawn become free.
+var _last_applied_tints: Dictionary = {}
+
+# Class-wide pool of duplicated tint materials, keyed by [src_material_id,
+# color]. Sharing one BaseMaterial3D across every pawn that requests the
+# same (source, color) pair turns N simultaneous faction conversions into
+# 1 set of pipeline-state-object compiles instead of N — load-bearing on
+# Intel Mac (Metal) where bulk PSO creation stalls or crashes the driver.
+static var _shared_tint_materials: Dictionary = {}
+
 const _GLITCH_SHADER: Shader = preload("res://player/skins/kaykit/death_glitch.gdshader")
+
+## TEMP Intel-Mac instrumentation. Mirror with game.gd / player_body.gd.
+const DEBUG_INTEL: bool = false
 
 
 func _ready() -> void:
@@ -192,20 +208,49 @@ func _apply_part_tints() -> void:
 		&"Mannequin_LegLeft": tint_leg_left,
 		&"Mannequin_LegRight": tint_leg_right,
 	}
+	var _t0_us: int = Time.get_ticks_usec() if DEBUG_INTEL else 0
+	var _local_skip: int = 0
+	var _cache_hits: int = 0
+	var _new_dups: int = 0
 	for m: MeshInstance3D in _body_meshes:
 		if not by_name.has(m.name):
 			continue
 		var color: Color = by_name[m.name]
+		if _last_applied_tints.get(m.name) == color:
+			_local_skip += 1
+			continue
 		var src: Material = null
 		if m.mesh != null and m.mesh.get_surface_count() > 0:
 			src = m.mesh.surface_get_material(0)
-		var dup: BaseMaterial3D
-		if src is BaseMaterial3D:
-			dup = (src as BaseMaterial3D).duplicate() as BaseMaterial3D
+		var src_id: int = src.get_instance_id() if src != null else 0
+		var key: Array = [src_id, color]
+		var dup: BaseMaterial3D = _shared_tint_materials.get(key)
+		if dup == null:
+			if src is BaseMaterial3D:
+				dup = (src as BaseMaterial3D).duplicate() as BaseMaterial3D
+			else:
+				dup = StandardMaterial3D.new()
+			dup.albedo_color = color
+			_shared_tint_materials[key] = dup
+			_new_dups += 1
 		else:
-			dup = StandardMaterial3D.new()
-		dup.albedo_color = color
+			_cache_hits += 1
 		m.set_surface_override_material(0, dup)
+		_last_applied_tints[m.name] = color
+	if DEBUG_INTEL:
+		# Per-skin tint stats. dups= fresh BaseMaterial3D allocations (the
+		# expensive PSO-trigger work); hits= shared-cache reuses; skip=
+		# parts whose color hadn't changed. On a healthy burst pawn 0 should
+		# show ~6 dups and pawns 1+ should show 0 dups / 6 hits.
+		print("[tint-perf] f=%d t_us=%d dups=%d hits=%d skip=%d cache_size=%d %s" % [
+			Engine.get_process_frames(),
+			Time.get_ticks_usec() - _t0_us,
+			_new_dups,
+			_cache_hits,
+			_local_skip,
+			_shared_tint_materials.size(),
+			get_path(),
+		])
 
 
 ## Create a BoneAttachment3D under the skin's skeleton bound to `bone_name`

@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="StoryVecConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://dialogue/story_vec_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+axes = Array[StringName]([&"ai_tech", &"humanity"])
+bounds_min = -10.0
+bounds_max = 10.0
+regions = [{
+"name": &"pro_ai_pro_people",
+"thresholds": {
+&"ai_tech": [2.0, 10.0],
+&"humanity": [2.0, 10.0]
+}
+}, {
+"name": &"pro_ai_for_profit",
+"thresholds": {
+&"ai_tech": [2.0, 10.0],
+&"humanity": [-10.0, -2.0]
+}
+}, {
+"name": &"anti_ai_pro_people",
+"thresholds": {
+&"ai_tech": [-10.0, -2.0],
+&"humanity": [2.0, 10.0]
+}
+}, {
+"name": &"anti_ai_for_profit",
+"thresholds": {
+&"ai_tech": [-10.0, -2.0],
+&"humanity": [-10.0, -2.0]
+}
+}, {
+"name": &"neutral",
+"thresholds": {
+&"ai_tech": [-2.0, 2.0],
+&"humanity": [-2.0, 2.0]
+}
+}]

@@ -1,8 +1,10 @@
 extends Node
 
-## Save-serializable world state. Single source of truth for player inventory,
-## world flags (doors opened, NPCs talked to, puzzles solved), and per-NPC
-## dialogue-visited tracking (ported from 3dPFormer/state.gd).
+## Save-serializable world state. Single source of truth for player inventory
+## and world flags (doors opened, NPCs talked to, puzzles solved). Dialogue-
+## visited tracking moved to DialogueState autoload in dialogue v2 (see
+## autoload/dialogue_state.gd) — that data lives in a per-slot sidecar that
+## survives load_from_slot, fixing the "dim resets after death" bug.
 ##
 ## Schema version 1 — change to_dict/from_dict together when incrementing.
 ## See docs/interactables.md §7.
@@ -24,7 +26,6 @@ const COIN_SCENE_PATH: String = "res://level/interactable/coin/coin.tscn"
 
 var inventory: Array[StringName] = []
 var flags: Dictionary = {}
-var dialogue_visited: Dictionary = {}
 
 ## In-memory-only flag dictionary. Deliberately NOT persisted by to_dict /
 ## from_dict — survives death-respawn (autoload stays alive across the
@@ -201,51 +202,6 @@ func get_flag(id: StringName, default_value: Variant = null) -> Variant:
 	return flags.get(id, default_value)
 
 
-# ---- Dialogue-visited tracking ------------------------------------------
-# Visit key is `text + "→" + next_id` (scoped per character). Reasoning:
-#
-# - response.id alone fails: Dialogue Manager assigns ids by file location,
-#   so the same probe text in two sibling menus gets two different ids,
-#   and visiting one never dimmed the other.
-# - text alone fails when two responses share text but route to different
-#   destinations (rare but possible — same wording, different outcome).
-# - text + next_id captures semantic identity: same question text routing
-#   to the same destination block = "same question." Sibling menus that
-#   each list "Why can't you go yourself?" → `nudge_why` all collapse to
-#   one key; a hypothetical "Yes" → `happy_branch` vs "Yes" → `sad_branch`
-#   stays distinct.
-#
-# `response_id` arg is kept for source compatibility but ignored.
-
-func visit_dialogue(character: String, _response_id: String, text: String, next_id: String = "") -> void:
-	if not dialogue_visited.has(character):
-		dialogue_visited[character] = {}
-	var key: String = _zip(text, next_id)
-	var was_already: bool = dialogue_visited[character].has(key)
-	dialogue_visited[character][key] = true
-	print("[gs] visit_dialogue   char=%s  key='%s'  already=%s  total_for_char=%d" %
-		[character, key, was_already, dialogue_visited[character].size()])
-
-
-func has_visited(character: String, text: String, next_id: String = "") -> bool:
-	return dialogue_visited.get(character, {}).has(_zip(text, next_id))
-
-
-func _zip(text: String, next_id: String) -> String:
-	return "%s→%s" % [text, next_id]
-
-
-# DBG helper — flatten dialogue_visited into a short readable summary so the
-# from_dict / reset logs don't dump huge dicts. Format: "char1:N,char2:M".
-func _summarize_visited(d: Dictionary) -> String:
-	if d.is_empty(): return "<empty>"
-	var parts: Array[String] = []
-	for k: String in d.keys():
-		var inner: Dictionary = d.get(k, {})
-		parts.append("%s:%d" % [k, inner.size()])
-	return ",".join(parts)
-
-
 # ---- Save / load (called by ui_dev's SaveService) -----------------------
 
 func to_dict() -> Dictionary:
@@ -253,7 +209,6 @@ func to_dict() -> Dictionary:
 		"version": SCHEMA_VERSION,
 		"inventory": inventory.duplicate(),
 		"flags": flags.duplicate(true),
-		"dialogue_visited": dialogue_visited.duplicate(true),
 		"coins_collected": coins_collected.duplicate(),
 		"coins_seen": coins_seen.duplicate(),
 	}
@@ -279,13 +234,6 @@ const _SESSION_RESET_FLAGS: Array[StringName] = [
 
 
 func from_dict(d: Dictionary) -> void:
-	# DBG: log every from_dict invocation. dialogue_visited is in-memory only
-	# between checkpoints, so any from_dict here REPLACES it. If a visit got
-	# made between the last save and this load, it's lost.
-	var prior_visits: Dictionary = dialogue_visited.duplicate(true)
-	var incoming_visits: Dictionary = d.get("dialogue_visited", {})
-	print("[gs] from_dict CALLED  prior=%s  incoming=%s" %
-		[_summarize_visited(prior_visits), _summarize_visited(incoming_visits)])
 	var loaded_inv: Array = d.get("inventory", [])
 	inventory.clear()
 	for entry: Variant in loaded_inv:
@@ -295,7 +243,6 @@ func from_dict(d: Dictionary) -> void:
 	# prior session's write. See _SESSION_RESET_FLAGS docstring.
 	for f: StringName in _SESSION_RESET_FLAGS:
 		flags.erase(f)
-	dialogue_visited = d.get("dialogue_visited", {}).duplicate(true)
 	# Coin sets persist across reload — collected coins stay collected
 	# permanently, and the seen-set survives so the HUD denominator is
 	# correct from the first frame after load (before coin._ready runs
@@ -308,10 +255,8 @@ func from_dict(d: Dictionary) -> void:
 
 ## Full reset — used by "New Game" and by tests.
 func reset() -> void:
-	print("[gs] reset CALLED      prior=%s" % _summarize_visited(dialogue_visited))
 	inventory.clear()
 	flags.clear()
-	dialogue_visited.clear()
 	coins_collected.clear()
 	coins_seen.clear()
 	coin_count = 0

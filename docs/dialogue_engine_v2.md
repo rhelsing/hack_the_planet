@@ -166,16 +166,19 @@ flips true. Falls out of seen-tracking.
 - Outline color: provisional `#5AE85A` (matches the existing skill-check
   pass banner). Distinct from `[CAN]` blue/speaker-tinted.
 
-### Open Qs
+### Decisions (locked)
 
-- **Reorder vs annotate**: do new options actually move to top, or just get
-  the green outline in their natural position? Disco Elysium re-orders.
-  Recommendation: re-order. The signal is stronger.
-- **"New" persistence across save reloads**: if the player sees a new option,
-  closes the game, reopens — is it still "new"? Recommendation: no. Once
-  seen, always seen. Persists same as visited (see Persistence below).
-- **Audio cue for new options**: a soft "ping" when the menu renders with a
-  newly-unlocked option? Out of scope for this doc; flag for sound design.
+- **Reorder, not annotate.** New options move to top of the list with the
+  outline. Re-order is the stronger signal.
+- **Visual: green outline only.** Color `#5AE85A` (matches passed
+  skill-check banner). No `[NEW]` text prefix. Outline disappears on the
+  next render of the same menu.
+- **Audio cue: yes.** Plays the existing menu / page-turn cue when a menu
+  renders containing one or more newly-unlocked options. The sfx name is a
+  `const` at the top of `scroll_balloon.gd` so it's a one-line swap if you
+  pick a different cue later.
+- **Once seen, always seen.** Persists in the dialogue sidecar (see
+  Persistence). Reopening the game doesn't re-flag old unlocks as new.
 
 ---
 
@@ -195,19 +198,43 @@ counters (one-dimensional). A 2D vector lets one choice pull the player
 along a tone gradient without committing to a binary "you are X type now"
 flag.
 
-### Provisional axes
+### Engine is generic. Axes are configured per game.
 
-**These are placeholders — needs user input.** Two candidates that fit the
-existing tone:
+The vector machinery is N-dimensional with **named** axes and
+**author-defined** regions. Nothing about the engine knows what an axis
+"means." A second project can drop the autoload in, point at a different
+config, and use it.
 
-- **x = Insider / Outsider**: trust DialTone's crew vs. play your own game.
-  Choices that show alignment with the crew nudge +x; cynical/independent
-  ones nudge -x. Splice's offer in L3 would be a -x option (defect lever).
-- **y = Earnest / Sardonic**: emotional register. "Thank you for the platform"
-  to Glitch in L4 = +y; "It just works, doesn't it" = -y.
+Axes are referenced by `StringName` in the DSL:
 
-Other candidates: Optimist/Cynic, Curious/Direct, Hot/Cold. Pick whichever
-two have the most "shape" in the story you want to tell.
+```
+do StoryVec.nudge(&"ai_tech", 1)
+do StoryVec.nudge(&"humanity", -1)
+```
+
+Regions are named predicates the writer defines once in
+`res://dialogue/story_vec_config.tres` (or equivalent), then references
+by name everywhere:
+
+```
+- [if StoryVec.in_region(&"pro_ai_pro_people") /] You and Glitch — you click.
+```
+
+The config resource owns: axis list, axis bounds (clamp), region
+definitions (each region = a list of per-axis thresholds, ANDed). Engine
+clamps writes; reads return raw floats; predicates evaluate the named
+config.
+
+### Hack The Planet's axes (configured for this game)
+
+- `ai_tech` — pro-AI-tech (+) ↔ anti-AI-tech (−). Glitch-aligned answers
+  push +; "tools serve people, not the other way" answers push −.
+- `humanity` — for-the-people (+) ↔ for-profit (−). Anti-Ellingson /
+  anti-Splice answers push +; expedience / "I'm just paid to be here"
+  answers push −.
+
+Bounds and regions live in the config resource — designer can rename them,
+add a third axis, redefine regions without touching engine code.
 
 ### Authoring
 
@@ -238,15 +265,15 @@ patterns do."
   rather than the save slot. The vector should persist with the run, not
   the player's checkpoint.
 
-### Open Qs
+### Decisions (locked)
 
-- **Visible to the player or not?** DE shows the thought cabinet; the
-  vector is opaque. Recommendation: opaque for v1. The vector reshapes
-  content; the player feels its effects without seeing the number.
-- **Axes count**: 2D enough? More fits more story but inflates the test
-  surface. Recommendation: stay at 2.
-- **Decay**: does the vector drift back to zero over time? Recommendation:
-  no — choices are permanent within a run.
+- **Visibility**: opaque. Engine exposes a render-friendly accessor
+  (`StoryVec.value(axis_name) -> float`) so a future debug HUD or
+  designer overlay is trivial to build, but no UI ships in v1.
+- **Dimensionality**: variable. Default is whatever the config declares.
+  Hack The Planet ships with 2D; nothing in the engine assumes 2.
+- **Decay**: none. Vector accumulates per-conversation forever within a
+  run. Choices are permanent.
 
 ---
 
@@ -260,31 +287,33 @@ existing `[if /]` syntax with new predicates.
 ### Authoring
 
 ```
-- [if StoryVec.x > 3 /] You and Nyx — you click.
-    Nyx: We do.
-- [if StoryVec.x < -3 /] I'm not sure I trust this crew.
-    Nyx: Fair.
-- [if StoryVec.in_quadrant("outsider_sardonic") /] Whatever pays the bill.
+- [if StoryVec.value(&"ai_tech") > 3 /] You and Glitch — you click.
+    Glitch: We do.
+- [if StoryVec.in_region(&"pro_ai_pro_people") /] Whatever it takes.
     DialTone: Mood.
 ```
 
-`StoryVec.in_quadrant(name)` is a convenience for thresholded reads.
-Designers think in regions ("the outsider quadrant"), not raw numbers.
+`StoryVec.in_region(name)` is the preferred form — designers think in
+named regions, not raw axis numbers. Raw `value(axis)` reads are allowed
+for one-off thresholds (e.g. tutorial gates) but discouraged for general
+content gating.
 
 ### Engine work
 
 Just register the autoload with DialogueManager; the `[if expr /]` machinery
 already evaluates against autoloads. No new parser plumbing.
 
-### Open Qs
+### Decisions (locked)
 
-- **Naming the regions**: Recommendation: name the four quadrants as soon
-  as the axes are picked — `insider_earnest`, `insider_sardonic`,
-  `outsider_earnest`, `outsider_sardonic` (or whatever the axes become).
-  Designer mental model needs the names.
-- **Center / "neutral" zone**: should there be a fifth "neutral" region for
-  small vectors near origin? Recommendation: yes. Lots of paths shouldn't
-  feel committed to a quadrant. Threshold `||v|| < 2` = neutral.
+- **Region naming**: author's choice, in `story_vec_config.tres`. Engine
+  doesn't know what regions exist until the config is loaded. Hack The
+  Planet provisional names: `pro_ai_pro_people`, `pro_ai_for_profit`,
+  `anti_ai_pro_people`, `anti_ai_for_profit`, `neutral`. Subject to
+  rename — no engine code references them.
+- **Neutral zone**: optional, author-defined. Engine doesn't impose one;
+  the writer can add a `neutral` region with bounds `||v|| < 2` (or
+  whatever) in the config. If a value is in no region, `in_region(any)`
+  returns false — that's the implicit "uncommitted" state.
 
 ---
 
@@ -511,20 +540,25 @@ nothing. Same gate as the rest of the project.
 
 ---
 
-## Open decisions
+## Decisions log (locked)
 
-These need answers before design:
+All open questions from earlier drafts are now resolved:
 
-1. **What are the two axes?** Provisional candidates: Insider/Outsider,
-   Earnest/Sardonic. User to pick or propose alternatives.
-2. **Quadrant names**: dependent on (1).
-3. **Visual for new-unlock highlight**: green outline (matches passed
-   skill-check banners) vs. a small `[NEW]` text prefix vs. both.
-4. **Audio cue for new-unlock**: yes/no, and if yes, which existing UI cue.
-5. **Sidecar file scope**: per-slot (recommended) vs. global per-machine.
-6. **Reorder vs annotate-in-place** for new options.
-7. **Phase ordering**: A→B→C→D as listed, or interleave (e.g. A+D first to
-   unblock writers using the vector before recursive dim lands)?
+- Engine is **generic / N-dimensional / config-driven**. Reusable across
+  projects.
+- Hack The Planet's axes: `ai_tech`, `humanity`. Regions named in
+  `story_vec_config.tres` (designer-owned).
+- New-unlock visual: **green outline (#5AE85A), reorder to top**.
+- New-unlock audio: **existing menu / page-turn sfx**, `const` for easy swap.
+- Vector visibility to player: **opaque**, but reads/regions are accessible
+  for a future debug HUD.
+- Sidecar persistence: **per save slot**, separate from save_slot file,
+  survives `load_from_slot` (the bug that made you mad).
+- Hidden `[if /]` children count as **fully explored** (don't block parent
+  dim).
+- "Once seen, always seen" across reloads.
+- No vector decay — choices accumulate permanently within a run.
+- Phase order: **A → B → C → D**.
 
 ---
 

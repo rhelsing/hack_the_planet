@@ -23,7 +23,7 @@ animation = &"Sprinting Forward Roll"
 animation = &"Yelling"
 
 [sub_resource type="AnimationNodeAnimation" id="ANA_Fall"]
-animation = &"Jump"
+animation = &"Falling Idle"
 
 [sub_resource type="AnimationNodeAnimation" id="ANA_Hit"]
 animation = &"Yelling"

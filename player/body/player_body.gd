@@ -60,10 +60,14 @@ static func get_player() -> PlayerBody:
 ## membership (leave old, join new), attack target groups, brain target
 ## retarget (for EnemyAIBrain), skin tint, and emits Events.faction_changed.
 ## Idempotent: setting the current faction is safe (no-op).
+## TEMP Intel-Mac instrumentation. Mirror with game.gd / kaykit_skin.gd.
+const DEBUG_INTEL: bool = false
+
 func set_faction(new_faction: StringName) -> void:
 	if not _FACTION_GROUP.has(new_faction):
 		push_warning("PlayerBody.set_faction: unknown faction '%s', ignoring" % new_faction)
 		return
+	var _t0_us: int = Time.get_ticks_usec() if DEBUG_INTEL else 0
 	# Leave the old physics group if we were in one. We track via _FACTION_GROUP
 	# so we don't have to remember what group we joined last time.
 	var old_group: StringName = _FACTION_GROUP.get(faction, &"")
@@ -132,6 +136,19 @@ func set_faction(new_faction: StringName) -> void:
 	Events.faction_changed.emit(self, new_faction)
 	if prior_faction != new_faction:
 		print("[faction] %s: %s → %s" % [get_path(), prior_faction, new_faction])
+	if DEBUG_INTEL:
+		# Per-conversion timing. f= frame index lets you verify whether the
+		# stagger is actually spreading conversions across frames; t_us= total
+		# wall time in set_faction (skin tint duplication is the costly part
+		# on Intel Mac). High t_us with same f across multiple pawns = the
+		# burst is still bunching up.
+		print("[faction-perf] f=%d t_us=%d %s %s→%s" % [
+			Engine.get_process_frames(),
+			Time.get_ticks_usec() - _t0_us,
+			get_path(),
+			prior_faction,
+			new_faction,
+		])
 
 
 ## Apply / remove the red-faction aggressive package independent of faction
@@ -190,7 +207,7 @@ func set_aggressive_buffs(active: bool) -> void:
 	# that just reverted to green should print here with active=false,
 	# faction=green, speed=1.0, damage=1, invuln=false. Anything else means
 	# the revert didn't fully neutralize them.
-	print("[buffs] %s active=%s faction=%s speed=%.2f damage=%d invuln=%s cooldown=%.2f windup=%.2f" % [
+	if DEBUG_INTEL: print("[buffs] %s active=%s faction=%s speed=%.2f damage=%d invuln=%s cooldown=%.2f windup=%.2f" % [
 		get_path(), active, faction,
 		_faction_speed_mult, _faction_attack_damage, _faction_invulnerable,
 		float(_brain.attack_cooldown) if _brain != null and "attack_cooldown" in _brain else -1.0,
@@ -537,12 +554,18 @@ enum FollowMode { PARENTED, DETACHED }
 @export var death_sfx_uses_attack_impact_pool: bool = false
 
 @export_group("Camera Occlusion")
-## Yaw offset (degrees) applied to the camera at spawn, on top of the
-## spawn marker's facing yaw. 0 = camera looks the same direction as the
-## marker's blue Z arrow (default snap_to_spawn behavior). Set to rotate
-## the camera around the player at spawn — e.g. 75 = three-quarters back
-## angle, 180 = camera behind the player.
-@export var camera_spawn_yaw_offset_deg: float = 75.0
+## Yaw offset (degrees) applied to the camera_pivot at spawn, on top of
+## the spawn marker's facing yaw. 0 = pivot rotation matches the marker
+## yaw → SpringArm extends opposite the player's facing → camera lands
+## directly behind. Verified empirically against the rotated PlayerSpawn
+## markers (hub / level_1 / level_2 / level_4 / level_mockup) by reading
+## actual world transforms from a [cam-spawn] log: dot of (camera→player)
+## with player_facing == -0.93 → angle 158° → ~22° off from perfect, the
+## remainder being the SpringArm's authored Y tilt (camera looks down a
+## bit, intended).
+##
+## Level 5 has an identity-basis marker; same offset still lands behind.
+@export var camera_spawn_yaw_offset_deg: float = 0.0
 ## Smooths SpringArm's instant-snap output into an eased response.
 ## Higher = snappier. ~8 ≈ 95% in 0.37s.
 @export var spring_smooth_rate := 8.0
@@ -2063,6 +2086,17 @@ func exit_betrayal_walk() -> void:
 ## (so frame-0 skin yaw faces the marker), _yaw_state + _target_yaw (so the
 ## camera and skin don't lerp out of an old cache), and snap the camera pivot.
 func snap_to_spawn(spawn_xform: Transform3D) -> void:
+	# Force halfpipe disengage. The per-tick stick logic (line ~3198)
+	# intentionally HOLDS engagement when no surface hits this frame —
+	# letting the player hop briefly off the curve without losing it. A
+	# teleport is a different beast: the player has been moved arbitrarily
+	# far away and the engaged-state floor_max_angle / floor_snap_length
+	# overrides would otherwise survive into the destination level
+	# (hub feels like a halfpipe — sticks to slopes, slides oddly).
+	# Canonical repro: Nyx post-L4 convo → advance() → hub spawn while
+	# halfpipe state was hot.
+	_halfpipe_disengage()
+
 	# Convention: the marker's BLUE Z arrow points where the player faces.
 	# (Godot's standard "forward = -Z" convention is for cameras; for spawn
 	# markers it's more intuitive to rotate the gizmo to point where the
@@ -2083,11 +2117,18 @@ func snap_to_spawn(spawn_xform: Transform3D) -> void:
 	# whatever angle is configured.
 	var cam_yaw: float = yaw + deg_to_rad(camera_spawn_yaw_offset_deg)
 	_target_yaw = cam_yaw
+	# Apply cam_yaw to the pivot in BOTH follow modes. Previously the
+	# attached branch set pivot.rotation = Vector3.ZERO and threw cam_yaw
+	# away — the per-frame lerp at _update_follow_camera:3321 only fires
+	# when the body is moving, so stationary spawn meant the camera stayed
+	# at world rotation 0 regardless of camera_spawn_yaw_offset_deg.
+	# Body rotation is set to identity above (line 2096), so local-yaw on
+	# the pivot equals world-yaw — same effective placement as detached.
 	if _camera_pivot != null:
 		if _camera_pivot.top_level:
 			_camera_pivot.global_rotation = Vector3(0.0, cam_yaw, 0.0)
 		else:
-			_camera_pivot.rotation = Vector3.ZERO
+			_camera_pivot.rotation = Vector3(0.0, cam_yaw, 0.0)
 	velocity = Vector3.ZERO
 	_snap_camera_to_player()
 

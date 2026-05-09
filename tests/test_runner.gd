@@ -149,14 +149,20 @@ func _run_save_service() -> void:
 
 	# Scratch slot — back up any real save file, exercise the full round-trip,
 	# restore. Single block; covers begin_new_game + save_to_slot + metadata
-	# + JSON shape + active_slot lifecycle in one pass.
+	# + JSON shape + active_slot lifecycle in one pass. The dialogue sidecar
+	# (dialogue_state_<slot>.json) is also backed up — begin_new_game now
+	# wipes it via DialogueState.reset, so the dev's real dialogue history
+	# would be lost without the backup.
 	var test_slot: StringName = &"a"
 	var save_path: String = ss._save_path(test_slot)
 	var meta_path: String = ss._meta_path(test_slot)
+	var ds_path: String = ss._dialogue_state_path(test_slot) if ss.has_method(&"_dialogue_state_path") else ""
 	var had_save := FileAccess.file_exists(save_path)
 	var had_meta := FileAccess.file_exists(meta_path)
+	var had_ds := ds_path != "" and FileAccess.file_exists(ds_path)
 	if had_save: DirAccess.rename_absolute(save_path, save_path + ".runner_bak")
 	if had_meta: DirAccess.rename_absolute(meta_path, meta_path + ".runner_bak")
+	if had_ds: DirAccess.rename_absolute(ds_path, ds_path + ".runner_bak")
 
 	_expect("save_service", "has_slot empty after backup", not ss.has_slot(test_slot))
 
@@ -187,11 +193,12 @@ func _run_save_service() -> void:
 	ss._on_checkpoint_reached(Vector3.ZERO)
 
 	# Restore the original on-disk save (if any) so the dev's real saves survive.
-	for p in [save_path, meta_path]:
-		if FileAccess.file_exists(p):
+	for p in [save_path, meta_path, ds_path]:
+		if p != "" and FileAccess.file_exists(p):
 			DirAccess.remove_absolute(p)
 	if had_save: DirAccess.rename_absolute(save_path + ".runner_bak", save_path)
 	if had_meta: DirAccess.rename_absolute(meta_path + ".runner_bak", meta_path)
+	if had_ds: DirAccess.rename_absolute(ds_path + ".runner_bak", ds_path)
 
 
 # ── Plumbing ─────────────────────────────────────────────────────────────

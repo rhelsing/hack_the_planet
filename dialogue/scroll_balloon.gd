@@ -2,8 +2,8 @@ extends CanvasLayer
 ## Dialogue balloon for Nathan Hoad's Dialogue Manager (3.x). Forked from
 ## the addon's example_balloon with two additions ported from 3dPFormer:
 ##   - Dims response buttons for choices the player has already made
-##     (scoped per character via GameState.has_visited).
-##   - Records the choice on selection via GameState.visit_dialogue so
+##     (scoped per character via DialogueState.has_visited_dialogue).
+##   - Records the choice on selection via DialogueState.visit_dialogue so
 ##     future conversations with the same character re-dim correctly.
 ## "End the conversation" is never dimmed (designer escape hatch).
 ## See docs/interactables.md §9.4.
@@ -15,6 +15,17 @@ const EXIT_TEXT: String = "End the conversation"
 ## and never recorded as visits — so "Got it." stays available the next
 ## time the player talks to this NPC.
 const EXIT_TAG: String = "exit"
+
+## Tag for options whose body is a one-way DECISION (Rule 8 side-block
+## with mutually exclusive endpoints), as opposed to a probe sub-hub. The
+## recursive dim treats `[#decision]`-tagged options as leaves: visiting
+## once = fully explored, no recurse into the branch. Without this tag,
+## the dim would demand the player pick every endpoint of the side-block.
+##
+## Example: `- Can I trust them? [#decision]` opens a Treat-as-tools /
+## Treat-as-neighbors branch — the player picks one and the question is
+## answered. Subsequent visits aren't expected.
+const DECISION_TAG: String = "decision"
 const PORTRAITS_PATH: String = "res://dialogue/voice_portraits.tres"
 
 ## Per-character speaker colors used for the log entries and the current
@@ -72,6 +83,13 @@ var _locale: String = TranslationServer.get_locale()
 ## creates a fresh balloon instance, so this defaults back to "".
 var _last_known_speaker: String = ""
 
+## Phase B — texts of response options that are "new this render" (not yet
+## marked seen for the current speaker). Recomputed at the start of every
+## menu render. Used by _style_new_responses to apply green outline + reorder
+## to top, and by _mark_responses_seen to update DialogueState after the
+## render. Empty when nothing is new (the steady state).
+var _new_response_texts: Dictionary = {}
+
 ## The current line
 var dialogue_line: DialogueLine:
 	set(value):
@@ -88,15 +106,6 @@ var dialogue_line: DialogueLine:
 			# `_last_known_speaker` docstring above.
 			if not String(value.character).is_empty():
 				_last_known_speaker = value.character
-			# DBG: log every dialogue_line transition with type/char/text/responses.
-			var dbg_type: String = "<unknown>"
-			if value.has_method("get") and "type" in value:
-				dbg_type = String(value.type)
-			var dbg_resp_count: int = 0
-			if "responses" in value and value.responses != null:
-				dbg_resp_count = value.responses.size()
-			print("[balloon] line SET        type=%s  char='%s'  text='%s'  responses=%d" %
-				[dbg_type, value.character, value.text, dbg_resp_count])
 			dialogue_line = value
 			apply_dialogue_line()
 		else:
@@ -144,11 +153,20 @@ var _portraits: Resource  # VoicePortraits
 ## logged the previous line. Prevents double-logging.
 var _skip_next_snapshot: bool = false
 
-## Countdown (physics frames) of remaining auto-scroll snaps after a log
-## append. Each frame we re-pin v_scrollbar.value to its current max so the
-## snap survives the cascade of layout updates triggered by RichTextLabel
-## fit_content + ResponsesMenu population.
+## Countdown (frames) of remaining auto-scroll work after a log append.
+## Each frame we lerp v_scrollbar.value toward its current max so the
+## scroll catches up to the cascade of layout updates (RichTextLabel
+## fit_content → LogContainer minimum_size → ScrollContainer range →
+## ResponsesMenu resize) without snapping abruptly. Keeps the scroll
+## feeling like an animation instead of a teleport. Counter bounds the
+## animation so it stops cleanly even if the user starts manually
+## scrolling mid-flight.
 var _auto_scroll_frames: int = 0
+
+## Lerp factor per frame for the smooth-scroll easing. 0.18 ≈ closes ~95%
+## of the gap in 16 frames (~0.27s at 60fps). Higher = snappier; lower =
+## more drift before settling.
+const _AUTO_SCROLL_LERP: float = 0.18
 
 
 func _ready() -> void:
@@ -205,16 +223,21 @@ func _on_skill_check_rolled(skill: StringName, chance_pct: int, succeeded: bool)
 func _process(_delta: float) -> void:
 	if is_instance_valid(dialogue_line):
 		progress.visible = not dialogue_label.is_typing and dialogue_line.responses.size() == 0 and not dialogue_line.has_tag("voice")
-	# Re-pin scroll to bottom for a short window after any log append. We can't
-	# do this in a single-shot await because the ScrollContainer's v_scrollbar
-	# max_value updates in a cascade (RichTextLabel fit_content → LogContainer
-	# minimum_size → ScrollContainer range → ResponsesMenu resize), and hitting
-	# the scrollbar once races the cascade. Driving the scrollbar directly
-	# every frame for ~20 frames is cheap and always wins.
+	# Smooth-scroll to bottom for a short window after any log append. We
+	# can't do this in a single-shot await because the ScrollContainer's
+	# v_scrollbar max_value updates in a cascade (RichTextLabel fit_content
+	# → LogContainer minimum_size → ScrollContainer range → ResponsesMenu
+	# resize). Lerping each frame keeps following the moving target while
+	# feeling animated. Counter ensures we stop cleanly.
 	if _auto_scroll_frames > 0 and _scroll != null:
 		_auto_scroll_frames -= 1
 		var bar := _scroll.get_v_scroll_bar()
-		bar.value = bar.max_value
+		var target: float = bar.max_value
+		var current: float = bar.value
+		if target - current > 0.5:
+			bar.value = lerp(current, target, _AUTO_SCROLL_LERP)
+		else:
+			bar.value = target
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -301,9 +324,12 @@ func apply_dialogue_line() -> void:
 
 	responses_menu.hide()
 	responses_menu.responses = dialogue_line.responses
+	_compute_new_responses()      # B.2 — populate _new_response_texts BEFORE styling so reorder runs against fresh data
 	_style_skill_check_buttons()  # P4 — amber tint for [SKILL PCT%] prefixed responses
 	_style_can_gated_buttons()    # speaker-color outline for [CAN]-prefixed unlock options
-	_dim_visited_responses()  # ported from 3dPFormer
+	_style_new_responses()        # B.3 — green outline + reorder to top for newly-unlocked options
+	_dim_visited_responses()      # ported from 3dPFormer
+	_mark_responses_seen()        # B.2 — commit seen AFTER render so the next render flips them to "not new"
 
 	# Show our balloon
 	balloon.show()
@@ -380,13 +406,6 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 	# Confirm sound for UI feedback on selection.
 	Audio.play_sfx(&"ui_confirm")
 
-	# DBG: log every click before any gating, so we can see whether a click
-	# that "should have" recorded a visit actually reached this handler.
-	var dbg_char: String = dialogue_line.character if is_instance_valid(dialogue_line) else "<no_line>"
-	var dbg_text: String = dialogue_line.text if is_instance_valid(dialogue_line) else "<no_line>"
-	print("[balloon] click RAW       resp.text='%s'  resp.id=%s  dl.char='%s'  dl.text='%s'" %
-		[response.text, response.id, dbg_char, dbg_text])
-
 	# P2: log the line the NPC just finished saying, then the player's choice.
 	# Setting _skip_next_snapshot=true prevents the dialogue_line setter from
 	# re-logging the same line when the next line arrives.
@@ -396,21 +415,15 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 	_skip_next_snapshot = true
 
 	# Record the visit so subsequent conversations with this character dim
-	# this response option. Skip "End the conversation" — always available.
+	# this response option. Skip exit-tagged options + the legacy EXIT_TEXT.
+	# DialogueState owns the sidecar (survives load_from_slot — see
+	# autoload/dialogue_state.gd). Phase A's compat-write to GameState was
+	# removed in Final.3 once the sidecar was verified live.
 	var character: String = _resolve_speaker()
-	if character.is_empty():
-		print("[balloon] click SKIPPED   reason=empty_character  resp.text='%s'" % response.text)
-	elif _is_exit_response(response):
-		print("[balloon] click SKIPPED   reason=exit  resp.text='%s'" % response.text)
-	else:
-		# Visit key = text alone (see GameState header). response.id passed
-		# through for backward compat / future per-line discrimination if
-		# we ever need it again, but it's currently ignored by GameState.
+	if not character.is_empty() and not _is_exit_response(response):
 		print("[balloon] visit RECORDED  char=%s  text=%s" %
 			[character, response.text])
-		GameState.visit_dialogue(character, response.id, response.text)
-		print("[balloon] visit POST       dict[%s]=%s" %
-			[character, GameState.dialogue_visited.get(character, {}).keys()])
+		DialogueState.visit_dialogue(character, response.text)
 	next(response.next_id)
 
 
@@ -454,7 +467,7 @@ func _append_to_log(rich_text: String) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.text = rich_text
 	_log.add_child(label)
-	_auto_scroll_frames = 20
+	_auto_scroll_frames = 30
 
 
 ## Scroll the log by a pixel delta, clamped to valid range.
@@ -637,6 +650,299 @@ func _current_speaker_color() -> Color:
 	return Color.WHITE
 
 
+# ── Phase B — new-unlock detection / reorder / outline ─────────────────
+# A response option is "new" when its text has never appeared in any prior
+# menu render for this character (DialogueState.has_seen returns false).
+# New options get a green outline + jump to the top of the response list,
+# Disco-Elysium-style. After the render, _mark_responses_seen flips them to
+# "seen" so subsequent renders treat them as normal.
+#
+# Exit-tagged options ([#exit] / EXIT_TEXT) are never tracked as "new" or
+# "seen" — they're permanent fixtures that should never call attention to
+# themselves and don't need persistence noise.
+
+## Outline color for newly-unlocked options. Matches the passed skill-check
+## banner color so "good thing happened" reads consistently across the UI.
+const NEW_UNLOCK_OUTLINE: Color = Color(0.353, 0.910, 0.353, 1.0)  # #5AE85A
+
+## SFX cue played once per render that contains at least one new option.
+## Placeholder: `ui_confirm` — swap to a dedicated menu/page-turn cue once
+## one is recorded (drop a new audio/cues/<name>.tres and update this const).
+## Existing cues for reference: ui_move (navigation tick), ui_confirm (commit),
+## ui_back (cancel), ui_type (single click), end_card_type (keyboard cluster).
+const NEW_UNLOCK_SFX: StringName = &"ui_confirm"
+
+
+## Walks the response menu's buttons and populates `_new_response_texts`
+## with options that are NEWLY UNLOCKED in this menu — i.e., options the
+## player hasn't seen yet, IN A MENU WHERE AT LEAST ONE OTHER OPTION IS
+## ALREADY SEEN. The "another option already seen" gate is what makes this
+## a true unlock detector and not a "first time at this hub" detector:
+##
+##   - First-ever render of a hub: no options seen yet → no highlights.
+##     Player gets a clean menu without every option screaming "NEW".
+##   - Re-entering an already-seen hub with a new [if /]-gated option that
+##     just flipped visible → that option highlights, the seen siblings
+##     don't.
+##
+## Skips exit-tagged options entirely (they neither count toward the
+## "any-seen" check nor get highlighted themselves).
+func _compute_new_responses() -> void:
+	_new_response_texts.clear()
+	var character: String = _resolve_speaker()
+	if character.is_empty(): return
+	var any_seen := false
+	var unseen_texts: Array[String] = []
+	for child: Node in responses_menu.get_children():
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		if _is_exit_response(response): continue
+		if DialogueState.has_seen(character, response.text):
+			any_seen = true
+		else:
+			unseen_texts.append(response.text)
+	# Only flag as "new" if the player has been here before — i.e., at least
+	# one sibling option is already seen. Otherwise this is a first-render
+	# and nothing should highlight.
+	if any_seen:
+		for t in unseen_texts:
+			_new_response_texts[t] = true
+
+
+## Commits the current render's option texts to DialogueState.seen so the
+## NEXT render no longer flags them as "new". Must run after the visual
+## styling pass (otherwise we'd seen-mark first and the styling would find
+## nothing new). Skips exit options (they shouldn't pollute the seen dict).
+func _mark_responses_seen() -> void:
+	var character: String = _resolve_speaker()
+	if character.is_empty(): return
+	for child: Node in responses_menu.get_children():
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		if _is_exit_response(response): continue
+		DialogueState.mark_seen(character, response.text)
+
+
+## B.3 — applies green outline to new-unlock buttons and reorders them to
+## the top of the response menu (above the template). Plays the new-unlock
+## SFX once if at least one option in this render is new.
+##
+## Per-state fill alpha is tuned so focus reads clearly as "selected" — the
+## default theme's focus stylebox would normally provide that contrast, but
+## once we override `focus` with our own green stylebox we have to supply
+## the contrast ourselves. Empirically: 0.10 hover, 0.28 focus, 0.40 pressed.
+##
+## After reorder, configure_focus() is called on the DialogueResponsesMenu
+## so its focus_neighbor_top/bottom pointers reflect the new visual order.
+## Without that, arrow-key navigation walks the source order and the player
+## sees the highlight skip past the top option — visibly broken.
+func _style_new_responses() -> void:
+	if _new_response_texts.is_empty(): return
+	var moved_any := false
+	for child: Node in responses_menu.get_children():
+		if not (child is Button): continue
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		if not _new_response_texts.has(response.text): continue
+		var btn := child as Button
+		# Green outline — overrides any prior stylebox set by [CAN] / skill-check
+		# styling. New-unlock visually dominates other markers because it's the
+		# strongest "look at this" signal.
+		for state: String in ["normal", "hover", "pressed", "focus"]:
+			var sb := StyleBoxFlat.new()
+			var fill_alpha: float = 0.0
+			match state:
+				"hover": fill_alpha = 0.10
+				"focus": fill_alpha = 0.28
+				"pressed": fill_alpha = 0.40
+			sb.bg_color = Color(NEW_UNLOCK_OUTLINE.r, NEW_UNLOCK_OUTLINE.g, NEW_UNLOCK_OUTLINE.b, fill_alpha)
+			sb.border_width_left = 2
+			sb.border_width_top = 2
+			sb.border_width_right = 2
+			sb.border_width_bottom = 2
+			sb.border_color = NEW_UNLOCK_OUTLINE
+			sb.corner_radius_top_left = 3
+			sb.corner_radius_top_right = 3
+			sb.corner_radius_bottom_left = 3
+			sb.corner_radius_bottom_right = 3
+			btn.add_theme_stylebox_override(state, sb)
+		# Reorder: bump to position 1 (slot 0 is the response_template — keep
+		# it at the bottom of the z-order so duplicate() still works).
+		responses_menu.move_child(btn, 1)
+		moved_any = true
+	if moved_any:
+		# Rebuild focus chain in the new visual order — without this, arrow
+		# navigation still follows the pre-reorder neighbors and the focus
+		# highlight visibly skips past the top option.
+		if responses_menu.has_method(&"configure_focus"):
+			responses_menu.call(&"configure_focus")
+		Audio.play_sfx(NEW_UNLOCK_SFX)
+
+
+# ── Phase C — recursive subtree dim ────────────────────────────────────
+# A parent option dims only when every visible non-exit child has been
+# picked. To know what "the children" are, we walk the option's body
+# through DM's resource.lines (following gotos / mutations / dialogue
+# lines) until we hit a TYPE_RESPONSE block — those are the children. If
+# we hit END or detect a cycle (loop-back to the parent hub), the option
+# is a leaf with no subtree and dims on visit alone.
+#
+# Walker is structural (doesn't evaluate [if /] conditions). The caller
+# (_subtree_fully_explored) cross-references with DialogueState to compute
+# completion. Hidden children are checked for visibility there, not here.
+
+## Walks from a starting block id through DM's resource.lines following
+## non-menu types (goto / cue / mutation / dialogue / etc.) until it hits
+## a TYPE_RESPONSE block. Returns that block's child entries, each as a
+## small dict {text, tags, next_id} — enough info for the dim check to
+## test visited-state and recurse into grandchildren.
+##
+## Returns [] for leaf paths: END, walker cycle, unknown type, empty
+## start_id, OR — critically — when the walked-into response set contains
+## `parent_response_id` in its own `responses` list. That last case is
+## "the option's body loops back to the hub it lives in" — the option is
+## a flat probe, not a parent of a sub-hub.
+##
+## `visited_block_ids` is mutated — pass {} on the top-level call; the
+## recursion shares one accumulating set so a deeper walk can't revisit a
+## hub already on the stack.
+func _walk_subtree_from_id(start_id: String, visited_block_ids: Dictionary,
+		parent_response_id: String = "") -> Array[Dictionary]:
+	var children: Array[Dictionary] = []
+	if dialogue_resource == null: return children
+	var resource: DialogueResource = dialogue_resource
+	# DM appends an id_trail like "@uid@123" or "|fallback" — strip to the
+	# plain id for resource.lines lookup. The trail re-attaches when DM
+	# does its own walking; our structural walk only needs the bare id.
+	var current_id: String = _strip_id_trail(start_id)
+	var hops: int = 0
+	while hops < 64:  # hard cap as a belt-and-suspenders against missed cycles
+		hops += 1
+		if current_id.is_empty(): break
+		if visited_block_ids.has(current_id): break  # cycle
+		if not resource.lines.has(current_id): break  # extern / terminal
+		visited_block_ids[current_id] = true
+		var data: Dictionary = resource.lines.get(current_id)
+		var t: String = String(data.get("type", ""))
+		if t == "response":
+			var ids: Array = data.get("responses", [])
+			# Loop-back detection: if this response set contains the option
+			# we started from, it's the option's PARENT hub, not a sub-hub.
+			# Treat as a leaf and bail.
+			if not parent_response_id.is_empty() and (parent_response_id in ids):
+				break
+			for child_id_v in ids:
+				var child_id: String = String(child_id_v)
+				if not resource.lines.has(child_id): continue
+				var child_data: Dictionary = resource.lines.get(child_id)
+				children.append({
+					"id": child_id,
+					"text": String(child_data.get("text", "")),
+					"tags": child_data.get("tags", PackedStringArray()),
+					"next_id": String(child_data.get("next_id", "")),
+				})
+			break
+		elif t in ["goto", "cue", "mutation", "dialogue", "condition", "while", "comment", "random", "match"]:
+			current_id = _strip_id_trail(String(data.get("next_id", "")))
+		else:
+			break  # unknown type or terminal
+	return children
+
+
+## Convenience overload — kicks off the walk from a DialogueResponse object.
+## Returns the immediate child entries (no recursion). Forwards the response's
+## id to the walker so it can detect loop-backs to the option's parent hub.
+func _walk_response_subtree(response: DialogueResponse, visited_block_ids: Dictionary) -> Array[Dictionary]:
+	if response == null: return []
+	return _walk_subtree_from_id(response.next_id, visited_block_ids, response.id)
+
+
+## Returns true iff this child option (and the entire subtree underneath
+## it) has been visited. Definition:
+##   - exit-tagged children count as "explored" by default (never required).
+##   - not-visited leaf  → false.
+##   - visited leaf      → true.
+##   - visited parent    → true iff every visible non-exit grandchild is
+##                         also fully explored (recursive).
+##
+## `visited_blocks` is the cycle-tracking set, accumulated across the whole
+## recursion so a `=> back_to_parent` loop terminates cleanly.
+func _is_child_fully_explored(child_data: Dictionary, character: String,
+		visited_blocks: Dictionary) -> bool:
+	var tags: PackedStringArray = child_data.get("tags", PackedStringArray())
+	if EXIT_TAG in tags: return true
+	var text: String = String(child_data.get("text", ""))
+	if text == EXIT_TEXT: return true
+
+	# Never-shown child: probably hidden behind an [if /] gate the player
+	# hasn't tripped. Doesn't count toward parent completion — players
+	# can't engage with content they've never been shown. (When the gate
+	# eventually flips, the option becomes "new", marks seen, and from
+	# then on counts normally — visit-it-or-block-dim.)
+	if not DialogueState.has_seen(character, text):
+		return true
+
+	if not DialogueState.has_visited_dialogue(character, text):
+		return false
+
+	# Decision-tagged: the body is a one-way Rule-8 side-block (mutually
+	# exclusive endpoints), not a probe sub-hub. Visiting once = answered.
+	# Don't recurse — we'd otherwise demand every endpoint be picked, which
+	# defeats "decision".
+	if DECISION_TAG in tags:
+		return true
+
+	# Visited. Recurse into this child's subtree. Pass child's own id so the
+	# walker detects loop-backs to the sub-hub it lives in.
+	var grandkids: Array[Dictionary] = _walk_subtree_from_id(
+			String(child_data.get("next_id", "")),
+			visited_blocks,
+			String(child_data.get("id", "")))
+	if grandkids.is_empty(): return true  # leaf — done
+	for gk in grandkids:
+		if not _is_child_fully_explored(gk, character, visited_blocks):
+			return false
+	return true
+
+
+## Top-level subtree completion check: does this response option have any
+## visible non-exit children left unexplored? Used by _dim_visited_responses
+## to decide whether a parent option dims the moment it's picked or only
+## after its sub-hub is fully cleared.
+##
+## Returns true if the option has no sub-hub (a flat probe) — those dim on
+## simple visit, same as before Phase C.
+func _subtree_fully_explored(response: DialogueResponse, character: String) -> bool:
+	if response == null: return true
+	if character.is_empty(): return true
+	var visited_blocks: Dictionary = {}
+	var children: Array[Dictionary] = _walk_response_subtree(response, visited_blocks)
+	if children.is_empty(): return true  # leaf
+	for child in children:
+		if not _is_child_fully_explored(child, character, visited_blocks):
+			return false
+	return true
+
+
+## Strip the DM id-trail decoration so resource.lines.has() lookups match.
+## DM uses two separators on next_ids:
+##   - `@uid@id` — cross-resource ref. Take the part AFTER the last `@`.
+##     (Inline-compiled dialogues have empty uid → `@id`, which still works
+##     because we want the part after the lone `@`.)
+##   - `id|fallback_id` — return-stack pipe. Take the part BEFORE the `|`.
+func _strip_id_trail(id: String) -> String:
+	if id.is_empty(): return id
+	var pipe: int = id.find("|")
+	if pipe > -1: id = id.substr(0, pipe)
+	if "@" in id:
+		var parts: PackedStringArray = id.split("@")
+		id = parts[parts.size() - 1]
+	return id
+
+
 ## Returns the current NPC speaker for visit-key scoping. Falls back to the
 ## last seen speaker when DM hands us a synthetic TYPE_RESPONSE line with
 ## empty character (see `_last_known_speaker`).
@@ -662,18 +968,9 @@ func _is_exit_response(response: DialogueResponse) -> bool:
 ## `item.set_meta("response", response)` — use that instead of matching by
 ## button text (which loses identity if two responses share the same text).
 func _dim_visited_responses() -> void:
-	if not is_instance_valid(dialogue_line):
-		print("[balloon] dim BAIL       reason=no_dialogue_line")
-		return
+	if not is_instance_valid(dialogue_line): return
 	var character: String = _resolve_speaker()
-	if character.is_empty():
-		print("[balloon] dim BAIL       reason=empty_character  dl.text='%s'  resp_count=%d" %
-			[dialogue_line.text, dialogue_line.responses.size() if dialogue_line.responses != null else -1])
-		return
-	# DBG: dump the full visited dict for this character so we can see what
-	# the read side is searching against.
-	print("[balloon] dim DICT       dict[%s].keys=%s" %
-		[character, GameState.dialogue_visited.get(character, {}).keys()])
+	if character.is_empty(): return
 	var dimmed_count := 0
 	var total_count := 0
 	for child: Node in responses_menu.get_children():
@@ -685,12 +982,18 @@ func _dim_visited_responses() -> void:
 		if _is_exit_response(matching):
 			(child as CanvasItem).modulate = Color.WHITE
 			continue
-		# Visit key is the text alone — see GameState.visit_dialogue header
-		# for why id is intentionally excluded.
-		var was_visited: bool = GameState.has_visited(character, matching.text)
-		print("[balloon] dim CHECK     char=%s  text=%s  visited=%s" %
-			[character, matching.text, was_visited])
-		if was_visited:
+		# Visit key is the text alone — see DialogueState._zip header for why
+		# response.id is intentionally excluded.
+		var was_visited: bool = DialogueState.has_visited_dialogue(character, matching.text)
+		# Phase C — for parent options with a sub-hub, "visited" alone isn't
+		# enough to dim. The whole subtree must be explored. Flat probes
+		# (no sub-hub) report subtree_explored=true unconditionally so they
+		# behave exactly as they did before this phase shipped.
+		var subtree_done: bool = _subtree_fully_explored(matching, character)
+		var should_dim: bool = was_visited and subtree_done
+		print("[balloon] dim CHECK     char=%s  text=%s  visited=%s  subtree_done=%s" %
+			[character, matching.text, was_visited, subtree_done])
+		if should_dim:
 			(child as CanvasItem).modulate = VISITED_DIM
 			dimmed_count += 1
 		else:

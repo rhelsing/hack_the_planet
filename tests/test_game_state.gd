@@ -43,14 +43,8 @@ func _ready() -> void:
 	if GameState.get_flag(&"counter") != 3:
 		failures.append("int-valued flag round-trip failed")
 
-	# ---- Dialogue-visited (matches 3dPFormer zipped-key shape) ----
-	if GameState.has_visited("Troll", "opener_Hi!"):
-		failures.append("has_visited should be false before visit")
-	GameState.visit_dialogue("Troll", "opener", "Hi!")
-	if not GameState.has_visited("Troll", "opener_Hi!"):
-		failures.append("visit_dialogue should record zipped key")
-	if GameState.has_visited("Frog", "opener_Hi!"):
-		failures.append("visit_dialogue should scope by character")
+	# Dialogue-visited tracking moved to DialogueState autoload in v2 — see
+	# tests/test_dialogue_state_persistence.gd. No GameState assertions here.
 
 	# ---- Save round-trip ----
 	GameState.add_item(&"some_item")
@@ -61,16 +55,12 @@ func _ready() -> void:
 		failures.append("reset should clear inventory")
 	if not GameState.flags.is_empty():
 		failures.append("reset should clear flags")
-	if not GameState.dialogue_visited.is_empty():
-		failures.append("reset should clear dialogue_visited")
 
 	GameState.from_dict(snapshot)
 	if not GameState.has_item(&"some_item"):
 		failures.append("from_dict should restore inventory")
 	if GameState.get_flag(&"mainframe_hacked") != true:
 		failures.append("from_dict should restore flags")
-	if not GameState.has_visited("Troll", "opener_Hi!"):
-		failures.append("from_dict should restore dialogue_visited")
 
 	# ---- Deep-copy safety ----
 	GameState.set_flag(&"post_load_mutation", true)

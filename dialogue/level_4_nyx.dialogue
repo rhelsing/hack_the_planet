@@ -22,12 +22,13 @@ Nyx: He's quarantined.
 Nyx: and I'm not carrying it anymore.
 Nyx: Huh.
 Nyx: Come on. Let's go celebrate.
-- Take me home.
+- Take me home. [#exit]
 	do LevelProgression.advance()
 	=> END
-- Stay a moment. Linger in the moment.
+- Linger in the moment and try to hold eye contact. [#exit]
 	Nyx: hmm.
-	Nyx: ...okay. Come on.
+	Nyx: ...okay, I see you {{HandlePicker.chosen_name()}}.
+	Nyx: let's get out of here.
 	do LevelProgression.advance()
 	=> END
 

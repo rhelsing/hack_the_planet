@@ -73,6 +73,13 @@ func begin_new_game(slot: StringName) -> void:
 	var gs := get_tree().root.get_node_or_null(^"GameState")
 	if gs != null and gs.has_method(&"reset"):
 		gs.call(&"reset")
+	# Bind + wipe DialogueState sidecar for this slot. bind_slot() clears
+	# in-memory state; reset() flushes an empty file so the slot starts
+	# fresh on disk too.
+	var ds := get_tree().root.get_node_or_null(^"DialogueState")
+	if ds != null and ds.has_method(&"bind_slot"):
+		ds.call(&"bind_slot", slot)
+		ds.call(&"reset")
 	active_slot = slot
 	playtime_s = 0.0
 	# Fresh games start in the hub. Write that into the save immediately so
@@ -92,6 +99,11 @@ func has_active_slot() -> bool:
 ## so the next boot starts fresh.
 func clear_active_slot() -> void:
 	active_slot = &""
+	# Unbind DialogueState — main-menu / pre-game state shouldn't write to
+	# any sidecar.
+	var ds := get_tree().root.get_node_or_null(^"DialogueState")
+	if ds != null and ds.has_method(&"bind_slot"):
+		ds.call(&"bind_slot", &"")
 
 
 func slot_metadata(id: StringName) -> Dictionary:
@@ -138,6 +150,14 @@ func load_from_slot(id: StringName) -> void:
 	active_slot = id
 	_apply_game_state(d.get("game_state", {}))
 	_pending_player_state = d.get("player_state", {})
+	# Bind DialogueState to this slot's sidecar — reads any prior dialogue
+	# meta state (visited, seen, story_vec) from disk. Crucially does NOT
+	# wipe in-memory state on bind; the sidecar is the source of truth and
+	# load_from_slot must not overwrite mid-conversation history (that bug
+	# is what triggered the v2 refactor in the first place).
+	var ds := get_tree().root.get_node_or_null(^"DialogueState")
+	if ds != null and ds.has_method(&"bind_slot"):
+		ds.call(&"bind_slot", id)
 	print("[save] load slot=%s level=%s pending_player_keys=%s" % [
 		id, current_level, _pending_player_state.keys()])
 	Events.game_loaded.emit(id)
@@ -159,9 +179,15 @@ func most_recent_slot() -> StringName:
 
 
 func delete_slot(id: StringName) -> void:
-	for p in [_save_path(id), _meta_path(id)]:
+	for p in [_save_path(id), _meta_path(id), _dialogue_state_path(id)]:
 		if FileAccess.file_exists(p):
 			DirAccess.remove_absolute(p)
+
+
+## Path of the per-slot DialogueState sidecar. Mirrors the constant in
+## DialogueState._save_path so delete_slot can clean up sidecars too.
+func _dialogue_state_path(id: StringName) -> String:
+	return "user://dialogue_state_%s.json" % id
 
 
 ## Called by whoever loads a level so current_level reflects reality.

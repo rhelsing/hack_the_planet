@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/test_subtree_explored.gd" id="1"]
+
+[node name="TestSubtreeExplored" type="Node"]
+script = ExtResource("1")

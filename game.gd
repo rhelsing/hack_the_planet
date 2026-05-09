@@ -1,5 +1,14 @@
 extends Node
 
+## TEMP Intel-Mac instrumentation. Set false to silence the boot-info,
+## frame-spike, and per-conversion logs added for diagnosing Intel Mac
+## stalls. Mirror values must match in player_body.gd and kaykit_skin.gd.
+const DEBUG_INTEL: bool = false
+## Frames slower than this print a [frame-spike] line. 33ms ≈ 30fps; on a
+## 60fps target anything above this is suspicious.
+const _SPIKE_THRESHOLD_MS: float = 33.0
+var _last_spike_frame: int = -1
+
 ## Gameplay root. Hosts the Player + HUD + a swappable Level child.
 ##
 ## LevelProgression + hub pedestals call `load_level(path)` to swap which
@@ -31,6 +40,22 @@ var _f1_return: Dictionary = {}
 
 
 func _ready() -> void:
+	if DEBUG_INTEL:
+		# One-shot dump of the renderer + adapter info — tells us at a glance
+		# whether the friend's Intel Mac is on Forward+ (Metal) vs Compatibility
+		# (GL), and which GPU the driver picked. The most-common Intel-Mac
+		# crash mode is Forward+ on an integrated Iris/HD, so this is the
+		# first thing to check in any bug report.
+		print("[boot-perf] OS=%s in_editor=%s debug_build=%s" % [
+			OS.get_name(), OS.has_feature("editor"), OS.is_debug_build()])
+		print("[boot-perf] adapter=%s vendor=%s" % [
+			RenderingServer.get_video_adapter_name(),
+			RenderingServer.get_video_adapter_vendor()])
+		print("[boot-perf] driver_info=%s" % str(OS.get_video_adapter_driver_info()))
+		print("[boot-perf] rendering_method=%s rendering_driver=%s" % [
+			ProjectSettings.get_setting("rendering/renderer/rendering_method", "?"),
+			ProjectSettings.get_setting("rendering/rendering_device/driver", "?")])
+		print("[boot-perf] target_fps=%d" % Engine.max_fps)
 	# If game.tscn ships with a pre-baked Level child, treat it as the
 	# initial level so the previous flow (boot straight into level.tscn)
 	# still works.
@@ -44,6 +69,21 @@ func _ready() -> void:
 		SaveService.current_level, saved_scene])
 	if saved_scene != null:
 		_mount_level(saved_scene)
+
+
+func _process(delta: float) -> void:
+	if not DEBUG_INTEL:
+		return
+	# Convert delta to ms and log frames that miss the budget. Dedupe to one
+	# print per spike (the next frame usually recovers); a second spike on
+	# adjacent frames re-prints. We attach the surrounding frame index so
+	# you can correlate against [faction-perf] / [tint-perf] timestamps.
+	var dt_ms: float = delta * 1000.0
+	if dt_ms > _SPIKE_THRESHOLD_MS:
+		var f: int = Engine.get_process_frames()
+		if f != _last_spike_frame + 1:
+			print("[frame-spike] f=%d dt=%.1fms (>%.0fms)" % [f, dt_ms, _SPIKE_THRESHOLD_MS])
+		_last_spike_frame = f
 
 
 func _input(event: InputEvent) -> void:

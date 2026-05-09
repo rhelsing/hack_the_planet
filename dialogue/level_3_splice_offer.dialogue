@@ -13,7 +13,7 @@ Splice: Splice. You may have heard the name.
 Splice: I've been on your signal since the first run. You didn't know. That was the point.
 Splice: You're better at this than the crew you came in with realizes. They've got you running their little chores.
 Splice: Step off-channel a minute. Just listen. Walk away if you want.
-- Get off my channel.
+- Get off my channel. [#exit]
 	=> splice_refused
 - Listening.
 	=> splice_consider
@@ -31,9 +31,9 @@ Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-be
 	=> splice_catch
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
 	=> splice_nyx
-- I'm with you.
+- I'm with you. [#exit]
 	=> splice_committed
-- Get off my channel.
+- Get off my channel. [#exit]
 	=> splice_refused
 
 ~ splice_catch
@@ -43,9 +43,9 @@ Splice: They built the "hackers for the people" thing because none of them had a
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
-- I'm in.
+- I'm in. [#exit]
 	=> splice_committed
-- Get off my channel.
+- Get off my channel. [#exit]
 	=> splice_refused
 
 ~ splice_if_no
@@ -53,9 +53,9 @@ Splice: You're the same. That's why I'm talking to you and not them.
 Splice: Then you go back to your soda run and your little prank crew. No hard feelings.
 Splice: You'll think about this. Probably tonight.
 Splice: When you do — channel's open.
-- Actually, I'm in.
+- Actually, I'm in. [#exit]
 	=> splice_committed
-- Get off my channel.
+- Get off my channel. [#exit]
 	=> splice_refused
 
 ~ splice_nyx
@@ -71,7 +71,7 @@ Splice: Some things I keep mine.
 - [if GameState.coin_pct() >= 0.8 /] [CAN] Are you trying to get her back?
 	Splice: I'm trying to get the Gibson. Nyx made her call a long time ago.
 	=> splice_consider
-- Get off my channel.
+- Get off my channel. [#exit]
 	=> splice_refused
 
 ~ splice_committed

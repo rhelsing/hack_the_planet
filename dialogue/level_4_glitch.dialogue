@@ -9,6 +9,7 @@ if GameState.get_flag("l4_invention_terminal_solved", false)
 Glitch: Hey — Runner. I — uh. I've been working on something.
 Glitch: That platform. Over there. Step on for a sec.
 Glitch: Trust me. Mostly.
+do GameState.set_flag("l4_glitch_intro_done", true)
 => END
 
 # Stage 1 — player solved the terminal, presumably tried the platform.

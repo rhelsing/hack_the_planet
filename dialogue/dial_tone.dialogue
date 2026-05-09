@@ -18,7 +18,7 @@ elif GameState.get_flag("dialtone_greeted", false)
 ~ stage_intro
 
 DialTone: Hey — over here.
-# do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
+do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
 DialTone: Name's DialTone.
 DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break her loose.
 => dialtone_questions
@@ -50,9 +50,9 @@ DialTone: Hey — time's ticking.
 - Why can't you go yourself?
 	DialTone: Local node's flagged to my address. I jack in from here, it alerts **the authorities**. No joke.
 	DialTone: You're a clean IP — you can slip right through.
-- [if !GameState.get_flag("dialtone_greeted", false) /] I'm in. Where's the portal?
+- [if !GameState.get_flag("dialtone_greeted", false) /] I'm in. Where's the portal? [#exit]
 	=> intro_done
-- [if GameState.get_flag("dialtone_greeted", false) /] That's all.
+- [if GameState.get_flag("dialtone_greeted", false) /] That's all. [#exit]
 	=> intro_done
 => dialtone_questions
 
@@ -117,7 +117,7 @@ DialTone: What else would you like to know?
 	Nyx: That's a habit, by the way. The lurking.
 	DialTone: You had a particular flavor — kept asking what nobody else was asking. Wanted to see what you were made of.
 	do GameState.set_flag("dialtone_messenger_thread", 2)
-- So what's next?
+- So what's next? [#exit]
 	=> post_1_done
 => post_1_questions
 
@@ -213,7 +213,7 @@ DialTone: You got the plan?
 	Nyx: DialTone's been waiting to say that one.
 	DialTone: A little.
 	do GameState.set_flag("dialtone_messenger_thread", 3)
-- I'm in.
+- I'm in. [#exit]
 	=> post_2_done
 => post_2_questions
 
@@ -294,7 +294,7 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	DialTone: Splice's offer wasn't the first test. It was the third.
 	DialTone: You passed all three.
 	do GameState.set_flag("dialtone_messenger_thread", 4)
-- I'm ready for the next one.
+- I'm ready for the next one. [#exit]
 	=> post_3_done
 => post_3_questions
 
@@ -361,7 +361,7 @@ DialTone: Anything else?
 	DialTone: Nobody builds the grid by accident. I went looking.
 	DialTone: You're in. For real this time.
 	do GameState.set_flag("dialtone_messenger_thread", 5)
-- Sign me out.
+- Sign me out. [#exit]
 	=> post_4_done
 => post_4_questions
 

@@ -56,7 +56,7 @@ Nyx: Talk.
 	Nyx: Prove me wrong then.
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
 	Nyx: DialTone's smug enough already.
-- All right, see you on the wire.
+- All right, see you on the wire. [#exit]
 	Nyx: Mm. We'll see.
 	=> END
 => nyx_post_1_questions
@@ -121,7 +121,7 @@ Nyx: Anything else, runner?
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Why does he scare you?
 	Nyx: He doesn't scare me. What scares me is I vouched for him.
 	Nyx: He just confirms the read.
-- All right, see you on the wire.
+- All right, see you on the wire. [#exit]
 	=> END
 => nyx_post_2_questions
 
@@ -130,14 +130,14 @@ Nyx: Anything else, runner?
 
 Nyx: DialTone's plan is a good plan. It's also more dangerous than the last two.
 Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
-- Are you telling me to log out?
+- Are you telling me to log out? [#exit]
 	Nyx: I'm telling you you can.
 	=> nyx_post_2_choice
-- Would you?
+- Would you? [#exit]
 	Nyx: I can't. Splice is mine to deal with.
 	Nyx: That's not the same as you.
 	=> nyx_post_2_choice
-- Not logging out.
+- Not logging out. [#exit]
 	Nyx: Then catch up. Portal's behind him.
 	Nyx: Don't fall off anything.
 	=> END
@@ -201,7 +201,7 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 - [if GameState.get_flag("nyx_post_3_asked_read", false) /] It mattered to you.
 	Nyx: yes.
 	Nyx: Moving on.
-- All right, see you on the wire.
+- All right, see you on the wire. [#exit]
 	=> nyx_post_3_done
 => nyx_post_3_questions
 
@@ -252,7 +252,7 @@ else
 	Nyx: Splice spent a year in the static planning this. He gets to see us happy. That's the bit.
 - He's quarantined for good?
 	Nyx: For now. Yes. But he's been there before.
-- See you on the wire.
+- See you on the wire. [#exit]
 	Nyx: Go pick a song. Save me one.
 	do GameState.set_flag("hub_post4_nyx_celebrated", true)
 	=> END

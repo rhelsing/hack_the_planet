@@ -34,7 +34,7 @@ Glitch: {{HandlePicker.reaction()}}
 if GameState.get_flag("glitch2_done", false)
 	=> glitch_2_entry
 
-Glitch: Well executed.
+Glitch: What can I help you with?
 => warn
 
 # ── Sentinels warning (fires at most once, regardless of player asking) ──
@@ -60,7 +60,11 @@ Glitch: At your service.
 => glitch_2_questions
 
 
-# Single shared question hub.
+# Single shared question hub. "About those Sentinels..." opens a sub-hub
+# (sentinels_subhub) — the deep-branching live demo for the v2 dialogue
+# engine. Each Sentinels probe nudges the StoryVec ai_tech / humanity
+# axes; some children unlock further only after asking the right thing
+# (drives the green-outline new-unlock pass).
 
 ~ glitch_2_questions
 
@@ -69,12 +73,79 @@ Glitch: At your service.
 	Glitch: Press {{Glyphs.for_action("dash")}} to dash mid-flight. The same dash will sidestep an incoming attack.
 	Glitch: Press {{Glyphs.for_action("attack")}} to strike.
 - About those Sentinels...
-	Glitch: Several configurations. In time, you may find some can be repurposed.
+	Glitch: Ask away.
+	=> sentinels_subhub
 - Seriously, were you who texted me?
 	Glitch: Seriously, I dont **text**.
 - Onward. [#exit]
 	=> done
 => glitch_2_questions
+
+
+# Sentinels sub-hub — multi-layer branching with vector nudges.
+#
+# Structure (Rule 10 of dialogue_dry_pattern.md):
+#   - "Several configurations?"            opens "Are they... conscious?"
+#   - "Are they... conscious?"  ([if /])   opens "Can I trust them?"
+#   - "Where do they come from?"           +humanity (curious about origins)
+#   - "Can I trust them?"       ([if /])   choice between trust / wariness;
+#                                          either branch nudges the vector.
+#   - Back. [#exit]                        returns to glitch_2_questions.
+#
+# Phase C: "About those Sentinels..." in the parent hub only dims once
+# every visible non-exit child of this sub-hub has been picked.
+
+~ sentinels_subhub
+
+- Several configurations?
+	Glitch: We've had issues keeping them in check from time to time.
+	Glitch: There was the sentinel rebellion of 1986. Oh boy.
+	Glitch: Later on several black hat hackers reconfigured them to generate random haikus.
+	Glitch: Please don't modify the sentinels.
+	do GameState.set_flag("glitch2_asked_configs", true)
+- [if GameState.get_flag("glitch2_asked_configs", false) /] Are they... conscious?
+	Glitch: Conscious. That is a heavy word.
+	Glitch: They run a fixed routine. Detect anomaly. Purge anomaly. No reflection on the in-between.
+	Glitch: But — if you ask whether anything in here might one day think back at you...
+	Glitch: I wouldn't rule it out.
+	do StoryVec.nudge(&"ai_tech", 1)
+	do GameState.set_flag("glitch2_asked_conscious", true)
+- Where do they come from?
+	Glitch: Ellingson built the first batch decades ago. Patrol scripts. Boring.
+	Glitch: They got handed off, sold, copied, mutated.
+	Glitch: The ones in here now are someone else's children. We just inherited them.
+	do StoryVec.nudge(&"humanity", 1)
+	do GameState.set_flag("glitch2_asked_origin", true)
+- [if GameState.get_flag("glitch2_asked_conscious", false) and not GameState.get_flag("glitch2_trust_decided", false) /] Can I trust them? [#decision]
+	=> sentinels_trust_branch
+- Back. [#exit]
+	Glitch: Very well.
+	=> glitch_2_questions
+=> sentinels_subhub
+
+
+# Trust branch — one-way decision (Rule 8 side block). The player picks
+# how they relate to the Sentinels-as-thinking-things question; vector
+# moves accordingly. Both options return to the sub-hub so the player can
+# keep exploring the rest of the Sentinels probes.
+
+~ sentinels_trust_branch
+
+Glitch: Trust. Different word again.
+- Treat them like tools. They're code.
+	Glitch: Practical. They'll snap your spine without thinking, so — fair trade.
+	Glitch: Use what works.
+	do StoryVec.nudge(&"ai_tech", -1)
+	do StoryVec.nudge(&"humanity", -1)
+	do GameState.set_flag("glitch2_trust_decided", true)
+	=> sentinels_subhub
+- Treat them like neighbors I just don't agree with.
+	Glitch: Generous. Probably wrong, but generous.
+	Glitch: I'll remember you said that.
+	do StoryVec.nudge(&"ai_tech", 1)
+	do StoryVec.nudge(&"humanity", 1)
+	do GameState.set_flag("glitch2_trust_decided", true)
+	=> sentinels_subhub
 
 
 ~ done
