@@ -58,6 +58,10 @@ func can_interact(actor: Node3D) -> bool:
 func interact(_actor: Node3D) -> void:
 	if not can_interact(_actor):
 		return
+	# Drop any story-override music (e.g. L3's "heading right towards him"
+	# tense loop) so the player doesn't carry the score into the hub on top
+	# of whatever the hub starts playing.
+	Audio.resume_default_playlist_if_overridden()
 	LevelProgression.goto_path(target_scene_path)
 
 

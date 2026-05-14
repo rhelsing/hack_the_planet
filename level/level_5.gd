@@ -223,21 +223,30 @@ func _exit_tree() -> void:
 	var hud := get_tree().get_first_node_in_group(&"hud") if get_tree() != null else null
 	if hud != null:
 		hud.visible = true
-	# Restore the player skin's normal AnimationTree so subsequent levels
-	# get full state-machine driven animation again. Splice's skin lives on
-	# this level and disposes with it — no need to unlock him.
 	var player := get_tree().get_first_node_in_group(&"player") if get_tree() != null else null
-	if player != null:
-		var pskin = player.get(&"_skin")
-		if pskin != null and pskin.has_method(&"walk_unlock"):
-			pskin.call(&"walk_unlock")
-		# Mirror enter_betrayal_walk (called in _ready). Without this, the
-		# locked walk vector leaks into whatever level is mounted next and
-		# the player can't move. F9 round-trips remount level_5 so the
-		# symptom never showed; F1/F2 unmount to a different level and it
-		# does. See player_body.gd:1911.
-		if player.has_method(&"exit_betrayal_walk"):
-			player.call(&"exit_betrayal_walk")
+	if player == null:
+		return
+	# Undo walk_lock on skin (restores AnimationTree).
+	var pskin = player.get(&"_skin")
+	if pskin != null and pskin.has_method(&"walk_unlock"):
+		pskin.call(&"walk_unlock")
+	# Undo enter_betrayal_walk (clears forced walk direction).
+	if player.has_method(&"exit_betrayal_walk"):
+		player.call(&"exit_betrayal_walk")
+	# Undo set_profile_walk → restore skate profile so the player isn't
+	# permanently stuck on walking movement.
+	if player.has_method(&"set_profile_skate"):
+		player.call(&"set_profile_skate")
+	# Undo camera_spawn_yaw_offset_deg override (was set to 75.0 in _ready).
+	if "camera_spawn_yaw_offset_deg" in player:
+		player.camera_spawn_yaw_offset_deg = 0.0
+	# Undo _kill_wheels — re-show any hidden wheel nodes.
+	for n in player.find_children("Wheels*", "", true, false):
+		if n is Node3D:
+			(n as Node3D).visible = true
+	for n in player.find_children("RollerbladeWheels", "", true, false):
+		if n is Node3D:
+			(n as Node3D).visible = true
 
 
 func _spawn_credits_overlay() -> void:
@@ -475,14 +484,10 @@ func _show_end_card() -> void:
 		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
 	await ramp_tw.finished
 
-	# Brief hold at peak so the warp tail isn't cut by the menu mount.
+	# Brief hold at peak so the warp tail isn't cut by the prompt.
 	await get_tree().create_timer(0.25).timeout
 
-	var sl := get_tree().root.get_node_or_null(^"SceneLoader")
-	if sl != null and sl.has_method(&"goto"):
-		sl.call(&"goto", main_menu_path)
-	else:
-		get_tree().change_scene_to_file(main_menu_path)
+	_show_redemption_prompt(layer)
 
 
 # Build a single end-card BBCode line. Empty speaker = plain rest_text in the
@@ -523,3 +528,106 @@ func _log_camera_pose() -> void:
 		rad_to_deg(cam.global_rotation.x),
 		splice_z,
 	])
+
+
+# ── Redemption prompt ────────────────────────────────────────────────────
+
+# Same position F1 uses — tuned to land right in front of Splice's NPC.
+const _SPLICE_SPAWN_POS: Vector3 = Vector3(0.0, 28.18, -350.0)
+const _LEVEL_3_PATH: String = "res://level/level_3.tscn"
+
+
+func _show_redemption_prompt(parent_layer: CanvasLayer) -> void:
+	# Cover everything with a fresh solid-black rect so the end card text
+	# and glitch shader artifacts are fully hidden.
+	var blackout := ColorRect.new()
+	blackout.color = Color.BLACK
+	blackout.anchor_right = 1.0
+	blackout.anchor_bottom = 1.0
+	blackout.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent_layer.add_child(blackout)
+
+	var container := VBoxContainer.new()
+	container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	container.alignment = BoxContainer.ALIGNMENT_CENTER
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_theme_constant_override(&"separation", 24)
+	parent_layer.add_child(container)
+
+	var question := RichTextLabel.new()
+	question.bbcode_enabled = true
+	question.fit_content = true
+	question.scroll_active = false
+	question.autowrap_mode = TextServer.AUTOWRAP_OFF
+	question.add_theme_font_size_override(&"normal_font_size", 36)
+	question.add_theme_color_override(&"default_color", Color(0.8, 1.0, 0.8, 1.0))
+	question.text = "[center]Would you like a chance to make a better decision?[/center]"
+	question.size_flags_horizontal = Control.SIZE_FILL
+	question.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(question)
+
+	var btn_box := HBoxContainer.new()
+	btn_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_box.add_theme_constant_override(&"separation", 48)
+	btn_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(btn_box)
+
+	var btn_scene: PackedScene = load("res://menu/menu_button.tscn")
+
+	var yes_btn: Button = btn_scene.instantiate()
+	yes_btn.set(&"label", "YES")
+	btn_box.add_child(yes_btn)
+
+	var no_btn: Button = btn_scene.instantiate()
+	no_btn.set(&"label", "NO")
+	btn_box.add_child(no_btn)
+
+	yes_btn.pressed.connect(_on_redemption_yes)
+	no_btn.pressed.connect(_on_redemption_no)
+
+	container.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(container, "modulate:a", 1.0, 0.6)
+	await tw.finished
+	yes_btn.grab_focus()
+
+
+func _on_redemption_yes() -> void:
+	GameState.set_flag(&"betrayed_friends", false)
+	GameState.set_flag(&"refused_splice", false)
+	# Set pending state BEFORE firing goto_path. This node (level_5) will
+	# be freed during the level swap, killing any coroutine — so we can't
+	# await and teleport after. Instead, _spawn_player in game.gd reads
+	# pending state and applies the position directly during mount.
+	var pos: Vector3 = _SPLICE_SPAWN_POS
+	SaveService.set(&"_pending_player_state", {
+		"position": [pos.x, pos.y, pos.z],
+		"checkpoint": [pos.x, pos.y, pos.z],
+	})
+	# Fire and forget — level_5 gets freed mid-transition, but pending
+	# state is already on the surviving SaveService autoload.
+	LevelProgression.goto_path(_LEVEL_3_PATH)
+
+
+func _on_redemption_no() -> void:
+	GameState.set_flag(&"betrayed_friends", false)
+	GameState.set_flag(&"refused_splice", false)
+	SaveService.set_current_level(&"level_3")
+	# Teleport player so save captures the Splice position for resume.
+	var player: Node3D = get_tree().get_first_node_in_group(&"player") as Node3D
+	if player != null:
+		player.global_position = _SPLICE_SPAWN_POS
+		if player.has_method(&"set_respawn_point"):
+			player.call(&"set_respawn_point", _SPLICE_SPAWN_POS)
+	_save_to_active_slot()
+	var sl := get_tree().root.get_node_or_null(^"SceneLoader")
+	if sl != null and sl.has_method(&"goto"):
+		sl.call(&"goto", main_menu_path)
+	else:
+		get_tree().change_scene_to_file(main_menu_path)
+
+
+func _save_to_active_slot() -> void:
+	if SaveService.has_active_slot():
+		SaveService.save_to_slot(SaveService.active_slot)

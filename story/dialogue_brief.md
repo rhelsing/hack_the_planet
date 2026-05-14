@@ -99,7 +99,7 @@ Glitch: Hey — you made it across!
 do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
 Glitch: I'm Glitch.
 Glitch: My sole directive is to be helpful to you here in the Gibson.
-Glitch: One more thing — those phone booths around the grid. Walk near one and it lights up green. Bank that, and you respawn there if you fall.
+Glitch: One more thing — those phone booths around the grid. Walk near one and it will light up. You respawn there if you.. well.. persish.
 => glitch_1_questions
 
 ~ glitch_1_questions
@@ -109,6 +109,9 @@ Glitch: One more thing — those phone booths around the grid. Walk near one and
 	Glitch: The Gibson is a supercomputer mainframe — Ellingson Mineral Company runs it.
 	Glitch: Sixty-four racks, networked across the city, processing every financial transaction the company touches.
 	Glitch: It was named for William Gibson — the writer who first called cyberspace by its name. We are inside it now.
+	=> glitch_1_questions
+- Perish?
+	Glitch: Quite so. For a brief moment, your code may enter a state of high entropy. Try not to think about it too hard.
 	=> glitch_1_questions
 - Did you.. text me?
 	Glitch: I dont text. I am just a program.
@@ -164,7 +167,7 @@ do GameState.set_flag("glitch1_done", true)
 ### `WalkieTriggerIntro5` — DialTone
 **Position:** (-61.89376, 11.094522, 24.566835)
 
-> Wow look at you go. I wish I wasn't confined to the hub.
+> Wow look at you go! Man, I wish I wasn't confined to this hub.
 
 <!-- source: level/level_1.tscn -->
 <!-- type: walkie -->
@@ -214,7 +217,7 @@ do GameState.set_flag("glitch1_done", true)
 ### `WalkieTriggerIntro2` — DialTone
 **Position:** (-51.97108, 5.6971655, 169.44095)
 
-> I see you've started collecting the cans. Jolt. All the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later.
+> I see you've started collecting some cans. Jolt: all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later.
 
 ## Respawn Voice Hints (`level/level_1.tscn`) — 1 total
 
@@ -226,7 +229,7 @@ do GameState.set_flag("glitch1_done", true)
 ### `need_rollerblades` — Glitch (respawn hint)
 **Position:** (-64.004524, -5.6553936, 147.61801)
 
-> Why don't you come see me? You seem to be doing something silly.
+> Why don't you come and see me? You seem to be doing something silly.
 
 <!-- source: dialogue/level_1_glitch.dialogue -->
 <!-- type: dialogue_file -->
@@ -333,7 +336,7 @@ Nyx: Hey there runner.
 do Cutscene.show_video("res://cutscenes/nyx_intro.ogv")
 Nyx: Why are you looking at me like that?
 - DialTone said you needed help?
-	Nyx: Of course he did! He's a child.
+	Nyx: Of course he did! What a child.
 	Nyx: This is just where I like to go to think sometimes.
 	=> tail
 - Are you okay?
@@ -344,9 +347,9 @@ Nyx: Why are you looking at me like that?
 
 ~ tail
 
-Nyx: He thinks it's absolutely hilarious to tell people I need saving because I'm a girl!
-Nyx: I'm going to kill him.
-Nyx: Let's go have a little chat with him.
+Nyx: He thinks it's funny to tell people I need saving because I'm a girl!
+Nyx: I'm seriously going to kill him!
+Nyx: Let's go have a little chat with him, shall we?
 - Head back to the hub. [#exit]
 	do LevelProgression.advance()
 	=> END
@@ -414,8 +417,8 @@ DialTone: What else would you like to know?
 ~ post_1_done
 
 DialTone: Alright — got the next ping queued. Softball, this time. Real one.
-DialTone: Prove your mettle.
-DialTone: Easiest hop on the grid - Just a standard data grab.
+DialTone: Time to prove yourself, runner.
+DialTone: This is the easiest hop on the grid.
 Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
 => END
@@ -436,7 +439,7 @@ if GameState.get_flag("nyx_post_1_opener_seen", false)
 	=> nyx_post_1_entry
 
 Nyx: Quick word. Off-channel.
-Nyx: I pulled your trace. DialTone will keep it light.
+Nyx: I pulled your log. DialTone will keep it light.
 Nyx: I'm not going to.
 do GameState.set_flag("nyx_post_1_opener_seen", true)
 => nyx_post_1_questions
@@ -458,8 +461,8 @@ Nyx: Talk.
 
 - Why off-channel?
 	Nyx: DialTone gets worse with an audience.
-- You pulled my trace?
-	Nyx: I pull everyone's trace.
+- You pulled my log?
+	Nyx: I pull everyone's log. Don't read into it.
 - What do you want?
 	Nyx: DialTone scouted you. He's calling it casting.
 	Nyx: But I have doubts
@@ -575,10 +578,11 @@ Glitch: Good luck. Stay low.
 ~ glitch_l2_questions
 
 - Brief me on these abilities.
-	Glitch: You now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
-	Glitch: The second ability and the one you must use now is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
+	Glitch: First off, you now are wearing sunglasses.
+	Glitch: And with that, you now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
+	Glitch: The second ability and the one you must use **now** is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
 	Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
-	Glitch: It's times like this that I'm glad I'm not a sentinel.
+	Glitch: And you will look real cool while doing it.
 	do GameState.set_flag("level_2_glitch_asked_brief", true)
 - [if GameState.get_flag("level_2_glitch_asked_brief", false) /] Splice?
 	Glitch: There are others who can explain Splice better than I can. But..
@@ -666,7 +670,7 @@ if GameState.get_flag("glitch2_warned", false)
 
 Glitch: By the way, I should warn you. The Gibson has some security measures in place. Sentinels.
 Glitch: Their function is to purge anything that doesn't belong here. Including you.
-Glitch: Press {{Glyphs.for_action("attack")}}. A single strike makes them go "poof".
+Glitch: Press {{Glyphs.for_action("attack")}}. A single strike purges thier code.
 do GameState.set_flag("glitch2_warned", true)
 => glitch_2_questions
 

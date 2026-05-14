@@ -239,4 +239,3 @@ steps = Array[ExtResource("2_rp5n3")]([SubResource("flag_outset_started"), SubRe
 hide_hud = true
 scene_duration = 90.0
 done_flag = &"l4_splice_cutscene_done"
-allow_step_through = true

@@ -23,7 +23,7 @@ if GameState.get_flag("nyx_post_1_opener_seen", false)
 	=> nyx_post_1_entry
 
 Nyx: Quick word. Off-channel.
-Nyx: I pulled your trace. DialTone will keep it light.
+Nyx: I pulled your log. DialTone will keep it light.
 Nyx: I'm not going to.
 do GameState.set_flag("nyx_post_1_opener_seen", true)
 => nyx_post_1_questions
@@ -45,8 +45,8 @@ Nyx: Talk.
 
 - Why off-channel?
 	Nyx: DialTone gets worse with an audience.
-- You pulled my trace?
-	Nyx: I pull everyone's trace.
+- You pulled my log?
+	Nyx: I pull everyone's log. Don't read into it.
 - What do you want?
 	Nyx: DialTone scouted you. He's calling it casting.
 	Nyx: But I have doubts

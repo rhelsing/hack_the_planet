@@ -531,9 +531,13 @@ func _spawn_player(level: Node) -> void:
 	var has_pending: bool = ss != null and ss.get("_pending_player_state") != null \
 		and not (ss.get("_pending_player_state") as Dictionary).is_empty()
 	if has_pending:
-		print("[game] _spawn_player: save pending — skipping marker overwrite")
+		var pending: Dictionary = ss.get("_pending_player_state") as Dictionary
+		print("[game] _spawn_player: applying pending player state %s" % [pending])
+		if player.has_method(&"load_save_dict"):
+			player.call(&"load_save_dict", pending)
 		if player.has_method(&"snap_to_spawn"):
 			player.call(&"snap_to_spawn", marker.global_transform)
+		ss.set(&"_pending_player_state", {})
 		return
 	# Position from the marker; basis is consumed by snap_to_spawn (see
 	# player_body.gd) which seeds skin facing + camera yaw without baking

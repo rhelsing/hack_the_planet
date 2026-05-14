@@ -30,6 +30,8 @@
 [ext_resource type="PackedScene" uid="uid://b8ayhsphgct3u" path="res://enemy/enemy_spawner_splice.tscn" id="28_vnjim"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="29_wnvu3"]
 [ext_resource type="PackedScene" uid="uid://dflagwalk0001" path="res://interactable/flag_walkie/flag_walkie.tscn" id="30_flagwalk"]
+[ext_resource type="AudioStream" uid="uid://c2vqfrtvru20x" path="res://audio/music/tyler_ono_fast_paced_low.mp3" id="33_tylertense"]
+[ext_resource type="AudioStream" uid="uid://bo37srf1txc6y" path="res://audio/cutscene/dramatic_braam.mp3" id="34_braam"]
 
 [sub_resource type="Curve3D" id="Curve3D_dvor1"]
 resource_local_to_scene = true
@@ -799,6 +801,8 @@ transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, -36.650
 character = &"Nyx"
 line = "Splice locked us out, you're not heading toward my signal! {player_handle}, he's in there with you!"
 require_flag = &""
+music_loop = ExtResource("33_tylertense")
+stinger_oneshot = ExtResource("34_braam")
 
 [node name="ConvertZoneL3SplicePen" parent="." index="137" unique_id=2077861794 instance=ExtResource("25_convzone")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -62.12, 25.66, -61.25)

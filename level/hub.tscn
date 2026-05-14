@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://0yq1lwnomyrv" path="res://level/hub.gd" id="1_script"]
 [ext_resource type="Shader" uid="uid://cdlt3ujrpad32" path="res://level/sky_with_stars.tres" id="2_5yrdd"]
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_c07e2"]
-[ext_resource type="PackedScene" uid="uid://cu7qfptmf3x6k" path="res://interactable/hub_pedestal/hub_pedestal.tscn" id="2_pedestal"]
 [ext_resource type="PackedScene" path="res://interactable/lab_entry/lab_entry.tscn" id="2_labentry"]
+[ext_resource type="PackedScene" uid="uid://cu7qfptmf3x6k" path="res://interactable/hub_pedestal/hub_pedestal.tscn" id="2_pedestal"]
 [ext_resource type="Texture2D" uid="uid://ca3jtautvrj1u" path="res://level/moon.png" id="3_8pryl"]
 [ext_resource type="PackedScene" uid="uid://bij84ol81kcts" path="res://level/interactable/kill_plane/kill_plane_3d.tscn" id="8_killplane"]
 [ext_resource type="PackedScene" uid="uid://drmsg0one0001" path="res://level/interactable/respawn_message_zone/respawn_message_zone.tscn" id="9_respawnmsg"]
@@ -232,12 +232,9 @@ interactable_id = &"pedestal_3"
 [node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -69.8302)
 
-[node name="LabEntry" parent="." instance=ExtResource("2_labentry")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 11.150833, -60.0)
-brief_path = "res://tools/level_constructor/briefs/level_1_starter.json"
-level_num = 4
-ready_tint = Color(1, 0.84, 0.3, 1)
-require_flag = &"level_4_unlocked"
+[node name="LabEntry" parent="." unique_id=99331143 instance=ExtResource("2_labentry")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 28.235888, -60)
+visible = false
 interactable_id = &"pedestal_4"
 
 [node name="PhoneBooth" parent="." unique_id=547259237 instance=ExtResource("11_eicw1")]

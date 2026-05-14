@@ -184,7 +184,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro5" parent="." index="23" unique_id=175229872 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 11.094522, 24.566835)
-line = "Wow look at you go. I wish I wasn't confined to the hub."
+line = "Wow look at you go! Man, I wish I wasn't confined to this hub."
 require_flag = &""
 
 [node name="WalkieTriggerIntro7" parent="." index="24" unique_id=241515978 instance=ExtResource("2_walkie")]
@@ -210,7 +210,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro2" parent="." index="28" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "I see you've started collecting the cans. Jolt. All the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
+line = "I see you've started collecting some cans. Jolt: all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
 require_flag = &""
 
 [node name="Nyx" parent="." index="29" unique_id=1420528326 instance=ExtResource("3_companion")]
@@ -401,7 +401,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37.020943, 1.8218462, 177.37
 [node name="need_rollerblades" parent="." index="58" unique_id=198651728 instance=ExtResource("12_4h366")]
 transform = Transform3D(2.1679945, 0, 0, 0, 1, 0, 0, 0, 4.348541, -64.004524, -5.6553936, 147.61801)
 voice_character = &"Glitch"
-voice_line = "Why don't you come see me? You seem to be doing something silly."
+voice_line = "Why don't you come and see me? You seem to be doing something silly."
 one_shot = true
 
 [node name="EnemyKayKit" parent="." index="59" unique_id=568514464 instance=ExtResource("16_pgrap")]

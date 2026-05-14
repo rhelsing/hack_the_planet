@@ -23,7 +23,10 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never free. DialTone runs it the way he ran you — picks his runner, writes the story, keeps the rest of the **sheeple** chasing soda cans like it matters.
+Splice: The grid was never **free**!
+Splice: DialTone runs it. The way he ran you.
+Splice: Picks his runner. Writes the story.
+Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
 Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
@@ -77,8 +80,10 @@ Splice: Some things I keep mine.
 ~ splice_committed
 
 Splice: There it is. Knew you'd see it.
-Splice: Stay where you are. I'm coming for you.
+Splice: Walk with me, {{HandlePicker.chosen_name()}}.
+Splice: I think we are going to be great friends.
 do GameState.set_flag("betrayed_friends", true)
+do Audio.resume_default_playlist_if_overridden()
 do LevelProgression.goto_path("res://level/level_5.tscn")
 => END
 
@@ -98,6 +103,7 @@ Nyx: {{HandlePicker.chosen_name()}}, you've got a window. We can't hold this. **
 Splice: I'll find you again. I will **find you**, runner.
 Nyx: Go. Now. [#walkie]
 do GameState.set_flag("refused_splice", true)
+do Audio.resume_default_playlist_if_overridden()
 do LevelProgression.advance()
 => END
 

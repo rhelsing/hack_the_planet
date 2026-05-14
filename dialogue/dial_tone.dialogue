@@ -125,8 +125,8 @@ DialTone: What else would you like to know?
 ~ post_1_done
 
 DialTone: Alright — got the next ping queued. Softball, this time. Real one.
-DialTone: Prove your mettle.
-DialTone: Easiest hop on the grid - Just a standard data grab.
+DialTone: Time to prove yourself, runner.
+DialTone: This is the easiest hop on the grid.
 Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
 => END

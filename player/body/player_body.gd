@@ -2072,6 +2072,10 @@ func enter_betrayal_walk(world_dir: Vector3, speed: float = 1.5) -> void:
 
 func exit_betrayal_walk() -> void:
 	_betrayal_walk_dir = Vector3.ZERO
+	if _brain != null:
+		var intent: Variant = _brain.get(&"_intent")
+		if intent != null:
+			intent.face_yaw_override_set = false
 
 
 ## Initialize spawn facing from the marker's basis. The body itself stays at
