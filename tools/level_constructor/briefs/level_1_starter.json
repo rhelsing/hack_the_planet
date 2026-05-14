@@ -1,0 +1,162 @@
+{
+  "level_num": 1,
+  "biome": {
+    "primary": "#4ade80",
+    "accent": "#facc15"
+  },
+  "seed": 1,
+  "cells": [
+    {
+      "id": "c1",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p1",
+          "type": "level_start"
+        }
+      ]
+    },
+    {
+      "id": "c2",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p2",
+          "type": "structure"
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "pos": [
+        5,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p3",
+          "type": "checkpoint"
+        }
+      ]
+    },
+    {
+      "id": "c4",
+      "pos": [
+        6,
+        0,
+        -2
+      ],
+      "size": [
+        1,
+        1,
+        3
+      ],
+      "primitives": [
+        {
+          "id": "p4",
+          "type": "structure"
+        }
+      ]
+    },
+    {
+      "id": "c5",
+      "pos": [
+        7,
+        0,
+        -1
+      ],
+      "size": [
+        6,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p5",
+          "type": "structure"
+        }
+      ]
+    },
+    {
+      "id": "c6",
+      "pos": [
+        12,
+        0,
+        -1
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p6",
+          "type": "checkpoint"
+        }
+      ]
+    },
+    {
+      "id": "c7",
+      "pos": [
+        14,
+        0,
+        -2
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p7",
+          "type": "level_end"
+        }
+      ]
+    },
+    {
+      "id": "c8",
+      "pos": [
+        12,
+        0,
+        -2
+      ],
+      "size": [
+        3,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "id": "p8",
+          "type": "structure"
+        }
+      ]
+    }
+  ]
+}

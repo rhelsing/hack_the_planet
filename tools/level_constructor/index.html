@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Level Constructor — Hack The Planet</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <header id="topbar">
+    <span id="title">untitled.json</span>
+    <button id="btn-new">new</button>
+    <button id="btn-load">load…</button>
+    <button id="btn-save">save</button>
+    <input type="file" id="file" accept="application/json" hidden />
+    <span id="linter"></span>
+    <span id="status"></span>
+  </header>
+  <aside id="palette"></aside>
+  <aside id="attributes"></aside>
+  <div id="tags"></div>
+  <footer id="hud">
+    <span id="hint">RMB look · WASD/QE fly · drag from drawer · gizmo to translate/scale · Space cycles modes · arrows nudge (Shift=Y) · ⌘Z / ⌘⇧Z undo/redo · del removes</span>
+    <span id="counts"></span>
+  </footer>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
