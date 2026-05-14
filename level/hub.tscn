@@ -74,16 +74,17 @@ background_mode = 2
 sky = SubResource("Sky_0h0bb")
 ambient_light_source = 3
 ambient_light_color = Color(0.74902, 0.742654, 0.615273, 1)
-ambient_light_sky_contribution = 0.0
+ambient_light_sky_contribution = 0.065
+ambient_light_energy = 1.845
 tonemap_mode = 2
-tonemap_exposure = 1.05
-tonemap_white = 0.95
+tonemap_exposure = 0.915
+tonemap_white = 0.975
 ssr_max_steps = 48
 ssao_radius = 2.0
 ssao_intensity = 1.4
-glow_intensity = 4.73
-glow_strength = 0.54
-glow_bloom = 0.41
+glow_intensity = 3.805
+glow_strength = 0.515
+glow_bloom = 0.32
 glow_blend_mode = 0
 glow_hdr_threshold = 0.26
 glow_hdr_scale = 1.48
@@ -91,7 +92,7 @@ glow_hdr_luminance_cap = 66.26
 glow_map_strength = 1.0
 fog_light_color = Color(0, 0, 0, 1)
 fog_light_energy = 2.31
-fog_density = 0.0309
+fog_density = 0.023
 fog_aerial_perspective = 1.0
 fog_sky_affect = 0.242
 fog_height = 100.0
@@ -102,6 +103,8 @@ volumetric_fog_emission = Color(0.05, 0.05, 0.08, 1)
 volumetric_fog_emission_energy = 11.56
 volumetric_fog_gi_inject = 1.26
 volumetric_fog_anisotropy = 0.9
+adjustment_enabled = true
+adjustment_brightness = 1.19
 
 [sub_resource type="BoxMesh" id="BoxMesh_c3bbd"]
 size = Vector3(1.2, 1.8, 1.2)
@@ -119,8 +122,8 @@ script = ExtResource("27_envboost")
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1170556833]
 transform = Transform3D(-0.3270158, 0.94173074, -0.07876475, 0.68876356, 0.29457843, 0.6624412, 0.64704365, 0.16237843, -0.7449616, -47.2295, 26.8832, -28.0205)
 light_color = Color(0.7398003, 0.61807764, 0.91222364, 1)
-light_energy = 3.699
-light_indirect_energy = 5.119
+light_energy = 5.521
+light_indirect_energy = 6.228
 light_volumetric_fog_energy = 2.505
 light_specular = 0.0
 shadow_enabled = true
@@ -231,6 +234,8 @@ interactable_id = &"pedestal_3"
 
 [node name="PedestalGod" parent="." unique_id=1693912430 instance=ExtResource("2_pedestal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17.069511, 11.150833, -69.8302)
+level_num = 4
+require_flag = &"level_4_unlocked"
 
 [node name="LabEntry" parent="." unique_id=99331143 instance=ExtResource("2_labentry")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.069511, 28.235888, -60)

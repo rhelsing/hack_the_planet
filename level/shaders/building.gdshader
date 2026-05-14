@@ -45,10 +45,16 @@ uniform float bottom_face_intensity : hint_range(0.0, 8.0) = 2.5;
 group_uniforms;
 
 group_uniforms code_overlay;
-uniform float code_row_density    : hint_range(1.0, 60.0) = 18.0;
-uniform float code_opacity        : hint_range(0.0, 1.0)  = 0.35;
-uniform float code_scroll_speed   : hint_range(0.0, 2.0)  = 0.15;
-uniform float code_drift_threshold: hint_range(0.0, 1.0)  = 0.92;
+uniform float code_row_density    : hint_range(1.0, 200.0) = 8.33;
+uniform float code_col_density    : hint_range(1.0, 400.0) = 33.33;
+uniform float code_opacity        : hint_range(0.0, 1.0)   = 0.35;
+uniform float code_scroll_speed   : hint_range(0.0, 8.0)   = 2.0;
+// Ikeda pattern threshold — lower = more lit cells, higher = sparser.
+uniform float code_threshold      : hint_range(0.0, 1.0)   = 0.5;
+// Per-channel horizontal offset in cell-widths — drives the chromatic split.
+uniform float code_rgb_split      : hint_range(0.0, 1.0)   = 0.1;
+// Vertical margin between rows, in [0,1] fraction of a row.
+uniform float code_row_margin     : hint_range(0.0, 0.9)   = 0.2;
 group_uniforms;
 
 group_uniforms rim;
@@ -76,20 +82,40 @@ float code_hash2(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-// One 2D projection of the code-stripes pattern. wall_uv.y runs vertically
-// (rows), wall_uv.x runs horizontally along the wall (blocks in a row).
+// Ikeda Data Stream — per Patricio Gonzalez Vivo's pattern (2015).
+// Every row scrolls horizontally; speed is hashed per-row so adjacent rows
+// drift at different rates. We sample three horizontally-offset taps so the
+// caller can read RGB channels with chromatic split.
 //
-// Drift: rows whose hash beats code_drift_threshold scroll at code_scroll_speed
-// in a hash-derived direction. Smoothstep'd so speed ramps instead of snapping.
-float eval_code_2d(vec2 wall_uv) {
-	float row = floor(wall_uv.y * code_row_density);
-	float rh  = code_hash1(row);
-	float drift_mask = smoothstep(code_drift_threshold, code_drift_threshold + 0.08, rh);
+// st is in cell-units (already multiplied by grid density).
+float ikeda_pattern(vec2 st, vec2 vel, float t) {
+	vec2 p = floor(st + vel);
+	return step(t, code_hash2(vec2(100.0) + p * 1e-6) + code_hash1(p.x) * 0.5);
+}
+
+// Evaluate the 3-channel Ikeda pattern on a wall UV. Returns the RGB pattern
+// with horizontal split, already gated by the per-row bottom margin.
+vec3 eval_code_rgb(vec2 wall_uv) {
+	vec2 grid = vec2(code_col_density, code_row_density);
+	vec2 st = wall_uv * grid;
+	vec2 fpos = fract(st);
+
+	// Per-row velocity: rows scroll at speed proportional to grid extent and a
+	// hash-driven direction (some rows right, some left).
+	float row = floor(st.y);
 	float row_dir = sign(code_hash1(row + 31.7) - 0.5);
-	float x = wall_uv.x * 2.4 + rh * 13.0 + TIME * drift_mask * row_dir * code_scroll_speed;
-	float block = floor(x);
-	float on = step(0.55, code_hash2(vec2(row, block)));
-	return on;
+	vec2 vel = vec2(TIME * code_scroll_speed * max(grid.x, grid.y));
+	vel *= vec2(-row_dir, 0.0) * code_hash1(1.0 + row);
+
+	vec2 offset = vec2(code_rgb_split, 0.0);
+	vec3 c;
+	c.r = ikeda_pattern(st + offset, vel, code_threshold);
+	c.g = ikeda_pattern(st,          vel, code_threshold);
+	c.b = ikeda_pattern(st - offset, vel, code_threshold);
+
+	// Bottom-of-row margin — gives the Data Stream its horizontal banding.
+	c *= step(code_row_margin, fpos.y);
+	return c;
 }
 
 void fragment() {
@@ -132,13 +158,15 @@ void fragment() {
 	float glow   = pow(glow_t, base_glow_falloff) * base_glow_intensity;
 	vec3  glow_emission = emit_color * glow;
 
-	// Code overlay — side walls only, built in the two horizontal triplanar axes.
-	float cx = eval_code_2d(v_world_pos.zy);
-	float cz = eval_code_2d(v_world_pos.xy);
+	// Ikeda data-stream overlay — side walls only, built in the two horizontal
+	// triplanar axes. Each axis evaluates the RGB-split pattern in its own UV
+	// plane, then blends by triplanar weight.
+	vec3 cx = eval_code_rgb(v_world_pos.zy);
+	vec3 cz = eval_code_rgb(v_world_pos.xy);
 	vec3  n_abs = abs(world_n);
 	vec3  n_wt  = pow(vec3(n_abs.x, 0.0, n_abs.z), vec3(triplanar_sharpness));
 	float wsum  = max(n_wt.x + n_wt.z, 1e-4);
-	float code  = (cx * n_wt.x + cz * n_wt.z) / wsum;
+	vec3  code  = (cx * n_wt.x + cz * n_wt.z) / wsum;
 	float side_weight = 1.0 - pow(n_abs.y, 2.0);
 	code *= code_opacity * side_weight;
 	vec3  code_emission = emit_color * code;

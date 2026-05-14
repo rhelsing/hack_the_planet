@@ -2541,7 +2541,7 @@ func _physics_process(delta: float) -> void:
 	# Ground dust — body decides "should it emit" (needs ground/speed/crouch
 	# state), skin decides "from where" (emitter lives in skin-local space
 	# so the offset auto-tracks yaw without extra math).
-	_skin.set_dust_emitting(on_floor && ground_speed > 0.0 && not intent.crouch_held)
+	_skin.set_dust_emitting(on_floor && ground_speed > _MOVE_IDLE_DEADZONE && not intent.crouch_held)
 
 	if on_floor and not _was_on_floor_last_frame:
 		if pawn_group == "player":

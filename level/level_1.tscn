@@ -448,11 +448,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.17814, -4.8228517, 213.66
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform2" parent="." index="73" unique_id=931356739 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.39659, 0.64319134, 216.08199)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.398914, 0.64319134, 215.28891)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform3" parent="." index="74" unique_id=1868365190 instance=ExtResource("17_7fchg")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.337093, 6.4431887, 208.53386)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.59339, 4.998642, 207.3356)
 size = Vector3(7, 1, 7)
 
 [node name="GlitchStation1" parent="." index="75" unique_id=304176901 instance=ExtResource("22_station")]
