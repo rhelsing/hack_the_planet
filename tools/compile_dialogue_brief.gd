@@ -14,6 +14,9 @@ const OUTPUT := "res://story/dialogue_brief.md"
 # Player-progression order. Each section is [title, items[]]. Each item is
 # a typed array — type-dependent payload follows.
 const PROGRESSION: Array = [
+	["Death Interrupts — Per-NPC Barks", [
+		["dialogue_file", "res://dialogue/death_interrupts.dialogue"],
+	]],
 	["Hub — Pre-Level-1", [
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_intro"],
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_nudge"],

@@ -305,6 +305,20 @@ var _body_ref: Node3D = null
 # toward the subject; while false, they wander (unless within
 # follow_personal_space, in which case they push away regardless).
 var _follow_engaged: bool = false
+# Last waypoint picked by _waypoint_steer. Per-brain so the dedup'd log
+# fires per pawn, not globally. Clears on null (no eligible waypoint) and
+# changes whenever the pick flips — gives a clean trace of each pawn's
+# next-hop decisions across the ramp/multi-tier traversal.
+var _last_waypoint: Node3D = null
+# True when _chase_direction routed us via the waypoint graph this tick.
+# Read by _navigate to suppress _nav_dumb / _nav_smart jump triggers —
+# the waypoint graph's K-NN reachability already verified that adjacent
+# waypoints are walkable from each other, so a path through them never
+# requires a jump. Without this gate, _nav_dumb fires jump_pressed every
+# time target.y is more than jump_height_threshold above body.y, which on
+# a ramp chase is constantly. Result: enemies hop up the ramp like
+# rabbits instead of walking it.
+var _following_waypoint_path: bool = false
 # Class-wide claim registry: target node → number of ally brains currently
 # targeting it. _set_target maintains the count; the scoring loop in
 # _ensure_target reads it to penalize already-claimed candidates so allies
@@ -583,10 +597,28 @@ func _effective_cone_deg() -> float:
 
 func _chase_direction(body: Node3D) -> Vector3:
 	var to_target: Vector3 = _target.global_position - body.global_position
+	# Capture vertical delta BEFORE flattening — used below to decide whether
+	# to consult the waypoint graph. Same-level chases skip the raycast cost.
+	var vertical_delta: float = absf(to_target.y)
 	to_target.y = 0.0
 	if to_target.length_squared() < 0.0001:
 		return Vector3.ZERO
-	_direction = to_target.normalized()
+	# Waypoint detour: when target is on a different elevation tier
+	# (vertical delta > jump_height_threshold ≈ 1.5m), check the
+	# `ally_waypoints` graph for a reachable next-hop. _waypoint_steer's
+	# raycast gate decides which marker is reachable from current standing
+	# position — bottom-tier on the ground floor, mid-tier mid-way up the
+	# ramp, top-tier near the apex. Falls back to direct steering when no
+	# waypoint qualifies (open ground, same-level chase, no waypoints
+	# authored on this level).
+	var travel_dir: Vector3 = to_target.normalized()
+	_following_waypoint_path = false
+	if vertical_delta > jump_height_threshold:
+		var wp_dir: Vector3 = _waypoint_steer(body, _target)
+		if wp_dir != Vector3.ZERO:
+			travel_dir = wp_dir
+			_following_waypoint_path = true
+	_direction = travel_dir
 	# Wall handling is deferred to CharacterBody3D.move_and_slide — pushing
 	# into a wall stalls naturally. We previously zeroed intent on is_on_wall
 	# but that flag is direction-agnostic AND sticky when stationary, so the
@@ -645,7 +677,7 @@ func _follow_direction(body: Node3D) -> Vector3:
 	# straight-line steering would faceplant into. Falls back to direct
 	# steering when no useful waypoint exists.
 	var travel_dir: Vector3 = dir
-	var wp_dir: Vector3 = _waypoint_steer(body, subject, dist)
+	var wp_dir: Vector3 = _waypoint_steer(body, subject)
 	if wp_dir != Vector3.ZERO:
 		travel_dir = wp_dir
 	# Hysteresis: drop out of engaged once we've arrived; jump back in once
@@ -662,43 +694,261 @@ func _follow_direction(body: Node3D) -> Vector3:
 	return Vector3.ZERO  # mid-zone → caller falls through to wander
 
 
-## Returns a horizontal direction toward the closest "ally_waypoints"
-## Marker3D that's CLOSER to the subject than I am — i.e. a useful next-hop
-## along the path. Returns ZERO if no waypoint qualifies, in which case the
-## caller steers straight at the subject. Author waypoints by dropping
-## Marker3Ds into level scenes with `groups = ["ally_waypoints"]`.
-func _waypoint_steer(body: Node3D, subject: Node3D, my_dist_to_subject: float) -> Vector3:
+## Returns a horizontal direction toward the closest reachable "ally_waypoints"
+## Marker3D between me and the subject. Used by BOTH the ally follow path and
+## the hostile chase path — the group name is historical, not semantic.
+##
+## Algorithm (per call):
+##   1. Reject waypoints that aren't closer to subject than I am, IN 3D —
+##      catches "next to me horizontally but on the wrong floor" cases that
+##      a 2D gate would let slip through.
+##   2. Reject waypoints I can't reach in a straight line from where I stand
+##      by raycasting feet-to-feet (same pattern as _has_direct_los). A
+##      waypoint above me through the underside of an upper platform fails.
+##      That's the whole "ramp traversal" mechanism — as the body climbs,
+##      higher waypoints become visible naturally; no Y thresholds needed.
+##   3. Among survivors, pick the closest in 3D distance.
+##
+## Cost: one ray per candidate. Bounded by tick_every_n_frames; cheap enough
+## for the waypoint counts we have (~13 on the L4 ramp).
+##
+## Author waypoints by dropping Marker3Ds with groups = ["ally_waypoints"].
+## They define WHERE to go; the raycast decides WHICH ONE is reachable now.
+## Ray endpoint lift (meters). ~face height — looking over the slope, not
+## along it. Hits with upward normals are filtered out so a ramp doesn't
+## occlude itself; walls and ceilings still block.
+@export var waypoint_ray_lift: float = 1.7
+## Hit-normal dot UP threshold. >=0.5 ≈ within 60° of vertical = a floor
+## surface (walk over it). <0.5 = wall/ceiling (block).
+@export var waypoint_floor_normal_dot: float = 0.5
+## K nearest reachable neighbors per waypoint when building the adjacency
+## graph. Higher = denser graph + more direct paths, but risks shortcuts
+## across geometry. Lower = safer chains but risks disconnected components
+## on irregular layouts. 3 covers a typical chain (two neighbors + one
+## cross-link). Tune up if enemies skip steps; down if they take shortcuts
+## across walls a higher K let through.
+@export_range(2, 12) var waypoint_graph_k: int = 3
+## How heavily to weight elevation difference when picking the start/goal
+## waypoint for an actor. Endpoint selection asks "which waypoint is on
+## the floor this actor is standing on?" — NOT "which waypoint can it see"
+## (the graph adjacency handles that). Y-weight makes elevation the
+## primary key, with horizontal distance as the tiebreaker. 10 = a 1m Y
+## difference outweighs a 10m horizontal difference; bumps a same-floor
+## waypoint over a 3D-closer cross-floor one. Lower if your floors are
+## stacked tight; higher if 3D-closer waypoints keep winning across tiers.
+@export var waypoint_elevation_weight: float = 10.0
+
+# Process-wide adjacency cache. Waypoints don't move at runtime so the
+# graph is built once per scene and reused for every brain instance.
+# Keyed by current scene path so a level swap rebuilds cleanly on first
+# access. Map: Node3D waypoint → Array[Node3D] of its K nearest reachable
+# neighbors, ordered by 3D distance ascending.
+static var _wp_graph: Dictionary = {}
+static var _wp_graph_scene_path: String = ""
+
+
+## Build the waypoint adjacency graph for the current scene. Idempotent:
+## subsequent calls early-return as long as the scene hasn't changed.
+## Returns true on success / already-built; false if no waypoints exist
+## (caller should fall back to direct steer).
+func _ensure_wp_graph(body: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
+	var tree := body.get_tree()
+	if tree == null or tree.current_scene == null:
+		return false
+	var scene_path := tree.current_scene.scene_file_path
+	if _wp_graph_scene_path == scene_path and not _wp_graph.is_empty():
+		return true
+	_wp_graph.clear()
+	_wp_graph_scene_path = scene_path
+	var wps: Array[Node3D] = []
+	for n in tree.get_nodes_in_group(&"ally_waypoints"):
+		if n is Node3D:
+			wps.append(n as Node3D)
+	if wps.is_empty():
+		return false
+	for a: Node3D in wps:
+		var a_pos: Vector3 = a.global_position + Vector3.UP * waypoint_ray_lift
+		var candidates: Array = []  # [{wp, dist_sq}]
+		for b: Node3D in wps:
+			if b == a:
+				continue
+			# Reachability test between waypoints — same normal-filtered
+			# ray we use elsewhere. Slopes/stairs pass, walls/ceilings block.
+			var b_pos: Vector3 = b.global_position + Vector3.UP * waypoint_ray_lift
+			var query := PhysicsRayQueryParameters3D.create(a_pos, b_pos)
+			var hit: Dictionary = space.intersect_ray(query)
+			if not hit.is_empty():
+				var normal: Vector3 = hit.normal as Vector3
+				if normal.y < waypoint_floor_normal_dot:
+					continue
+			candidates.append({
+				"wp": b,
+				"dist_sq": a.global_position.distance_squared_to(b.global_position),
+			})
+		# Keep only the K nearest reachable neighbors.
+		candidates.sort_custom(func(x, y): return x.dist_sq < y.dist_sq)
+		var neighbors: Array[Node3D] = []
+		for i in mini(waypoint_graph_k, candidates.size()):
+			neighbors.append(candidates[i].wp)
+		_wp_graph[a] = neighbors
+	print("[wp] graph built (%s): %d nodes, k=%d" % [scene_path, wps.size(), waypoint_graph_k])
+	return true
+
+
+## Pick the waypoint anchoring `origin` to the chain: the one on the
+## floor that actor is standing on. Y-weighted distance — elevation
+## dominates, horizontal proximity tiebreaks. Solves the "subject above
+## sees a bottom waypoint through the floor as 3D-nearest" bug: even if
+## ai_waypoint6 is 11m straight below the player, its 11m elevation
+## difference × waypoint_elevation_weight (10) = score of 110, while a
+## same-floor waypoint 30m away scores 30 — same-floor wins. Endpoint
+## selection deliberately avoids raycasting; the graph adjacency built in
+## `_ensure_wp_graph` already encodes the "can a pawn walk here" question.
+func _waypoint_for(origin: Vector3) -> Node3D:
+	var best: Node3D = null
+	var best_score: float = INF
+	for wp: Node3D in _wp_graph.keys():
+		var wp_pos: Vector3 = wp.global_position
+		var dy: float = absf(wp_pos.y - origin.y)
+		var dx: float = wp_pos.x - origin.x
+		var dz: float = wp_pos.z - origin.z
+		var score: float = dy * waypoint_elevation_weight + sqrt(dx * dx + dz * dz)
+		if score < best_score:
+			best_score = score
+			best = wp
+	return best
+
+
+## BFS shortest path through the graph. Returns the full path as
+## Array[Node3D] from `start` to `goal` (inclusive). Empty array if no
+## path. Used by string-pull look-ahead in _waypoint_steer.
+func _bfs_full_path(start: Node3D, goal: Node3D) -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	if start == goal:
+		out.append(start)
+		return out
+	if not _wp_graph.has(start):
+		return out
+	var visited: Dictionary = {start: null}  # node → predecessor
+	var queue: Array[Node3D] = [start]
+	while not queue.is_empty():
+		var cur: Node3D = queue.pop_front()
+		if cur == goal:
+			# Walk predecessors back, then reverse.
+			var node: Node3D = cur
+			while node != null:
+				out.append(node)
+				node = visited.get(node)
+			out.reverse()
+			return out
+		for nb: Node3D in _wp_graph.get(cur, []):
+			if visited.has(nb):
+				continue
+			visited[nb] = cur
+			queue.append(nb)
+	return out
+
+
+## Chest-to-chest normal-filtered ray. Used both for direct LOS to the
+## subject (skip waypoints if clear) and for the string-pull look-ahead
+## (find the farthest waypoint in the path we can see right now).
+## `exclude_extra` is an optional second RID to exclude (e.g. the subject's
+## body when checking LOS to them).
+func _walkable_los(from_pos: Vector3, to_pos: Vector3, space: PhysicsDirectSpaceState3D, exclude_rid: RID, exclude_extra: RID = RID()) -> bool:
+	var lift_from: Vector3 = from_pos + Vector3.UP * waypoint_ray_lift
+	var lift_to: Vector3 = to_pos + Vector3.UP * waypoint_ray_lift
+	var query := PhysicsRayQueryParameters3D.create(lift_from, lift_to)
+	var exclude: Array[RID] = []
+	if exclude_rid != RID(): exclude.append(exclude_rid)
+	if exclude_extra != RID(): exclude.append(exclude_extra)
+	query.exclude = exclude
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return true
+	var normal: Vector3 = hit.normal as Vector3
+	return normal.y >= waypoint_floor_normal_dot
+
+## Graph-traversal waypoint steering with string-pull look-ahead. Each call:
+##   1. Direct LOS check — if body can see the subject through walkable
+##      geometry (floors don't block, walls/ceilings do), return ZERO so
+##      the caller chases directly. No path needed.
+##   2. Otherwise, Y-snap to find start/goal endpoint waypoints.
+##   3. BFS full path through the cached K-NN graph.
+##   4. Walk the path from far end backward, return direction toward the
+##      FARTHEST waypoint we can still see directly. This is path
+##      smoothing — pawn cuts diagonally past intermediate markers when
+##      visibility allows, eliminating the stop-and-turn-at-each-marker
+##      chop. As the body moves and visibility opens up further down the
+##      path, the steering target slides forward smoothly.
+## Returns ZERO when direct steer is appropriate or no path exists.
+func _waypoint_steer(body: Node3D, subject: Node3D) -> Vector3:
 	var tree := body.get_tree()
 	if tree == null:
 		return Vector3.ZERO
-	var subject_pos: Vector3 = subject.global_position
-	var body_pos: Vector3 = body.global_position
-	var best_wp: Node3D = null
-	var best_my_to_wp_sq: float = INF
-	for n: Node in tree.get_nodes_in_group(&"ally_waypoints"):
-		if not (n is Node3D):
-			continue
-		var wp: Node3D = n as Node3D
-		# Only consider waypoints that get me closer to the subject.
-		var dx_s: float = subject_pos.x - wp.global_position.x
-		var dz_s: float = subject_pos.z - wp.global_position.z
-		var wp_to_subject_dist: float = sqrt(dx_s * dx_s + dz_s * dz_s)
-		if wp_to_subject_dist >= my_dist_to_subject:
-			continue
-		# Pick the waypoint nearest to me — natural next-hop.
-		var dx_m: float = wp.global_position.x - body_pos.x
-		var dz_m: float = wp.global_position.z - body_pos.z
-		var my_to_wp_sq: float = dx_m * dx_m + dz_m * dz_m
-		if my_to_wp_sq < best_my_to_wp_sq:
-			best_my_to_wp_sq = my_to_wp_sq
-			best_wp = wp
-	if best_wp == null:
+	var space := body.get_world_3d().direct_space_state
+	if space == null:
 		return Vector3.ZERO
-	var to_wp: Vector3 = best_wp.global_position - body_pos
+	var body_pos: Vector3 = body.global_position
+	var subject_pos: Vector3 = subject.global_position
+	var body_rid: RID = (body as CollisionObject3D).get_rid() if body is CollisionObject3D else RID()
+	var subject_rid: RID = (subject as CollisionObject3D).get_rid() if subject is CollisionObject3D else RID()
+	# Shortcut: direct LOS to subject through walkable geometry. Skip the
+	# waypoint detour when we can just chase straight.
+	if _walkable_los(body_pos, subject_pos, space, body_rid, subject_rid):
+		if _last_waypoint != null:
+			_log_waypoint_change(body, null, -1, false)
+		return Vector3.ZERO
+	if not _ensure_wp_graph(body, space):
+		return Vector3.ZERO
+	var start_wp: Node3D = _waypoint_for(body_pos)
+	var goal_wp: Node3D = _waypoint_for(subject_pos)
+	if start_wp == null or goal_wp == null:
+		_log_waypoint_change(body, null, 0, false)
+		return Vector3.ZERO
+	if start_wp == goal_wp:
+		# Same chain anchor — direct steer toward subject. Caller handles.
+		if _last_waypoint != null:
+			_log_waypoint_change(body, null, -1, false)
+		return Vector3.ZERO
+	var path: Array[Node3D] = _bfs_full_path(start_wp, goal_wp)
+	if path.is_empty():
+		_log_waypoint_change(body, null, -1, false)
+		return Vector3.ZERO
+	# String-pull look-ahead: walk path back-to-front, pick the farthest
+	# waypoint still directly visible from the body. Smooth diagonals
+	# instead of node-by-node hops. Fallback to path[0] (the start_wp,
+	# already y-snapped to our floor) if nothing is visible — should not
+	# happen in practice since start_wp is by construction the nearest
+	# elevation match, but defensive.
+	var target_wp: Node3D = path[0]
+	for i in range(path.size() - 1, -1, -1):
+		var wp: Node3D = path[i]
+		if _walkable_los(body_pos, wp.global_position, space, body_rid):
+			target_wp = wp
+			break
+	_log_waypoint_change(body, target_wp, path.size() - 1, false)
+	var to_wp: Vector3 = target_wp.global_position - body_pos
 	to_wp.y = 0.0
 	if to_wp.length_squared() < 0.0001:
 		return Vector3.ZERO
 	return to_wp.normalized()
+
+
+# Dedup'd state-change log — only fires when the picked waypoint flips
+# for THIS brain. Sticky frames print "sticky" so long arrival walks stay
+# a single line; fresh picks include the BFS hop-count to the goal.
+func _log_waypoint_change(body: Node3D, picked: Node3D, hops: int, stick: bool) -> void:
+	if picked == _last_waypoint:
+		return
+	var prev_name: String = _last_waypoint.name if _last_waypoint != null else "<none>"
+	var next_name: String = picked.name if picked != null else "<none>"
+	if stick:
+		print("[wp] %s: %s → %s (sticky)" % [body.name, prev_name, next_name])
+	elif hops >= 0:
+		print("[wp] %s: %s → %s (hops=%d)" % [body.name, prev_name, next_name, hops])
+	else:
+		print("[wp] %s: %s → %s" % [body.name, prev_name, next_name])
+	_last_waypoint = picked
 
 
 func _wander_direction(body: Node3D, delta: float) -> Vector3:
@@ -982,6 +1232,13 @@ func _tick_wind_up(body: Node3D, delta: float) -> void:
 # match block; this function decides whether to also jump up, drop down,
 # or stay grounded.
 func _navigate(body: Node3D) -> void:
+	# When the chase is routing through the waypoint graph, every hop is
+	# pre-verified walkable by the K-NN reachability raycast. No jumps
+	# needed — let the pawn walk the ramp/path. Suppresses the "rabbit
+	# hopping up a slope" failure mode where _nav_dumb fires every tick
+	# because target.y is high above body.y on a long ramp chase.
+	if _following_waypoint_path:
+		return
 	# Gold allies always run SMART — they need to track the player up
 	# elevators and drop down to follow. The brain preset's nav_mode
 	# applies to whatever faction the pawn was authored as; converted
@@ -1171,6 +1428,13 @@ func _smart_jump_arc_lands(body: Node3D, towards: Node3D, dir: Vector3) -> bool:
 	var max_speed: float = 5.0
 	if profile != null and "max_speed" in profile:
 		max_speed = float(profile.max_speed)
+	# Faction buffs (red 1.5×, stealth 2.2×, gold 1.7×) multiply move speed at
+	# runtime — without this, the arc-check estimates a short hop while the
+	# real flight overshoots and lands past the target.
+	var speed_mult: float = 1.0
+	if "_faction_speed_mult" in body:
+		speed_mult = float(body.get(&"_faction_speed_mult"))
+	max_speed *= speed_mult
 	horiz_speed = maxf(horiz_speed, max_speed * 0.5)
 	var reach: float = horiz_speed * air_time * smart_jump_safety_factor
 	var apex: float = (jump_v * jump_v) / (2.0 * gravity_y)
@@ -1267,15 +1531,23 @@ func _has_ground_ahead(body: Node3D) -> bool:
 	# than a typical pawn footprint so even narrow gaps register.
 	var step: float = 0.5
 	var n_steps: int = maxi(1, int(ceil(lookahead / step)))
-	# Lift the probe origin slightly above the body so a stationary pawn
-	# resting exactly on the platform's top face still gets a clean hit on
-	# the surface beneath. Without this, body.global_position.y can settle
-	# coplanar with the floor, and rays starting on the surface miss it —
-	# the brain then thinks "no ground" forever and the pawn freezes.
-	var lift: float = 0.1
+	# Lift the probe origin to ~chest height. Two reasons:
+	#  1. A stationary pawn resting coplanar with the floor would otherwise
+	#     fire a ray from inside the surface and miss it (the original 0.1m
+	#     lift fix).
+	#  2. Uphill terrain: on a 20° ramp the ground 0.5m forward is ~0.18m
+	#     ABOVE current feet. A probe starting at foot+0.1 casts down and
+	#     can only see ground BELOW its origin, so uphill ground reads as
+	#     "missing" → ledge brake → pawn stops at the base of the ramp.
+	#     Starting at chest height (1.5m) gives the downward ray enough
+	#     vertical range to find uphill ground up to ~1.5m above current
+	#     feet, which covers any slope move_and_slide will actually climb.
+	var lift: float = 1.5
 	for i in range(1, n_steps + 1):
 		var dist: float = minf(step * float(i), lookahead)
 		var from: Vector3 = body.global_position + _direction * dist + Vector3.UP * lift
+		# Probe must reach below body's feet (ledge case) AND above feet
+		# (uphill case) — total range = lift + ledge_probe_depth.
 		var to: Vector3 = from + Vector3.DOWN * (ledge_probe_depth + lift)
 		var query := PhysicsRayQueryParameters3D.create(from, to)
 		query.exclude = exclude

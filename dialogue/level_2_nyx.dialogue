@@ -1,6 +1,6 @@
 ~ start
 
-Nyx: Hey {{HandlePicker.chosen_name()}}, still in one piece?
+Nyx: Hey {{HandlePicker.chosen_name()}}. Still in one piece?
 - Thanks for.. [#exit]
 Nyx: Don't.. anyone would have needed help out of that.
 Nyx: Let's get out of here before Splice warps in.

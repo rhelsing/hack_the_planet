@@ -1711,6 +1711,10 @@ func _finish_death() -> void:
 			_skin.scale = Vector3.ONE * _skin.uniform_scale
 	_skin.idle()
 	respawned.emit()
+	# Global hook for HUD/world systems that just need "the player came back"
+	# without tracking every PlayerBody. Enemies that respawn don't fire this.
+	if is_in_group("player"):
+		Events.player_respawned.emit()
 	# Hints + voice already drained at _start_death. Both timers count from
 	# the death event so the message warp-in and Companion line both land at
 	# ~1s after death (mid-rise, before the respawn snap). See
@@ -1792,7 +1796,15 @@ func take_hit(impact_direction: Vector3, force: float, damage: int = 1, attacker
 		_skin.on_hit()
 	health_changed.emit(_health, old_health)
 	if _health <= 0:
+		# Order matters when dying mid-dialogue: _start_death FIRST so _dying
+		# flips true before Dialogue.fire_death_interrupt fires _close →
+		# Events.dialogue_ended → DialogueTrigger._exit_cinematic. The exit
+		# checks actor._dying to take the snap-restore fast path; if force_close
+		# ran before _start_death, _exit_cinematic would queue the slow camera
+		# tween and the death timer would stay frozen while it played out.
 		_start_death(impact_direction)
+		if pawn_group == "player" and Dialogue.is_open():
+			Dialogue.fire_death_interrupt()
 
 
 # Faction-relational invuln. Returns true if THIS pawn is immune to a hit
@@ -2134,6 +2146,38 @@ func snap_to_spawn(spawn_xform: Transform3D) -> void:
 		else:
 			_camera_pivot.rotation = Vector3(0.0, cam_yaw, 0.0)
 	velocity = Vector3.ZERO
+	_snap_camera_to_player()
+
+
+## Snap the character's facing to point toward a horizontal world position.
+## Mirrors the yaw-seeding half of snap_to_spawn (sets _yaw_state, _target_yaw,
+## _last_input_direction) but doesn't touch position or camera. Called by
+## PlayerBrain after a respawn so the player isn't standing with their back
+## to the next objective beacon.
+func face_toward(world_pos: Vector3) -> void:
+	var to: Vector3 = world_pos - global_position
+	to.y = 0.0
+	if to.length_squared() < 0.0001:
+		return
+	var fwd: Vector3 = to.normalized()
+	_last_input_direction = fwd
+	var yaw: float = Vector3.BACK.signed_angle_to(fwd, Vector3.UP)
+	_yaw_state = yaw
+	_target_yaw = yaw
+
+
+## Snap the camera pivot to sit directly behind the character's current
+## _yaw_state. Reuses the cam_yaw assignment from snap_to_spawn (lines
+## 2143-2147) without the camera_spawn_yaw_offset_deg export — respawn
+## doesn't want the off-axis aesthetic spawn offset, it wants the camera
+## squared up. Pairs with face_toward() in the respawn flow.
+func snap_camera_behind() -> void:
+	if _camera_pivot == null:
+		return
+	if _camera_pivot.top_level:
+		_camera_pivot.global_rotation = Vector3(0.0, _yaw_state, 0.0)
+	else:
+		_camera_pivot.rotation = Vector3(0.0, _yaw_state, 0.0)
 	_snap_camera_to_player()
 
 

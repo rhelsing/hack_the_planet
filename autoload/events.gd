@@ -122,3 +122,11 @@ signal respawn_message_show(text: String, pre_delay: float)
 # Companion.speak per entry. No visual label appears for these.
 @warning_ignore("unused_signal")
 signal respawn_voice_armed(character: String, line: String)
+
+# Fired by PlayerBody._finish_death only when the respawning body is in the
+# "player" group — gives HUD/world systems a single hook to refresh on a
+# player respawn without each having to track every PlayerBody instance.
+# Beacons use it to re-trigger the appear-pulse animation; future consumers
+# can hang off the same signal.
+@warning_ignore("unused_signal")
+signal player_respawned()

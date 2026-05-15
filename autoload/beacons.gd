@@ -9,6 +9,11 @@ extends Node
 
 signal added(beacon: Node)
 signal removed(beacon: Node)
+## Fired when a beacon transitions from hidden → visible (or registers
+## while already visible). Distinct from `added`, which is purely about
+## registration regardless of beacon_visible state. PlayerBrain uses this
+## to kick a brief camera pan toward the closest visible beacon.
+signal beacon_appeared(beacon: Node)
 
 var _beacons: Array = []
 

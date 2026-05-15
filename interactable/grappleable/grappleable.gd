@@ -15,6 +15,11 @@ extends Node3D
 ## Label offset from this node's origin. Raise for overhead hooks so the
 ## label floats above the attachment point, not inside it.
 @export var prompt_offset: Vector3 = Vector3(0, 0.8, 0)
+## Persistent flag set on GameState the first time this grappleable is fired
+## by the player. Empty = no flag (default — most grappleables don't need it).
+## Used by beacon UI to hide a "use this grapple" marker after the player
+## actually uses it. Symmetric to PhoneBooth.persist_flag.
+@export var persist_flag: StringName = &""
 
 var _label: Label3D = null
 
@@ -32,6 +37,13 @@ func _ready() -> void:
 	_label.position = prompt_offset
 	_label.visible = false
 	add_child(_label)
+
+
+## Called by GrappleAbility at the moment this grappleable is fired. Sets
+## the persist_flag (if configured) so beacon hide-gates can react.
+func on_grappled() -> void:
+	if persist_flag != &"":
+		GameState.set_flag(persist_flag, true)
 
 
 ## Called each frame by GrappleAbility — true when the player is facing us

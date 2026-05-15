@@ -68,6 +68,8 @@ func _ready() -> void:
 	print("[beacon] ready: %s visible=%s voice_gate=%s flag_gate=%s/%s" % [
 		get_path(), beacon_visible,
 		visible_when_voice_ends, visible_when_flag, hide_when_flag])
+	if beacon_visible:
+		Beacons.beacon_appeared.emit(self)
 
 
 func _exit_tree() -> void:
@@ -79,6 +81,8 @@ func set_beacon_visible(on: bool) -> void:
 		return
 	beacon_visible = on
 	print("[beacon] %s visible -> %s" % [name, on])
+	if on:
+		Beacons.beacon_appeared.emit(self)
 
 
 func _apply_flag_gates() -> void:

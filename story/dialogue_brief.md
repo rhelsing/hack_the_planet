@@ -9,6 +9,59 @@ To edit and round-trip: copy this file, edit the prose inside the dialogue code 
 Walkie triggers fire when the player overlaps each one's Area3D. They appear here in **scene-file order**, which is not necessarily player-progression order — sort them spatially in your head when reading.
 
 
+# Death Interrupts — Per-NPC Barks
+
+<!-- source: dialogue/death_interrupts.dialogue -->
+<!-- type: dialogue_file -->
+
+## `dialogue/death_interrupts.dialogue`
+
+```
+~ start
+
+# Bank of one-off barks fired when the player dies mid-dialogue. Not opened
+# as a normal conversation — Dialogue.fire_death_interrupt() parses this
+# file directly and routes the picked line through Walkie.speak with
+# bus_override = &"Companion" (in-room reverb). The four ~ sections below
+# group lines by speaker; the section name is the active character lowercased.
+
+=> END
+
+~ dialtone
+
+DialTone: Get up, runner — GET UP!
+DialTone: Damn it. Move!
+DialTone: They got you. Reset, reset.
+DialTone: Shake it off, {player_handle}. Again.
+=> END
+
+~ glitch
+
+Glitch: well that can't be good
+Glitch: they were bound to get you one of these times
+Glitch: what goes around comes around I guess
+Glitch: that's bad! that's so bad
+=> END
+
+~ nyx
+
+Nyx: Sloppy.
+Nyx: Disappointing.
+Nyx: We've been over this.
+Nyx: Try harder, {player_handle}.
+=> END
+
+~ splice
+
+Splice: Pathetic.
+Splice: Was that supposed to impress me?
+Splice: Hardly worth the effort.
+Splice: Don't bother getting up.
+=> END
+
+```
+
+
 # Hub — Pre-Level-1
 
 <!-- source: dialogue/dial_tone.dialogue -->
@@ -99,7 +152,7 @@ Glitch: Hey — you made it across!
 do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
 Glitch: I'm Glitch.
 Glitch: My sole directive is to be helpful to you here in the Gibson.
-Glitch: One more thing — those phone booths around the grid. Walk near one and it will light up. You respawn there if you.. well.. persish.
+Glitch: One more thing — those phone booths around the grid. Walk near one and it will light up. You respawn there if you.. well.. perish.
 => glitch_1_questions
 
 ~ glitch_1_questions
@@ -1284,7 +1337,10 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never free. DialTone runs it the way he ran you — picks his runner, writes the story, keeps the rest of the **sheeple** chasing soda cans like it matters.
+Splice: The grid was never **free**!
+Splice: DialTone runs it. The way he ran you.
+Splice: Picks his runner. Writes the story.
+Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
 Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
@@ -1338,8 +1394,10 @@ Splice: Some things I keep mine.
 ~ splice_committed
 
 Splice: There it is. Knew you'd see it.
-Splice: Stay where you are. I'm coming for you.
+Splice: Walk with me, {{HandlePicker.chosen_name()}}.
+Splice: I think we are going to be great friends.
 do GameState.set_flag("betrayed_friends", true)
+do Audio.resume_default_playlist_if_overridden()
 do LevelProgression.goto_path("res://level/level_5.tscn")
 => END
 
@@ -1359,6 +1417,7 @@ Nyx: {{HandlePicker.chosen_name()}}, you've got a window. We can't hold this. **
 Splice: I'll find you again. I will **find you**, runner.
 Nyx: Go. Now. [#walkie]
 do GameState.set_flag("refused_splice", true)
+do Audio.resume_default_playlist_if_overridden()
 do LevelProgression.advance()
 => END
 
@@ -2367,7 +2426,7 @@ Nyx: I told myself I'd read you right. ...that's twice now. I won't be doing thi
 do wait(7)
 Nyx: Goodbye, runner. [#walkie]
 do wait(7)
-Splice: You wanted in. ...you're in. [#walkie]
+Splice: You wanted in. You're in it now. [#walkie]
 do wait(7)
 Splice: Just you and the grid now. ...quiet, isn't it. [#walkie]
 do wait(7)

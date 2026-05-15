@@ -42,6 +42,11 @@ const RELEASE_UP_KICK: float = 5.0
 # Aim state — updated each frame from the grappleable scan.
 var _aim_target: Node3D = null
 
+# Last successfully-grappled anchor. Filtered out of aim scans so you can't
+# immediately re-grapple the same hook — grappling a different anchor
+# overwrites this, freeing the previous one.
+var _last_anchor: Node3D = null
+
 # Pull state — populated on _start_swing, cleared on _release.
 var _swinging: bool = false
 var _anchor: Node3D = null
@@ -98,12 +103,16 @@ func _process(_delta: float) -> void:
 	# Wind loop outlives the pull — _swinging flips off on auto-release but
 	# the player keeps flying through the air from the carried velocity.
 	# Stop the loop only once the body actually touches ground again.
-	if _swing_audio_active and not _swinging:
+	# Touching ground also clears _last_anchor so the just-used hook is
+	# re-grappable on the next jump.
+	if not _swinging and _last_anchor != null:
 		var body := _find_body()
 		if body is CharacterBody3D and (body as CharacterBody3D).is_on_floor():
-			if _swing_sound != null and _swing_sound.playing:
-				_swing_sound.stop()
-			_swing_audio_active = false
+			if _swing_audio_active:
+				if _swing_sound != null and _swing_sound.playing:
+					_swing_sound.stop()
+				_swing_audio_active = false
+			_last_anchor = null
 
 
 func _physics_process(delta: float) -> void:
@@ -153,6 +162,8 @@ func _update_aim() -> void:
 		var to_t: Vector3 = t.global_position - cam_pos
 		var dist: float = to_t.length()
 		if dist > MAX_RANGE or dist < 0.5:
+			continue
+		if t == _last_anchor:
 			continue
 		var dot: float = to_t.normalized().dot(cam_fwd)
 		if dot < FACING_COS:
@@ -212,8 +223,13 @@ func _start_swing(target: Node3D) -> void:
 	print("[grapple-aud] fire+bite+swing play")
 
 	_anchor = target
+	_last_anchor = target
 	_swinging = true
 	_vel = Vector3.ZERO  # populated each tick to the active pull velocity
+	# Duck-typed callback — lets each Grappleable handle its own per-target
+	# bookkeeping (e.g. setting a persist_flag for beacon hide-gates).
+	if target.has_method("on_grappled"):
+		target.on_grappled()
 	print("[grapple] fire: anchor=%s player=%s dist=%.2f" % [
 		target.global_position, body_3d.global_position,
 		(target.global_position - body_3d.global_position).length(),

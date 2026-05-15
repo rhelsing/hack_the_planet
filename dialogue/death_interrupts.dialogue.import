@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://bvswv738x4q5y"
+path="res://.godot/imported/death_interrupts.dialogue-85b5f6e7a35c04491e6ce80861089811.tres"
+
+[deps]
+
+source_file="res://dialogue/death_interrupts.dialogue"
+dest_files=["res://.godot/imported/death_interrupts.dialogue-85b5f6e7a35c04491e6ce80861089811.tres"]
+
+[params]
+
+defaults=true

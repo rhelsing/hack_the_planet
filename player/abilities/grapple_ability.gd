@@ -329,6 +329,10 @@ func _start_swing(target: Node3D) -> void:
 	_anchor = target
 	_last_anchor = target
 	_swinging = true
+	# Duck-typed callback — lets each Grappleable handle its own per-target
+	# bookkeeping (e.g. setting a persist_flag for beacon hide-gates).
+	if target.has_method("on_grappled"):
+		target.on_grappled()
 	var anchor_pos: Vector3 = target.global_position
 
 	var offset: Vector3 = body_3d.global_position - anchor_pos

@@ -23,6 +23,14 @@ extends Interactable
 ## Start node name inside the .dialogue file (matches `~ start` convention).
 @export var dialogue_start: String = "start"
 
+## Speaker tag passed to Dialogue.start so death-interrupt barks know which
+## bank in death_interrupts.dialogue to draw from. Set on the 4 in-person
+## NPCs (Glitch / Nyx / Splice / DialTone). Empty = no character context
+## (no interrupt bark; player still dies and dialogue still exits, but it's
+## silent on the speaker side). companion_npc.gd auto-derives this from the
+## node name if not set, so most instances don't need a manual override.
+@export var character: StringName = &""
+
 @export_group("Redirect")
 ## Optional. If set, and `redirect_unless_flag` is currently false, pressing
 ## interact on this trigger forwards to `redirect_target.interact(actor)`
@@ -176,7 +184,7 @@ func interact(actor: Node3D) -> void:
 	)
 	if has_cinematic:
 		await _enter_cinematic(actor)
-	Dialogue.start(dialogue_resource, dialogue_start, interactable_id)
+	Dialogue.start(dialogue_resource, dialogue_start, interactable_id, character)
 	if has_cinematic:
 		# One-shot listener restores camera + player physics when dialogue closes.
 		Events.dialogue_ended.connect(_exit_cinematic.bind(actor), CONNECT_ONE_SHOT)
@@ -385,6 +393,35 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 	if not _cinematic_active: return
 	_cinematic_active = false
 	_free_input_blocker()
+
+	# Fast-path: player died mid-dialogue. The camera tween below takes
+	# ~0.56s, and during that window PlayerBody._physics_process stays
+	# disabled — which means _dying_timer can't decrement and _finish_death
+	# never fires. Snap everything back instantly so the death animation
+	# and respawn run normally on the very next physics tick. See
+	# autoload/dialogue.fire_death_interrupt for the calling path.
+	var dying_player: bool = (
+		actor != null and is_instance_valid(actor)
+		and actor.get("_dying") == true
+	)
+	if dying_player:
+		print("[cinematic] _dying fast-path on %s — snap-restore" % interactable_id)
+		if _cinematic_cam != null and is_instance_valid(_cinematic_cam):
+			_cinematic_cam.queue_free()
+		_cinematic_cam = null
+		if _saved_camera != null and is_instance_valid(_saved_camera):
+			_saved_camera.make_current()
+		_saved_camera = null
+		_saved_skin_rotation_y = _SAVED_YAW_UNSET
+		# Restore dust + physics immediately. Death anim + skin pose are
+		# handled by _start_death; no skin rotation tween needed (the die
+		# clip will overwrite it).
+		var dust: GPUParticles3D = actor.get_node_or_null(^"%DustParticles") as GPUParticles3D
+		if dust != null:
+			dust.emitting = _saved_dust_emitting
+		actor.set_physics_process(_saved_player_physics)
+		_saved_actor = null
+		return
 
 	# Restore skin rotation (tween back to pre-cinematic local angle) so
 	# when physics re-engages and the body's _yaw_state hasn't changed, the

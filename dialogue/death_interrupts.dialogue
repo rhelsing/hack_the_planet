@@ -1,0 +1,41 @@
+~ start
+
+# Bank of one-off barks fired when the player dies mid-dialogue. Not opened
+# as a normal conversation — Dialogue.fire_death_interrupt() parses this
+# file directly and routes the picked line through Walkie.speak with
+# bus_override = &"Companion" (in-room reverb). The four ~ sections below
+# group lines by speaker; the section name is the active character lowercased.
+
+=> END
+
+~ dialtone
+
+DialTone: Get up, runner — GET UP!
+DialTone: Damn it. Move!
+DialTone: They got you. Reset, reset.
+DialTone: Shake it off, {player_handle}. Again.
+=> END
+
+~ glitch
+
+Glitch: well that can't be good
+Glitch: they were bound to get you one of these times
+Glitch: what goes around comes around I guess
+Glitch: that's bad! that's so bad
+=> END
+
+~ nyx
+
+Nyx: Sloppy.
+Nyx: Disappointing.
+Nyx: We've been over this.
+Nyx: Try harder, {player_handle}.
+=> END
+
+~ splice
+
+Splice: Pathetic.
+Splice: Was that supposed to impress me?
+Splice: Hardly worth the effort.
+Splice: Don't bother getting up.
+=> END

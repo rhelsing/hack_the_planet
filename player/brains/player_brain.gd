@@ -52,6 +52,16 @@ var spring_arm: SpringArm3D
 ## direction. Small — the body layers its own thresholds on top.
 @export var move_deadzone := 0.1
 
+@export_group("Beacon Pan")
+## Seconds to ramp from 0 → full yaw offset toward the target beacon. Short
+## so it reads as a snap-bias rather than a cinematic slew.
+@export var pan_in_time: float = 0.3
+## Seconds to hold the offset at peak before decaying back.
+@export var pan_hold_time: float = 0.4
+## Seconds to drift the offset from full → 0. Slower than pan-in so the
+## camera glides back to wherever player input has driven it.
+@export var pan_out_time: float = 1.2
+
 var _intent := Intent.new()
 ## Toggled on every Shift press once the hacking ability is owned. Persists
 ## until pressed again — sneak stays engaged even if the player runs through
@@ -68,6 +78,13 @@ var time_since_mouse_input := 999.0
 ## in _input on change only (dedupe) to avoid signal spam on held inputs.
 var last_device: String = "keyboard"
 
+# Beacon pan state. The camera pivot's rotation.y is treated as
+# (true_yaw + _yaw_bias). Each tick: strip _yaw_bias, let input drive the
+# now-true yaw, advance the envelope, reapply the new _yaw_bias.
+var _yaw_bias: float = 0.0       # currently applied yaw bias (radians)
+var _yaw_bias_peak: float = 0.0  # peak the envelope multiplies against
+var _pan_t: float = -1.0         # elapsed seconds into envelope; <0 = inactive
+
 
 func _ready() -> void:
 	# Resolve camera rig paths relative to the parent (body). Paths are
@@ -81,6 +98,8 @@ func _ready() -> void:
 		if not spring_arm_path.is_empty():
 			spring_arm = body.get_node_or_null(spring_arm_path) as SpringArm3D
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Beacons.beacon_appeared.connect(_on_beacon_appeared)
+	Events.player_respawned.connect(_on_player_respawned)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -125,6 +144,11 @@ func _update_last_device(event: InputEvent) -> void:
 
 func tick(_body: Node3D, delta: float) -> Intent:
 	time_since_mouse_input += delta
+	# Strip last frame's yaw bias so player input drives the "true" yaw underneath.
+	# Re-applied at the end of this tick with the freshly-advanced envelope value.
+	if camera_pivot != null and _yaw_bias != 0.0:
+		camera_pivot.rotation.y -= _yaw_bias
+		_yaw_bias = 0.0
 
 	# Full gameplay-input gate during dialogue. Without this, controller buttons
 	# bleed through: Cross fires both `ui_accept` (advances dialogue) AND `jump`
@@ -194,4 +218,98 @@ func tick(_body: Node3D, delta: float) -> Intent:
 	_intent.interact_pressed = Input.is_action_just_pressed("interact")
 	_intent.dash_pressed = Input.is_action_just_pressed("dash")
 	_intent.crouch_held = crouch_held
+	# Advance pan envelope and reapply the bias on top of input-driven true yaw.
+	_advance_pan_envelope(delta)
+	if camera_pivot != null and _yaw_bias != 0.0:
+		camera_pivot.rotation.y += _yaw_bias
 	return _intent
+
+
+func _advance_pan_envelope(delta: float) -> void:
+	if _pan_t < 0.0:
+		return
+	_pan_t += delta
+	var total: float = pan_in_time + pan_hold_time + pan_out_time
+	if _pan_t >= total:
+		_pan_t = -1.0
+		_yaw_bias = 0.0
+		return
+	var alpha: float = 0.0
+	if _pan_t < pan_in_time:
+		alpha = smoothstep(0.0, 1.0, _pan_t / max(pan_in_time, 0.0001))
+	elif _pan_t < pan_in_time + pan_hold_time:
+		alpha = 1.0
+	else:
+		var out_t: float = (_pan_t - pan_in_time - pan_hold_time) / max(pan_out_time, 0.0001)
+		alpha = 1.0 - smoothstep(0.0, 1.0, out_t)
+	_yaw_bias = _yaw_bias_peak * alpha
+
+
+func _on_beacon_appeared(_beacon: Node) -> void:
+	_start_pan_toward(_find_closest_visible_beacon())
+
+
+func _on_player_respawned() -> void:
+	# Respawn flow: face the player toward the closest beacon (if any), then
+	# snap the camera directly behind. No pan kicked on respawn — the camera
+	# is already where the bias envelope would have taken it, so there's
+	# nothing to animate. Pan is reserved for in-game beacon appearances.
+	var body := get_parent()
+	if body == null:
+		return
+	var target := _find_closest_visible_beacon()
+	if target != null and body.has_method("face_toward"):
+		body.face_toward(target.global_position)
+	if body.has_method("snap_camera_behind"):
+		body.snap_camera_behind()
+
+
+## Nearest visible beacon by horizontal-ish 3D distance from the player body.
+## Returns null if no beacons are registered or all are hidden.
+func _find_closest_visible_beacon() -> Node3D:
+	var body := get_parent() as Node3D
+	if body == null:
+		return null
+	var origin: Vector3 = body.global_position
+	var best: Node3D = null
+	var best_d2: float = INF
+	for b in Beacons.all():
+		if not is_instance_valid(b):
+			continue
+		if not b.beacon_visible:
+			continue
+		var n3d := b as Node3D
+		if n3d == null:
+			continue
+		var d2: float = origin.distance_squared_to(n3d.global_position)
+		if d2 < best_d2:
+			best_d2 = d2
+			best = n3d
+	return best
+
+
+func _start_pan_toward(target: Node3D) -> void:
+	# A pan already in-flight wins — new triggers no-op to avoid stomping mid-arc.
+	if target == null:
+		return
+	if _pan_t >= 0.0:
+		return
+	if camera_pivot == null:
+		return
+	var body := get_parent() as Node3D
+	if body == null:
+		return
+	# Compute the yaw the camera_pivot would need to face the beacon, then
+	# bias toward it as a delta from the current (un-biased) yaw. The spring
+	# arm has a 180° flip baked into its transform (see player_body.tscn),
+	# so the pivot's "look" direction at rotation.y = 0 is +Z, not -Z —
+	# hence atan2(to.x, to.z) without the negation.
+	var to: Vector3 = target.global_position - body.global_position
+	if absf(to.x) < 0.001 and absf(to.z) < 0.001:
+		return
+	var target_yaw: float = atan2(to.x, to.z)
+	var current_true_yaw: float = camera_pivot.rotation.y  # _yaw_bias is 0 here
+	var delta_yaw: float = wrapf(target_yaw - current_true_yaw, -PI, PI)
+	_yaw_bias_peak = delta_yaw
+	_pan_t = 0.0
+	print("[brain] pan to %s delta_yaw=%.2f rad" % [target.name, delta_yaw])

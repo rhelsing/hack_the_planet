@@ -157,6 +157,16 @@ func _compute_safe_respawn_pos(actor: Node3D) -> Vector3:
 			if not _has_safe_clearance(space, ground, exclude):
 				continue
 			return ground + Vector3.UP
+	# All 24 candidates rejected — typical when the booth is wedged against
+	# walls / on a tight rooftop. Ground-cast straight down from the booth's
+	# own pivot so we at least land on the floor under the booth instead of
+	# spawning mid-air at pivot height. If even that misses (booth literally
+	# floating with nothing below), return the raw pivot as last resort.
+	var pivot_ground: Vector3 = _raycast_ground(space, global_position, booth_y, exclude)
+	if pivot_ground.x != INF:
+		push_warning("PhoneBooth %s: ring scan failed; fell back to pivot ground cast" % name)
+		return pivot_ground + Vector3.UP
+	push_warning("PhoneBooth %s: ring scan AND pivot ground cast failed; using raw pivot" % name)
 	return global_position
 
 

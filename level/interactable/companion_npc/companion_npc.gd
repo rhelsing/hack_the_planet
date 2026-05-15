@@ -82,6 +82,7 @@ var _dancing: bool = false
 func _ready() -> void:
 	super()
 	_maybe_swap_skin()
+	_auto_derive_character()
 	_swivel = get_node_or_null(swivel_target_path) as Node3D
 	_sfx = AudioStreamPlayer.new()
 	_sfx.bus = &"SFX" if AudioServer.get_bus_index(&"SFX") != -1 else &"Master"
@@ -382,6 +383,21 @@ func _on_wave_finished(_clip: StringName) -> void:
 	if _wave_anim_tree != null:
 		_wave_anim_tree.active = true
 	_waving = false
+
+
+## If the DialogueTrigger `character` export wasn't set in the scene, infer
+## it from the node name. Hub instances like "NyxPost1", "GlitchPostPlatforms",
+## or "SpliceLead" all start with their character — so a substring match
+## against the four canonical names covers every companion_npc in the project
+## without manual per-instance setup. Manual overrides win.
+func _auto_derive_character() -> void:
+	if character != &"":
+		return
+	var lname := name.to_lower()
+	for candidate: String in ["dialtone", "glitch", "splice", "nyx"]:
+		if lname.contains(candidate):
+			character = StringName(candidate.capitalize() if candidate != "dialtone" else "DialTone")
+			return
 
 
 func _maybe_swap_skin() -> void:

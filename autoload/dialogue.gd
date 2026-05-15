@@ -48,8 +48,30 @@ func _log(msg: String) -> void:
 
 var _open: bool = false
 var _active_id: StringName = &""
+## Balloon handle captured from DialogueManager.show_dialogue_balloon. Needed
+## so force_close / fire_death_interrupt can tear the balloon down explicitly —
+## the plugin's natural close path runs through balloon.queue_free → tree_exited
+## → _close, but a forced close from our side has to drive that the other way
+## around (free the balloon ourselves so its tree_exited still fires for any
+## external listeners).
+var _balloon: Node = null
+## Speaker tag for the current conversation, e.g. &"Glitch". Set by callers
+## of start() (DialogueTrigger reads it from its `character` export). Used
+## by fire_death_interrupt() to pick the right bark bank. Empty = unknown
+## speaker; death interrupts no-op rather than guessing.
+var _active_character: StringName = &""
 var _voices: Resource
 var _api_key: String = ""
+
+## Lazy-loaded death-interrupt bank: lowercased character name → Array[String]
+## of speaker lines. Populated on first fire_death_interrupt() call by
+## parsing res://dialogue/death_interrupts.dialogue with the same
+## "Character: text" regex prime_all_dialogue uses. Kept as a flat dict so
+## a fresh entry per character is one lookup, not a scan.
+const _DEATH_INTERRUPTS_PATH: String = "res://dialogue/death_interrupts.dialogue"
+const _DEATH_BUS_OVERRIDE: StringName = &"Companion"
+var _death_interrupts: Dictionary = {}
+var _death_interrupts_loaded: bool = false
 
 # TTS request queue — FIFO, one outstanding HTTP request at a time.
 # Each entry: { "character": String, "text": String, "voice_id": String, "path": String }
@@ -210,10 +232,17 @@ func is_open() -> bool:
 	return _open
 
 
+## Speaker tag for the current conversation, or &"" if unknown / not open.
+## Used by player_body.take_hit to route a death bark through the right
+## section of death_interrupts.dialogue.
+func get_active_character() -> StringName:
+	return _active_character
+
+
 ## `resource` is a DialogueResource from Nathan Hoad's plugin. Typed as
 ## Resource to avoid plugin-class parse timing issues on autoload load.
-func start(resource: Resource, title: String = "start", id: StringName = &"") -> void:
-	_log("start: resource=%s title='%s' id=%s" % [resource, title, id])
+func start(resource: Resource, title: String = "start", id: StringName = &"", character: StringName = &"") -> void:
+	_log("start: resource=%s title='%s' id=%s character=%s" % [resource, title, id, character])
 	if _open:
 		_log("start: IGNORED — already open for %s" % _active_id)
 		push_warning("Dialogue.start ignored — already open: %s" % _active_id)
@@ -227,6 +256,7 @@ func start(resource: Resource, title: String = "start", id: StringName = &"") ->
 	# (PauseController._unhandled_input) must see is_open() true immediately.
 	_open = true
 	_active_id = id if not id.is_empty() else StringName(title)
+	_active_character = character
 	_log("start: flipped _open=true, _active_id=%s" % _active_id)
 
 	Events.dialogue_started.emit(_active_id)
@@ -254,6 +284,7 @@ func start(resource: Resource, title: String = "start", id: StringName = &"") ->
 	# still pause (see Puzzles autoload).
 	var balloon: Node = dm.show_dialogue_balloon(resource, title)
 	_log("start: show_dialogue_balloon returned %s" % balloon)
+	_balloon = balloon
 	if balloon != null:
 		balloon.tree_exited.connect(_close, CONNECT_ONE_SHOT)
 		_log("start: balloon configured (no tree pause — world keeps ticking)")
@@ -314,6 +345,38 @@ func force_close() -> void:
 	_close()
 
 
+## Player died mid-conversation. Pick a random bark for the active speaker,
+## route it through Walkie.speak on the Companion bus (in-room reverb), and
+## force_close so the cinematic exit chain fires. Caller (player_body.take_hit)
+## must invoke this AFTER _start_death sets _dying = true — DialogueTrigger's
+## _exit_cinematic checks _dying to take a snap-restore fast path instead of
+## the 0.56s camera tween (which would otherwise gate the death animation).
+## No-op when not open or when the active character has no bank.
+func fire_death_interrupt() -> void:
+	if not _open:
+		_log("fire_death_interrupt: not open — no-op")
+		return
+	var character := _active_character
+	if character == &"":
+		_log("fire_death_interrupt: no active character — closing without bark")
+		_close()
+		return
+	if not _death_interrupts_loaded:
+		_load_death_interrupts()
+	var key := String(character).to_lower()
+	var lines: Array = _death_interrupts.get(key, [])
+	if lines.is_empty():
+		_log('fire_death_interrupt: no bank for "%s" — closing without bark' % character)
+		_close()
+		return
+	var pick: String = lines[randi() % lines.size()]
+	_log('fire_death_interrupt: speaker=%s line="%s"' % [character, pick])
+	# Bark first, close second. Walkie.speak is async (TTS cache lookup + queue),
+	# but it survives the close — the autoload owns its own player.
+	Walkie.speak(String(character), pick, _DEATH_BUS_OVERRIDE)
+	_close()
+
+
 # ---- Internals ----------------------------------------------------------
 
 func _close() -> void:
@@ -324,6 +387,19 @@ func _close() -> void:
 	_open = false
 	var closed_id := _active_id
 	_active_id = &""
+	_active_character = &""
+
+	# Tear down the balloon ourselves if it's still parented. Natural close
+	# path: plugin frees the balloon → tree_exited fires → _close runs → this
+	# branch no-ops (already queued). Forced close path (fire_death_interrupt,
+	# force_close): we drive the free here so the balloon UI actually goes
+	# away. Clear _balloon before queue_free so the tree_exited-driven _close
+	# doesn't re-enter this branch.
+	var balloon := _balloon
+	_balloon = null
+	if balloon != null and is_instance_valid(balloon) and not balloon.is_queued_for_deletion():
+		_log("_close: queue_free balloon %s" % balloon)
+		balloon.queue_free()
 
 	# Guard: tree_exited can fire as part of SceneTree teardown (app quit,
 	# scene change). In that case get_tree() is null. Skip tree-dependent
@@ -336,6 +412,35 @@ func _close() -> void:
 	_capture_player_mouse(true)
 	Events.modal_closed.emit(MODAL_ID)
 	Events.dialogue_ended.emit(closed_id)
+
+
+## Parse death_interrupts.dialogue into a lowercased-character → Array[String]
+## dict. Same regex shape prime_all_dialogue uses (`Character: text`), so
+## priming + the bark picker see the same lines. Section headers (`~ name`)
+## are ignored — character tags on each line are the source of truth.
+func _load_death_interrupts() -> void:
+	_death_interrupts_loaded = true
+	var f := FileAccess.open(_DEATH_INTERRUPTS_PATH, FileAccess.READ)
+	if f == null:
+		push_warning("Dialogue: death_interrupts.dialogue missing at %s" % _DEATH_INTERRUPTS_PATH)
+		return
+	var re := RegEx.create_from_string("^([A-Z][A-Za-z_0-9]*): (.+)$")
+	while not f.eof_reached():
+		var line := f.get_line().strip_edges()
+		var m := re.search(line)
+		if m == null:
+			continue
+		var character := m.get_string(1)
+		var text := m.get_string(2).strip_edges()
+		var key := character.to_lower()
+		if not _death_interrupts.has(key):
+			_death_interrupts[key] = []
+		_death_interrupts[key].append(text)
+	f.close()
+	_log("_load_death_interrupts: loaded %d banks: %s" % [
+		_death_interrupts.size(),
+		", ".join(_death_interrupts.keys().map(func(k): return "%s(%d)" % [k, _death_interrupts[k].size()])),
+	])
 
 
 func _capture_player_mouse(on: bool) -> void:
