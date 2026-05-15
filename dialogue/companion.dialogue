@@ -4,7 +4,7 @@ Glitch: Hey — you made it across!
 do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
 Glitch: I'm Glitch.
 Glitch: My sole directive is to be helpful to you here in the Gibson.
-Glitch: One more thing — those phone booths around the grid. Walk near one and it will light up. You respawn there if you.. well.. persish.
+Glitch: One more thing — those phone booths around the grid. Walk near one and it will light up. You respawn there if you.. well.. perish.
 => glitch_1_questions
 
 ~ glitch_1_questions

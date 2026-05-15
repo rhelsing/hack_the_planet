@@ -23,6 +23,11 @@ extends Ability
 const MAX_RANGE: float = 25.0
 const FACING_COS: float = 0.7
 
+## Minimum distance from camera to a grappleable for it to be aim-targetable.
+## Closer candidates are skipped so the reticle locks onto a further one,
+## preventing the "yanked onto the post you're standing under" feel.
+@export_range(0.5, 15.0, 0.5) var min_aim_distance: float = 5.0
+
 ## rope_length = (current_distance - pull_in), clamped to min_rope_length.
 ## Higher pull_in = bigger "yank" toward anchor; 0 = rope starts at current
 ## distance.
@@ -96,6 +101,10 @@ const FACING_COS: float = 0.7
 # ── Aim state ───────────────────────────────────────────────────────────
 
 var _aim_target: Node3D = null
+# Last successfully-grappled anchor. Filtered out of aim scans so you
+# can't immediately re-grapple the same post — but grappling a different
+# anchor overwrites this, freeing the previous one.
+var _last_anchor: Node3D = null
 
 
 # ── Swing state ─────────────────────────────────────────────────────────
@@ -267,7 +276,9 @@ func _update_aim() -> void:
 			continue
 		var to_t: Vector3 = t.global_position - cam_pos
 		var dist: float = to_t.length()
-		if dist > MAX_RANGE or dist < 0.5:
+		if dist > MAX_RANGE or dist < min_aim_distance:
+			continue
+		if t == _last_anchor:
 			continue
 		var dot: float = to_t.normalized().dot(cam_fwd)
 		if dot < FACING_COS:
@@ -316,6 +327,7 @@ func _start_swing(target: Node3D) -> void:
 		print("[grapple-aud] fire.play()")
 
 	_anchor = target
+	_last_anchor = target
 	_swinging = true
 	var anchor_pos: Vector3 = target.global_position
 

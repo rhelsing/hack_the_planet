@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://jnlhyxe2wcki" path="res://level/interactable/phone_booth/phone_booth.gd" id="1_booth"]
 [ext_resource type="PackedScene" uid="uid://d4dfyl328pi4j" path="res://level/interactable/coin/public_phone_booth.glb" id="2_sbfok"]
-[ext_resource type="Material" path="res://level/glowing_green.tres" id="3_active"]
+[ext_resource type="Material" uid="uid://c4hlcatsxvvcy" path="res://level/glowing_green.tres" id="3_active"]
 
 [sub_resource type="BoxMesh" id="Mesh_booth"]
 size = Vector3(1, 2.2, 1)
@@ -14,7 +14,7 @@ albedo_color = Color(0.15, 0.35, 0.75, 1)
 size = Vector3(1, 2.0067382, 0.7060547)
 
 [sub_resource type="BoxShape3D" id="Shape_trigger"]
-size = Vector3(20, 20, 20)
+size = Vector3(14.359253, 4.482544, 15.105347)
 
 [sub_resource type="BoxMesh" id="Mesh_activation_block"]
 size = Vector3(2, 4, 2)
@@ -43,7 +43,7 @@ shape = SubResource("Shape_booth")
 [node name="Area3D" type="Area3D" parent="." unique_id=1098032318]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D" unique_id=1280219604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.07293701, 2.4519532, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.47801685, 1.6920042, -0.7247305)
 shape = SubResource("Shape_trigger")
 
 [node name="Sketchfab_Scene" parent="." unique_id=1565224035 instance=ExtResource("2_sbfok")]

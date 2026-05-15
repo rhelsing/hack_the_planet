@@ -32,6 +32,7 @@
 [ext_resource type="PackedScene" uid="uid://dflagwalk0001" path="res://interactable/flag_walkie/flag_walkie.tscn" id="30_flagwalk"]
 [ext_resource type="AudioStream" uid="uid://c2vqfrtvru20x" path="res://audio/music/tyler_ono_fast_paced_low.mp3" id="33_tylertense"]
 [ext_resource type="AudioStream" uid="uid://bo37srf1txc6y" path="res://audio/cutscene/dramatic_braam.mp3" id="34_braam"]
+[ext_resource type="Script" path="res://level/level_3_splice_glitch.gd" id="35_spliceglitch"]
 
 [sub_resource type="Curve3D" id="Curve3D_dvor1"]
 resource_local_to_scene = true
@@ -1035,3 +1036,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.45573, -10.881194, -159.
 [node name="DialToneTrackerWalkie" parent="." index="204" unique_id=2063215685 instance=ExtResource("30_flagwalk")]
 line = "Nyx is on your tracker now."
 trigger_flag = &"l3_terminal_5"
+
+[node name="SpliceDialogueGlitch" type="Node" parent="." index="205" unique_id=2147483599]
+script = ExtResource("35_spliceglitch")

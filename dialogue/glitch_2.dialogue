@@ -46,7 +46,7 @@ if GameState.get_flag("glitch2_warned", false)
 
 Glitch: By the way, I should warn you. The Gibson has some security measures in place. Sentinels.
 Glitch: Their function is to purge anything that doesn't belong here. Including you.
-Glitch: Press {{Glyphs.for_action("attack")}}. A single strike purges thier code.
+Glitch: Press {{Glyphs.for_action("attack")}}. A single strike purges their code.
 do GameState.set_flag("glitch2_warned", true)
 => glitch_2_questions
 

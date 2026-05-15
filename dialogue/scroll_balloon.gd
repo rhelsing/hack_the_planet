@@ -419,11 +419,11 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 	# DialogueState owns the sidecar (survives load_from_slot — see
 	# autoload/dialogue_state.gd). Phase A's compat-write to GameState was
 	# removed in Final.3 once the sidecar was verified live.
-	var character: String = _resolve_speaker()
-	if not character.is_empty() and not _is_exit_response(response):
-		print("[balloon] visit RECORDED  char=%s  text=%s" %
-			[character, response.text])
-		DialogueState.visit_dialogue(character, response.text)
+	var scope: String = _visit_scope()
+	if not scope.is_empty() and not _is_exit_response(response):
+		print("[balloon] visit RECORDED  scope=%s  text=%s" %
+			[scope, response.text])
+		DialogueState.visit_dialogue(scope, response.text)
 	next(response.next_id)
 
 
@@ -689,8 +689,8 @@ const NEW_UNLOCK_SFX: StringName = &"ui_confirm"
 ## "any-seen" check nor get highlighted themselves).
 func _compute_new_responses() -> void:
 	_new_response_texts.clear()
-	var character: String = _resolve_speaker()
-	if character.is_empty(): return
+	var scope: String = _visit_scope()
+	if scope.is_empty(): return
 	var any_seen := false
 	var unseen_texts: Array[String] = []
 	for child: Node in responses_menu.get_children():
@@ -698,7 +698,7 @@ func _compute_new_responses() -> void:
 		var response: DialogueResponse = child.get_meta("response")
 		if response == null: continue
 		if _is_exit_response(response): continue
-		if DialogueState.has_seen(character, response.text):
+		if DialogueState.has_seen(scope, response.text):
 			any_seen = true
 		else:
 			unseen_texts.append(response.text)
@@ -715,14 +715,14 @@ func _compute_new_responses() -> void:
 ## styling pass (otherwise we'd seen-mark first and the styling would find
 ## nothing new). Skips exit options (they shouldn't pollute the seen dict).
 func _mark_responses_seen() -> void:
-	var character: String = _resolve_speaker()
-	if character.is_empty(): return
+	var scope: String = _visit_scope()
+	if scope.is_empty(): return
 	for child: Node in responses_menu.get_children():
 		if not child.has_meta("response"): continue
 		var response: DialogueResponse = child.get_meta("response")
 		if response == null: continue
 		if _is_exit_response(response): continue
-		DialogueState.mark_seen(character, response.text)
+		DialogueState.mark_seen(scope, response.text)
 
 
 ## B.3 — applies green outline to new-unlock buttons and reorders them to
@@ -952,6 +952,18 @@ func _resolve_speaker() -> String:
 	return _last_known_speaker
 
 
+## Stable scope key for visit/seen tracking. Was `_resolve_speaker()` but
+## that drifts when an option's body ends with a different speaker than the
+## next menu render — visit recorded under speaker A, dim check looked up
+## under speaker B, miss. Resource path is one-per-NPC and never drifts.
+## Falls back to last-known-speaker for unit tests that drive the balloon
+## without a real DialogueResource bound.
+func _visit_scope() -> String:
+	if dialogue_resource != null and not String(dialogue_resource.resource_path).is_empty():
+		return dialogue_resource.resource_path
+	return _last_known_speaker
+
+
 ## True for response options that should never dim and never record a visit —
 ## either the legacy EXIT_TEXT exact-match or any option carrying the [#exit]
 ## tag (e.g. `- Got it. [#exit]`, `- That's all? [#exit]`).
@@ -969,8 +981,8 @@ func _is_exit_response(response: DialogueResponse) -> bool:
 ## button text (which loses identity if two responses share the same text).
 func _dim_visited_responses() -> void:
 	if not is_instance_valid(dialogue_line): return
-	var character: String = _resolve_speaker()
-	if character.is_empty(): return
+	var scope: String = _visit_scope()
+	if scope.is_empty(): return
 	var dimmed_count := 0
 	var total_count := 0
 	for child: Node in responses_menu.get_children():
@@ -984,23 +996,23 @@ func _dim_visited_responses() -> void:
 			continue
 		# Visit key is the text alone — see DialogueState._zip header for why
 		# response.id is intentionally excluded.
-		var was_visited: bool = DialogueState.has_visited_dialogue(character, matching.text)
+		var was_visited: bool = DialogueState.has_visited_dialogue(scope, matching.text)
 		# Phase C — for parent options with a sub-hub, "visited" alone isn't
 		# enough to dim. The whole subtree must be explored. Flat probes
 		# (no sub-hub) report subtree_explored=true unconditionally so they
 		# behave exactly as they did before this phase shipped.
-		var subtree_done: bool = _subtree_fully_explored(matching, character)
+		var subtree_done: bool = _subtree_fully_explored(matching, scope)
 		var should_dim: bool = was_visited and subtree_done
-		print("[balloon] dim CHECK     char=%s  text=%s  visited=%s  subtree_done=%s" %
-			[character, matching.text, was_visited, subtree_done])
+		print("[balloon] dim CHECK     scope=%s  text=%s  visited=%s  subtree_done=%s" %
+			[scope, matching.text, was_visited, subtree_done])
 		if should_dim:
 			(child as CanvasItem).modulate = VISITED_DIM
 			dimmed_count += 1
 		else:
 			(child as CanvasItem).modulate = Color.WHITE
 	if total_count > 0:
-		print("[balloon] dim pass: %d/%d responses dimmed for character '%s'" %
-			[dimmed_count, total_count, character])
+		print("[balloon] dim pass: %d/%d responses dimmed for scope '%s'" %
+			[dimmed_count, total_count, scope])
 
 
 #endregion
