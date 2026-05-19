@@ -35,6 +35,22 @@ class_name PhoneBooth extends Node3D
 ## spawned_flag — same pattern, different sub-system.
 @export var persist_flag: StringName = &""
 
+## Optional checkpoint-chain link. When THIS booth becomes the active
+## checkpoint, CheckpointChain starts measuring distance(player, next).
+## If the player goes `CheckpointChain.stall_seconds` without setting a new
+## closest distance to `next_checkpoint`, the autoload latches `chain_hint_flag`
+## on. Wire the successor booth's child Beacon to that same flag via its
+## `visible_when_flag` and it'll appear when the player seems lost.
+##
+## Latch is one-way: the flag stays set until the player physically reaches
+## `next_checkpoint`, which clears the flag and (if that booth has its own
+## next_checkpoint configured) arms the next link.
+##
+## Empty NodePath or empty flag = no chain on this booth.
+@export_group("Checkpoint chain")
+@export var next_checkpoint: NodePath
+@export var chain_hint_flag: StringName = &""
+
 @onready var _activation_block: MeshInstance3D = get_node_or_null("ActivationBlock")
 
 var _active_sound_player: AudioStreamPlayer
@@ -234,6 +250,23 @@ func _activate() -> void:
 		if other is PhoneBooth and other != self:
 			(other as PhoneBooth)._set_active(false)
 	_set_active(true)
+	_arm_chain()
+
+
+# Resolve next_checkpoint and hand it to CheckpointChain. Empty path / empty
+# flag clears any prior tracking (end of chain). Called on every activation
+# so re-touching the active booth doesn't double-arm — set_target replaces
+# state idempotently.
+func _arm_chain() -> void:
+	if next_checkpoint.is_empty() or chain_hint_flag == &"":
+		CheckpointChain.set_target(null, &"")
+		return
+	var next_node := get_node_or_null(next_checkpoint)
+	if next_node == null or not (next_node is Node3D):
+		push_warning("PhoneBooth %s: next_checkpoint not found or not Node3D: %s" % [name, next_checkpoint])
+		CheckpointChain.set_target(null, &"")
+		return
+	CheckpointChain.set_target(next_node as Node3D, chain_hint_flag)
 
 
 func _set_active(active: bool) -> void:

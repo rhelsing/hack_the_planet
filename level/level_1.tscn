@@ -157,12 +157,30 @@ transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.
 
 [node name="Checkpoint1" parent="." index="15" unique_id=679718777]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -34.48487, 1.6756706, 177.62419)
+next_checkpoint = NodePath("../PhoneBooth")
+chain_hint_flag = &"chain_hint:phonebooth"
+
+[node name="Beacon" parent="Checkpoint1" index="5" unique_id=679718778 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:checkpoint1"
 
 [node name="Checkpoint3" parent="." index="16" unique_id=547259237 instance=ExtResource("9_4h366")]
 transform = Transform3D(-0.47453377, 0, 0.8802373, 0, 1, 0, -0.8802373, 0, -0.47453377, -22.124058, -4.8425913, 215.48668)
+next_checkpoint = NodePath("../Checkpoint1")
+chain_hint_flag = &"chain_hint:checkpoint1"
 
 [node name="Checkpoint2" parent="." index="17" unique_id=57134153]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -75.03878, 38.679344, -68.84053)
+next_checkpoint = NodePath("../PhoneBooth5")
+chain_hint_flag = &"chain_hint:phonebooth5"
+
+[node name="Beacon" parent="Checkpoint2" index="5" unique_id=57134154 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:checkpoint2"
 
 [node name="PowerupPickup" parent="." index="18" unique_id=221835442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -97.021324, 12.653832, 167.09947)
@@ -358,12 +376,36 @@ material = ExtResource("8_hdc4k")
 
 [node name="PhoneBooth" parent="." index="44" unique_id=2131362854 instance=ExtResource("9_4h366")]
 transform = Transform3D(0.0032637815, 0, -0.9999947, 0, 1, 0, 0.9999947, 0, 0.0032637815, -65.73639, 5.999999, 159.24742)
+next_checkpoint = NodePath("../PhoneBooth6")
+chain_hint_flag = &"chain_hint:phonebooth6"
+
+[node name="Beacon" parent="PhoneBooth" index="5" unique_id=2131362855 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:phonebooth"
 
 [node name="PhoneBooth2" parent="." index="45" unique_id=1795716640 instance=ExtResource("9_4h366")]
 transform = Transform3D(-0.8879679, 0, 0.45990548, 0, 1, 0, -0.45990548, 0, -0.8879679, -58.54159, 8.000001, 119.70475)
+next_checkpoint = NodePath("../PhoneBooth3")
+chain_hint_flag = &"chain_hint:phonebooth3"
+
+[node name="Beacon" parent="PhoneBooth2" index="5" unique_id=1795716641 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:phonebooth2"
 
 [node name="PhoneBooth3" parent="." index="46" unique_id=1546087795 instance=ExtResource("9_4h366")]
 transform = Transform3D(-0.8879679, 0, 0.45990548, 0, 1, 0, -0.45990548, 0, -0.8879679, -58.54159, 20.529442, -1.8516846)
+next_checkpoint = NodePath("../PhoneBooth4")
+chain_hint_flag = &"chain_hint:phonebooth4"
+
+[node name="Beacon" parent="PhoneBooth3" index="5" unique_id=1546087796 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:phonebooth3"
 
 [node name="Coin" parent="." index="47" unique_id=1783642324 instance=ExtResource("11_hdc4k")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.52757, 0.438404, 170.4093)
@@ -665,9 +707,31 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -76.849464, 36.7708, -11.6693
 
 [node name="PhoneBooth4" parent="." index="138" unique_id=544414795 instance=ExtResource("9_4h366")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -77.63793, 36.637848, -41.928207)
+next_checkpoint = NodePath("../Checkpoint2")
+chain_hint_flag = &"chain_hint:checkpoint2"
+
+[node name="Beacon" parent="PhoneBooth4" index="5" unique_id=544414796 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:phonebooth4"
 
 [node name="PhoneBooth5" parent="." index="139" unique_id=1578007804 instance=ExtResource("9_4h366")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -78.934525, 65.704, -21.05312)
 
+[node name="Beacon" parent="PhoneBooth5" index="5" unique_id=1578007805 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:phonebooth5"
+
 [node name="PhoneBooth6" parent="." index="140" unique_id=939327447 instance=ExtResource("9_4h366")]
 transform = Transform3D(0.002303793, 0, -0.9999973, 0, 1, 0, 0.9999973, 0, 0.002303793, -94.49195, 11.56875, 164.7407)
+next_checkpoint = NodePath("../PhoneBooth2")
+chain_hint_flag = &"chain_hint:phonebooth2"
+
+[node name="Beacon" parent="PhoneBooth6" index="5" unique_id=939327448 instance=ExtResource("24_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:phonebooth6"
