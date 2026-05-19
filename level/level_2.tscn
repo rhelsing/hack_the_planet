@@ -67,6 +67,8 @@ transform = Transform3D(-0.99753845, 0, 0.07012202, 0, 1, 0, -0.07012202, 0, -0.
 
 [node name="Checkpoint1" parent="." index="9" unique_id=679718777]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.272872, 0, 9.22846)
+next_checkpoint = NodePath("../PhoneBooth")
+chain_hint_flag = &"chain_hint:l2:phonebooth"
 
 [node name="Checkpoint2" parent="." index="10" unique_id=57134153]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, -24362.775, -10.335255)
@@ -350,18 +352,58 @@ material = ExtResource("7_vl510")
 
 [node name="PhoneBooth" parent="." index="56" unique_id=547259237 instance=ExtResource("8_vir0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.285276, 11.328789, -35.147785)
+next_checkpoint = NodePath("../PhoneBooth2")
+chain_hint_flag = &"chain_hint:l2:phonebooth2"
+
+[node name="Beacon" parent="PhoneBooth" index="5" unique_id=547259238 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:l2:phonebooth"
 
 [node name="PhoneBooth2" parent="." index="57" unique_id=282021949 instance=ExtResource("8_vir0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.3005, 20.301735, -63.525307)
+next_checkpoint = NodePath("../PhoneBooth3")
+chain_hint_flag = &"chain_hint:l2:phonebooth3"
+
+[node name="Beacon" parent="PhoneBooth2" index="5" unique_id=282021950 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:l2:phonebooth2"
 
 [node name="PhoneBooth3" parent="." index="58" unique_id=94714769 instance=ExtResource("8_vir0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.48863, 25.653925, -36.063698)
+next_checkpoint = NodePath("../PhoneBooth4")
+chain_hint_flag = &"chain_hint:l2:phonebooth4"
+
+[node name="Beacon" parent="PhoneBooth3" index="5" unique_id=94714770 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:l2:phonebooth3"
 
 [node name="PhoneBooth4" parent="." index="59" unique_id=923722079 instance=ExtResource("8_vir0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.761074, 33.66551, 6.8066278)
+next_checkpoint = NodePath("../PhoneBooth5")
+chain_hint_flag = &"chain_hint:l2:phonebooth5"
+
+[node name="Beacon" parent="PhoneBooth4" index="5" unique_id=923722080 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:l2:phonebooth4"
 
 [node name="PhoneBooth5" parent="." index="60" unique_id=881380925 instance=ExtResource("8_vir0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.77069, 49.014427, 68.27394)
+next_checkpoint = NodePath("../PhoneBooth6")
+chain_hint_flag = &"chain_hint:l2:phonebooth6"
+
+[node name="Beacon" parent="PhoneBooth5" index="5" unique_id=881380926 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:l2:phonebooth5"
 
 [node name="ConvertZone" parent="." index="61" unique_id=491500303 instance=ExtResource("9_fvot5")]
 transform = Transform3D(2.4316, 0, 0, 0, 1, 0, 0, 0, 6.448097, -46.97335, 28.652025, 36.99115)
@@ -432,6 +474,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -104.91071, 71.24014, 57.2108
 
 [node name="PhoneBooth6" parent="." index="78" unique_id=1978508821 instance=ExtResource("8_vir0n")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -71.17476, 68.67563, 72.45143)
+
+[node name="Beacon" parent="PhoneBooth6" index="5" unique_id=1978508822 instance=ExtResource("53_beacon")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+color = Color(0.2, 0.9, 0.3, 1)
+label = "CHECKPOINT"
+visible_when_flag = &"chain_hint:l2:phonebooth6"
 
 [node name="EnemyKayKitSpliceStealth3" parent="." index="79" unique_id=926040163 instance=ExtResource("9_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -206.73581, 71.24014, 40.02342)

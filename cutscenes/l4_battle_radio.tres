@@ -93,7 +93,7 @@ label = "Splice: stop this madness"
 [sub_resource type="Resource" id="line_g4_nyx"]
 script = ExtResource("2_line")
 character = &"Nyx"
-text = "He hates the platforms. He's **whining**."
+text = "He's **whining**."
 channel = "walkie"
 label = "Nyx: he's whining"
 
