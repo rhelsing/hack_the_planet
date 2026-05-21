@@ -162,6 +162,12 @@ func load_level(path: String) -> void:
 		return
 	_mount_level(packed)
 	SaveService.set_current_level(StringName(path.get_file().trim_suffix(".tscn")))
+	# Optional per-level hook: heavy first-frame work (music ignition, NPC
+	# reveals, dance loops, overlays) can live in `before_reveal()` so it
+	# completes under cover of the fade instead of hitching the first
+	# visible frame. No-op for levels that don't implement it.
+	if _current_level != null and _current_level.has_method(&"before_reveal"):
+		await _current_level.before_reveal()
 	await transition.play_in(get_tree())
 	Events.modal_closed.emit(&"level_transition")
 	_is_loading = false

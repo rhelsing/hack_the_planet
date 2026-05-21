@@ -30,6 +30,11 @@ const ROWS: Array = [
 
 @onready var _grid: GridContainer = %Grid
 @onready var _back_btn: Button = %BackBtn
+@onready var _device_option: OptionButton = %DeviceOption
+
+# Index ↔ setting-value mapping for the device dropdown. Order matches the
+# OptionButton items added in _populate_device_option below.
+const _DEVICE_MODES: Array[String] = ["auto", "keyboard", "gamepad"]
 
 
 func configure(_args: Dictionary) -> void:
@@ -39,9 +44,33 @@ func configure(_args: Dictionary) -> void:
 func _ready() -> void:
 	Events.modal_opened.emit(&"controls")
 	tree_exited.connect(func() -> void: Events.modal_closed.emit(&"controls"))
+	_populate_device_option()
 	_populate_grid()
 	_back_btn.pressed.connect(func() -> void: back_requested.emit())
+	_device_option.item_selected.connect(_on_device_selected)
 	_back_btn.grab_focus()
+
+
+func _populate_device_option() -> void:
+	_device_option.clear()
+	_device_option.add_item("Auto", 0)
+	_device_option.add_item("Keyboard", 1)
+	_device_option.add_item("Gamepad", 2)
+	var current: String = String(Settings.get_value("input", "device_mode", "auto"))
+	var idx: int = _DEVICE_MODES.find(current)
+	if idx < 0:
+		idx = 0
+	_device_option.select(idx)
+
+
+func _on_device_selected(idx: int) -> void:
+	if idx < 0 or idx >= _DEVICE_MODES.size():
+		return
+	Settings.set_value("input", "device_mode", _DEVICE_MODES[idx])
+	# Re-render the bindings so the glyph column reflects the new device
+	# immediately. Other consumers (HUD prompts, dialogue) read via Glyphs
+	# on demand, so they pick it up automatically next paint.
+	_populate_grid()
 
 
 func _populate_grid() -> void:

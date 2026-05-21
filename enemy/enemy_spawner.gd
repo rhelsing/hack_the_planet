@@ -36,6 +36,13 @@ func _ready() -> void:
 func _on_body_entered(body: Node) -> void:
 	if enemy_scene == null:
 		return
+	# Pause-safety: Area3D's body_entered can fire one queued frame after
+	# get_tree().paused = true (the player walked in just as Esc landed).
+	# Bail so the glitch-in tween + spawned pawn don't run during pause —
+	# downstream code (dialogue triggers, walkie cues, autoloads) reacts to
+	# fresh splice presence and was hijacking the cursor mid-pause.
+	if get_tree().paused:
+		return
 	if _spawned and one_shot:
 		return
 	if Time.get_ticks_msec() < _cooldown_until_msec:

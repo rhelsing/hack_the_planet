@@ -55,6 +55,13 @@ const DEFAULTS := {
 		"pitch_return_rate": 1.5,
 		"fov": 50.0,
 	},
+	"input": {
+		# Which device drives glyph swaps in HUD prompts, dialogue
+		# placeholders, hint zones, and the controls panel. "auto" follows the
+		# player's most recently used device (PlayerBrain.last_device). "keyboard"
+		# / "gamepad" force the choice. Glyphs._active_device() reads this.
+		"device_mode": "auto",
+	},
 }
 
 var data: Dictionary = _deep_duplicate(DEFAULTS)

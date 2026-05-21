@@ -66,8 +66,6 @@ func _ready() -> void:
 		if ps != null and ts != null:
 			ps.global_transform = ts.global_transform
 		GameState.set_flag(FLAG_HUB_VISITED, true)
-	if GameState.get_flag(FLAG_LEVEL_4_COMPLETED, false):
-		_enter_victory_state()
 	_setup_first_enemies()
 	# Splice's dance unlocks via dialogue: the player offers, Splice accepts
 	# ("...it's a fine song."), `hub_post4_splice_danced` flips true. Listen
@@ -75,6 +73,17 @@ func _ready() -> void:
 	# moment the flag fires. Replay (re-entering hub with the flag already
 	# set) is handled inside _enter_victory_state.
 	Events.flag_set.connect(_on_flag_set_for_splice_dance)
+
+
+# Called by Game.load_level after _mount_level but before the fade-in. Heavy
+# first-frame work lives here so it finishes under cover of black instead of
+# hitching the first visible frame. The post-L4 victory ignition (disco
+# music, postL4Show reveal, dance loops, credits overlay, firework spawner)
+# is the worst offender — keep it all in this method.
+func before_reveal() -> void:
+	if GameState.get_flag(FLAG_LEVEL_4_COMPLETED, false):
+		_enter_victory_state()
+		await get_tree().process_frame
 
 
 # Park the first_enemies group up high until the player finishes the Glitch

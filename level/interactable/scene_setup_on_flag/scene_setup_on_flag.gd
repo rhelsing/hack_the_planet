@@ -200,21 +200,21 @@ func _stage_allies() -> void:
 						if is_instance_valid(pawn_for_faction):
 							pawn_for_faction.call(&"set_faction", &"gold")
 				)
-		# Optional: flip the pawn into skate (rollerblade) mode. Toggle is
-		# called AFTER set_faction so brain/skin reconfiguration is done.
-		# pawn_template starts in walk mode → one toggle = skate. Idempotent
-		# only under that assumption; if a future template defaults to skate
-		# this would un-toggle them. Same stagger as set_faction so toggle
-		# strictly follows the conversion.
-		if ally_skate_mode and pawn.has_method(&"toggle_profile"):
-			var pawn_for_toggle: Node = pawn
+		# Optional: force the pawn into skate (rollerblade) mode. Called
+		# AFTER set_faction so brain/skin reconfiguration is done.
+		# `set_profile_skate` is idempotent — early-returns if the pawn is
+		# already on skate — so this works whether the template defaults to
+		# walk or skate. Same stagger as set_faction so the call strictly
+		# follows the conversion.
+		if ally_skate_mode and pawn.has_method(&"set_profile_skate"):
+			var pawn_for_skate: Node = pawn
 			if _stagger_idx == 0:
-				pawn.call_deferred(&"toggle_profile")
+				pawn.call_deferred(&"set_profile_skate")
 			else:
 				get_tree().create_timer(_stagger_idx * 0.05 + 0.001).timeout.connect(
 					func() -> void:
-						if is_instance_valid(pawn_for_toggle):
-							pawn_for_toggle.call(&"toggle_profile")
+						if is_instance_valid(pawn_for_skate):
+							pawn_for_skate.call(&"set_profile_skate")
 				)
 		# Optional pawn freeze. Applied SYNCHRONOUSLY (not call_deferred) so
 		# the pawn never gets a single physics tick of motion between

@@ -23,6 +23,9 @@ extends Area3D
 ## If non-empty, fired state persists via GameState.set_flag(persist_flag, true).
 ## Prevents re-firing across saves. Empty = in-memory only.
 @export var persist_flag: StringName = &""
+## Seconds to wait after the player enters before the line fires. 0 = immediate.
+## Useful when you want a beat after a prior cue or to let the player settle.
+@export var fire_delay: float = 0.0
 ## Optional music override. When set, on trigger fire calls Audio.play_music
 ## (force-loops the stream) — the song plays until something else takes over
 ## (typically Audio.resume_default_playlist_if_overridden() called from a
@@ -62,6 +65,8 @@ func _on_body_entered(body: Node) -> void:
 		push_warning("WalkieTrigger has no line — %s" % get_path())
 		return
 	_fired = true
+	if fire_delay > 0.0:
+		await get_tree().create_timer(fire_delay).timeout
 	if persist_flag != &"":
 		GameState.set_flag(persist_flag, true)
 	if stinger_oneshot != null:

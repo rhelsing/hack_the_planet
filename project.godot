@@ -27,6 +27,7 @@ buses/default_bus_layout="uid://bjew6xi7wqh2a"
 
 Events="*res://autoload/events.gd"
 DebugPanel="*res://autoload/debug_panel.gd"
+HalfpipeTuner="*res://autoload/halfpipe_tuner.gd"
 Layers="*res://autoload/layers.gd"
 GameState="*res://autoload/game_state.gd"
 DialogueState="*res://autoload/dialogue_state.gd"

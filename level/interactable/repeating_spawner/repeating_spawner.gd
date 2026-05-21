@@ -83,7 +83,11 @@ func _run() -> void:
 	print("[repspawn] %s _run entered at t=%.2fs (will await %.1fs)" % [
 		name, Time.get_ticks_msec() / 1000.0, initial_delay])
 	if initial_delay > 0.0:
-		await get_tree().create_timer(initial_delay).timeout
+		# `process_always = false` (second arg) makes the timer pause when
+		# the tree is paused. Without it, spawning continued during pause
+		# and instantiated enemies whose inherited PlayerBrain captured
+		# the cursor mid-pause-menu.
+		await get_tree().create_timer(initial_delay, false).timeout
 	if not is_instance_valid(self): return
 	print("[repspawn] %s initial_delay elapsed at t=%.2fs → first spawn" % [
 		name, Time.get_ticks_msec() / 1000.0])
@@ -96,8 +100,12 @@ func _run() -> void:
 				print("[repspawn] %s total_duration elapsed → stopping" % name)
 				break
 		if max_spawns >= 0 and _spawn_count >= max_spawns: break
-		_spawn_one()
-		await get_tree().create_timer(spawn_interval).timeout
+		# Defensive belt: even with the pause-aware timer below, if a spawn
+		# loop iteration crosses a pause edge we don't want to spawn under
+		# the menu (see enemy_spawner.gd for the same guard).
+		if not get_tree().paused:
+			_spawn_one()
+		await get_tree().create_timer(spawn_interval, false).timeout
 
 
 ## Kick off an infinite ping-pong tween between oscillate_x_min and

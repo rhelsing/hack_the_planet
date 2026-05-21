@@ -17,13 +17,13 @@ extends Interactable
 ## threshold = behind. -1.0 = directly behind only; 0.0 = anywhere in the
 ## back hemisphere (180° arc); 0.3 = ~70° back arc (forgiving, easy to
 ## sneak up on). Default 0.0 = back-hemisphere only.
-@export_range(-1.0, 1.0) var behind_dot_threshold: float = 0.0
+@export_range(-1.0, 1.0) var behind_dot_threshold: float = 0.3
 
 ## Max distance (m) for the highlight + prompt to show. Without this gate
 ## a back-hemisphere check alone lit up sentinels from across the level.
 ## ~4m is a comfortable backstab range — close enough that the player has
 ## to actually be sneaking up, not eyeballing from afar.
-@export var max_highlight_distance: float = 4.0
+@export var max_highlight_distance: float = 5.0
 
 ## Required GameState flag for the prompt to even show. Empty = always
 ## show. Defaults to "powerup_secret" so only hackers see the [E] hack

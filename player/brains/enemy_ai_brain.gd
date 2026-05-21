@@ -80,7 +80,7 @@ extends Brain
 ## factor. <1 = crouch SHRINKS the cone (stealth is the safer mode).
 ## >1 = crouch makes the pawn more vigilant. Default 0.5 = crouch halves
 ## the cone so the player can sneak past.
-@export var crouch_range_multiplier: float = 0.5
+@export var crouch_range_multiplier: float = 1.0
 ## SUSPECT-phase duration multiplier when the target is crouched. 1.0 =
 ## no crouch effect on the SUSPECT timer.
 @export var crouch_suspect_multiplier: float = 1.0
@@ -191,6 +191,15 @@ extends Brain
 ## when this brain's body is in the "allies" physics group.
 @export_range(1.0, 4.0) var ally_target_spread_penalty: float = 1.5
 
+## When > 0 AND follow_subject_group is set, the pawn drops its current
+## chase target if the follow subject (typically the player) has drifted
+## farther than this many meters away. Cascade: null target → state
+## decays to WANDER → _follow_direction picks up active follow → pawn
+## catches up to the player. 0 = disabled (legacy behavior — chases until
+## the target itself escapes chase_exit_radius regardless of where the
+## player went). Set by set_faction(&"gold") to keep allies tethered.
+@export var combat_leash_distance: float = 0.0
+
 @export_group("Navigation")
 ## Navigation strategy. Determines how the brain handles vertical platform
 ## traversal — jumps up to higher targets, drops down to lower ones, or
@@ -248,6 +257,14 @@ enum NavMode { NONE, DUMB, SMART, COMPANION }
 ## responsive. Each instance picks a random offset 0..N-1 at _ready so a
 ## cluster of enemies don't all tick on the same frame.
 @export_range(1, 16) var tick_every_n_frames: int = 4
+## Beyond this distance from target, brain ticks at tick_every_n_frames_mid.
+@export var tick_lod_mid_distance: float = 50.0
+## Beyond this distance, brain ticks at tick_every_n_frames_far.
+@export var tick_lod_far_distance: float = 100.0
+## tick_every_n_frames within mid/far distance band (default 8 = ~7Hz logic).
+@export_range(1, 64) var tick_every_n_frames_mid: int = 8
+## tick_every_n_frames beyond far distance (default 16 = ~4Hz logic).
+@export_range(1, 64) var tick_every_n_frames_far: int = 16
 ## Pause the body's AnimationTree when the body is off-screen. Brain logic
 ## still ticks (so enemies pursue when behind the camera) but skeleton
 ## skinning + state machine evaluation is skipped. Biggest single win for
@@ -264,7 +281,7 @@ enum NavMode { NONE, DUMB, SMART, COMPANION }
 ## AnimationTree advance rate (Hz) between mid and far distance.
 @export var anim_rate_mid: float = 20.0
 ## AnimationTree advance rate (Hz) beyond anim_lod_far_distance.
-@export var anim_rate_far: float = 5.0
+@export var anim_rate_far: float = 20.0
 ## AABB used to size the off-screen notifier — humanoid-sized. Bumped wide
 ## so the notifier registers as visible slightly before the skin appears,
 ## hiding the one-frame "frozen pose" pop when transitioning back on-screen.
@@ -433,19 +450,31 @@ func tick(body: Node3D, delta: float) -> Intent:
 		_setup_perf(body)
 		_setup_debug_label(body)
 
+	# Distance to nearest target, used by both animation LOD and brain tick LOD
+	# below. One traversal per frame instead of two.
+	var dist_to_target: float = _distance_to_target_or_player(body)
+
 	# Animation runs on its own clock — distance-LOD'd advance + off-screen
 	# pause. Done BEFORE the tick-budgeting gate so animation keeps progressing
 	# every visible frame even when AI logic itself is staggered.
-	_advance_animation_lod(body, delta)
+	_advance_animation_lod(body, delta, dist_to_target)
 
 	# Tick budgeting: when not actively chasing, run the brain only every Nth
-	# physics frame. Movement intent persists from the last real tick so the
-	# body keeps walking in its current direction; only the edge flags reset
-	# (so attack/jump don't re-fire on skipped frames).
+	# physics frame. Modulus widens with distance (mid/far bands) so far-away
+	# wanderers cost almost nothing. HOSTILE always ticks every frame regardless.
+	# Movement intent persists from the last real tick so the body keeps walking
+	# in its current direction; only the edge flags reset (so attack/jump don't
+	# re-fire on skipped frames).
 	_skip_delta_accum += delta
 	var hostile: bool = _alert_phase == _AlertPhase.HOSTILE
-	var should_tick: bool = hostile or tick_every_n_frames <= 1 or \
-		(Engine.get_physics_frames() + _tick_offset) % tick_every_n_frames == 0
+	var effective_tick_n: int = tick_every_n_frames
+	if not hostile and tick_every_n_frames > 1:
+		if dist_to_target >= tick_lod_far_distance:
+			effective_tick_n = tick_every_n_frames_far
+		elif dist_to_target >= tick_lod_mid_distance:
+			effective_tick_n = tick_every_n_frames_mid
+	var should_tick: bool = hostile or effective_tick_n <= 1 or \
+		(Engine.get_physics_frames() + _tick_offset) % effective_tick_n == 0
 	if not should_tick:
 		_intent.jump_pressed = false
 		_intent.attack_pressed = false
@@ -1050,6 +1079,16 @@ func _ensure_target(body: Node3D) -> void:
 				break
 		if not still_targeted:
 			_set_target(null)
+		elif _alert_phase == _AlertPhase.CALM and _effective_detection_radius > 0.0:
+			# Staleness gate: when we're not actively chasing (CALM phase),
+			# drop the cached target if it has drifted outside our awareness
+			# radius. Without this, a stealth that briefly saw the player
+			# keeps them cached forever — and the 2:1 hysteresis in the
+			# proactive switch below blocks nearby golds from taking over.
+			# Re-acquired naturally next tick if the player re-enters cone.
+			var d_sq: float = (_target as Node3D).global_position.distance_squared_to(body.global_position)
+			if d_sq > _effective_detection_radius * _effective_detection_radius:
+				_set_target(null)
 	else:
 		_set_target(null)
 	# Distance-aware proactive switch: keep the cached target UNLESS `best`
@@ -1058,9 +1097,17 @@ func _ensure_target(body: Node3D) -> void:
 	# roughly-equidistant ties while staying responsive when fresh enemies
 	# spawn closer than the locked-on target — e.g. converted golds
 	# noticing newly-spawned reds 5m away while still chasing one 30m out.
+	#
+	# Crouched-target override: if the cached target is crouched (player
+	# sneaking), drop the 2:1 ratio to 1:1. Crouching means "I'm trying
+	# to be invisible — go find something else." Without this, a stealth
+	# pawn locked onto a crouched player ignores nearby golds because of
+	# the hysteresis, even though the player is effectively unseeable.
 	if _target != null:
 		var current_dsq: float = (_target as Node3D).global_position.distance_squared_to(body.global_position)
-		if best != null and best_dsq * 2.0 < current_dsq:
+		var current_is_crouched: bool = "_was_crouched" in _target and bool((_target as Node3D).get(&"_was_crouched"))
+		var ratio: float = 1.0 if current_is_crouched else 2.0
+		if best != null and best_dsq * ratio < current_dsq:
 			_set_target(best)
 	else:
 		_set_target(best)
@@ -1078,6 +1125,17 @@ func _ensure_target(body: Node3D) -> void:
 		if to_t.length() > ally_crouched_engage_radius:
 			_set_target(null)
 		elif not _has_direct_los(body, _target as Node3D):
+			_set_target(null)
+	# Combat leash — drop the chase if the follow subject (player) has
+	# drifted past combat_leash_distance from this pawn. Letting go of the
+	# target lets the state machine decay back to WANDER, which then falls
+	# through to _follow_direction → active follow → ally catches up.
+	# Without this, a gold mid-fight stays locked to the enemy regardless
+	# of how far the player has run; user wanted "give up and follow me"
+	# semantics.
+	if combat_leash_distance > 0.0 and follow_subject_group != &"" and _target != null:
+		var subject := _nearest_in_group(body, follow_subject_group)
+		if subject != null and body.global_position.distance_to(subject.global_position) > combat_leash_distance:
 			_set_target(null)
 
 
@@ -1585,31 +1643,30 @@ func _update_alert_phase(body: Node3D, delta: float) -> void:
 	else:
 		var range_cap: float = _effective_chase_exit_radius if (_alert_phase == _AlertPhase.HOSTILE) else _effective_detection_radius
 		visible = _target != null and _can_see_target(body, range_cap)
-	# Distance check for the hostile-zone (close-up) shortcut. Behavior
-	# differs by stance:
-	#   Standing inside hostile_zone   → snap to HOSTILE (no SUSPECT).
-	#   Crouched inside hostile_zone   → SUSPECT with the SHORT timer
-	#       (hostile_zone_suspect_duration). Quick fuse, but breakable.
-	#   Crouched outside hostile_zone  → SUSPECT with the regular
-	#       _effective_suspect_duration timer.
-	#   Standing outside hostile_zone but inside detection_radius →
-	#       SUSPECT with regular timer (the "they hear you" outer band).
-	# Swarm enemies (vision_cone_deg <= 0) snap to HOSTILE on any visible.
-	var inside_hostile_zone: bool = false
-	if visible and _effective_hostile_radius > 0.0 and _target != null:
-		var to_t: Vector3 = _target.global_position - body.global_position
-		to_t.y = 0.0
-		inside_hostile_zone = to_t.length() < _effective_hostile_radius
-	# Effective SUSPECT timer for THIS tick. Picked by stance + zone.
+	# SUSPECT timer selection:
+	#   Standing — original step-function behavior:
+	#     inside hostile_zone   → 0s (instant chase)
+	#     outside hostile_zone  → full _effective_suspect_duration
+	#   Crouched — linear ramp from _effective_suspect_duration at the outer
+	#     edge of effective detection range down to 0 at the pawn's feet.
+	#     Closer = shorter fuse. Continuous gradient instead of a step at the
+	#     hostile_zone boundary.
+	#   Swarm enemies (no cone, vision_cone_deg <= 0) snap immediately.
 	var suspect_window: float
 	if vision_cone_deg <= 0.0:
-		suspect_window = 0.0  # swarm: snap immediately
-	elif inside_hostile_zone and not _target_crouched:
-		suspect_window = 0.0  # standing close-up: no grace
-	elif inside_hostile_zone and _target_crouched:
-		suspect_window = hostile_zone_suspect_duration  # crouched close-up: short fuse
+		suspect_window = 0.0
+	elif _target_crouched and _target != null and _effective_detection_radius > 0.0:
+		var dist_h: float = _horizontal_distance(body.global_position, _target.global_position)
+		var ratio: float = clampf(dist_h / _effective_detection_radius, 0.0, 1.0)
+		suspect_window = _effective_suspect_duration * ratio
 	else:
-		suspect_window = _effective_suspect_duration  # outer band: regular delay
+		# Standing: original hostile_zone step-function.
+		var inside_hostile_zone: bool = false
+		if visible and _effective_hostile_radius > 0.0 and _target != null:
+			var to_t: Vector3 = _target.global_position - body.global_position
+			to_t.y = 0.0
+			inside_hostile_zone = to_t.length() < _effective_hostile_radius
+		suspect_window = 0.0 if inside_hostile_zone else _effective_suspect_duration
 	match _alert_phase:
 		_AlertPhase.CALM:
 			if visible:
@@ -1866,12 +1923,11 @@ func _find_animation_tree(node: Node) -> AnimationTree:
 	return null
 
 
-func _advance_animation_lod(body: Node3D, delta: float) -> void:
+func _advance_animation_lod(body: Node3D, delta: float, d: float) -> void:
 	if _animation_tree == null:
 		return
 	if pause_animation_offscreen and not _on_screen:
 		return  # frozen pose off-screen — biggest single CPU/GPU win
-	var d: float = _distance_to_target_or_player(body)
 	var rate: float
 	if d < anim_lod_mid_distance:
 		rate = anim_rate_near

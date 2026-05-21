@@ -20,8 +20,8 @@ extends Node
 ## physics world (transform + collision shape persist) so other things
 ## can still query it; it just doesn't do anything per-frame.
 
-@export var sleep_distance: float = 80.0
-@export var wake_distance: float = 70.0
+@export var sleep_distance: float = 200.0
+@export var wake_distance: float = 190.0
 @export var enemy_groups: Array[StringName] = [&"enemies", &"splice_enemies"]
 @export var player_group: StringName = &"player"
 @export var poll_interval: float = 0.5

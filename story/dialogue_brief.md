@@ -660,7 +660,7 @@ do GameState.set_flag("level_2_glitch_briefed", true)
 ```
 ~ start
 
-Nyx: Hey {{HandlePicker.chosen_name()}}, still in one piece?
+Nyx: Hey {{HandlePicker.chosen_name()}}. Still in one piece?
 - Thanks for.. [#exit]
 Nyx: Don't.. anyone would have needed help out of that.
 Nyx: Let's get out of here before Splice warps in.
@@ -1643,7 +1643,7 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 <!-- character: Glitch -->
 
 ### `Walkie2` — Glitch
-**Position:** (24.053465, -2.831017, 16.366661)
+**Position:** (23.420488, -9.154058, 16.366661)
 
 > Wait, no thats not right... Hold on.. um. Oh, \"great job glitch\" ....I didnt turn it on. Will you do the honors?
 
@@ -2136,7 +2136,7 @@ Splice: Reserves are infinite. [#walkie]
 Nyx: They are extremely not. [#walkie]
 do wait(7)
 Splice: Stop this madness runner! **STOP**! [#walkie]
-Nyx: He hates the platforms. He's **whining**. [#walkie]
+Nyx: He's **whining**. [#walkie]
 do wait(8)
 DialTone: Six left in the arena. Then four. [#walkie]
 Splice: The next wave is bigger. Just wait. [#walkie]

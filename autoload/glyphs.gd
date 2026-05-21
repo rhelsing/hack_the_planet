@@ -92,6 +92,11 @@ func has_token(template: String) -> bool:
 # ── Internals ────────────────────────────────────────────────────────────
 
 func _active_device() -> String:
+	# User override wins: settings.input.device_mode can pin the device to
+	# "keyboard" or "gamepad". Default "auto" falls through to live detection.
+	var mode: String = String(Settings.get_value("input", "device_mode", "auto"))
+	if mode == "keyboard" or mode == "gamepad":
+		return mode
 	var tree := get_tree()
 	if tree == null:
 		return "keyboard"

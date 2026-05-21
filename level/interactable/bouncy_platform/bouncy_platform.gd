@@ -339,6 +339,12 @@ func _launch() -> void:
 	var launch_v: float = sqrt(2.0 * maxf(gravity, 0.0001) \
 		* maxf(_eff_bounce_height() + _eff_squash_depth(), 0.0))
 	_restore_parent()
+	# Bouncing off the deck IS leaving the surface — same as a jump. Force
+	# the body's halfpipe state to disengage so up_direction / floor_max_angle
+	# / tilted basis don't survive the launch and pull the bounce back
+	# toward the wall mid-flight.
+	if body.has_method(&"force_halfpipe_disengage"):
+		body.call(&"force_halfpipe_disengage")
 	if "velocity" in body:
 		var v: Vector3 = body.get(&"velocity")
 		body.set(&"velocity", Vector3(v.x, launch_v, v.z))

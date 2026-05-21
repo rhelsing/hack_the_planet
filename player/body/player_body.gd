@@ -90,6 +90,14 @@ func set_faction(new_faction: StringName) -> void:
 	if new_faction == &"green":
 		max_health = 1
 		_health = mini(_health, max_health)
+	# Gold conversion = fixed HP, full heal. Without snapping, a gold
+	# converted from a basic green (max_health=1) would die in one hit from
+	# any red. 8 HP × red's 2-damage swing = 4 hits before death — reads as
+	# "ally can take a few licks." Full heal because conversion is the
+	# moment of rebirth-as-ally; carrying over damaged HP feels punishing.
+	if new_faction == &"gold":
+		max_health = 8
+		_health = max_health
 	# Rewrite attack target groups from the table. The constants hold
 	# untyped Arrays (Dictionary values can't carry the [StringName] type
 	# annotation), so we use Array.assign() — copies element-by-element
@@ -112,12 +120,36 @@ func set_faction(new_faction: StringName) -> void:
 	# Other factions clear it to 0 (no special crouch behavior). See enemy_ai_brain.gd.
 	if _brain != null and "ally_crouched_engage_radius" in _brain:
 		_brain.ally_crouched_engage_radius = 5.0 if new_faction == &"gold" else 0.0
+	# Combat leash — golds drop their chase target if the player drifts
+	# more than this many meters away, then catch up via active follow.
+	# 0 on non-gold = leash disabled (legacy behavior preserved).
+	if _brain != null and "combat_leash_distance" in _brain:
+		_brain.combat_leash_distance = 50.0 if new_faction == &"gold" else 0.0
+	# Gold-specific detection: bigger sphere than variant default (16m or 30m
+	# for stealth) so allies pick up threats earlier. Hysteresis pair keeps the
+	# usual +6m chase-hold band. Revert from gold restores the variant's
+	# authored values via the cached defaults.
+	if _brain != null and "detection_radius" in _brain:
+		if _brain_default_detection_radius < 0.0:
+			_brain_default_detection_radius = float(_brain.detection_radius)
+		_brain.detection_radius = 40.0 if new_faction == &"gold" else _brain_default_detection_radius
+	if _brain != null and "chase_exit_radius" in _brain:
+		if _brain_default_chase_exit_radius < 0.0:
+			_brain_default_chase_exit_radius = float(_brain.chase_exit_radius)
+		_brain.chase_exit_radius = 46.0 if new_faction == &"gold" else _brain_default_chase_exit_radius
 	# Skate profile flip is no longer auto on gold conversion — moved to the
 	# explicit caller. ControlPortal converts walk; GodAbility converts ride.
 	# Apply the aggressive package (99 damage, 0 wind-up, 0 cooldown) to red
 	# AND gold so both faction always swing first. Stealth-splice toggles the
 	# package independently via aggressive_while_chasing on its brain.
 	set_aggressive_buffs(new_faction == &"red" or new_faction == &"gold")
+	# Gold-specific damage tune. set_aggressive_buffs above just wrote
+	# _faction_attack_damage = 2 (red's authored value); bump it to 3 so a
+	# gold ally two-shots a red. Regular red (max_health=5) → ceil(5/3) = 2
+	# hits. Stealth red (max_health=6) → 6/3 = 2 hits exactly. Reverts on
+	# next set_aggressive_buffs(false) call when the body leaves gold.
+	if new_faction == &"gold":
+		_faction_attack_damage = 3
 	# Gold's "always wins vs red" probability scales with coin completion.
 	# Rolled once at conversion and sticky for the life of this pawn —
 	# keeps the gold-vs-red outcome deterministic per encounter rather than
@@ -607,12 +639,13 @@ var _natural_lean_roll := 0.0
 # straight up). When disabled, ALL of this is skipped — body behaves
 # identically to before.
 @export_group("Halfpipe stick")
-## Master toggle for player-controlled bodies. Set false on game.tscn's
-## Player to test off-vs-on without touching ally pawns.
-@export var halfpipe_stick_for_player: bool = true
-## Master toggle for gold-ally bodies (faction = gold / group = allies).
-## Independent of the player toggle so you can A/B test each side.
-@export var halfpipe_stick_for_allies: bool = true
+## Master kill-switch. When false, every pass is bypassed and the body
+## behaves as if the system didn't exist. Eligibility for the system is
+## "is this pawn currently on skates?" — see _update_halfpipe_stick's
+## gate. Wheels-visible and halfpipe-stick share the same condition
+## (_current_profile == skate_profile), so anyone with blades on (player,
+## gold ally, hostile splice on skates) participates.
+@export var halfpipe_stick_enabled: bool = true
 ## How far down the body probes for a curve-surface hit. Slightly longer
 ## than the capsule's foot-to-center to catch the surface even mid-arc.
 @export var halfpipe_probe_distance: float = 1.5
@@ -630,21 +663,24 @@ var _natural_lean_roll := 0.0
 ## Force pulling the body along the surface tangent toward the trough.
 ## Scales with curve angle. Kept LOW so it doesn't fight uphill momentum —
 ## gravity's natural slide is already pulling you down the curve. This is
-## a small "extra magnetism" feel, not a real force.
-@export var halfpipe_stick_strength: float = 120.0
+## a small "extra magnetism" feel, not a real force. Tuned 2026-05-20.
+@export var halfpipe_stick_strength: float = 20.0
 ## Extra downhill push when the player has NO movement input. With
 ## floor_max_angle held high, the body would otherwise stand glued to a
 ## steep wall — this is the "you let go of the stick, you slide" force.
 ## Only fires when intent.move_direction.length() < 0.1. Scales with
 ## curve_factor so flat trough = no idle slide, vertical wall = full pull.
-@export var halfpipe_idle_slide_strength: float = 600.0
+## Tuned 2026-05-20 — playtest feedback says even ~10 still autoslides
+## more than expected; the slider's lower range may need a finer step.
+@export var halfpipe_idle_slide_strength: float = 10.0
 ## Speed-along-trough multiplier for downhill velocity. 1.0 = pure physics.
-## >1.0 = arcade boost on the way down.
-@export var halfpipe_speed_boost: float = 1.4
+## >1.0 = arcade boost on the way down. Tuned 2026-05-20.
+@export var halfpipe_speed_boost: float = 1.6
 ## Multiplier on the body's max horizontal speed while on a curve surface.
-## 2.0 = doubled — drop-in builds momentum fast and you can carry it back
-## up the opposite wall. Multiplies into the existing target_vel calc.
-@export var halfpipe_max_speed_multiplier: float = 1.45
+## 1.7 = +70% — drop-in builds momentum but still has a reasonable ceiling
+## so the carve doesn't outrun the camera/controls. Multiplies into the
+## existing target_vel calc. Tuned 2026-05-20.
+@export var halfpipe_max_speed_multiplier: float = 1.7
 ## Walkable-floor angle override while on a curve surface. Default
 ## CharacterBody3D `floor_max_angle` is 45° — at that limit you can't walk
 ## past the gentle parts of the trough. Bumping to 80° lets you ride
@@ -667,10 +703,88 @@ var _natural_lean_roll := 0.0
 ## "jumped off the wall, got snapped back to the wall on the way up."
 @export var halfpipe_jump_cooldown_s: float = 0.3
 ## Jump direction blend: 0.0 = pure world-up, 1.0 = pure surface normal.
-## 0.2 = 80% vertical with a 20% lateral push from the wall angle, so
-## you still pop up off the lip but a vertical wall sends you slightly
-## outward instead of straight up.
-@export_range(0.0, 1.0) var halfpipe_jump_blend: float = 0.2
+## 0.36 = ~65% vertical with a ~35% lateral push from the wall angle, so
+## jumping the lip launches you clear of the wall instead of straight up.
+## Tuned 2026-05-20.
+@export_range(0.0, 1.0) var halfpipe_jump_blend: float = 0.36
+## Pushes the SKIN away from the wall along the surface normal while
+## engaged, scaled by curve_factor. Without this, the skin's "feet" (at
+## skin-local -Y) rotate to face the wall when the body tilts up — and
+## penetrate it by ~(skin_height/2 - capsule_radius). 0.5m is roughly
+## that mismatch for a standard humanoid rig.
+@export var halfpipe_skin_wall_lift: float = 0.5
+## When true, AI brains can't fire jump on a skating non-player pawn.
+## Brain-driven jumps zero the carve momentum through gravity arc, so
+## allies + skating enemies lose their speed on the halfpipe every time
+## they decide to hop a gap. Player is exempt regardless of this flag.
+@export var disable_brain_jump_on_skates: bool = true
+## Multiplier on horizontal friction while engaged on a curve surface.
+## Friction is already skipped on the wall (curve_factor > 0.1) but the
+## trough section still gets normal-ground friction, which kills the
+## wall-to-wall coast. 1.0 = unchanged; 0.3 = ~3× longer coast; 0 = the
+## body never slows in the trough until something else acts on it.
+## Tuned 2026-05-20.
+@export_range(0.0, 1.0) var halfpipe_trough_friction_scale: float = 0.42
+## Walk/Move animation playback speed during halfpipe coast (engaged + no
+## input + body still moving). Plays the Move clip slowed instead of the
+## Idle pose so the character looks relaxed-rolling, not frozen. 0.5 =
+## half-speed feet. Set to 1.0 to use authored Move speed; set to 0 to
+## fall back to Idle (the previous behavior).
+@export_range(0.0, 1.5) var halfpipe_coast_anim_scale: float = 0.5
+
+# ── Pass selector + per-pass tuning ─────────────────────────────────────
+# Pass dispatch is gated entirely inside _update_halfpipe_stick, which
+# itself only runs while engaged on a curve surface. Switching the pass
+# live forces a disengage so per-pass state can't leak across.
+enum HalfpipePass { CURRENT, KINEMATIC, KINEMATIC_PUMP, CENTRIPETAL }
+@export var halfpipe_pass: HalfpipePass = HalfpipePass.KINEMATIC
+
+@export_subgroup("Kinematic pass")
+## Strength of the per-tick velocity redirect onto the surface tangent.
+## 1.0 = full kinematic constraint (velocity always lies along the surface).
+## 0.0 = redirect disabled. Lower values let physics fight back, higher
+## values feel "on rails." Tuned 2026-05-20.
+@export_range(0.0, 1.0) var halfpipe_kin_redirect_strength: float = 0.12
+## Multiplier on gravity-along-tangent during kinematic passes. 1.0 = real
+## physics (sin-of-angle of gravity slides you toward the trough).
+## Tuned 2026-05-20.
+@export_range(0.0, 3.0) var halfpipe_kin_gravity_scale: float = 1.35
+## Body-up alignment lerp rate (matches Godot recipe's documented sweet
+## spot of ~12). Only used by kinematic passes — the existing skin tilt
+## stays for the other passes.
+@export_range(0.0, 30.0) var halfpipe_kin_align_rate: float = 12.0
+## Maximum tilt amount toward the surface normal. 1.0 = body fully matches
+## the wall (head pointing away from wall on a vertical section); 0.0 = no
+## tilt (body always upright). Caps how dramatic the lean gets without
+## changing how fast it happens (that's align_rate).
+@export_range(0.0, 1.0) var halfpipe_kin_max_tilt: float = 0.4
+
+@export_subgroup("Kinematic+Pump pass")
+## One-shot multiplier on velocity-along-tangent the frame the player
+## releases crouch while engaged. 1.10 ≈ Skate-style pump per cycle.
+@export_range(1.0, 1.4) var halfpipe_pump_multiplier: float = 1.12
+## Seconds after a pump before another pump fires. Stops mashing.
+@export_range(0.1, 2.0) var halfpipe_pump_cooldown: float = 0.6
+## Minimum curve_factor for a pump to fire. Pumping on flat trough does
+## nothing in real life — same gate here.
+@export_range(0.0, 1.0) var halfpipe_pump_min_curve: float = 0.15
+
+@export_subgroup("Centripetal pass")
+## Assumed halfpipe radius in meters. level_4's HalfPipe has inner radius
+## 18m (CSG InnerCarve cylinder). Set per-level if other pipes differ.
+@export_range(2.0, 30.0) var halfpipe_centripetal_radius: float = 18.0
+## Scalar on the v²/r grip force pulling the body into the surface.
+## 0 = off (centripetal pass behaves like current). >1 = sticker grip.
+@export_range(0.0, 3.0) var halfpipe_centripetal_grip_scale: float = 1.0
+
+@export_subgroup("Shared exit conditions")
+## Auto-disengage when velocity along the surface normal exceeds this
+## AND curve_factor is past halfpipe_exit_curve_min — the "flew off the
+## lip naturally" case. Set high to require an explicit jump to exit.
+@export_range(0.0, 20.0) var halfpipe_exit_normal_speed: float = 4.0
+## Curve-factor floor for the auto-exit. 0.8 = only when you're up on
+## the wall, not in the trough.
+@export_range(0.0, 1.0) var halfpipe_exit_curve_min: float = 0.8
 @export_group("")
 
 var _on_halfpipe: bool = false
@@ -684,12 +798,29 @@ var _halfpipe_saved_floor_max_angle: float = -1.0
 ## _halfpipe_saved_floor_max_angle — saved on first engage, restored on
 ## disengage. -1.0 sentinel means "nothing saved yet."
 var _halfpipe_saved_floor_snap_length: float = -1.0
+## Cached up_direction from before engagement. Sentinel Vector3.ZERO
+## means "nothing saved yet."
+var _halfpipe_saved_up_direction: Vector3 = Vector3.ZERO
 # Debug-dedupe: print on transitions only. Filter logs with [halfpipe].
 # Single state line per engage/disengage; no per-tick spam.
 var _hp_last_engaged: bool = false
 # Penetration-debug dedupe: store last logged signed depth (rounded to 0.1)
 # so the per-tick log only fires when the depth actually moves a notch.
 var _hp_last_pen_bucket: float = 999.0
+# Pass-switch + pump state. Kinematic redirect/align flags are set ONLY by
+# pass dispatch each tick (and cleared on disengage) so the post-pipeline
+# hook below knows whether to fire.
+var _hp_last_pass: int = -1
+var _hp_pump_cooldown_timer: float = 0.0
+var _hp_was_crouched_last_tick: bool = false
+var _hp_kinematic_active_this_tick: bool = false
+var _hp_align_active_this_tick: bool = false
+# Set true the moment a kinematic align actually rotates the body, cleared
+# when the basis has lerped back to upright after disengage. Without this,
+# leaving a Kinematic-pass engagement leaves the body tilted forever — the
+# only path that touches global_transform.basis on the halfpipe is gated
+# on _on_halfpipe and stops firing the instant you leave.
+var _hp_needs_reupright: bool = false
 var _speedup_timer := 999.0
 var _was_moving := false
 var _brake_impulse := 0.0
@@ -771,6 +902,10 @@ var _gold_dodges_splice: bool = false
 # sentinel = "not captured yet". Applied via the brain's runtime fields.
 var _brain_default_attack_cooldown: float = -1.0
 var _brain_default_wind_up: float = -1.0
+# Cached on first gold override so revert restores variant-authored value.
+# -1.0 sentinel = "not captured yet".
+var _brain_default_detection_radius: float = -1.0
+var _brain_default_chase_exit_radius: float = -1.0
 var _footstep_player_a: AudioStreamPlayer3D
 var _footstep_player_b: AudioStreamPlayer3D
 var _footstep_player_toggle: bool = false
@@ -1000,6 +1135,17 @@ func _ready() -> void:
 		_spring.shape = sphere
 		_spring.margin = spring_margin
 		_spring.add_excluded_object(self.get_rid())
+		# Exclude every other pawn currently in the scene so the camera
+		# doesn't push in when an enemy or ally body crosses the spring
+		# arm's shape-cast path. Same mechanism we use for the player
+		# itself; just applied to every pawn. Pawns spawned later
+		# self-register via `add_camera_exclusion` below.
+		_exclude_existing_pawns_from_camera()
+	# Late-spawning AI pawns (enemies, allies via portal, etc.) find the
+	# active player and add themselves to its camera exclusion list. Deferred
+	# so the active player has its _spring ready before we try to register.
+	if not is_active_player and pawn_group != "player":
+		call_deferred(&"_register_with_player_camera")
 	_setup_pawn_audio()
 	if is_active_player:
 		_register_debug_panel()
@@ -1259,6 +1405,42 @@ func _tick_damage_tint(delta: float) -> void:
 		return
 	var fraction: float = _tint_timer / damage_tint_duration
 	_skin.damage_tint = fraction * damage_tint_max
+
+
+## Add `rid` to the active player's camera SpringArm exclusion list, so the
+## camera passes through that body instead of pushing inward against it.
+## Public entry point — late-spawning pawns call this on the player to
+## register themselves. No-op if this body isn't the active player (no
+## _spring) or rid is invalid.
+func add_camera_exclusion(rid: RID) -> void:
+	if _spring != null and rid.is_valid():
+		_spring.add_excluded_object(rid)
+
+
+## Walk every pawn currently in the &"enemies" and &"allies" groups and
+## exclude them from the SpringArm. Called once during active-player
+## _ready. Future spawns register themselves via call_deferred in their
+## own _ready (see _register_with_player_camera).
+func _exclude_existing_pawns_from_camera() -> void:
+	if _spring == null:
+		return
+	for grp in [&"enemies", &"allies"]:
+		for pawn in get_tree().get_nodes_in_group(grp):
+			if pawn is CollisionObject3D and pawn != self:
+				_spring.add_excluded_object((pawn as CollisionObject3D).get_rid())
+
+
+## Find the active player and ask its SpringArm to exclude this body.
+## Called via call_deferred from non-player pawns' _ready so the player's
+## _spring has time to initialize. Silent no-op if no active player
+## exists yet (single-player scenes always have one; tests may not).
+func _register_with_player_camera() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var active: Node = tree.get_first_node_in_group(&"player")
+	if active != null and active != self and active.has_method(&"add_camera_exclusion"):
+		active.call(&"add_camera_exclusion", self.get_rid())
 
 
 ## Build the footstep / death AudioStreamPlayer3D children and resolve the
@@ -1681,6 +1863,17 @@ func _finish_death() -> void:
 	if dies_permanently:
 		queue_free()
 		return
+	# Force halfpipe disengage BEFORE the position snap. Without this, the
+	# engaged-state up_direction + floor_max_angle + tilted basis survive
+	# the respawn — the body teleports back to the checkpoint still in
+	# "on the wall" mode and immediately accelerates along the stale
+	# tangent. Mirror of snap_to_spawn:2291 which already does this for
+	# cross-level teleports; in-level death respawn was missing it.
+	_halfpipe_disengage()
+	# Body basis may have been rotated by the kinematic align path. Reset
+	# to identity so the respawned pose isn't tilted.
+	global_rotation = Vector3.ZERO
+	_hp_needs_reupright = false
 	global_position = _start_position
 	velocity = Vector3.ZERO
 	var old_health := _health
@@ -1829,11 +2022,13 @@ func _is_invuln_against(attacker: Node) -> bool:
 			# damage normally, max_health gates how many hits to kill.
 			return false
 		&"splice_stealth":
-			# Was: return true (stealth was unkillable except via
-			# StealthKillTarget backstab). Now: stealth takes any damage —
-			# the backstab path still works (calls stealth_kill() directly,
-			# unrelated to take_hit), it's just no longer the only path.
-			return false
+			# Stealth is invulnerable to gold ally attackers — the posse
+			# isn't allowed to clear stealth pawns for you; the player has
+			# to handle stealth themselves (typically via StealthKillTarget
+			# backstab, which calls stealth_kill() directly and bypasses
+			# this whole take_hit path). Player attacks + any other faction
+			# pass through and damage stealth normally.
+			return attacker_faction == &"gold"
 		&"gold":
 			# Dodge applies vs RED only — not vs splice_stealth. Preserved
 			# as-is: gold posse still has the coin-completion-scaled
@@ -2224,6 +2419,15 @@ func _physics_process(delta: float) -> void:
 	# Body never touches Input directly — same code path drives player, AI, net.
 	var intent: Intent = _brain.tick(self, delta)
 
+	# Non-player skaters: AI brains fire jump_pressed for gap traversal +
+	# chase, but on skates the jump pop kills the carve momentum (zeroes
+	# tangent velocity through gravity arc). Strip brain-driven jumps so
+	# gold allies + hostile skaters keep their speed on the halfpipe.
+	# Player is exempt — they need their jump.
+	if disable_brain_jump_on_skates and pawn_group != "player" \
+			and skate_profile != null and _current_profile == skate_profile:
+		intent.jump_pressed = false
+
 	# Betrayal-walk override: substitute Intent so the player loses agency.
 	# Used by the betray ending scene (level_5) — slow forced forward, no
 	# jump / dash / attack. Body still does animation + camera + skin work
@@ -2410,6 +2614,12 @@ func _physics_process(delta: float) -> void:
 		var max_s: float = maxf(profile.max_speed, 0.001)
 		var speed_factor: float = clamp(speed / max_s, 0.0, 1.0)
 		origin_offset.y += speed_factor * profile.forward_speed_lift
+	# Halfpipe wall lift: when the skin tilts to match a vertical-ish wall,
+	# its local feet (at -Y) rotate to face INTO the wall. Push the skin
+	# back along the normal by curve_factor × halfpipe_skin_wall_lift so the
+	# visual feet sit on the surface instead of inside it.
+	if _on_halfpipe and _halfpipe_curve_factor > 0.0 and halfpipe_skin_wall_lift > 0.0:
+		origin_offset += _halfpipe_normal * halfpipe_skin_wall_lift * _halfpipe_curve_factor
 	# Scale is applied AFTER the offset is fixed — visuals only, no translation.
 	var skin_scale: float = _skin.uniform_scale if _skin != null else 1.0
 	if not is_equal_approx(skin_scale, 1.0):
@@ -2461,7 +2671,21 @@ func _physics_process(delta: float) -> void:
 		# multiplier is 1.0 → no behavior change.
 		var hp_speed_mult: float = halfpipe_max_speed_multiplier if _on_halfpipe else 1.0
 		var target_vel := steered * profile.max_speed * move_magnitude * crouch_mult * _faction_speed_mult * hp_speed_mult
-		h_vel = h_vel.move_toward(target_vel, accel_now * delta)
+		# Halfpipe carve fix: when the player is on the curve AND pressing in
+		# the direction of motion, input must never decelerate them — the
+		# halfpipe boost (speed_boost / centripetal / gravity-along-tangent)
+		# can push h_vel above target_vel.length() and move_toward would then
+		# pull them BACK down toward the input ceiling. Bug felt as "pressing
+		# forward makes me slower than coasting." Fix: when aligned, the
+		# effective target along the input direction is at least the current
+		# aligned speed, so move_toward only ever steers + accelerates.
+		var effective_target: Vector3 = target_vel
+		if _on_halfpipe and target_vel.length_squared() > 0.0001:
+			var input_dir: Vector3 = target_vel.normalized()
+			var aligned_speed: float = h_vel.dot(input_dir)
+			if aligned_speed > target_vel.length():
+				effective_target = input_dir * aligned_speed
+		h_vel = h_vel.move_toward(effective_target, accel_now * delta)
 	else:
 		# Halfpipe wall escape: when engaged on a curve steeper than the
 		# trough, skip horizontal friction so gravity-along-surface
@@ -2471,11 +2695,22 @@ func _physics_process(delta: float) -> void:
 		# you don't coast forever on flat ground.
 		var on_halfpipe_wall: bool = _on_halfpipe and _halfpipe_curve_factor > 0.1
 		if not on_halfpipe_wall:
-			h_vel = h_vel.move_toward(Vector3.ZERO, friction_now * delta)
+			# Trough friction scale: when engaged on the curve but down at the
+			# trough (curve_factor < 0.1), the wall friction-skip above doesn't
+			# fire, so normal-ground friction was killing the wall-to-wall
+			# coast. Scale it down (or off) only while on the pipe.
+			var effective_friction: float = friction_now
+			if _on_halfpipe:
+				effective_friction *= halfpipe_trough_friction_scale
+			h_vel = h_vel.move_toward(Vector3.ZERO, effective_friction * delta)
 			if profile.stopping_speed > 0.0 and h_vel.length_squared() < profile.stopping_speed * profile.stopping_speed:
 				h_vel = Vector3.ZERO
 
 	velocity = Vector3(h_vel.x, y_velocity + _gravity * delta, h_vel.z)
+	# Halfpipe kinematic redirect/align — no-op unless engaged AND the
+	# active pass raised the flags this tick. All behavior change is
+	# gated on _on_halfpipe, so flat-ground / normal-skate is untouched.
+	_apply_halfpipe_post_pipeline(delta)
 
 	# Animations and FX.
 	if on_floor:
@@ -2514,13 +2749,19 @@ func _physics_process(delta: float) -> void:
 		# false, this branch is skipped — regular up-impulse below runs.
 		if _on_halfpipe:
 			var curve_impulse: float = profile.jump_impulse * (1.0 + _halfpipe_curve_factor)
-			print("[halfpipe] JUMP     body=%s pawn=%s jump_pressed=%s on_floor=%s curve=%.2f" %
-				[name, pawn_group, intent.jump_pressed, on_floor, _halfpipe_curve_factor])
+			print("[halfpipe] JUMP     body=%s pawn=%s jump_pressed=%s on_floor=%s curve=%.2f v_in=%s" %
+				[name, pawn_group, intent.jump_pressed, on_floor, _halfpipe_curve_factor, velocity])
 			# Blend world-up with surface normal: 0.0 = pure vertical, 1.0 =
 			# pure normal. A vertical wall still kicks slightly outward; a
 			# gentle slope is essentially straight up.
 			var jump_dir: Vector3 = Vector3.UP.lerp(_halfpipe_normal, halfpipe_jump_blend).normalized()
-			velocity = jump_dir * curve_impulse
+			# Momentum-preserving jump: keep the carve velocity that's parallel
+			# to the surface (your "tangent speed") and ADD the jump impulse.
+			# The old `velocity = jump_dir * curve_impulse` zeroed all prior
+			# motion — jumping mid-carve felt like a dead stop. Now you fly
+			# off the lip with your speed intact + the pop on top.
+			var tangent_vel: Vector3 = velocity - _halfpipe_normal * velocity.dot(_halfpipe_normal)
+			velocity = tangent_vel + jump_dir * curve_impulse
 			_halfpipe_jump_timer = halfpipe_jump_cooldown_s
 			# Disengage cleanly so floor_max_angle restores.
 			_halfpipe_disengage()
@@ -2560,7 +2801,11 @@ func _physics_process(delta: float) -> void:
 	if not _wall_ride_active and not is_visual_dashing and not is_attacking_now:
 		if is_just_jumping or is_air_jumping:
 			_skin.jump()
-		elif not on_floor and velocity.y < 0:
+		elif not on_floor and velocity.y < 0 and not _on_halfpipe:
+			# Halfpipe suppression: while engaged on a curve, snap-misses and
+			# wall-tangential motion routinely flip is_on_floor() false even
+			# though the stick system is keeping the body on the surface.
+			# Showing Fall in that case is the rig lying about its state.
 			_skin.fall()
 		elif on_floor:
 			# Crouch routes to crouch_move() while moving so the skin can play
@@ -2572,13 +2817,36 @@ func _physics_process(delta: float) -> void:
 			# flips Move↔Idle every frame for AI bodies stuck against a wall
 			# or in mid-zone follow hysteresis. 0.15 m/s is well below any
 			# real movement (walk ≈ 3 m/s) but above the jitter floor.
+			# Halfpipe idle/coast gate: while engaged, the carve can keep
+			# the body moving fast even with zero input. Three states now:
+			#   - input + moving → Move at authored speed
+			#   - no input + moving → Move slowed by halfpipe_coast_anim_scale
+			#     (relaxed coast; set to 0 to fall back to Idle pose)
+			#   - no input + ground_speed ~ 0 → Idle
+			# Off-halfpipe behavior is unchanged (speed-based as before).
+			var is_visually_moving: bool = ground_speed > _MOVE_IDLE_DEADZONE
+			var is_halfpipe_coasting: bool = false
+			if _on_halfpipe:
+				var has_input: bool = intent.move_direction.length() > 0.1
+				if has_input:
+					is_visually_moving = true
+				elif ground_speed > _MOVE_IDLE_DEADZONE and halfpipe_coast_anim_scale > 0.0:
+					is_visually_moving = true
+					is_halfpipe_coasting = true
+				else:
+					is_visually_moving = false
 			if is_crouching_now:
-				if ground_speed > _MOVE_IDLE_DEADZONE:
+				if is_visually_moving:
 					_skin.crouch_move()
 				else:
 					_skin.crouch(true)
-			elif ground_speed > _MOVE_IDLE_DEADZONE:
+			elif is_visually_moving:
 				_skin.move()
+				if is_halfpipe_coasting:
+					# Overrides the 1.0 set by _tick_walk_audio_visual a few
+					# lines up (we're in skate mode so that path went to the
+					# else branch). Later overwrite = wins this frame.
+					_skin.set_walk_speed_scale(halfpipe_coast_anim_scale)
 			else:
 				_skin.idle()
 
@@ -2901,29 +3169,12 @@ func _dbg_collect_cameras(n: Node, out: Array) -> void:
 
 
 func _register_debug_panel() -> void:
-	# Halfpipe live-tune knobs. Edits take effect on the next physics tick;
-	# the lifecycle save/restore in _update_halfpipe_stick + _halfpipe_disengage
-	# keeps non-halfpipe behavior unaffected.
-	DebugPanel.add_slider("Halfpipe/walk_max_angle_deg", 0.0, 90.0, 1.0,
-		func() -> float: return halfpipe_walk_max_angle_deg,
-		func(v: float) -> void: halfpipe_walk_max_angle_deg = v,
-		"player_body.gd")
-	DebugPanel.add_slider("Halfpipe/snap_length", 0.0, 5.0, 0.05,
-		func() -> float: return halfpipe_snap_length,
-		func(v: float) -> void: halfpipe_snap_length = v,
-		"player_body.gd")
-	DebugPanel.add_slider("Halfpipe/stick_strength", 0.0, 300.0, 5.0,
-		func() -> float: return halfpipe_stick_strength,
-		func(v: float) -> void: halfpipe_stick_strength = v,
-		"player_body.gd")
-	DebugPanel.add_slider("Halfpipe/idle_slide_strength", 0.0, 1000.0, 10.0,
-		func() -> float: return halfpipe_idle_slide_strength,
-		func(v: float) -> void: halfpipe_idle_slide_strength = v,
-		"player_body.gd")
-	DebugPanel.add_slider("Halfpipe/max_speed_multiplier", 0.0, 3.0, 0.05,
-		func() -> float: return halfpipe_max_speed_multiplier,
-		func(v: float) -> void: halfpipe_max_speed_multiplier = v,
-		"player_body.gd")
+	# Halfpipe knobs are registered on the always-visible HalfpipeTuner
+	# autoload (see _register_halfpipe_tuner below). Tuning is done as of
+	# 2026-05-20 — autoload is commented out in project.godot, so the
+	# registration call is too. Uncomment both to re-enable the panel.
+	# _register_halfpipe_tuner()
+	pass
 	DebugPanel.add_enum("Camera/Follow/mode", PackedStringArray(["PARENTED", "DETACHED"]),
 		func() -> int: return int(follow_mode),
 		func(v: int) -> void:
@@ -3209,6 +3460,121 @@ func _register_debug_panel() -> void:
 			func() -> String: return "%d clips" % _skate_stride_pool_resolved.size())
 
 
+## Always-visible halfpipe tuning panel. Each pass shows ONLY its own
+## 2-3 most important knobs — switching the pass swaps the panel contents.
+## Comment the autoload entry in project.godot (HalfpipeTuner) or this
+## whole function to remove the panel.
+func _register_halfpipe_tuner() -> void:
+	# Pass selector (drives the swap) + always-visible readouts.
+	HalfpipeTuner.register_pass_selector(
+		PackedStringArray(["Current", "Kinematic", "Kinematic+Pump", "Centripetal"]),
+		func() -> int: return int(halfpipe_pass),
+		func(v: int) -> void: halfpipe_pass = v as HalfpipePass)
+	HalfpipeTuner.add_readout("Engaged",
+		func() -> String: return "yes curve=%.2f" % _halfpipe_curve_factor if _on_halfpipe else "no")
+	HalfpipeTuner.add_readout("speed",
+		func() -> String: return "%.1f m/s" % velocity.length())
+
+	# Pass 0 — Current. Three additive forces.
+	HalfpipeTuner.register_pass(0, "CURRENT",
+		"Three additive force-based knobs: a pull toward the trough, an extra slide when you're not pressing a direction, and a downhill speed multiplier. Tweakable but doesn't feel like skating physics.",
+		[
+			{"name": "stick_strength", "min": 0.0, "max": 300.0, "step": 5.0,
+				"getter": func() -> float: return halfpipe_stick_strength,
+				"setter": func(v: float) -> void: halfpipe_stick_strength = v,
+				"desc": "How hard you're pulled toward the trough. Higher = stickier, but fights your own input on the way up."},
+			{"name": "idle_slide_strength", "min": 0.0, "max": 1000.0, "step": 10.0,
+				"getter": func() -> float: return halfpipe_idle_slide_strength,
+				"setter": func(v: float) -> void: halfpipe_idle_slide_strength = v,
+				"desc": "Extra downhill push when you let go of the stick. Stops you standing glued to a vertical wall."},
+			{"name": "speed_boost", "min": 1.0, "max": 3.0, "step": 0.05,
+				"getter": func() -> float: return halfpipe_speed_boost,
+				"setter": func(v: float) -> void: halfpipe_speed_boost = v,
+				"desc": "Arcade boost multiplied into downhill velocity. 1.0 = no boost; 1.4 = +40% downhill carry."},
+		])
+
+	# Pass 1 — Kinematic. Project velocity onto surface tangent, body aligns to normal.
+	HalfpipeTuner.register_pass(1, "KINEMATIC",
+		"Godot-recipe pattern. Each tick: velocity is projected onto the surface tangent (speed preserved, direction bent), gravity-along-tangent pulls you toward the trough, and the body's up-axis blends toward the surface normal. No glue forces. Feels like rails.",
+		[
+			{"name": "redirect_strength", "min": 0.0, "max": 1.0, "step": 0.02,
+				"getter": func() -> float: return halfpipe_kin_redirect_strength,
+				"setter": func(v: float) -> void: halfpipe_kin_redirect_strength = v,
+				"desc": "0 = no constraint (fall off). 1 = fully on-rails (velocity always parallel to surface). 0.85 default."},
+			{"name": "gravity_scale", "min": 0.0, "max": 3.0, "step": 0.05,
+				"getter": func() -> float: return halfpipe_kin_gravity_scale,
+				"setter": func(v: float) -> void: halfpipe_kin_gravity_scale = v,
+				"desc": "How hard gravity-along-tangent pulls. 1.0 = real physics; >1 = arcade slide."},
+			{"name": "align_rate", "min": 0.0, "max": 30.0, "step": 0.5,
+				"getter": func() -> float: return halfpipe_kin_align_rate,
+				"setter": func(v: float) -> void: halfpipe_kin_align_rate = v,
+				"desc": "How fast the body rotates to match the surface. 12 is the Godot recipe's sweet spot."},
+			{"name": "max_tilt", "min": 0.0, "max": 1.0, "step": 0.02,
+				"getter": func() -> float: return halfpipe_kin_max_tilt,
+				"setter": func(v: float) -> void: halfpipe_kin_max_tilt = v,
+				"desc": "Tilt clamp. 1.0 = full lean to wall normal; 0.5 = halfway; 0 = always upright. Caps the extreme."},
+		])
+
+	# Pass 2 — Kinematic + Pump. Same as Kinematic plus a crouch-release boost.
+	HalfpipeTuner.register_pass(2, "KINEMATIC + PUMP",
+		"Kinematic (above) plus a one-shot tangent-velocity boost the moment you RELEASE crouch on the curve. Real skaters gain ~13-17% per pump cycle. Cooldown stops mashing.",
+		[
+			{"name": "pump_multiplier", "min": 1.0, "max": 1.4, "step": 0.01,
+				"getter": func() -> float: return halfpipe_pump_multiplier,
+				"setter": func(v: float) -> void: halfpipe_pump_multiplier = v,
+				"desc": "Velocity multiplier per pump. 1.12 ≈ real-world. 1.30+ feels arcade-y."},
+			{"name": "pump_cooldown_s", "min": 0.1, "max": 2.0, "step": 0.05,
+				"getter": func() -> float: return halfpipe_pump_cooldown,
+				"setter": func(v: float) -> void: halfpipe_pump_cooldown = v,
+				"desc": "Seconds between pumps. 0.6 ≈ one pump per traversal of the trough."},
+			{"name": "redirect_strength", "min": 0.0, "max": 1.0, "step": 0.02,
+				"getter": func() -> float: return halfpipe_kin_redirect_strength,
+				"setter": func(v: float) -> void: halfpipe_kin_redirect_strength = v,
+				"desc": "(shared with KINEMATIC) Constraint strength to surface tangent."},
+			{"name": "max_tilt", "min": 0.0, "max": 1.0, "step": 0.02,
+				"getter": func() -> float: return halfpipe_kin_max_tilt,
+				"setter": func(v: float) -> void: halfpipe_kin_max_tilt = v,
+				"desc": "(shared with KINEMATIC) Tilt clamp."},
+		])
+
+	# Pass 3 — Centripetal. Current's forces plus v²/r inward grip.
+	HalfpipeTuner.register_pass(3, "CENTRIPETAL",
+		"Current's three forces PLUS an inward-grip force = (v² / r) × curve_factor. Going fast through the trough feels planted; standing still feels exactly like Current. radius_m MUST match the pipe geometry (level_4 = 18m).",
+		[
+			{"name": "radius_m", "min": 2.0, "max": 30.0, "step": 0.5,
+				"getter": func() -> float: return halfpipe_centripetal_radius,
+				"setter": func(v: float) -> void: halfpipe_centripetal_radius = v,
+				"desc": "Pipe radius. level_4's HalfPipe inner radius is 18m. Per-level override needed for other pipes."},
+			{"name": "grip_scale", "min": 0.0, "max": 3.0, "step": 0.05,
+				"getter": func() -> float: return halfpipe_centripetal_grip_scale,
+				"setter": func(v: float) -> void: halfpipe_centripetal_grip_scale = v,
+				"desc": "Scalar on the grip force. 1.0 = real physics; 0 = current pass; >1 = sticky carve."},
+			{"name": "stick_strength", "min": 0.0, "max": 300.0, "step": 5.0,
+				"getter": func() -> float: return halfpipe_stick_strength,
+				"setter": func(v: float) -> void: halfpipe_stick_strength = v,
+				"desc": "(shared with CURRENT) Slow pull toward trough."},
+		])
+
+	# Shared knobs that apply to every pass.
+	HalfpipeTuner.add_section_header("── Shared (every pass) ──")
+	HalfpipeTuner.add_shared_slider("max_speed_multiplier", 0.5, 3.0, 0.05,
+		func() -> float: return halfpipe_max_speed_multiplier,
+		func(v: float) -> void: halfpipe_max_speed_multiplier = v,
+		"Top-speed multiplier while engaged. 1.45 default.")
+	HalfpipeTuner.add_shared_slider("exit_normal_speed", 0.0, 20.0, 0.25,
+		func() -> float: return halfpipe_exit_normal_speed,
+		func(v: float) -> void: halfpipe_exit_normal_speed = v,
+		"Auto-disengage when v·normal exceeds this near the lip (you flew off naturally).")
+	HalfpipeTuner.add_shared_slider("jump_blend", 0.0, 1.0, 0.02,
+		func() -> float: return halfpipe_jump_blend,
+		func(v: float) -> void: halfpipe_jump_blend = v,
+		"0 = jump straight up; 1 = jump along surface normal. 0.2 = mostly-up with a wall-kick.")
+	HalfpipeTuner.add_shared_slider("trough_friction_scale", 0.0, 1.0, 0.02,
+		func() -> float: return halfpipe_trough_friction_scale,
+		func(v: float) -> void: halfpipe_trough_friction_scale = v,
+		"Scales friction in the trough (where the wall-friction-skip doesn't fire). 1.0 = ground-grippy; 0.3 = long coast wall-to-wall; 0 = never slows down.")
+
+
 ## Halfpipe-stick tick. Probes downward for a curved-surface body in the
 ## halfpipe_surface_group; if hit, sets `_on_halfpipe` + `_halfpipe_normal`
 ## + `_halfpipe_curve_factor` for the rest of the frame to consume (skin
@@ -3219,13 +3585,28 @@ func _register_debug_panel() -> void:
 ## toggle is false, the function early-exits and clears state — body
 ## behaves exactly as if this system didn't exist.
 func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
-	# Toggle gate. Players, gold allies, and nobody else. Config kill —
-	# disengage immediately.
-	var should_run: bool = false
-	if pawn_group == "player":
-		should_run = halfpipe_stick_for_player
-	elif is_in_group(&"allies"):
-		should_run = halfpipe_stick_for_allies
+	# Per-tick kinematic flags reset; only the currently-dispatched pass
+	# re-raises them after the prelude resolves.
+	_hp_kinematic_active_this_tick = false
+	_hp_align_active_this_tick = false
+	# Pump cooldown ticks regardless of pass / engagement so it doesn't
+	# go stale across a disengage.
+	if _hp_pump_cooldown_timer > 0.0:
+		_hp_pump_cooldown_timer = maxf(0.0, _hp_pump_cooldown_timer - delta)
+	# Live pass-switch: any change to halfpipe_pass forces a clean
+	# disengage so per-pass state can't carry over (different passes own
+	# velocity differently). Next valid probe re-engages under the new pass.
+	if _hp_last_pass != int(halfpipe_pass):
+		if _hp_last_pass != -1:
+			_halfpipe_disengage()
+		_hp_last_pass = int(halfpipe_pass)
+	# Eligibility gate: master toggle + "blades on" (skate-mode active).
+	# Same condition that makes the wheels visible — see _set_active_profile
+	# calling _skin.set_skate_mode(true) when _current_profile == skate_profile.
+	# Applies to player, converted gold allies, AND hostile pawns on skates.
+	var should_run: bool = halfpipe_stick_enabled \
+		and skate_profile != null \
+		and _current_profile == skate_profile
 	if not should_run:
 		_halfpipe_disengage()
 		return
@@ -3287,6 +3668,7 @@ func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
 	if not _hp_last_engaged:
 		_halfpipe_saved_floor_max_angle = floor_max_angle
 		floor_max_angle = deg_to_rad(halfpipe_walk_max_angle_deg)
+		_halfpipe_saved_up_direction = up_direction
 		# Snap-length override only when the export is non-zero; 0.0 means
 		# "leave snap alone" so the knob can be killed without code edits.
 		# Actual per-tick value is computed below (tapers by curve_factor).
@@ -3295,6 +3677,11 @@ func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
 		print("[halfpipe] ENGAGED  body=%s on_floor=%s vy=%.2f curve=%.2f" %
 			[name, is_on_floor(), velocity.y, _halfpipe_curve_factor])
 		_hp_last_engaged = true
+	# Per-tick up_direction tracking. Tells move_and_slide that "up" off
+	# this surface is the surface normal — so is_on_floor() stays true on
+	# vertical wall sections instead of flickering false (which was driving
+	# the fall-animation bug + the snap penetration earlier).
+	up_direction = _halfpipe_normal
 	# Per-tick snap taper. Snap-cast goes along world -up_direction; on a
 	# near-vertical wall that pulls the upright capsule SIDEWAYS into the
 	# slanted wall geometry by ~radius. Taper keeps strong snap at the
@@ -3323,18 +3710,171 @@ func _update_halfpipe_stick(delta: float, intent: Intent) -> void:
 	if down_along_surface.length_squared() < 0.0001:
 		return
 	down_along_surface = down_along_surface.normalized()
-	# Light adhesion pull (gentle nudge toward trough — gravity does most
-	# of the work). Won't fight strong uphill momentum.
+	# Per-pass dispatch. Each pass owns the velocity/force changes for
+	# this tick. Shared epilogue below handles auto-exit + crouch edge.
+	match halfpipe_pass:
+		HalfpipePass.CURRENT:
+			_hp_pass_current(delta, intent, down_along_surface)
+		HalfpipePass.KINEMATIC:
+			_hp_pass_kinematic(delta, intent, down_along_surface)
+		HalfpipePass.KINEMATIC_PUMP:
+			_hp_pass_kinematic_pump(delta, intent, down_along_surface)
+		HalfpipePass.CENTRIPETAL:
+			_hp_pass_centripetal(delta, intent, down_along_surface)
+	# Shared auto-exit: if you're up on the wall AND moving outward fast
+	# enough, you've effectively flown off the lip — let go without
+	# requiring an explicit jump press. Mirrors the Unreal forum advice
+	# ("ignore detection if player is ascending or moving too fast").
+	if _halfpipe_curve_factor >= halfpipe_exit_curve_min:
+		var v_out: float = velocity.dot(_halfpipe_normal)
+		if v_out > halfpipe_exit_normal_speed:
+			print("[halfpipe] AUTO-EXIT v·n=%.2f curve=%.2f" % [v_out, _halfpipe_curve_factor])
+			_halfpipe_disengage()
+			_hp_was_crouched_last_tick = intent.crouch_held
+			return
+	# Crouch-edge bookkeeping for the pump pass. Tracked here (not inside
+	# the pass) so a pass switch doesn't lose the edge.
+	_hp_was_crouched_last_tick = intent.crouch_held
+
+
+# ── Per-pass force/velocity bodies ───────────────────────────────────────
+# All four bodies are called ONLY from _update_halfpipe_stick, which only
+# fires while engaged on a curve surface. None of them touch behavior on
+# flat ground or normal skating.
+
+## Pass 0 — current behavior. Three additive forces along the surface:
+##   adhesion (constant pull toward trough),
+##   idle slide (extra pull when no input),
+##   speed boost (multiply downhill velocity component).
+func _hp_pass_current(delta: float, intent: Intent, down_along_surface: Vector3) -> void:
 	velocity += down_along_surface * halfpipe_stick_strength * _halfpipe_curve_factor * delta
-	# Idle slide: when the player isn't pressing a direction, push them
-	# down the surface tangent so they don't stand glued to the wall.
 	var has_input: bool = intent.move_direction.length() > 0.1
 	if not has_input:
 		velocity += down_along_surface * halfpipe_idle_slide_strength * _halfpipe_curve_factor * delta
-	# Speed boost on downhill segments only — uphill momentum is preserved.
 	var v_along: float = velocity.dot(down_along_surface)
 	if v_along > 0.0:
 		velocity += down_along_surface * (halfpipe_speed_boost - 1.0) * v_along * delta
+
+
+## Pass 1 — kinematic tangent (Godot-recipe pattern + projection).
+## Two flags raised for the post-pipeline hook to consume:
+##   redirect: project velocity onto the surface tangent plane each tick,
+##   align:    blend the body's up axis toward _halfpipe_normal at align_rate.
+## Gravity-along-tangent is the only "force" — added directly here so the
+## standard pipeline's +gravity later is partly cancelled by the projection.
+func _hp_pass_kinematic(_delta: float, _intent: Intent, down_along_surface: Vector3) -> void:
+	_hp_kinematic_active_this_tick = true
+	_hp_align_active_this_tick = true
+	# Gravity-along-tangent component. Real "g·sin(θ)" pull toward trough.
+	# down_along_surface already encodes (down minus normal-component) = the
+	# unit-length tangent pointing toward the trough.
+	var g_tangent: float = absf(_gravity) * _halfpipe_curve_factor * halfpipe_kin_gravity_scale
+	velocity += down_along_surface * g_tangent * _delta
+
+
+## Pass 2 — kinematic + pump. Inherits the kinematic redirect/align, adds
+## a one-shot tangent-velocity multiplier the frame crouch is released
+## while on the curve. Cooldown prevents mashing.
+func _hp_pass_kinematic_pump(delta: float, intent: Intent, down_along_surface: Vector3) -> void:
+	_hp_pass_kinematic(delta, intent, down_along_surface)
+	if _hp_pump_cooldown_timer > 0.0:
+		return
+	if _halfpipe_curve_factor < halfpipe_pump_min_curve:
+		return
+	# Edge: crouch was held last tick, released this tick.
+	var crouch_released: bool = _hp_was_crouched_last_tick and not intent.crouch_held
+	if not crouch_released:
+		return
+	# Multiply only the component of velocity along the tangent (toward
+	# trough OR away — doesn't matter, the skater is conserving angular
+	# momentum either direction).
+	var v_tangent: float = velocity.dot(down_along_surface)
+	if absf(v_tangent) < 0.05:
+		return  # standing still — no angular momentum to convert
+	var boost: float = v_tangent * (halfpipe_pump_multiplier - 1.0)
+	velocity += down_along_surface * boost
+	_hp_pump_cooldown_timer = halfpipe_pump_cooldown
+	print("[halfpipe] PUMP v_tangent=%.2f boost=%.2f curve=%.2f" %
+		[v_tangent, boost, _halfpipe_curve_factor])
+
+
+## Pass 3 — centripetal. Current's three additive forces PLUS an inward
+## grip = (v² / r) × curve_factor × grip_scale, pulling along -normal.
+## Going fast through the trough feels planted; standing still feels the
+## same as current.
+func _hp_pass_centripetal(delta: float, intent: Intent, down_along_surface: Vector3) -> void:
+	_hp_pass_current(delta, intent, down_along_surface)
+	if halfpipe_centripetal_radius <= 0.0:
+		return
+	var speed_sq: float = velocity.length_squared()
+	# Centripetal acceleration magnitude: v² / r. Scaled by curve factor
+	# (flat trough doesn't bend you, vertical wall does) and tunable scalar.
+	var a_cent: float = (speed_sq / halfpipe_centripetal_radius) * _halfpipe_curve_factor * halfpipe_centripetal_grip_scale
+	velocity += -_halfpipe_normal * a_cent * delta
+
+
+## Post-pipeline hook called from _physics_process right after the
+## standard velocity write (line ~2492). Consumes the per-tick flags
+## raised by the kinematic passes. Safe to call unconditionally —
+## flags are reset every tick and only set when on a kinematic pass.
+func _apply_halfpipe_post_pipeline(delta: float) -> void:
+	if _on_halfpipe:
+		if _hp_kinematic_active_this_tick and halfpipe_kin_redirect_strength > 0.0:
+			# Project velocity onto the surface tangent plane (perpendicular
+			# to _halfpipe_normal). Strength=1 → fully constrained, =0 → no-op.
+			var v_along_normal: float = velocity.dot(_halfpipe_normal)
+			var redirect: Vector3 = _halfpipe_normal * v_along_normal * halfpipe_kin_redirect_strength
+			velocity -= redirect
+		if _hp_align_active_this_tick and halfpipe_kin_align_rate > 0.0 and halfpipe_kin_max_tilt > 0.0:
+			# Align body's up axis to surface normal — but only up to the
+			# user-clamped max_tilt fraction. blended_target is the world UP
+			# lerped toward the normal by max_tilt, so even at curve_factor=1
+			# (vertical wall) the body never leans past the configured limit.
+			var blended_target: Vector3 = Vector3.UP.lerp(_halfpipe_normal, halfpipe_kin_max_tilt).normalized()
+			var target_xform: Transform3D = _hp_align_with_y(global_transform, blended_target)
+			var t: float = clamp(halfpipe_kin_align_rate * delta, 0.0, 1.0)
+			global_transform = global_transform.interpolate_with(target_xform, t)
+			_hp_needs_reupright = true
+		return
+	# Disengaged: lerp body back to upright if a kinematic pass had tilted
+	# it. Uses the same align_rate as engaged so the visual recovery feels
+	# continuous. Self-stops once basis.y is within ~1° of world UP.
+	if _hp_needs_reupright and halfpipe_kin_align_rate > 0.0:
+		var current_up: Vector3 = global_transform.basis.y
+		if current_up.angle_to(Vector3.UP) < 0.02:
+			_hp_needs_reupright = false
+			return
+		var target_xform: Transform3D = _hp_align_with_y(global_transform, Vector3.UP)
+		var t: float = clamp(halfpipe_kin_align_rate * delta, 0.0, 1.0)
+		global_transform = global_transform.interpolate_with(target_xform, t)
+
+
+## Godot-recipe helper. Builds a transform whose Y axis points along
+## new_y, preserving forward direction via cross product + orthonormalize.
+func _hp_align_with_y(xform: Transform3D, new_y: Vector3) -> Transform3D:
+	if new_y.length_squared() < 0.0001:
+		return xform
+	var basis_y: Vector3 = new_y.normalized()
+	var basis_x: Vector3 = -xform.basis.z.cross(basis_y)
+	if basis_x.length_squared() < 0.0001:
+		return xform  # degenerate (looking straight up the normal)
+	var new_basis: Basis = xform.basis
+	new_basis.y = basis_y
+	new_basis.x = basis_x
+	new_basis = new_basis.orthonormalized()
+	xform.basis = new_basis
+	return xform
+
+
+## Public wrapper for external systems (bouncy platforms, jump pads,
+## cannons, scripted launches) that yank the body off a curve surface.
+## Without calling this, the engaged state — up_direction, floor_max_angle,
+## tilted basis, _on_halfpipe flag — survives the external impulse and
+## the body either snaps back to the wall or rides invisible halfpipe
+## physics on flat ground afterward. The post-disengage re-upright lerp
+## handles the basis recovery (see _apply_halfpipe_post_pipeline).
+func force_halfpipe_disengage() -> void:
+	_halfpipe_disengage()
 
 
 ## Tear-down for halfpipe state. Clears flags AND restores the body's
@@ -3346,6 +3886,8 @@ func _halfpipe_disengage() -> void:
 	_on_halfpipe = false
 	_halfpipe_curve_factor = 0.0
 	_hp_last_pen_bucket = 999.0
+	_hp_kinematic_active_this_tick = false
+	_hp_align_active_this_tick = false
 	if _hp_last_engaged:
 		# Restore floor_max_angle to its pre-engage value.
 		if _halfpipe_saved_floor_max_angle >= 0.0:
@@ -3356,6 +3898,10 @@ func _halfpipe_disengage() -> void:
 		if _halfpipe_saved_floor_snap_length >= 0.0:
 			floor_snap_length = _halfpipe_saved_floor_snap_length
 			_halfpipe_saved_floor_snap_length = -1.0
+		# Restore up_direction. Sentinel ZERO means we never saved it.
+		if _halfpipe_saved_up_direction.length_squared() > 0.0001:
+			up_direction = _halfpipe_saved_up_direction
+			_halfpipe_saved_up_direction = Vector3.ZERO
 		print("[halfpipe] DISENGAGED body=%s on_floor=%s vy=%.2f snap=%.2f" %
 			[name, is_on_floor(), velocity.y, floor_snap_length])
 		_hp_last_engaged = false
