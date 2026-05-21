@@ -187,7 +187,7 @@ id = &"l4_arena"
 forbid_enemy_jump = true
 
 [node name="Nyx" parent="." index="21" unique_id=1878992773 instance=ExtResource("8_companion")]
-transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 504.63608, -1.4377317, -568.85205)
+transform = Transform3D(1.771, 0, 0, 0, 1.771, 0, 0, 0, 1.771, 504.63608, -1.8271284, -569.9019)
 skin_scene = ExtResource("9_nyxskin")
 dialogue_resource = ExtResource("16_l4nyx")
 redirect_target = NodePath("../DialTone")
@@ -205,7 +205,7 @@ label = "NYX"
 visible_when_flag = &"l4_well_shit_done"
 
 [node name="DialTone" parent="." index="22" unique_id=1082965759 instance=ExtResource("8_companion")]
-transform = Transform3D(1.52, 0, 0, 0, 1.52, 0, 0, 0, 1.52, 491.08273, -0.86454725, -567.0507)
+transform = Transform3D(1.52, 0, 0, 0, 1.52, 0, 0, 0, 1.52, 491.08273, -2.0585847, -569.6422)
 skin_scene = ExtResource("10_animeskin")
 dialogue_resource = ExtResource("18_l4dialtone")
 interactable_id = &"npc_dialtone_l4"
