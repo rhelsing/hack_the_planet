@@ -43,9 +43,13 @@ const RELEASE_UP_KICK: float = 5.0
 var _aim_target: Node3D = null
 
 # Last successfully-grappled anchor. Filtered out of aim scans so you can't
-# immediately re-grapple the same hook — grappling a different anchor
-# overwrites this, freeing the previous one.
+# immediately re-grapple the same hook. Cleared either by grappling a
+# different anchor (overwrite in _start_swing) or by landing on the ground
+# after the swing ends (in _process below).
 var _last_anchor: Node3D = null
+# Debug: tracks the last printed on_floor state for the lockout-clear branch,
+# so we log only on transitions instead of every frame.
+var _dbg_last_on_floor: bool = false
 
 # Pull state — populated on _start_swing, cleared on _release.
 var _swinging: bool = false
@@ -107,12 +111,20 @@ func _process(_delta: float) -> void:
 	# re-grappable on the next jump.
 	if not _swinging and _last_anchor != null:
 		var body := _find_body()
-		if body is CharacterBody3D and (body as CharacterBody3D).is_on_floor():
+		var on_floor: bool = body is CharacterBody3D and (body as CharacterBody3D).is_on_floor()
+		# Deduped state log — only print when on_floor flips.
+		if on_floor != _dbg_last_on_floor:
+			print("[grapple] post-swing on_floor=%s last_anchor=%s body=%s" % [
+				on_floor, _last_anchor.name if _last_anchor else "null", body])
+			_dbg_last_on_floor = on_floor
+		if on_floor:
+			print("[grapple] lockout CLEARED on ground touch (was %s)" % _last_anchor.name)
 			if _swing_audio_active:
 				if _swing_sound != null and _swing_sound.playing:
 					_swing_sound.stop()
 				_swing_audio_active = false
 			_last_anchor = null
+			_dbg_last_on_floor = false
 
 
 func _physics_process(delta: float) -> void:
@@ -296,6 +308,8 @@ func _release() -> void:
 	# so letting go at the apex feels like a jump instead of an instant fall.
 	var release_velocity: Vector3 = _vel + Vector3.UP * RELEASE_UP_KICK
 
+	print("[grapple] _release: last_anchor=%s body=%s" % [
+		_last_anchor.name if _last_anchor else "null", body])
 	_swinging = false
 	_anchor = null
 	if _line_renderer != null and is_instance_valid(_line_renderer):

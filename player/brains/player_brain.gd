@@ -246,7 +246,9 @@ func _advance_pan_envelope(delta: float) -> void:
 
 
 func _on_beacon_appeared(_beacon: Node) -> void:
-	_start_pan_toward(_find_closest_visible_beacon())
+	# Camera pan-toward-beacon disabled. Re-enable by uncommenting:
+	# _start_pan_toward(_find_closest_visible_beacon())
+	pass
 
 
 func _on_player_respawned() -> void:

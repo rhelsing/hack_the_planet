@@ -6,6 +6,7 @@
 script = ExtResource("1_brain")
 detection_radius = 30.0
 chase_exit_radius = 36.0
+crouch_range_multiplier = 0.5
 priority_target_groups = Array[StringName]([&"allies"])
 priority_target_radius = 10.0
 vision_cone_deg = 170.0

@@ -132,14 +132,14 @@ Glitch: At your service.
 ~ sentinels_trust_branch
 
 Glitch: Trust. Different word again.
-- Treat them like tools. They're code.
+- Treat them like tools. They're code. [#vector]
 	Glitch: Practical. They'll snap your spine without thinking, so — fair trade.
 	Glitch: Use what works.
 	do StoryVec.nudge(&"ai_tech", -1)
 	do StoryVec.nudge(&"humanity", -1)
 	do GameState.set_flag("glitch2_trust_decided", true)
 	=> sentinels_subhub
-- Treat them like neighbors I just don't agree with.
+- Treat them like neighbors I just don't agree with. [#vector]
 	Glitch: Generous. Probably wrong, but generous.
 	Glitch: I'll remember you said that.
 	do StoryVec.nudge(&"ai_tech", 1)

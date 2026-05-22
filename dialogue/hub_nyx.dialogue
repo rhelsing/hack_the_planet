@@ -56,10 +56,6 @@ Nyx: Talk.
 	Nyx: Prove me wrong then.
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
 	Nyx: DialTone's smug enough already.
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Are people watching this place?
-	Nyx: Yeah.
-	Nyx: Someone's been pitching it. Took meetings. They don't know we know.
-	Nyx: Doesn't mean anything yet. Probably will.
 - All right, see you on the wire. [#exit]
 	Nyx: Mm. We'll see.
 	=> END

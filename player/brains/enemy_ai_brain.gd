@@ -512,6 +512,17 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_update_state(body)
 	_update_debug_label(body)
 
+	# SUSPECT freeze: while ramping yellow→red on a target (stealth cone),
+	# stop the patrol entirely. Pawn stands still, cone tracks the target
+	# (see _update_vision_yaw), suspect_window keeps ticking up to HOSTILE.
+	# Bypasses the wander/follow/patrol branches below. CHASE/WIND_UP/IDLE
+	# still take precedence above this gate.
+	if _state != State.CHASE and _state != State.WIND_UP and _state != State.IDLE \
+			and _alert_phase == _AlertPhase.SUSPECT and _target != null:
+		_intent.move_direction = Vector3.ZERO
+		_navigate(body)
+		return _intent
+
 	match _state:
 		State.CHASE:
 			_intent.move_direction = _chase_direction(body) * chase_speed_fraction
@@ -1749,7 +1760,15 @@ func _play_phase_sound(body: Node3D, stream: AudioStream) -> void:
 func _update_vision_yaw(delta: float) -> void:
 	if vision_cone_deg <= 0.0 and not vision_debug_visible:
 		return
-	var target_yaw: float = atan2(_direction.x, _direction.z) + PI
+	# SUSPECT lock: while ramping yellow→red, stop the patrol swivel and aim
+	# the cone at the target instead. Body is also frozen in the state match
+	# block — pawn stands still and focuses, suspect_window keeps ticking.
+	var target_yaw: float
+	if _alert_phase == _AlertPhase.SUSPECT and _target != null and is_instance_valid(_target) and _body_ref != null:
+		var to_t: Vector3 = (_target as Node3D).global_position - _body_ref.global_position
+		target_yaw = atan2(to_t.x, to_t.z) + PI
+	else:
+		target_yaw = atan2(_direction.x, _direction.z) + PI
 	if vision_swivel_smoothing <= 0.0:
 		_vision_cone_yaw = target_yaw
 	else:
@@ -2001,6 +2020,13 @@ var _hack_progress: float = 0.0
 # active=false → cone returns to normal alpha logic (crouch / stand) on
 # the next frame. active=true → flicker on (1 - progress) envelope, with
 # alpha=0 at progress >= 1.0.
+## Public read: true while this brain is actively chasing a target (HOSTILE
+## alert phase). StealthKillTarget gates the hack prompt on this so the
+## player can't hack a pawn that has already spotted them.
+func is_chasing() -> bool:
+	return _alert_phase == _AlertPhase.HOSTILE
+
+
 func set_hack_active(active: bool, progress: float = 0.0) -> void:
 	_hack_active = active
 	_hack_progress = clampf(progress, 0.0, 1.0)
