@@ -111,8 +111,8 @@ Glitch: At your service.
 	do StoryVec.nudge(&"ai_tech", 1)
 	do GameState.set_flag("glitch2_asked_conscious", true)
 - Where do they come from?
-	Glitch: Ellingson built the first batch decades ago. Patrol scripts. Boring.
-	Glitch: They got handed off, sold, copied, mutated.
+	Glitch: They got built decades ago. Patrol scripts. Boring.
+	Glitch: Got handed off, sold, copied, mutated.
 	Glitch: The ones in here now are someone else's children. We just inherited them.
 	do StoryVec.nudge(&"humanity", 1)
 	do GameState.set_flag("glitch2_asked_origin", true)

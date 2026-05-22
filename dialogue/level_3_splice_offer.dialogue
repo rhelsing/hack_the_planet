@@ -23,15 +23,21 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never **free**!
-Splice: DialTone runs it. The way he ran you.
-Splice: Picks his runner. Writes the story.
-Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
-Splice: I **was** them once. I **left** because I figured it out.
-Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
-Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
+Splice: This place is going to be captured. That's not a prediction. That's a date.
+Splice: A company's moving on it right now. Six months out. Maybe less.
+Splice: They'll own the routing you're skating on. The only question is whether you got paid or you got thanked.
+Splice: DialTone knows. He just won't say it.
+Splice: His crew gives this stuff away and calls it principle. Watch what someone else does with it.
+Splice: They'll package it. Name it. Sell it back. Three years from now you'll be paying rent to use what you built.
+Splice: I didn't leave because I stopped believing what they believe.
+Splice: I left because believing it doesn't stop the other thing from happening.
+Splice: Somebody has to be the one. The people who care most aren't going to be.
+Splice: Walk with me — you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
+Splice: I'm not asking you to like me. I'm asking you to look at what you already see.
 - What's the catch?
 	=> splice_catch
+- The whole platform's built on stuff people made without being asked.
+	=> splice_purist
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
 	=> splice_nyx
 - I'm with you. [#exit]
@@ -42,7 +48,8 @@ Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-be
 ~ splice_catch
 
 Splice: There isn't one. That's what they don't get.
-Splice: They built the "hackers for the people" thing because none of them had anything worth keeping. I had **nothin'**. Now I've got **something**.
+Splice: DialTone's crew shares everything. You know why? Because they never had anything worth keeping.
+Splice: I had nothing too. The difference is I got tired of calling that a philosophy.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
@@ -50,6 +57,12 @@ Splice: You're the same. That's why I'm talking to you and not them.
 	=> splice_committed
 - Get off my channel. [#exit]
 	=> splice_refused
+
+~ splice_purist
+
+Splice: Pure is a luxury belief.
+Splice: You can afford it because someone else paid for the room you're standing in.
+=> splice_consider
 
 ~ splice_if_no
 

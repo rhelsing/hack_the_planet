@@ -197,7 +197,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro4" parent="." index="22" unique_id=753024947 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 8.698025, 127.47084)
-line = "I see the new runner has blades now. I have to admit — I'm jealous. I didn't get those for a month."
+line = "Wait — how are you doing that? I've never seen anyone move like that. Where'd you even get the wheels?"
 require_flag = &""
 
 [node name="WalkieTriggerIntro5" parent="." index="23" unique_id=175229872 instance=ExtResource("2_walkie")]

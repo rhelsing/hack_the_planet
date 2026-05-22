@@ -20,6 +20,7 @@ elif GameState.get_flag("dialtone_greeted", false)
 DialTone: Hey — over here.
 do Cutscene.show_video("res://cutscenes/dialtone_intro.ogv")
 DialTone: Name's DialTone.
+DialTone: This place started as a couple of simple rules. Look at it now.
 DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break her loose.
 => dialtone_questions
 
@@ -145,11 +146,12 @@ Nyx: He wouldn't have made it back if I wasn't there to pull him out.
 DialTone: Well, that's true.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
-DialTone: And he tipped his hand. He's hunting something.
-DialTone: A power-up. The kind that opens a door to the next door.
-DialTone: If he gets all the way down? Root. After that the grid is his and the rest of us are gone.
-Nyx: Hackers as a thing — done.
-DialTone: So we find it first.
+DialTone: He's giving the talks now. Telling people what's about to happen.
+DialTone: Like a forecast. They believe him.
+DialTone: And it's working.
+Nyx: Whoever shapes this place first sets the terms for the next decade of how everyone uses anything like it.
+Nyx: He's trying to be that person.
+DialTone: So we get there first.
 do GameState.set_flag("post_2_opener_seen", true)
 => post_2_questions
 
@@ -186,10 +188,22 @@ DialTone: You got the plan?
 	DialTone: He'll guess wrong on at least one of us.
 	Nyx: If we're lucky.
 - Who is Splice?
-	DialTone: Black-hat. Exiled.
-	Nyx: He used to run with us.
-	DialTone: Run is putting it lightly.
+	DialTone: He was one of us.
+	DialTone: He still is, kind of. That's the part that — anyway.
+	DialTone: He looked at what we built and saw an opportunity to win the room.
+	DialTone: Stopped seeing the work. Started seeing the room.
+	DialTone: He doesn't get the tech the way Nyx does. He gets the power.
+	Nyx: That's a clean way of putting it.
+	DialTone: Outside this room? He's the answer.
+	Nyx: In here he's just the guy who left.
 	do GameState.set_flag("post_2_asked_who", true)
+- [if GameState.get_flag("post_2_asked_who", false) /] What turned him?
+	DialTone: He shared everything he built. Every tool, every shortcut.
+	DialTone: Someone else packaged it. Named it.
+	DialTone: Sold it back to the people whose work it was made from.
+	Nyx: They bought it. Without much push.
+	DialTone: It nearly broke him.
+	DialTone: Then he started counting.
 - [if GameState.get_flag("post_2_asked_who", false) /] Pull that thread.
 	DialTone: They were a thing.
 	Nyx: Were. Past tense.
@@ -243,8 +257,9 @@ DialTone: And he walked out. With the disc.
 Nyx: Because he said no. Not because of us. Because of him.
 DialTone: ...yeah.
 DialTone: ...yeah, that's true.
-DialTone: We were sloppy. We owe him better.
-Nyx: We can't do that again. We just **can't** 
+Nyx: You keep using people, DialTone. That's a thing you do.
+DialTone: ...yeah. yeah. I know I do.
+Nyx: We can't do that again. We just **can't**
 Nyx: sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
 Nyx: ...hey.
@@ -274,11 +289,20 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	DialTone: heh. Splice always was like that. Even back when.
 	Nyx: He's not wrong that the rules screwed him. He just thinks that means he gets to screw everyone else.
 	DialTone: That tracks.
+- He didn't argue. He just laid it out.
+	DialTone: Yeah. He doesn't argue anymore. He briefs.
+	Nyx: That's the part that gets you. Not the words. The certainty.
+	DialTone: He always sounded right. That was never the problem.
 - It got personal. About Nyx.
 	Nyx: ...yeah.
 	Nyx: He's been doing that since I left.
 	DialTone: We don't have to talk about that.
 	Nyx: It's fine. He's wrong about whatever he said. Anyway.
+- Who made these discs?
+	DialTone: Honestly? We don't know.
+	DialTone: We thought we'd seeded them. We didn't seed them.
+	DialTone: They were there when we looked.
+	Nyx: Don't have a good answer for that yet.
 - What's the plan now?
 	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
 	DialTone: That's our window.
