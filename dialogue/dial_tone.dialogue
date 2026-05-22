@@ -378,6 +378,8 @@ DialTone: Hey {{HandlePicker.chosen_name()}}.
 DialTone: Anything else?
 - What now?
 	DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
+	DialTone: I'm already thinking about who's next. Got a few traces.
+	DialTone: Don't worry about it. I've got a feel for it now.
 - About Splice — he's still in there.
 	DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
 - [if GameState.get_flag("dialtone_messenger_thread", 0) == 4 /] The whole thing was an audition, wasn't it?

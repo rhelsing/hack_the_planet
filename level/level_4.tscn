@@ -540,7 +540,7 @@ require_flag = &""
 [node name="Walkie15" parent="." index="75" unique_id=477027558 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 6.1212006, 0, 0, 0, 19.415428, 398.77518, -13.05994, -254.90742)
 character = &"Nyx"
-line = "Try to convert some sentinels here, and save them for the battle to come. We are going to need them if we want a chance to capture Splice."
+line = "Try to convert some sentinels here, and save them for the battle to come. We are going to need them if we want a chance to capture Splice. ...feels weird to be planning this way."
 require_flag = &""
 
 [node name="Walkie16" parent="." index="76" unique_id=1987610947 instance=ExtResource("13_walkie")]

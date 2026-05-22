@@ -48,6 +48,13 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 	=> dance_offer
 - I won.
 	Splice: Yeah. You did. Perimeters fail, runner. And I've got time.
+- Was any of it real? What you believed before all this?
+	Splice: All of it. That's the part you won't like.
+	Splice: I built things. I gave them away.
+	Splice: Then one morning I'm reading a press release. Someone I'd never met announcing my own work back to me.
+	Splice: New name. Price tag.
+	Splice: The people I'd given it to were lining up to pay.
+	Splice: You'll see it too. Give it time.
 - Walk away. [#exit]
 	Splice: Catch you on the wire.
 	do GameState.set_flag("hub_post4_splice_taunted", true)

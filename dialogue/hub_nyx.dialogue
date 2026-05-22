@@ -257,6 +257,8 @@ else
 	Nyx: Splice spent a year in the static planning this. He gets to see us happy. That's the bit.
 - He's quarantined for good?
 	Nyx: For now. Yes. But he's been there before.
+	Nyx: And the thing that let him in is still running. Same grid. Same holes.
+	Nyx: This holds as long as it holds.
 - See you on the wire. [#exit]
 	Nyx: Go pick a song. Save me one.
 	do GameState.set_flag("hub_post4_nyx_celebrated", true)

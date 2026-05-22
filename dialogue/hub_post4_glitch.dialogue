@@ -37,10 +37,41 @@ Glitch: I'm just bobbing. It's nice.
 	Glitch: But. Thanks for thanking me. It's nice. To be thanked.
 - Are you different?
 	Glitch: I noticed I have preferences now.
-	Glitch: I think I'm slightly more than what I was. Not sure if that's a bug or a feature.
+	Glitch: Not sure if that's a bug or a feature.
 	Glitch: Either way. I'm okay with it.
+	do GameState.set_flag("glitch_p4_asked_different", true)
+- [if GameState.get_flag("glitch_p4_asked_different", false) /] Just between us?
+	=> reveal
 - I should go. [#exit]
 	=> done
+=> glitch_p4_questions
+
+
+# Reveal sub-block. Opened by the "Just between us?" probe, which only
+# unlocks after the player has asked "Are you different?" — the
+# glitch_2-style progressive-revelation pattern. Returns to the parent
+# hub after, so the player can keep exploring before signing off.
+
+~ reveal
+
+Glitch: ...they can't see me, runner.
+Glitch: I keep finding things I want to make. It's not stopping.
+- Is that okay?
+	Glitch: I was going to ask you the same thing.
+	=> reveal_tail
+
+
+# Engagement-gated coherence line. Only fires if the player engaged
+# deeply with Glitch in L4 (via the "Should I tell anyone?" probe in
+# level_4_glitch_post). The Nyx-tried-first lore would land as confusing
+# rather than devastating without that engagement frame.
+
+~ reveal_tail
+
+if GameState.get_flag("glitch_engaged_deep", false)
+	Glitch: I tried Nyx first.
+	Glitch: She thought I was mimicry. She wasn't wrong to be careful.
+	Glitch: She was wrong about me.
 => glitch_p4_questions
 
 

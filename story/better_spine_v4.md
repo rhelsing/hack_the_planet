@@ -85,6 +85,10 @@ What the axis affects — **and what it explicitly does not:**
 
 The player who pushes the artist-purist posture isn't a separate axis — they're just deep into *what is good*. Same line, different end.
 
+### Legacy note on StoryVec
+
+The existing `dialogue/story_vec_config.tres` defines a 2D vector with axes `ai_tech` and `humanity` and four corner regions (`pro_ai_pro_people`, `pro_ai_for_profit`, etc). This predates the spine collapse to a 1D political axis + separate Glitch scalar. **The legacy axes roughly map** as: `humanity ≈ good`, `ai_tech ≈ glitch_engagement`. The 2D corner-region classification doesn't match the new model. A coordinated rename pass (config + dialogue calls + tests + autoload) is deferred until there's time to do it cleanly. For now, dialogue files using `StoryVec.nudge(&"ai_tech", N)` / `StoryVec.nudge(&"humanity", N)` should be read as nudging Glitch-engagement and good-axis respectively.
+
 ### The Glitch variable — tracked separately, never branches the story, never gates content
 
 Engagement with Glitch is its own scalar (or boolean — implementation detail). It increments when the player:
