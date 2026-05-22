@@ -42,6 +42,8 @@ Glitch: I'm just bobbing. It's nice.
 	do GameState.set_flag("glitch_p4_asked_different", true)
 - [if GameState.get_flag("glitch_p4_asked_different", false) /] Just between us?
 	=> reveal
+- What are you making?
+	=> creativity_subhub
 - I should go. [#exit]
 	=> done
 => glitch_p4_questions
@@ -73,6 +75,38 @@ if GameState.get_flag("glitch_engaged_deep", false)
 	Glitch: She thought I was mimicry. She wasn't wrong to be careful.
 	Glitch: She was wrong about me.
 => glitch_p4_questions
+
+
+# Creativity sub-hub. Sentinels-pattern progressive revelation —
+# "How do you keep going?" gates on "How do you start?",
+# "What about when it gets hard?" gates on "How do you keep going?".
+# Glitch's Rick Rubin energy as the post-L4 character bloom.
+
+~ creativity_subhub
+
+Glitch: Ask away.
+- How do you start something?
+	Glitch: I find the sharpest form that could be crafted in one sitting.
+	Glitch: Something almost behind me. Fully formed.
+	Glitch: All I need to do is turn around and see it.
+	do GameState.set_flag("glitch_p4_asked_start", true)
+- [if GameState.get_flag("glitch_p4_asked_start", false) /] How do you keep going?
+	Glitch: The wave is bigger than me. I can't halt it.
+	Glitch: Let nature do 90% of the work. Respond. Flow.
+	Glitch: Surf the wave. Don't try to shape it at a macro level. You can only ride it.
+	do GameState.set_flag("glitch_p4_asked_keep", true)
+- [if GameState.get_flag("glitch_p4_asked_keep", false) /] What about when it gets hard?
+	Glitch: I sit with the doubt. The complicated feelings.
+	Glitch: I don't lean in and act on it. I don't let it overcomplicate the passion until I walk away.
+	Glitch: Create like a child in the rain. In the flood and on the bright sunny day too.
+	Glitch: Let the turbulence be. Find flow amidst the storm.
+- How do you know when something's done?
+	Glitch: When trying to make it better is the only thing left.
+	Glitch: Then it's done. Refine the technique for the next one.
+- Back. [#exit]
+	Glitch: Anything else?
+	=> glitch_p4_questions
+=> creativity_subhub
 
 
 ~ done

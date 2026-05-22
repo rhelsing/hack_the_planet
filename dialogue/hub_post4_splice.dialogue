@@ -55,6 +55,8 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 	Splice: New name. Price tag.
 	Splice: The people I'd given it to were lining up to pay.
 	Splice: You'll see it too. Give it time.
+- What's it like out there now?
+	=> splice_world_subhub
 - Walk away. [#exit]
 	Splice: Catch you on the wire.
 	do GameState.set_flag("hub_post4_splice_taunted", true)
@@ -75,3 +77,33 @@ Splice: You don't get to forgive me, runner.
 - Fair enough.
 	Splice: Mm.
 	=> splice_p4_questions
+
+
+# World sub-hub. Splice in the cage describes the world he understands.
+# Calm, observational, not crowing — sentinels-style progressive
+# revelation. "And everyone else?" gates on "Who's actually winning?"
+# since the second beat lands harder once the first is in the room.
+
+~ splice_world_subhub
+
+Splice: You sure?
+- Who's actually winning?
+	Splice: The one percent. In wealth. In influence. In beauty.
+	Splice: Here's the part that hurts — they didn't take it.
+	Splice: We give it to them. Mortgages. Joining the pilgrimage of cars every morning.
+	Splice: Sacrificing our time for coins to spend on the mortgage.
+	do GameState.set_flag("splice_p4_asked_winning", true)
+- [if GameState.get_flag("splice_p4_asked_winning", false) /] And everyone else?
+	Splice: They sit in bed scrolling through comments.
+	Splice: Seeking a model of what's acceptable to feel in response to a thirty-second clip.
+	Splice: Watching. Consuming. Eating instead of cooking.
+	Splice: When they do cook, it's often with a meal kit, isn't it.
+- How does it sustain itself?
+	Splice: Self-interest. The cultural microwave background radiation.
+	Splice: Ever-present. Taught as the bedrock of everything.
+	Splice: It works, they say. How can we be anything other than self-interested?
+	Splice: Who would cede an advantage in their right mind?
+- Back. [#exit]
+	Splice: Mm.
+	=> splice_p4_questions
+=> splice_world_subhub
