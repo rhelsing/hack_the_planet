@@ -2707,6 +2707,12 @@ func _physics_process(delta: float) -> void:
 	var is_air_jumping := (intent.jump_pressed and not jump_suppressed
 		and not is_just_jumping
 		and not on_floor and _air_jump_available and not _wall_ride_active)
+	# Diagnostic: print every time intent.jump_pressed arrives, with the
+	# state that determined whether it actually fires a jump.
+	if intent.jump_pressed and pawn_group == "player":
+		print("[input] INTENT jump t=%dms suppressed=%s on_floor=%s coyote=%s air_avail=%s → just=%s air=%s" %
+			[Time.get_ticks_msec(), jump_suppressed, on_floor, in_coyote,
+			 _air_jump_available, is_just_jumping, is_air_jumping])
 
 	# Attack jostle is purely procedural (velocity kick + skin pitch) so we
 	# just let the timer tick down — no animation state to enter/exit.

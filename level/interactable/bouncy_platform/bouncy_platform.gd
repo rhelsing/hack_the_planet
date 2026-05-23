@@ -39,18 +39,28 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 @export_dir var bounce_sound_auto_load_dir: String = ""
 @export_range(-30.0, 12.0) var bounce_sound_volume_db: float = 0.0
 @export_range(0.0, 0.5) var bounce_sound_pitch_jitter: float = 0.06
-## Delay between the squash impact and the boing playing. Lets the audio
-## land on the spring-back rather than the compression. 0 = play immediately.
-@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.2
+## Delay between the squash impact and the boing playing. Matched to
+## `squash_duration` so the boing fires at the exact moment of launch.
+## Centers the boost-jump window on this value, so changing it slides
+## the window along the timeline. Tuned 2026-05-22.
+@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.05
 
 @export_group("Timed Boost")
-## Extra Y velocity (m/s) added to the launched body when the player presses
-## jump inside the boost window. Stacked on top of the regular launch_v —
+## (Deprecated — chain now press-driven; see chain logic in _apply_boost
+## and _on_body_entered. Kept on the export so old .tscn overrides don't
+## fail to load. Not currently read by any code path.)
+@export var chain_reset_window: float = 2.0
+## (Deprecated 2026-05-22 — chain now tracks any press during the airtime
+## via a boolean flag, no time buffer needed. Kept on the export so old
+## .tscn overrides don't fail to load.)
+@export var jump_buffer_seconds: float = 0.5
+## Extra Y velocity (m/s) added to the launched body for each chained
+## press. Stacked on top of the regular launch_v —
 ## with default launch ~19.7 m/s, +7 m/s ≈ +6m peak height. 0 disables.
 @export var bounce_boost_velocity: float = 7.0
 ## Total window width (seconds) centered on the bounce sound. 0.2 = ±0.1s
 ## from the audio cue. Tighter feels more skill-based; looser more forgiving.
-@export_range(0.0, 1.0) var bounce_boost_window: float = 0.2
+@export_range(0.0, 2.0) var bounce_boost_window: float = 1.0
 
 @export_group("Bounce")
 ## Peak height (meters) the player reaches above the deck top. Velocity is
@@ -62,11 +72,20 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 @export var gravity: float = 30.0
 ## How far the deck dips before springing back.
 @export var squash_depth: float = 0.5
-## Compression time. Slower = more anticipation before the launch.
-@export var squash_duration: float = 0.18
+## Compression time. Slower = more anticipation before the launch. This
+## is ALSO the total time before the player sees themselves go up — the
+## launch impulse fires at the end of this. Tuned 2026-05-22.
+@export var squash_duration: float = 0.05
 ## Spring-back duration; the player has already left at this point — the
 ## elastic ringing is purely cosmetic. Longer = more wobble after launch.
-@export var spring_duration: float = 1.0
+## Tuned 2026-05-22.
+@export var spring_duration: float = 0.8
+## Peak overshoot of the spring above the deck's rest Y (meters). Drives
+## how dramatic the post-launch ringing reads visually without changing
+## spring_duration. The deck oscillates above + below base by progressively
+## smaller fractions of this until it settles. 0.0 = no overshoot, deck
+## just rises smoothly to base. Tuned 2026-05-22.
+@export var spring_overshoot_amplitude: float = 1.0
 
 @onready var _deck: Node3D = $Deck
 @onready var _box: CSGBox3D = $Deck/Box
@@ -88,13 +107,38 @@ var _last_bounce_sfx_idx: int = -1
 # player's AudioListener3D (attached to player_body). One platform several
 # rooms away should sound farther than one under your feet.
 var _bounce_sfx_player: AudioStreamPlayer3D
-# Timed-boost state. _boost_target tracks who to apply the boost to (set on
-# squash start, used after the body is released by _launch). _boost_window_*
-# bracket the input-listening window. _process is set on/off so non-active
-# platforms don't poll input every frame.
-var _boost_target: Node3D = null
-var _boost_window_close_at: float = 0.0
-var _boost_consumed: bool = false
+# (Boost-window mechanic removed 2026-05-22 — replaced by jump-buffer.)
+
+# Chain-bounce state (press-driven trampoline double-bounce). Each
+# successful boost press (jump within the boost window) increments
+# _chain_count. Landing WITHOUT a press in the previous window resets
+# chain to 0. Next launch adds (chain_count × bounce_boost_velocity).
+var _chain_count: int = 0
+var _chain_body: Node3D = null
+# Press tracking: was jump pressed at any point since the last launch?
+# Reset on every _launch; set true by _input listening for the jump
+# action. Robust to any airtime length — at chain-2 the round trip is
+# ~2.25s, way past a fixed buffer window. Now: if you press jump
+# anywhere from leaving the deck to landing back on it, you chain.
+var _jump_pressed_since_launch: bool = false
+# Diagnostic only: timestamp of last press, used for log readability.
+var _last_jump_press_msec: int = -10000
+
+# Squash-commit window. While Time.get_ticks_msec() < this, body_exited is
+# ignored — the bounce is a committed event and the CarryZone Area3D
+# routinely fires spurious exit/enter cycles during the 50ms squash as
+# the deck dips and the player capsule slips across the fixed trigger
+# boundary. Without this gate, each spurious exit clears _carried_body
+# and the next spurious enter restarts the bounce from scratch
+# (kills the tween, resets chain state, replays SFX).
+var _squash_commit_until_msec: int = 0
+# Post-launch lockout. While Time.get_ticks_msec() < this, _on_body_entered
+# refuses to start a fresh bounce. After a launch, the deck springs UP
+# rapidly (2m+ overshoot) and re-detects the player in CarryZone before
+# they've physically risen above it — that spurious "fresh land" was
+# wiping the chain. Player can't legitimately re-land sooner than
+# their airtime (≥1.3s at base launch), so a ~200ms gate is safe.
+var _post_launch_lockout_until_msec: int = 0
 
 # Class-level live overrides driven by the debug panel. NAN = "use my @export
 # value." Shared across all instances so panel sliders tune the global feel
@@ -103,14 +147,11 @@ static var _override_bounce_height: float = NAN
 static var _override_squash_depth: float = NAN
 static var _override_squash_duration: float = NAN
 static var _override_spring_duration: float = NAN
+static var _override_spring_overshoot_amplitude: float = NAN
 static var _panel_registered: bool = false
 
 
 func _ready() -> void:
-	# Boost-window polling only runs when active (set true in _open_boost_window,
-	# false in _close_boost_window); stays off the rest of the time so dozens
-	# of bouncy platforms in a level don't poll input every frame.
-	set_process(false)
 	_material = _PLATFORM_MATERIAL.duplicate() as ShaderMaterial
 	_box.material_override = _material
 	_apply_palette()
@@ -204,6 +245,9 @@ func _eff_squash_duration() -> float:
 func _eff_spring_duration() -> float:
 	return spring_duration if is_nan(_override_spring_duration) else _override_spring_duration
 
+func _eff_spring_overshoot_amplitude() -> float:
+	return spring_overshoot_amplitude if is_nan(_override_spring_overshoot_amplitude) else _override_spring_overshoot_amplitude
+
 
 func _register_debug_panel() -> void:
 	# First instance wins; subsequent ones reuse the same sliders.
@@ -221,6 +265,7 @@ func _register_debug_panel() -> void:
 	_override_squash_depth = squash_depth
 	_override_squash_duration = squash_duration
 	_override_spring_duration = spring_duration
+	_override_spring_overshoot_amplitude = spring_overshoot_amplitude
 	dp.call(&"add_slider", "Bouncy/bounce_height", 0.5, 20.0, 0.1,
 		func() -> float: return _override_bounce_height,
 		func(v: float) -> void: _override_bounce_height = v,
@@ -236,6 +281,10 @@ func _register_debug_panel() -> void:
 	dp.call(&"add_slider", "Bouncy/spring_duration", 0.1, 2.5, 0.05,
 		func() -> float: return _override_spring_duration,
 		func(v: float) -> void: _override_spring_duration = v,
+		"bouncy_platform.gd")
+	dp.call(&"add_slider", "Bouncy/spring_overshoot", 0.0, 2.0, 0.05,
+		func() -> float: return _override_spring_overshoot_amplitude,
+		func(v: float) -> void: _override_spring_overshoot_amplitude = v,
 		"bouncy_platform.gd")
 
 
@@ -268,23 +317,64 @@ func _apply_size() -> void:
 
 func _on_body_entered(body: Node) -> void:
 	if _carried_body != null:
+		print("[bouncy] enter SKIPPED %s — mid-squash carrying %s" % [body, _carried_body])
 		return  # mid-squash already; ignore secondary entries.
-	# Any CharacterBody3D bounces — player AND sentinels. Drop them on a
-	# bouncy platform (or lure them onto one mid-chase) and they fly. The
-	# timed-boost path is gated by has_method("suppress_jump_for") below,
-	# so AI-driven bodies that lack player input simply skip the boost
-	# window and keep the base launch.
+	if Time.get_ticks_msec() < _post_launch_lockout_until_msec:
+		# Same-frame re-entry caused by the spring-back overshoot catching
+		# up to the still-on-the-deck capsule. Refusing here keeps the
+		# chain state intact across actual bounces.
+		print("[bouncy] enter IGNORED %s — post-launch lockout (%dms left)" %
+			[body, _post_launch_lockout_until_msec - Time.get_ticks_msec()])
+		return
+	# Any CharacterBody3D bounces — player AND sentinels.
 	if not (body is CharacterBody3D):
 		return
+	# Chain decision (trampoline model, airtime-bounded):
+	#   - If this is the SAME body that bounced last AND jump was pressed
+	#     at any point since the last launch (OR is currently held),
+	#     chain_count += 1 — bonus stacks.
+	#   - Otherwise reset to 0. Initial land (different body or chain_body
+	#     null) NEVER gets a bonus regardless of input — "subsequent only."
+	var now_msec: int = Time.get_ticks_msec()
+	var buffer_dt_msec: int = now_msec - _last_jump_press_msec
+	var jump_held: bool = Input.is_action_pressed(&"jump")
+	var jump_buffered: bool = _jump_pressed_since_launch or jump_held
+	var continuing: bool = (body == _chain_body)
+	if continuing and jump_buffered:
+		_chain_count += 1
+	else:
+		_chain_count = 0
+	print("[bouncy] land chain=%d continuing=%s buffered=%s (held=%s, since_launch=%s, dt=%dms)" %
+		[_chain_count, continuing, jump_buffered, jump_held,
+		 _jump_pressed_since_launch, buffer_dt_msec])
 	_carried_body = body as Node3D
-	_original_parent = body.get_parent()
+	# Capture body's REAL parent BEFORE queuing the reparent. Defensive
+	# guard: if for some reason the body is already a child of _deck (the
+	# cascade bug observed in the logs), refuse to use _deck as "original"
+	# — that'd make _restore_parent a no-op forever. Fall back to the
+	# current scene root, which is guaranteed to be a real world parent.
+	var captured_parent: Node = body.get_parent()
+	if captured_parent == _deck:
+		captured_parent = get_tree().current_scene
+		print("[bouncy] _original_parent contaminated as _deck — using scene root %s" % captured_parent)
+	_original_parent = captured_parent
 	body.call_deferred(&"reparent", _deck, true)
+	# Lock out spurious exits for the duration of the squash + a safety
+	# margin to cover physics-tick alignment slop after the launch fires.
+	_squash_commit_until_msec = Time.get_ticks_msec() + int(_eff_squash_duration() * 1000.0) + 100
 	_start_bounce()
 
 
 func _on_body_exited(body: Node) -> void:
-	# Walked off the side mid-squash without launching — restore parent so
-	# the player doesn't keep riding a static deck.
+	# Squash-commit gate: physics jitter during the deck dip routinely
+	# flips body overlap with the fixed CarryZone trigger. The bounce is
+	# a committed event — once started, we ride it through to _launch.
+	# Exits in this window are spurious; ignore them entirely so the
+	# bounce isn't reset/restarted.
+	if Time.get_ticks_msec() < _squash_commit_until_msec:
+		print("[bouncy] exit %s IGNORED (mid-squash commit)" % body)
+		return
+	print("[bouncy] exit %s (carried=%s)" % [body, _carried_body])
 	if body != _carried_body:
 		return
 	_restore_parent()
@@ -300,31 +390,38 @@ func _start_bounce() -> void:
 			_play_random_bounce_sfx, CONNECT_ONE_SHOT)
 	else:
 		_play_random_bounce_sfx()
-	# Timed-boost setup. Track who to apply the boost to (the launched body),
-	# schedule the input-listening window centered on the sound, and suppress
-	# the body's own jump for the same duration so accidental presses can't
-	# bypass the timing requirement and stack extra height.
-	_boost_target = _carried_body
-	_boost_consumed = false
-	if bounce_boost_velocity > 0.0 and _boost_target != null:
-		var half: float = bounce_boost_window * 0.5
-		var open_at: float = maxf(0.0, bounce_sound_delay - half)
-		if open_at > 0.0:
-			get_tree().create_timer(open_at).timeout.connect(
-				_open_boost_window, CONNECT_ONE_SHOT)
-		else:
-			_open_boost_window()
-		# Suppress the body's normal jump until just past the window's close.
-		# 0.05s margin covers physics-tick alignment slop.
-		if _boost_target.has_method(&"suppress_jump_for"):
-			_boost_target.suppress_jump_for(bounce_sound_delay + half + 0.05)
+	# Suppress the body's normal jump briefly so the buffered chain press
+	# doesn't double-fire as a regular jump alongside the bounce.
+	if _carried_body != null and _carried_body.has_method(&"suppress_jump_for"):
+		_carried_body.suppress_jump_for(_eff_squash_duration() + 0.15)
 	var depth: float = _eff_squash_depth()
 	_tween = create_tween()
 	_tween.tween_property(_deck, ^"position:y", _deck_base_y - depth, _eff_squash_duration()) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_tween.tween_callback(_launch)
-	_tween.tween_property(_deck, ^"position:y", _deck_base_y, _eff_spring_duration()) \
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	# Manual decaying-overshoot spring. Replaces TRANS_ELASTIC because Godot's
+	# built-in elastic has fixed amplitude — overshoot was barely visible
+	# against squash_depth. Five segments: snap above base by full amplitude,
+	# then oscillate around base with halving amplitude until settled. Same
+	# total duration as before; ringing is now genuinely dramatic.
+	var overshoot: float = _eff_spring_overshoot_amplitude()
+	var spring_dur: float = _eff_spring_duration()
+	if overshoot <= 0.0:
+		# Disabled — smooth ease to base, no ringing.
+		_tween.tween_property(_deck, ^"position:y", _deck_base_y, spring_dur) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	else:
+		var seg: float = spring_dur * 0.20
+		_tween.tween_property(_deck, ^"position:y", _deck_base_y + overshoot, seg) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_tween.tween_property(_deck, ^"position:y", _deck_base_y - overshoot * 0.5, seg) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_tween.tween_property(_deck, ^"position:y", _deck_base_y + overshoot * 0.25, seg) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_tween.tween_property(_deck, ^"position:y", _deck_base_y - overshoot * 0.12, seg) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_tween.tween_property(_deck, ^"position:y", _deck_base_y, seg) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 
 func _launch() -> void:
@@ -347,45 +444,54 @@ func _launch() -> void:
 		body.call(&"force_halfpipe_disengage")
 	if "velocity" in body:
 		var v: Vector3 = body.get(&"velocity")
-		body.set(&"velocity", Vector3(v.x, launch_v, v.z))
+		# Trampoline chain bonus: chain_count is the number of successful
+		# boost presses in a row. Each adds one boost_velocity to launch.
+		# No cap — by chain 10 you're launching at +70 m/s on top of base.
+		var chain_bonus: float = float(_chain_count) * bounce_boost_velocity
+		body.set(&"velocity", Vector3(v.x, launch_v + chain_bonus, v.z))
+		if _chain_count > 0:
+			print("[bouncy] chain %d → launch %.1f + bonus %.1f = %.1f m/s" %
+				[_chain_count, launch_v, chain_bonus, launch_v + chain_bonus])
+	# Track who holds the chain (so a different body landing resets).
+	_chain_body = body
 	_carried_body = null
 	_original_parent = null
+	# Block re-entry for 200ms. The spring tween yanks the deck upward
+	# fast enough to overlap the player's collision shape before they
+	# rise out of CarryZone. Without this gate, the same-frame re-enter
+	# fires _on_body_entered and a spurious "fresh land" resets chain.
+	_post_launch_lockout_until_msec = Time.get_ticks_msec() + 200
+	# Reset the press-since-launch flag now so the next airtime starts
+	# clean. Player must press jump again between this launch and the
+	# next land to keep the chain alive.
+	_jump_pressed_since_launch = false
 
 
-func _open_boost_window() -> void:
-	if _boost_consumed or _boost_target == null or not is_instance_valid(_boost_target):
-		return
-	_boost_window_close_at = Time.get_ticks_msec() / 1000.0 + bounce_boost_window
-	set_process(true)
-
-
-func _process(_delta: float) -> void:
-	if _boost_consumed:
-		set_process(false)
-		return
-	if Time.get_ticks_msec() / 1000.0 > _boost_window_close_at:
-		set_process(false)
-		return
-	if Input.is_action_just_pressed(&"jump"):
-		_apply_boost()
-		set_process(false)
-
-
-func _apply_boost() -> void:
-	_boost_consumed = true
-	if _boost_target == null or not is_instance_valid(_boost_target):
-		return
-	if not "velocity" in _boost_target:
-		return
-	var v: Vector3 = _boost_target.get(&"velocity")
-	_boost_target.set(&"velocity", Vector3(v.x, v.y + bounce_boost_velocity, v.z))
+## Global jump-press listener. Sets _jump_pressed_since_launch so the
+## chain decision in _on_body_entered knows "did you press jump while
+## airborne (or just before landing)?" Reset on every _launch.
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"jump"):
+		_jump_pressed_since_launch = true
+		_last_jump_press_msec = Time.get_ticks_msec()
+		print("[input] SPACE pressed t=%dms (since_launch_flag→true)" % _last_jump_press_msec)
 
 
 func _restore_parent() -> void:
 	if _carried_body == null or not is_instance_valid(_carried_body):
+		print("[bouncy] restore SKIPPED — no _carried_body")
 		return
-	if _carried_body.get_parent() != _deck:
+	var parent_before: Node = _carried_body.get_parent()
+	if parent_before != _deck:
+		print("[bouncy] restore SKIPPED — parent is %s not _deck" % parent_before)
 		return
 	if _original_parent == null or not is_instance_valid(_original_parent):
+		print("[bouncy] restore SKIPPED — _original_parent invalid")
 		return
-	_carried_body.call_deferred(&"reparent", _original_parent, true)
+	# Direct reparent (not deferred). _launch runs in a tween-idle callback,
+	# not a signal traversal, so the usual "don't mutate the tree while a
+	# signal iterates" hazard doesn't apply.
+	_carried_body.reparent(_original_parent, true)
+	print("[bouncy] reparent %s: %s → %s (now %s)" %
+		[_carried_body.name, parent_before, _original_parent,
+		 _carried_body.get_parent()])

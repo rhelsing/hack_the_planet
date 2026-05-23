@@ -501,6 +501,17 @@ func tick(body: Node3D, delta: float) -> Intent:
 	# and this advance fn drives the stochastic flicker-to-0 envelope.
 	_advance_cone_alpha(delta)
 
+	# Hack-in-progress freeze: the moment StealthKillTarget toggles
+	# set_hack_active(true, …), the pawn drops to a standstill — no patrol,
+	# no chase, no attack swing — until the hack completes or the player
+	# breaks contact (which flips active=false). Intent edges were already
+	# zeroed at line 486. Rebuild the cone mesh first so the flicker-to-0
+	# envelope from _advance_cone_alpha actually reaches the per-vertex
+	# alpha; without this the cone freezes at its last pre-hack frame.
+	if _hack_active:
+		_update_vision_debug(body, delta)
+		return _intent
+
 	# Cone yaw + per-slice raycasts run BEFORE alert phase. _can_see_target
 	# (called inside _update_alert_phase) reads _slice_distances; the visual
 	# rebuild reads them too. Single shared source.

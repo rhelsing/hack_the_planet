@@ -135,10 +135,12 @@ do GameState.set_flag("level_2_unlocked", true)
 
 # ── Post Level 2 — Splice surfaces, near miss ────────────────────────────
 
+# CANON — opener. Runs once. Short on purpose (no monologuing before the
+# menu); the heavier content (Splice's narrative control, terms-of-use
+# stakes, moral framing) moves into probes. See docs/dialogue_dry_pattern.md
+# three-type framework.
 ~ stage_post_2
 
-# Obligatory opener — runs once. Re-talks route through the entry block
-# for an abbreviated greeting, then drop into the questions hub.
 if GameState.get_flag("post_2_opener_seen", false)
 	=> post_2_entry
 
@@ -147,47 +149,141 @@ Nyx: He wouldn't have made it back if I wasn't there to pull him out.
 DialTone: Well, that's true.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
-DialTone: He's giving the talks now. Telling people what's about to happen.
-DialTone: Like a forecast. They believe him.
-DialTone: And it's working.
-Nyx: Whoever shapes this place first sets the terms for the next decade of how everyone uses anything like it.
-Nyx: He's trying to be that person.
-DialTone: So we get there first.
 do GameState.set_flag("post_2_opener_seen", true)
 => post_2_questions
 
 
-# Re-talk greeting. Fires once per dialogue session because the questions
-# hub self-loops to itself, never back to entry.
-
+# CANON — re-talk greeting; one short line then drop into menu.
 ~ post_2_entry
 
 DialTone: You got the plan?
 => post_2_questions
 
 
-# Single shared question hub. Inline mini-dialogues per option, with
-# flag-gated follow-ups (Pull that thread / And the prank? / Vague.)
-# that only appear once their parent question has been asked. Loops
-# back via trailing => post_2_questions; "I'm in." exits to post_2_done.
-
+# Main question hub. Holds CANON exits + flat WORLD-BUILD probes (short,
+# plan-adjacent) + the Splice sub-branch gateway. Initial visible ~4
+# options; the rest unlock progressively via flags.
 ~ post_2_questions
 
+# CANON-ish — primary thread; sets asked_plan only. L3 portal is NOT
+# unlocked here — player must commit via "I'm in." to advance to
+# post_2_done. This keeps "That's all" hidden until after the commit.
 - So what's the plan?
 	DialTone: We split.. stay synced up on the channel.
 	DialTone: Your portal's queued behind us.
-	do GameState.set_flag("level_3_unlocked", true)
 	Nyx: Splice will be hunting too. Move fast.
-- What am I looking for?
-	DialTone: Honestly? Could be anything. A weird file, a route that shouldn't exist. You'll know it when it doesn't belong.
-	do GameState.set_flag("post_2_asked_target", true)
-- [if GameState.get_flag("post_2_asked_target", false) /] Vague.
-	Nyx: He doesn't know.
-	DialTone: I genuinely don't know what shape it'll take.
-- Why split?
+	do GameState.set_flag("post_2_asked_plan", true)
+
+# WORLD-BUILD (gate) — opens Splice sub-branch. Gated on asked_plan
+# so the plan is the only first-visit option. First entry earns
+# dialtone_trust +1 (curiosity-about-the-villain signal); one-shot.
+- [if GameState.get_flag("post_2_asked_plan", false) /] About Splice...
+	DialTone: Ask away.
+	if not GameState.get_flag("dt_trust_splice_entry_nudged", false)
+		do StoryVec.nudge(&"dialtone_trust", 1)
+		do GameState.set_flag("dt_trust_splice_entry_nudged", true)
+	=> splice_subhub
+
+# WORLD-BUILD — moral-obligation reframe + the stakes block (relocated
+# from the opener's "Whoever shapes this place..." stack). Gated on plan.
+# The "we believe him too" beat is the load-bearing self-implicating
+# admission — the crew is complicit in Splice's framing.
+- [if GameState.get_flag("post_2_asked_plan", false) /] Is there another way?
+	DialTone: This shouldn't be a race.
+	DialTone: But he's chasing because he thinks something worse is too.
+	Nyx: He's probably right.
+	DialTone: If he gets there first... well, we don't know.
+	DialTone: But he's convinced that it changes everything.
+	Nyx: He's convinced the masses too.
+	DialTone: Hell — we believe him too.
+	Nyx: Whoever shapes this place first sets the terms for the next decade of how everyone uses anything like it.
+	Nyx: He's trying to be that person.
+	DialTone: So we get there first.
+	if not GameState.get_flag("dt_trust_another_way_nudged", false)
+		do StoryVec.nudge(&"dialtone_trust", 1)
+		do GameState.set_flag("dt_trust_another_way_nudged", true)
+
+# WORLD-BUILD — gated on asked_plan; tactical follow-up.
+- [if GameState.get_flag("post_2_asked_plan", false) /] Why split?
 	DialTone: Three nodes, three angles. Splice can only watch one at a time.
 	DialTone: He'll guess wrong on at least one of us.
 	Nyx: If we're lucky.
+
+# WORLD-BUILD — gated on asked_plan; chains to Vague.
+- [if GameState.get_flag("post_2_asked_plan", false) /] What am I looking for?
+	DialTone: Honestly? Could be anything. A weird file, a route that shouldn't exist. You'll know it when it doesn't belong.
+	do GameState.set_flag("post_2_asked_target", true)
+
+# WORLD-BUILD — chained follow-up to "What am I looking for?"
+- [if GameState.get_flag("post_2_asked_target", false) /] Vague.
+	Nyx: He doesn't know.
+	DialTone: I genuinely don't know what shape it'll take.
+
+# WORLD-BUILD — messenger thread; also gated on asked_plan so player
+# hears the plan first regardless of messenger state.
+- [if GameState.get_flag("post_2_asked_plan", false) and GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
+	DialTone: The boards. Yeah.
+	DialTone: Honestly? You can clearly run with the best of them.
+	DialTone: If you want in, you're in.
+	Nyx: DialTone's been waiting to say that one.
+	DialTone: A little.
+	do GameState.set_flag("dialtone_messenger_thread", 3)
+
+# ── PARAGON probes — surface once dialtone_trust >= 2 ───────────────────
+# These are the "step deeper than small talk" beats. Each delivers verbatim
+# author-prose from `story/raw_writing_part_1.md`, then routes to a Rule-8
+# response side block where the player picks how to land it (3 options:
+# warm / neutral / cold). One-shot each via *_taken flags. See
+# story/better_spine_v4.md for the paragon design.
+
+# PARAGON (K) — DT philosophy: names the enemy. Verbatim corpus #K (DT
+# attribution: "this next part is probably dial tone continuing").
+# Gateway-taken set is moved INTO the exit options inside dt_paragon_k so
+# the one-shot only burns once the player actually finishes the conversation,
+# not the moment they click the gateway.
+- [if StoryVec.value(&"dialtone_trust") >= 2 and not GameState.get_flag("dt_paragon_k_taken", false) /] What's actually at stake here, for you?
+	=> dt_paragon_k
+
+# PARAGON (J) — DT optimism: the witty-T-shirt cope. Gated on K-taken so it
+# lands as the *follow-on* once DT has named the enemy. Verbatim corpus #J
+# (DT attribution: "this is pure dial tone"). Gateway-taken set is moved
+# into dt_paragon_j response options for the same reason as K.
+- [if GameState.get_flag("dt_paragon_k_taken", false) and not GameState.get_flag("dt_paragon_j_taken", false) /] You think a boycott would even matter?
+	=> dt_paragon_j
+
+# PARAGON (ESPN duet) — the four-beat group exchange. Nyx delivers the
+# "is there really a bad guy" framing + self-implication; DT delivers the
+# sociological observation + collapse-warning crack (Harvey crack — DT
+# briefly bleeds Splice register, which is the design). Verbatim corpus
+# #42. Gated on J-taken so it surfaces only after K→J ladder. One-shot.
+# Gateway-taken set moved into response options.
+- [if GameState.get_flag("dt_paragon_j_taken", false) and not GameState.get_flag("dt_nyx_espn_duet_taken", false) /] Why do people keep going along with it?
+	=> dt_nyx_espn_duet
+
+# CANON — re-entry exit; gated on level_3_unlocked so first visit funnels
+# through "I'm in." Re-visits get a clean leave.
+- [if GameState.get_flag("level_3_unlocked", false) /] That's all. [#exit]
+	=> END
+
+# CANON — primary exit; gated on asked_plan so player can't leave without
+# hearing the plan first.
+- [if GameState.get_flag("post_2_asked_plan", false) /] I'm in. [#exit]
+	=> post_2_done
+
+=> post_2_questions
+
+
+# WORLD-BUILD — Splice sub-branch. Mirrors sentinels_subhub structure:
+# three initial probes unlocked + progressive unlocks via flags. Bridge
+# line on entry ("Ask away." in parent) and exit ("Mm." here). Holds the
+# VECTOR choice point as its last unlock.
+~ splice_subhub
+
+# ── Initial 3 unlocked ────────────────────────────────────────────
+
+# WORLD-BUILD — gateway probe. Canon Nyx/Splice relationship wink
+# ("Run is putting it lightly") at the end so Pull-that-thread has
+# somewhere to land.
 - Who is Splice?
 	DialTone: He was one of us.
 	DialTone: He still is, kind of. That's the part that — anyway.
@@ -197,7 +293,27 @@ DialTone: You got the plan?
 	Nyx: That's a clean way of putting it.
 	DialTone: Outside this room? He's the answer.
 	Nyx: In here he's just the guy who left.
+	Nyx: He used to run with us.
+	DialTone: Run is putting it lightly.
 	do GameState.set_flag("post_2_asked_who", true)
+
+- How did he get into the sentinels?
+	DialTone: Sentinels are old code. He found a backdoor.
+	Nyx: He made one.
+	DialTone: Either way — they listen to him now.
+
+# WORLD-BUILD — narrative-control content (relocated from opener's
+# "giving the talks" stack; "controlling the narrative" is the spine's
+# replacement phrasing).
+- What's he up to out there?
+	DialTone: He's the one controlling the narrative for this place now.
+	Nyx: People are repeating his words back to him.
+	DialTone: And it's working.
+	do GameState.set_flag("post_2_asked_narrative", true)
+
+# ── Progressive unlocks ───────────────────────────────────────────
+
+# WORLD-BUILD — gated on asked_who; deeper Splice origin.
 - [if GameState.get_flag("post_2_asked_who", false) /] What turned him?
 	DialTone: He shared everything he built. Every tool, every shortcut.
 	DialTone: Someone else packaged it. Named it.
@@ -205,34 +321,224 @@ DialTone: You got the plan?
 	Nyx: They bought it. Without much push.
 	DialTone: It nearly broke him.
 	DialTone: Then he started counting.
+	do GameState.set_flag("post_2_asked_turned", true)
+
+# WORLD-BUILD — gated on asked_who; pulls the "Run is putting it lightly"
+# wink. "They were a thing." dropped (the wink already plants it);
+# remaining lines kept verbatim from main. Sets splice_nyx_romance_revealed
+# — downstream dialogue that treats the romance as canon must gate on
+# this flag, since players who never pull this probe haven't had it
+# confirmed (only winked at).
 - [if GameState.get_flag("post_2_asked_who", false) /] Pull that thread.
-	DialTone: They were a thing.
 	Nyx: Were. Past tense.
 	DialTone: She doesn't like talking about it.
 	Nyx: No.
 	DialTone: It went bad. Splice didn't take no well.
-- How did he get into the sentinels?
-	DialTone: Sentinels are old code. He found a backdoor.
-	Nyx: He made one.
-	DialTone: Either way — they listen to him now.
+	do GameState.set_flag("splice_nyx_romance_revealed", true)
+
+# WORLD-BUILD — DT vulnerability; chains to "And the prank?"
 - You weren't expecting him.
 	DialTone: Yeah. He's been quiet for a year. I thought we had longer.
 	Nyx: We didn't.
 	do GameState.set_flag("post_2_asked_admit", true)
+
+# WORLD-BUILD — gated on asked_admit; callback to the L1 prank.
 - [if GameState.get_flag("post_2_asked_admit", false) /] And the prank?
 	DialTone: ...the prank was for when we had longer.
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
-	DialTone: The boards. Yeah.
-	DialTone: Honestly? You can clearly run with the best of them.
-	DialTone: If you want in, you're in.
-	Nyx: DialTone's been waiting to say that one.
-	DialTone: A little.
-	do GameState.set_flag("dialtone_messenger_thread", 3)
-- I'm in. [#exit]
-	=> post_2_done
-=> post_2_questions
+
+# ── Vector choice ─────────────────────────────────────────────────
+
+# VECTOR (gate) — gated on having pulled the unseeming threads (asked_who,
+# asked_turned, asked_narrative). Disappears once decided. Routes to the
+# one-shot decision side block where DT poses the actual question.
+- [if GameState.get_flag("post_2_asked_who", false) and GameState.get_flag("post_2_asked_turned", false) and GameState.get_flag("post_2_asked_narrative", false) and not GameState.get_flag("splice_judgment_decided", false) /] And how do you guys feel about him? [#decision]
+	=> splice_judgment_branch
+
+# ── Bridge exit ───────────────────────────────────────────────────
+
+- Back. [#exit]
+	DialTone: Mm.
+	=> post_2_questions
+
+=> splice_subhub
 
 
+# VECTOR — DT poses the philosophical question (do you believe in second
+# chances?) rather than the player asking. Player commits via the two
+# [#vector] options. Nudges humanity axis only (the good ↔ works political
+# scalar); ai_tech is Glitch engagement and not touched here. One-shot
+# via splice_judgment_decided.
+~ splice_judgment_branch
+
+DialTone: We were close.
+Nyx: ...were.
+DialTone: I mean — do you believe in second chances?
+
+- No. Not after what he did. [#vector]
+	DialTone: Yeah. That's where I land.
+	Nyx: Mm.
+	do StoryVec.nudge(&"humanity", -1)
+	do StoryVec.nudge(&"dialtone_trust", 1)
+	do GameState.set_flag("splice_judgment_decided", true)
+	=> splice_subhub
+
+- Yeah. People can come back. [#vector]
+	DialTone: ...I hope you're right.
+	Nyx: Don't make me hope that.
+	do StoryVec.nudge(&"humanity", 1)
+	do StoryVec.nudge(&"dialtone_trust", 1)
+	do GameState.set_flag("splice_judgment_decided", true)
+	=> splice_subhub
+
+
+# PARAGON (K) — DT philosophy: advertising as the pure-evil enemy.
+# Restructured as an interactive rant subhub (modeled on splice_subhub):
+# opening hook fires once, sub-probes pull individual corpus beats in
+# any order, closing commit options surface once any beat pulled.
+# Warm commit includes DT's belief-recovery beat ("we can route around
+# them") — without warm reinforcement, DT stays in the rant/crack
+# register; the player's nod is what pulls him back to vision.
+# Cold -1 (sticky enough to register, doesn't lock ESPN gate).
+~ dt_paragon_k
+
+if not GameState.get_flag("dt_paragon_k_hook_seen", false)
+	DialTone: ...honestly?
+	DialTone: Advertising.
+	Nyx: Here we go.
+	do GameState.set_flag("dt_paragon_k_hook_seen", true)
+
+# Sub-probes — each pulls one corpus beat. Visited-dim handles re-clicks.
+# Each sets a beat-specific flag plus the shared dt_k_any_pulled flag
+# that the closing trust-commit options gate on.
+
+- Pure evil is a lot.
+	DialTone: Profit-seeking and the ability to be deceived. That's a closed loop.
+	DialTone: The advertiser does it because it works.
+	DialTone: The person on the other end is sold on some better-future narrative.
+	do GameState.set_flag("dt_k_evil_pulled", true)
+	do GameState.set_flag("dt_k_any_pulled", true)
+
+- How do you mean — the whole thing?
+	DialTone: Self-promotion. You have to make noise or you'll be ignored.
+	DialTone: Take up space as a bare minimum.
+	DialTone: It's just part of a game to have a seat at the global market table.
+	DialTone: You need ten billion in ad spending. Or you go viral.
+	do GameState.set_flag("dt_k_seat_pulled", true)
+	do GameState.set_flag("dt_k_any_pulled", true)
+
+- Going viral — that's fine, right?
+	DialTone: Is virality really the next iteration of word of mouth?
+	Nyx: It's something.
+	DialTone: It can't be policed.
+	DialTone: Anarchy with organic growth seems sane.
+	do GameState.set_flag("dt_k_viral_pulled", true)
+	do GameState.set_flag("dt_k_any_pulled", true)
+
+# Trust commits — gated on any sub-probe pulled. [#vector] tags fire
+# the purple outline + toast (Rule 11). Warm lets DT recover to vision;
+# cold lets the player assert the artistic-purist refusal.
+
+- [if GameState.get_flag("dt_k_any_pulled", false) /] Yeah. Same. [#vector]
+	DialTone: ...thought so.
+	DialTone: We can route around them. We will.
+	Nyx: He's been waiting for someone to nod at that.
+	do StoryVec.nudge(&"dialtone_trust", 1)
+	do GameState.set_flag("dt_paragon_k_taken", true)
+	=> post_2_questions
+
+- [if GameState.get_flag("dt_k_any_pulled", false) /] You sound like Splice for a second there. [#vector]
+	DialTone: ...
+	DialTone: Don't do that.
+	do StoryVec.nudge(&"dialtone_trust", -1)
+	do GameState.set_flag("dt_paragon_k_taken", true)
+	=> post_2_questions
+
+- Got it. Moving on. [#exit]
+	do GameState.set_flag("dt_paragon_k_taken", true)
+	=> post_2_questions
+
+=> dt_paragon_k
+
+
+# PARAGON (J) — DT optimism: the witty-T-shirt boycott. Verbatim from
+# corpus #J. Gated on K-taken so it lands as the follow-on after DT has
+# named the enemy. Three response options, same trust shape.
+~ dt_paragon_j
+
+DialTone: Honestly?
+DialTone: The best thing we can do for the planet is loudly boycott these companies.
+DialTone: The only ones on this stage with any chance of an impact.
+DialTone: Reinforce the moral depravity of propping up the biggest polluters while offering some noble alternative.
+DialTone: Put it on a witty T-shirt. Or a stop sign sticker.
+DialTone: Make it hilarious.
+Nyx: ...you've been workshopping that.
+DialTone: A little.
+
+- It's the only move that doesn't lose. [#vector]
+	DialTone: ...yeah.
+	DialTone: Yeah, that's it. That's the whole pitch.
+	Nyx: He's been waiting for someone to phrase it like that.
+	do StoryVec.nudge(&"dialtone_trust", 1)
+	do GameState.set_flag("dt_paragon_j_taken", true)
+	=> post_2_questions
+- T-shirts won't stop a trillion-dollar ad machine.
+	DialTone: ...probably not. Probably not.
+	DialTone: Doesn't mean it shouldn't be funny.
+	Nyx: This is why I keep him.
+	do GameState.set_flag("dt_paragon_j_taken", true)
+	=> post_2_questions
+- You're playing while the building burns. [#vector]
+	DialTone: ...
+	DialTone: Yeah. Maybe.
+	do StoryVec.nudge(&"dialtone_trust", -1)
+	do GameState.set_flag("dt_paragon_j_taken", true)
+	=> post_2_questions
+
+
+# PARAGON (ESPN-drip duet) — four-beat group exchange. Verbatim from
+# corpus #42 split: Nyx opens (refuse-to-villainize), DT delivers
+# sociological observation, Nyx implicates herself, DT lands the
+# collapse warning. Both characters reveal themselves. One-shot.
+# Warm response earns +1 to both; cold costs both.
+~ dt_nyx_espn_duet
+
+Nyx: ...
+Nyx: Is there really a bad guy though?
+Nyx: These ambitious culture carriers. These power preservers.
+DialTone: For those without easy access to power — or relentless pursuit of ambition — we mostly want year-round entertainment.
+DialTone: That steady ESPN drip.
+DialTone: Go to a baseball game. The tension and release. The drama.
+DialTone: Don't give us quiet boredom. Please, please, please. Anything but boredom.
+Nyx: ...is that not me, really?
+DialTone: ...
+DialTone: We cannot keep this up.
+DialTone: The pressures are mounting. Unsustainable.
+DialTone: Collapse is coming.
+Nyx: ...yeah.
+
+- So what do we do? [#vector]
+	DialTone: ...this. We do this.
+	Nyx: ...something like this.
+	do StoryVec.nudge(&"dialtone_trust", 1)
+	do StoryVec.nudge(&"nyx_trust", 1)
+	do GameState.set_flag("dt_nyx_espn_duet_taken", true)
+	=> post_2_questions
+- So we just keep going.
+	DialTone: ...yeah.
+	Nyx: For now.
+	DialTone: For now.
+	do GameState.set_flag("dt_nyx_espn_duet_taken", true)
+	=> post_2_questions
+- You two should write a book. [#vector]
+	Nyx: ...okay.
+	DialTone: Ha. Sure.
+	do StoryVec.nudge(&"dialtone_trust", -1)
+	do StoryVec.nudge(&"nyx_trust", -1)
+	do GameState.set_flag("dt_nyx_espn_duet_taken", true)
+	=> post_2_questions
+
+
+# CANON — exit beat; advances plot to L3.
 ~ post_2_done
 
 DialTone: Alright let's get moving runner.

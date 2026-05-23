@@ -1,5 +1,13 @@
 # Hack The Planet — Narrative Spine
 
+---
+
+## Author's vision (verbatim — north star, do not paraphrase)
+
+> i want this to feel like a visual novel occasionally if you so choose to go deep.. make sense? like nested branching convos.. and we store flags and comment why.. maybe they will come in play later... relevant here is hints of nyx neuroticsm and artistic purity leaning or options for you to push back and nyx is a realist.. and will question whether any of this is worth doing and how working more and more is maybe just playing into stuff.. that is core nyx and is currently under explored.. dialtone is occasionally naive idealistic and a little bit swayed by the path splice has taken.. YOU, the player get to optionally be the idealist beliveing and questioning art.. BECAUSE THIS whole world we are in is a generative and emergent place and has implications for how all the future of the world will be shaped.. and splice, nyx and dialtone made it together.. and have different visions, you were recruited to replace splice and help.. splice is in here trying to understand the secret, take it and package it.. you have questions about is it really creative.. and different characters give different results.. well you are able to pull that thread.. a vector of artistic purity vs lets use this thing.. make sense?
+
+---
+
 The thesis behind every line. When in doubt, return here.
 
 ---

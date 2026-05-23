@@ -838,18 +838,18 @@ line = "Coordinates inbound. Should be on your tracker in a second."
 require_flag = &""
 
 [node name="splice13" parent="." index="147" unique_id=974679742 instance=ExtResource("9_walkie")]
-transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, 1.3702679, 26.82721, -332.1593)
+transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, 1.3702679, 26.82721, -338.63824)
 character = &"Splice"
 line = "**At long last**, the mouse has sprung the **trap**."
 require_flag = &""
 
 [node name="splice14" parent="." index="148" unique_id=502236827 instance=ExtResource("9_walkie")]
-transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, 1.3702679, 26.82721, -299.65567)
+transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, 1.3702679, 26.82721, -318.53766)
 line = "Dear God"
 require_flag = &""
 
 [node name="splice15" parent="." index="149" unique_id=1877461177 instance=ExtResource("9_walkie")]
-transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, -36.650673, 26.82721, -299.65567)
+transform = Transform3D(8.913154, 0, 0, 0, 2.4110703, 0, 0, 0, 8.109209, -0.40436554, 26.82721, -293.0725)
 character = &"Nyx"
 line = "Splice locked us out, you're not heading toward my signal! {player_handle}, he's in there with you!"
 require_flag = &""
