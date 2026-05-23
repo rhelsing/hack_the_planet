@@ -229,14 +229,18 @@ DialTone: You got the plan?
 	DialTone: A little.
 	do GameState.set_flag("dialtone_messenger_thread", 3)
 
-# ── PARAGON probes — surface once dialtone_trust >= 2 ───────────────────
+# ── SPELUNK probes — surface once dialtone_trust >= 2 ──────────────────
+# The post-L2 hub is the paragon (model implementation) for dialogue
+# depth in this project; the deeper content the player unlocks here is
+# character spelunking — the player going down into character via
+# verbatim author-prose pulled one beat at a time.
 # These are the "step deeper than small talk" beats. Each delivers verbatim
 # author-prose from `story/raw_writing_part_1.md`, then routes to a Rule-8
 # response side block where the player picks how to land it (3 options:
 # warm / neutral / cold). One-shot each via *_taken flags. See
-# story/better_spine_v4.md for the paragon design.
+# story/better_spine_v4.md for the spelunk design.
 
-# PARAGON (K) — DT philosophy: names the enemy. Verbatim corpus #K (DT
+# SPELUNK (K) — DT philosophy: names the enemy. Verbatim corpus #K (DT
 # attribution: "this next part is probably dial tone continuing").
 # Gateway-taken set is moved INTO the exit options inside dt_paragon_k so
 # the one-shot only burns once the player actually finishes the conversation,
@@ -244,14 +248,14 @@ DialTone: You got the plan?
 - [if StoryVec.value(&"dialtone_trust") >= 2 and not GameState.get_flag("dt_paragon_k_taken", false) /] What's actually at stake here, for you?
 	=> dt_paragon_k
 
-# PARAGON (J) — DT optimism: the witty-T-shirt cope. Gated on K-taken so it
+# SPELUNK (J) — DT optimism: the witty-T-shirt cope. Gated on K-taken so it
 # lands as the *follow-on* once DT has named the enemy. Verbatim corpus #J
 # (DT attribution: "this is pure dial tone"). Gateway-taken set is moved
 # into dt_paragon_j response options for the same reason as K.
 - [if GameState.get_flag("dt_paragon_k_taken", false) and not GameState.get_flag("dt_paragon_j_taken", false) /] You think a boycott would even matter?
 	=> dt_paragon_j
 
-# PARAGON (ESPN duet) — the four-beat group exchange. Nyx delivers the
+# SPELUNK (ESPN duet) — the four-beat group exchange. Nyx delivers the
 # "is there really a bad guy" framing + self-implication; DT delivers the
 # sociological observation + collapse-warning crack (Harvey crack — DT
 # briefly bleeds Splice register, which is the design). Verbatim corpus
@@ -391,7 +395,7 @@ DialTone: I mean — do you believe in second chances?
 	=> splice_subhub
 
 
-# PARAGON (K) — DT philosophy: advertising as the pure-evil enemy.
+# SPELUNK (K) — DT philosophy: advertising as the pure-evil enemy.
 # Restructured as an interactive rant subhub (modeled on splice_subhub):
 # opening hook fires once, sub-probes pull individual corpus beats in
 # any order, closing commit options surface once any beat pulled.
@@ -460,19 +464,21 @@ if not GameState.get_flag("dt_paragon_k_hook_seen", false)
 => dt_paragon_k
 
 
-# PARAGON (J) — DT optimism: the witty-T-shirt boycott. Verbatim from
+# SPELUNK (J) — DT optimism: the witty-T-shirt boycott. Verbatim from
 # corpus #J. Gated on K-taken so it lands as the follow-on after DT has
 # named the enemy. Three response options, same trust shape.
 ~ dt_paragon_j
 
-DialTone: Honestly?
-DialTone: The best thing we can do for the planet is loudly boycott these companies.
-DialTone: The only ones on this stage with any chance of an impact.
-DialTone: Reinforce the moral depravity of propping up the biggest polluters while offering some noble alternative.
-DialTone: Put it on a witty T-shirt. Or a stop sign sticker.
-DialTone: Make it hilarious.
-Nyx: ...you've been workshopping that.
-DialTone: A little.
+if not GameState.get_flag("dt_paragon_j_hook_seen", false)
+	DialTone: Honestly?
+	DialTone: The best thing we can do for the planet is loudly boycott these companies.
+	DialTone: The only ones on this stage with any chance of an impact.
+	DialTone: Reinforce the moral depravity of propping up the biggest polluters while offering some noble alternative.
+	DialTone: Put it on a witty T-shirt. Or a stop sign sticker.
+	DialTone: Make it hilarious.
+	Nyx: ...you've been workshopping that.
+	DialTone: A little.
+	do GameState.set_flag("dt_paragon_j_hook_seen", true)
 
 - It's the only move that doesn't lose. [#vector]
 	DialTone: ...yeah.
@@ -495,26 +501,28 @@ DialTone: A little.
 	=> post_2_questions
 
 
-# PARAGON (ESPN-drip duet) — four-beat group exchange. Verbatim from
+# SPELUNK (ESPN-drip duet) — four-beat group exchange. Verbatim from
 # corpus #42 split: Nyx opens (refuse-to-villainize), DT delivers
 # sociological observation, Nyx implicates herself, DT lands the
 # collapse warning. Both characters reveal themselves. One-shot.
 # Warm response earns +1 to both; cold costs both.
 ~ dt_nyx_espn_duet
 
-Nyx: ...
-Nyx: Is there really a bad guy though?
-Nyx: These ambitious culture carriers. These power preservers.
-DialTone: For those without easy access to power — or relentless pursuit of ambition — we mostly want year-round entertainment.
-DialTone: That steady ESPN drip.
-DialTone: Go to a baseball game. The tension and release. The drama.
-DialTone: Don't give us quiet boredom. Please, please, please. Anything but boredom.
-Nyx: ...is that not me, really?
-DialTone: ...
-DialTone: We cannot keep this up.
-DialTone: The pressures are mounting. Unsustainable.
-DialTone: Collapse is coming.
-Nyx: ...yeah.
+if not GameState.get_flag("dt_nyx_espn_duet_hook_seen", false)
+	Nyx: ...
+	Nyx: Is there really a bad guy though?
+	Nyx: These ambitious culture carriers. These power preservers.
+	DialTone: For those without easy access to power — or relentless pursuit of ambition — we mostly want year-round entertainment.
+	DialTone: That steady ESPN drip.
+	DialTone: Go to a baseball game. The tension and release. The drama.
+	DialTone: Don't give us quiet boredom. Please, please, please. Anything but boredom.
+	Nyx: ...is that not me, really?
+	DialTone: ...
+	DialTone: We cannot keep this up.
+	DialTone: The pressures are mounting. Unsustainable.
+	DialTone: Collapse is coming.
+	Nyx: ...yeah.
+	do GameState.set_flag("dt_nyx_espn_duet_hook_seen", true)
 
 - So what do we do? [#vector]
 	DialTone: ...this. We do this.
@@ -529,9 +537,9 @@ Nyx: ...yeah.
 	DialTone: For now.
 	do GameState.set_flag("dt_nyx_espn_duet_taken", true)
 	=> post_2_questions
-- You two should write a book. [#vector]
-	Nyx: ...okay.
-	DialTone: Ha. Sure.
+- That's a lot of analysis for people who aren't doing anything about it. [#vector]
+	Nyx: ...
+	DialTone: ...okay.
 	do StoryVec.nudge(&"dialtone_trust", -1)
 	do StoryVec.nudge(&"nyx_trust", -1)
 	do GameState.set_flag("dt_nyx_espn_duet_taken", true)
