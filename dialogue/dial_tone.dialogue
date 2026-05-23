@@ -190,8 +190,10 @@ DialTone: You got the plan?
 # admission — the crew is complicit in Splice's framing.
 - [if GameState.get_flag("post_2_asked_plan", false) /] Is there another way?
 	DialTone: This shouldn't be a race.
-	DialTone: But he's chasing because he thinks something worse is too.
+	DialTone: He's chasing because he thinks if he doesn't, something worse will.
 	Nyx: He's probably right.
+	DialTone: And for us? Same thing.
+	DialTone: Except Splice is that worse. And he's got a real shot.
 	DialTone: If he gets there first... well, we don't know.
 	DialTone: But he's convinced that it changes everything.
 	Nyx: He's convinced the masses too.
@@ -291,8 +293,8 @@ DialTone: You got the plan?
 - Who is Splice?
 	DialTone: He was one of us.
 	DialTone: He still is, kind of. That's the part that — anyway.
-	DialTone: He looked at what we built and saw an opportunity to win the room.
-	DialTone: Stopped seeing the work. Started seeing the room.
+	DialTone: It's all about territory capture for him.
+	DialTone: Stopped seeing the work. Started seeing the map.
 	DialTone: He doesn't get the tech the way Nyx does. He gets the power.
 	Nyx: That's a clean way of putting it.
 	DialTone: Outside this room? He's the answer.
