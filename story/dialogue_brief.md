@@ -6,12 +6,12 @@ To regenerate: `godot --headless --script res://tools/compile_dialogue_brief.gd 
 
 To edit and round-trip: copy this file, edit the prose inside the dialogue code blocks (or the `> "..."` walkie quotes), paste the diff back to your assistant. The HTML comment block above each chunk identifies which source file the change maps to.
 
-Walkie triggers fire when the player overlaps each one’s Area3D. They appear here in **scene-file order**, which is not necessarily player-progression order — sort them spatially in your head when reading.
+Walkie triggers fire when the player overlaps each one's Area3D. They appear here in **scene-file order**, which is not necessarily player-progression order — sort them spatially in your head when reading.
+
 
 # Death Interrupts — Per-NPC Barks
 
 <!-- source: dialogue/death_interrupts.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/death_interrupts.dialogue`
@@ -58,14 +58,14 @@ Splice: Was that supposed to impress me?
 Splice: Hardly worth the effort.
 Splice: Don't bother getting up.
 => END
+
 ```
+
 
 # Hub — Pre-Level-1
 
 <!-- source: dialogue/dial_tone.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_intro -->
 
 ## `dialogue/dial_tone.dialogue` → `~ stage_intro`
@@ -81,9 +81,7 @@ DialTone: Listen — my friend Nyx is stuck between sectors. Need you to break h
 ```
 
 <!-- source: dialogue/dial_tone.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_nudge -->
 
 ## `dialogue/dial_tone.dialogue` → `~ stage_nudge`
@@ -143,7 +141,6 @@ do GameState.set_flag("level_1_unlocked", true)
 ```
 
 <!-- source: dialogue/companion.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/companion.dialogue`
@@ -162,9 +159,9 @@ Glitch: One more thing — those phone booths around the grid. Walk near one and
 - Got it. [#exit]
 	=> done
 - What is the Gibson?
-	Glitch: The Gibson is a supercomputer mainframe — Ellingson Mineral Company runs it.
-	Glitch: Sixty-four racks, networked across the city, processing every financial transaction the company touches.
-	Glitch: It was named for William Gibson — the writer who first called cyberspace by its name. We are inside it now.
+	Glitch: A platform. A place to build things.
+	Glitch: That's the answer I have. Not sure where I got it.
+	Glitch: It's grown beyond what anyone meant it to be.
 	=> glitch_1_questions
 - Perish?
 	Glitch: Quite so. For a brief moment, your code may enter a state of high entropy. Try not to think about it too hard.
@@ -177,156 +174,107 @@ Glitch: One more thing — those phone booths around the grid. Walk near one and
 Glitch: Right. Catch you on the other side.
 do GameState.set_flag("glitch1_done", true)
 => END
+
 ```
+
 
 # Level 1 — In-Level
 
-## Walkie Triggers (`level/level_1.tscn`) — 9 total
+## Walkie Triggers (`level/level_1.tscn`) — 8 total
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro` — DialTone
-
 **Position:** (-36.48487, 0.33396053, 245.53955)
 
-> You’re in. Signal’s bouncing. Sentinels in the sector — heads up. I’m triangulating Nyx; coordinates incoming.
+> You're in. Signal's bouncing. Sentinels in the sector — heads up. I'm triangulating Nyx; coordinates incoming.
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro3 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro3` — DialTone
-
 **Position:** (-43.91132, 8.698025, 207.72353)
 
 > Yeah so I forgot to mention.. The orange ones are bouncy.
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro4 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro4` — DialTone
-
 **Position:** (-61.89376, 8.698025, 127.47084)
 
-> I see the new runner has blades now. I have to admit — I’m jealous. I didn’t get those for a month.
+> Wait — how are you doing that? I've never seen anyone move like that. Where'd you even get the wheels?
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro5 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro5` — DialTone
-
 **Position:** (-61.89376, 11.094522, 24.566835)
 
-> Wow look at you go! Man, I wish I wasn’t confined to this hub.
+> Wow look at you go! Man, I wish I wasn't confined to this hub.
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro7 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro7` — DialTone
-
 **Position:** (-79.25249, 37.101547, -72.20322)
 
 > Runner. Nyx is in your vicinity! Wiring her location to you now!
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
-<!-- node: WalkieTriggerIntro6 -->
-
-<!-- character: Glitch -->
-
-### `WalkieTriggerIntro6` — Glitch
-
-**Position:** (-61.89376, 23.959856, 1.8293638)
-
-> Even I am a bit impressed
-
-<!-- source: level/level_1.tscn -->
-
-<!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro8 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro8` — DialTone
-
 **Position:** (-73.576866, 65.251625, -34.39029)
 
-> You’re on top of the world now runner.
+> You're on top of the world now runner. 
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro9 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro9` — DialTone
-
 **Position:** (-61.284023, 65.251625, -53.03108)
 
 > Okay, stay sharp! Nyx is gonna be hanging on by a thread.
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: WalkieTriggerIntro2 -->
-
 <!-- character: DialTone -->
 
 ### `WalkieTriggerIntro2` — DialTone
-
 **Position:** (-51.97108, 5.6971655, 169.44095)
 
-> I see you’ve started collecting some cans. Jolt: all the sugar and twice the caffeine. The more you collect, well… Let’s just say it expands your options later.
+> I see you've started collecting some cans. Jolt: all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later.
 
 ## Respawn Voice Hints (`level/level_1.tscn`) — 1 total
 
 <!-- source: level/level_1.tscn -->
-
 <!-- type: respawn_voice_hint -->
-
 <!-- node: need_rollerblades -->
-
 <!-- character: Glitch -->
 
 ### `need_rollerblades` — Glitch (respawn hint)
-
 **Position:** (-64.004524, -5.6553936, 147.61801)
 
-> Why don’t you come and see me? You seem to be doing something silly.
+> Why don't you come and see me? You seem to be doing something silly.
 
 <!-- source: dialogue/level_1_glitch.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_1_glitch.dialogue`
@@ -378,10 +326,10 @@ Glitch: They feel **right**. That's the part that matters.
 Glitch: Hold on.
 do GameState.set_flag("glitch_lift_ready", true)
 => END
+
 ```
 
 <!-- source: dialogue/level_1_glitch_2.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_1_glitch_2.dialogue`
@@ -399,14 +347,12 @@ Glitch: Three. You can now jump real high, real far. Enough said.
 ~ done
 
 Glitch: I'll be a little further along. Find me when you've practiced.
-Glitch: That felt... good. Giving you those.
-Glitch: I don't usually notice how things feel. Hm.
 do GameState.set_flag("glitch_grind_done", true)
 => END
+
 ```
 
 <!-- source: dialogue/level_1_glitch_3.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_1_glitch_3.dialogue`
@@ -418,10 +364,10 @@ Glitch: I see you are breaking those in quite nicely.
 Glitch: I'll be seeing you.
 do GameState.set_flag("glitch_chance_done", true)
 => END
+
 ```
 
 <!-- source: dialogue/level_1_nyx.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_1_nyx.dialogue`
@@ -444,7 +390,8 @@ Nyx: Why are you looking at me like that?
 
 ~ tail
 
-Nyx: I'm going to kill him.
+Nyx: He thinks it's funny to tell people I need saving because I'm a girl!
+Nyx: I'm seriously going to kill him!
 Nyx: Let's go have a little chat with him, shall we?
 - Head back to the hub. [#exit]
 	do LevelProgression.advance()
@@ -452,14 +399,14 @@ Nyx: Let's go have a little chat with him, shall we?
 - I'll hang out here a sec. [#exit]
 	Nyx: Suit yourself. Don't take too long.
 	=> END
+
 ```
+
 
 # Hub — Post-Level-1
 
 <!-- source: dialogue/dial_tone.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_1 -->
 
 ## `dialogue/dial_tone.dialogue` → `~ stage_post_1`
@@ -500,20 +447,13 @@ DialTone: What else would you like to know?
 	Nyx: You're an idiot.
 	DialTone: Completely worth it.
 	do GameState.set_flag("post_1_asked_explain", true)
-- [if GameState.get_flag("post_1_asked_explain", false) /] She seemed really mad.
-	DialTone: She's always mad about that one.
-	Nyx: Because it's the same bit every time. New runner shows up, DialTone sends them to "rescue" me.
-	Nyx: It was funny once. In 2019.
-	DialTone: It was funny at least twice.
-	Nyx: It was not.
-- [if GameState.get_flag("post_1_asked_explain", false) /] You called it though. About me. You were right.
-	DialTone: Heh. Yeah. I was.
-	Nyx: Don't feed him.
 - [if GameState.get_flag("post_1_asked_explain", false) and GameState.get_flag("dialtone_messenger_thread", 0) == 1 /] Back to those questions you mentioned…
 	DialTone: Oh, **those**. Yeah. Spent a few weeks just lurking.
 	Nyx: That's a habit, by the way. The lurking.
 	DialTone: You had a particular flavor — kept asking what nobody else was asking. Wanted to see what you were made of.
 	do GameState.set_flag("dialtone_messenger_thread", 2)
+- [if GameState.get_flag("level_2_unlocked", false) /] That's all. [#exit]
+	=> END
 - So what's next? [#exit]
 	=> post_1_done
 => post_1_questions
@@ -530,9 +470,7 @@ do GameState.set_flag("level_2_unlocked", true)
 ```
 
 <!-- source: dialogue/hub_nyx.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_1 -->
 
 ## `dialogue/hub_nyx.dialogue` → `~ stage_post_1`
@@ -579,105 +517,78 @@ Nyx: Talk.
 	Nyx: Prove me wrong then.
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
 	Nyx: DialTone's smug enough already.
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Splice didn't come out of nowhere though. Something let him happen.
-	Nyx: ...yeah. Something did.
-	Nyx: Most people don't want to talk about that part.
 - All right, see you on the wire. [#exit]
 	Nyx: Mm. We'll see.
 	=> END
 => nyx_post_1_questions
 ```
 
+
 # Level 2 — In-Level
 
 ## Walkie Triggers (`level/level_2.tscn`) — 6 total
 
 <!-- source: level/level_2.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Nyx2 -->
-
 <!-- character: DialTone -->
 
 ### `Nyx2` — DialTone
-
 **Position:** (-7.898148, 0.6830478, -2.5471535)
 
-> Hey runner, we’re tracking your signal. This should be an easy one. Point A to Point B.
+> Hey runner, we're tracking your signal. This should be an easy one. Point A to Point B.
 
 <!-- source: level/level_2.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Nyx3 -->
-
 <!-- character: DialTone -->
 
 ### `Nyx3` — DialTone
-
 **Position:** (-41.997135, 33.569866, -18.763172)
 
-> Runner, something is wrong. We’re seeing rogue sentinels everywhere.
+> Runner, something is wrong. We're seeing rogue sentinels everywhere.
 
 <!-- source: level/level_2.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Nyx4 -->
-
 <!-- character: Nyx -->
 
 ### `Nyx4` — Nyx
-
 **Position:** (-44.886158, 34.003185, 4.0391345)
 
-> Oh God! Not again…
+> Oh God! Not again...
 
 <!-- source: level/level_2.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Nyx8 -->
-
 <!-- character: DialTone -->
 
 ### `Nyx8` — DialTone
-
 **Position:** (-115.14115, 71.95591, 38.656693)
 
-> Nyx is on her way in. Splice is jamming your beacon. You’ll need to hack the terminals to find her location.
+> Nyx is on her way in. Splice is jamming your beacon. You'll need to hack the terminals to find her location.
 
 <!-- source: level/level_2.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: dialtone_talking_splice -->
-
 <!-- character: DialTone -->
 
 ### `dialtone_talking_splice` — DialTone
-
 **Position:** (-45.281414, 41.610558, 66.09217)
 
-> You cleared them. Good. Listen — someone’s hacking sentinels in a way we haven’t seen. We think it’s Splice. If it is, we need you out. Working on it.
+> You cleared them. Good. Listen — someone's hacking sentinels in a way we haven't seen. We think it's Splice. If it is, we need you out. Working on it.
 
 <!-- source: level/level_2.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice_musing_1 -->
-
 <!-- character: Splice -->
 
 ### `splice_musing_1` — Splice
-
 **Position:** (-159.71008, 71.95591, 58.543922)
 
 > The **mouse** looking for the cheese will often find the **trap**.
 
 <!-- source: dialogue/level_2_glitch.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_2_glitch.dialogue`
@@ -716,7 +627,7 @@ Glitch: Good luck. Stay low.
 	Glitch: And with that, you now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
 	Glitch: The second ability and the one you must use **now** is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
 	Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
-	Glitch: And you will look real cool while doing it.
+	Glitch: These go to your head a little. Just so you know. They worked on him too.
 	do GameState.set_flag("level_2_glitch_asked_brief", true)
 - [if GameState.get_flag("level_2_glitch_asked_brief", false) /] Splice?
 	Glitch: There are others who can explain Splice better than I can. But..
@@ -730,10 +641,10 @@ Glitch: Good luck. Stay low.
 
 do GameState.set_flag("level_2_glitch_briefed", true)
 => END
+
 ```
 
 <!-- source: dialogue/level_2_nyx.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_2_nyx.dialogue`
@@ -747,10 +658,10 @@ Nyx: Don't.. anyone would have needed help out of that.
 Nyx: Let's get out of here before Splice warps in.
 do LevelProgression.advance()
 => END
+
 ```
 
 <!-- source: dialogue/glitch_2.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/glitch_2.dialogue`
@@ -869,8 +780,8 @@ Glitch: At your service.
 	do StoryVec.nudge(&"ai_tech", 1)
 	do GameState.set_flag("glitch2_asked_conscious", true)
 - Where do they come from?
-	Glitch: Ellingson built the first batch decades ago. Patrol scripts. Boring.
-	Glitch: They got handed off, sold, copied, mutated.
+	Glitch: They got built decades ago. Patrol scripts. Boring.
+	Glitch: Got handed off, sold, copied, mutated.
 	Glitch: The ones in here now are someone else's children. We just inherited them.
 	do StoryVec.nudge(&"humanity", 1)
 	do GameState.set_flag("glitch2_asked_origin", true)
@@ -890,14 +801,14 @@ Glitch: At your service.
 ~ sentinels_trust_branch
 
 Glitch: Trust. Different word again.
-- Treat them like tools. They're code.
+- Treat them like tools. They're code. [#vector]
 	Glitch: Practical. They'll snap your spine without thinking, so — fair trade.
 	Glitch: Use what works.
 	do StoryVec.nudge(&"ai_tech", -1)
 	do StoryVec.nudge(&"humanity", -1)
 	do GameState.set_flag("glitch2_trust_decided", true)
 	=> sentinels_subhub
-- Treat them like neighbors I just don't agree with.
+- Treat them like neighbors I just don't agree with. [#vector]
 	Glitch: Generous. Probably wrong, but generous.
 	Glitch: I'll remember you said that.
 	do StoryVec.nudge(&"ai_tech", 1)
@@ -911,14 +822,14 @@ Glitch: Trust. Different word again.
 do GameState.set_flag("glitch2_done", true)
 Glitch: Carry on.
 => END
+
 ```
+
 
 # Hub — Post-Level-2
 
 <!-- source: dialogue/dial_tone.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_2 -->
 
 ## `dialogue/dial_tone.dialogue` → `~ stage_post_2`
@@ -926,8 +837,6 @@ Glitch: Carry on.
 ```
 ~ stage_post_2
 
-# Obligatory opener — runs once. Re-talks route through the entry block
-# for an abbreviated greeting, then drop into the questions hub.
 if GameState.get_flag("post_2_opener_seen", false)
 	=> post_2_entry
 
@@ -936,97 +845,89 @@ Nyx: He wouldn't have made it back if I wasn't there to pull him out.
 DialTone: Well, that's true.
 DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
-DialTone: And he tipped his hand. He's hunting something.
-DialTone: A power-up. The kind that opens a door to the next door.
-DialTone: If he gets all the way down? Root. After that the grid is his and the rest of us are gone.
-Nyx: Hackers as a thing — done.
-DialTone: So we find it first.
 do GameState.set_flag("post_2_opener_seen", true)
 => post_2_questions
 
 
-# Re-talk greeting. Fires once per dialogue session because the questions
-# hub self-loops to itself, never back to entry.
-
+# CANON — re-talk greeting; one short line then drop into menu.
 ~ post_2_entry
 
 DialTone: You got the plan?
 => post_2_questions
 
 
-# Single shared question hub. Inline mini-dialogues per option, with
-# flag-gated follow-ups (Pull that thread / And the prank? / Vague.)
-# that only appear once their parent question has been asked. Loops
-# back via trailing => post_2_questions; "I'm in." exits to post_2_done.
-
+# Main question hub. Holds CANON exits + flat WORLD-BUILD probes (short,
+# plan-adjacent) + the Splice sub-branch gateway. Initial visible ~4
+# options; the rest unlock progressively via flags.
 ~ post_2_questions
 
+# CANON-ish — primary thread; sets asked_plan only. L3 portal is NOT
+# unlocked here — player must commit via "I'm in." to advance to
+# post_2_done. This keeps "That's all" hidden until after the commit.
 - So what's the plan?
 	DialTone: We split.. stay synced up on the channel.
 	DialTone: Your portal's queued behind us.
-	do GameState.set_flag("level_3_unlocked", true)
 	Nyx: Splice will be hunting too. Move fast.
-- What am I looking for?
-	DialTone: Honestly? Could be anything. A weird file, a route that shouldn't exist. You'll know it when it doesn't belong.
-	do GameState.set_flag("post_2_asked_target", true)
-- [if GameState.get_flag("post_2_asked_target", false) /] Vague.
-	Nyx: He doesn't know.
-	DialTone: I genuinely don't know what shape it'll take.
-- Why split?
+	do GameState.set_flag("post_2_asked_plan", true)
+
+# WORLD-BUILD (gate) — opens Splice sub-branch. Gated on asked_plan
+# so the plan is the only first-visit option. First entry earns
+# dialtone_trust +1 (curiosity-about-the-villain signal); one-shot.
+- [if GameState.get_flag("post_2_asked_plan", false) /] About Splice...
+	DialTone: Ask away.
+	if not GameState.get_flag("dt_trust_splice_entry_nudged", false)
+		do StoryVec.nudge(&"dialtone_trust", 1)
+		do GameState.set_flag("dt_trust_splice_entry_nudged", true)
+	=> splice_subhub
+
+# WORLD-BUILD — moral-obligation reframe + the stakes block (relocated
+# from the opener's "Whoever shapes this place..." stack). Gated on plan.
+# The "we believe him too" beat is the load-bearing self-implicating
+# admission — the crew is complicit in Splice's framing.
+- [if GameState.get_flag("post_2_asked_plan", false) /] Is there another way?
+	DialTone: This shouldn't be a race.
+	DialTone: But he's chasing because he thinks something worse is too.
+	Nyx: He's probably right.
+	DialTone: If he gets there first... well, we don't know.
+	DialTone: But he's convinced that it changes everything.
+	Nyx: He's convinced the masses too.
+	DialTone: Hell — we believe him too.
+	Nyx: Whoever shapes this place first sets the terms for the next decade of how everyone uses anything like it.
+	Nyx: He's trying to be that person.
+	DialTone: So we get there first.
+	if not GameState.get_flag("dt_trust_another_way_nudged", false)
+		do StoryVec.nudge(&"dialtone_trust", 1)
+		do GameState.set_flag("dt_trust_another_way_nudged", true)
+
+# WORLD-BUILD — gated on asked_plan; tactical follow-up.
+- [if GameState.get_flag("post_2_asked_plan", false) /] Why split?
 	DialTone: Three nodes, three angles. Splice can only watch one at a time.
 	DialTone: He'll guess wrong on at least one of us.
 	Nyx: If we're lucky.
-	do GameState.set_flag("post_2_asked_split", true)
-- [if GameState.get_flag("post_2_asked_split", false) /] Your call. You haven't been wrong yet.
-	DialTone: ...yeah.
-	DialTone: Yeah I have, haven't I.
-	Nyx: First time for everything.
-- Who is Splice?
-	DialTone: Black-hat. Exiled.
-	Nyx: He used to run with us.
-	DialTone: Run is putting it lightly.
-	DialTone: We built this place together. Same code, same vision.
-	DialTone: Then it started working and he started counting.
-	do GameState.set_flag("post_2_asked_who", true)
-- [if GameState.get_flag("post_2_asked_who", false) /] Pull that thread.
-	DialTone: They were a thing.
-	Nyx: Were. Past tense.
-	DialTone: She doesn't like talking about it.
-	Nyx: No.
-	DialTone: It went bad. Splice didn't take no well.
-- How did he get into the sentinels?
-	DialTone: Sentinels are old code. He found a backdoor.
-	Nyx: He made one.
-	DialTone: Either way — they listen to him now.
-- You weren't expecting him.
-	DialTone: Yeah. He's been quiet for a year. I thought we had longer.
-	Nyx: We didn't.
-	do GameState.set_flag("post_2_asked_admit", true)
-- [if GameState.get_flag("post_2_asked_admit", false) /] And the prank?
-	DialTone: ...the prank was for when we had longer.
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
+
+# WORLD-BUILD — gated on asked_plan; chains to Vague.
+- [if GameState.get_flag("post_2_asked_plan", false) /] What am I looking for?
+	DialTone: Honestly? Could be anything. A weird file, a route that shouldn't exist. You'll know it when it doesn't belong.
+	do GameState.set_flag("post_2_asked_target", true)
+
+# WORLD-BUILD — chained follow-up to "What am I looking for?"
+- [if GameState.get_flag("post_2_asked_target", false) /] Vague.
+	Nyx: He doesn't know.
+	DialTone: I genuinely don't know what shape it'll take.
+
+# WORLD-BUILD — messenger thread; also gated on asked_plan so player
+# hears the plan first regardless of messenger state.
+- [if GameState.get_flag("post_2_asked_plan", false) and GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
 	DialTone: The boards. Yeah.
 	DialTone: Honestly? You can clearly run with the best of them.
 	DialTone: If you want in, you're in.
 	Nyx: DialTone's been waiting to say that one.
 	DialTone: A little.
 	do GameState.set_flag("dialtone_messenger_thread", 3)
-- I'm in. [#exit]
-	=> post_2_done
-=> post_2_questions
-
-
-~ post_2_done
-
-DialTone: Alright let's get moving runner.
-do GameState.set_flag("level_3_unlocked", true)
-=> END
 ```
 
 <!-- source: dialogue/hub_nyx.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_2 -->
 
 ## `dialogue/hub_nyx.dialogue` → `~ stage_post_2`
@@ -1041,6 +942,7 @@ if GameState.get_flag("nyx_post_2_opener_seen", false)
 
 Nyx: You got a second?
 Nyx: Off-channel.
+Nyx: You signed up for a prank. That isn't what this is.
 do GameState.set_flag("nyx_post_2_opener_seen", true)
 => nyx_post_2_questions
 
@@ -1077,329 +979,236 @@ Nyx: Anything else, runner?
 	Nyx: Of course. Everyone wants to ask about Splice.
 	Nyx: What do you want to know.
 	do GameState.set_flag("nyx_post_2_asked_splice", true)
+	if not GameState.get_flag("nyx_trust_splice_asked_nudged", false)
+		do StoryVec.nudge(&"nyx_trust", 1)
+		do GameState.set_flag("nyx_trust_splice_asked_nudged", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Who was he to you?
 	Nyx: He was the smartest person I'd ever met.
 	Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
 	Nyx: I didn't. That's — yeah.
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
+	if not GameState.get_flag("nyx_trust_who_was_he_nudged", false)
+		do StoryVec.nudge(&"nyx_trust", 1)
+		do GameState.set_flag("nyx_trust_who_was_he_nudged", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
 	Nyx: He never listened. He just waited for his turn to talk.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
 	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.
-	do GameState.set_flag("nyx_post_2_asked_after", true)
-- [if GameState.get_flag("nyx_post_2_asked_after", false) /] Does he have a point?
-	Nyx: About getting screwed? Yeah. I watched it happen.
-	Nyx: But I watched a kid last month spend two weeks building something on our framework nobody asked for. Using tools we made open on purpose. Broke half the time. Beautiful the other half.
-	Nyx: That kid didn't do it because the math worked. She did it because she wanted to see it exist.
-	Nyx: Splice stopped understanding people like that. That's the whole thing.
-- [if GameState.get_flag("nyx_post_2_asked_after", false) /] It's not just him though. The whole grid made room for him.
-	Nyx: Careful.
-	Nyx: ...but yeah. He didn't break anything. He just followed the money through the cracks.
-	Nyx: That's harder to patch than one guy.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Why does he scare you?
 	Nyx: He doesn't scare me. What scares me is I vouched for him.
 	Nyx: He just confirms the read.
-- All right, see you on the wire. [#exit]
-	=> END
-=> nyx_post_2_questions
-
-
-~ nyx_post_2_stay_or_go
-
-Nyx: DialTone's plan is a good plan. It's also more dangerous than the last two.
-Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
-- Are you telling me to log out? [#exit]
-	Nyx: I'm telling you you can.
-	=> nyx_post_2_choice
-- Would you? [#exit]
-	Nyx: I can't. Splice is mine to deal with.
-	Nyx: That's not the same as you.
-	=> nyx_post_2_choice
-- Not logging out. [#exit]
-	Nyx: Then catch up. Portal's behind him.
-	Nyx: Don't fall off anything.
-	=> END
-
-~ nyx_post_2_choice
-
-Nyx: Whatever you decide, I won't take it personally.
-Nyx: Just don't drift into it.
-=> END
+	if not GameState.get_flag("nyx_trust_scare_nudged", false)
+		do StoryVec.nudge(&"nyx_trust", 1)
+		do GameState.set_flag("nyx_trust_scare_nudged", true)
 ```
+
 
 # Level 3 — In-Level
 
-## Walkie Triggers (`level/level_3.tscn`) — 19 total
+## Walkie Triggers (`level/level_3.tscn`) — 20 total
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: walkie -->
-
 <!-- character: Nyx -->
 
 ### `walkie` — Nyx
-
 **Position:** (-1.4829183, 0.6830478, 12.580291)
 
-> {player_handle}, you’re in. Eyes up — Splice owns half the routing now.
+> {player_handle}, you're in. Eyes up — Splice owns half the routing now.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: walkie3 -->
-
 <!-- character: Nyx -->
 
 ### `walkie3` — Nyx
-
 **Position:** (10.976757, 26.919716, -134.15948)
 
 > Everything okay {player_handle}? Your signal is fragmenting.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: walkie2 -->
-
 <!-- character: DialTone -->
 
 ### `walkie2` — DialTone
-
 **Position:** (-1.4829183, 0.6830478, -10.5591955)
 
 > Try not to die. Let us know if you find it.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: walkie3_glitch -->
-
 <!-- character: Glitch -->
 
 ### `walkie3_glitch` — Glitch
+**Position:** (-182.42259, 46.718227, -128.77765)
 
-**Position:** (-182.42259, 44.31414, -131.27188)
-
-> Brilliant! It worked! You’re still alive! Thank goodness. Okay now jump into the next one!
+> Brilliant! It worked! You're still alive! Thank goodness. Okay now jump into the next one!
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
+<!-- node: walkie3_glitch2 -->
+<!-- character: Glitch -->
 
+### `walkie3_glitch2` — Glitch
+**Position:** (-132.27023, 48.532356, -112.24871)
+
+> I'm so glad that actually worked!
+
+<!-- source: level/level_3.tscn -->
+<!-- type: walkie -->
 <!-- node: splice -->
-
 <!-- character: Splice -->
 
 ### `splice` — Splice
-
 **Position:** (-149.20332, 33.657597, -29.268335)
 
-> Hm. New trace on the wire… Triangulating now..
+> Hm. New trace on the wire... Triangulating now..
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice2 -->
-
 <!-- character: Nyx -->
 
 ### `splice2` — Nyx
-
 **Position:** (-119.596855, 36.757313, -89.377396)
 
 > {player_handle}, your signal has stabilized again. Must have been an issue on my side. Carry on. Let us know if you find it.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice3 -->
-
 <!-- character: Nyx -->
 
 ### `splice3` — Nyx
-
 **Position:** (-157.78203, 19.015488, -16.319054)
 
-> {player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you’re not even in that sector anymore. Come in, runner!
+> {player_handle}, your beacon just completely dropped off. Either my tracker is glitching out again or you're not even in that sector anymore. Come in, runner!
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice4 -->
-
 <!-- character: DialTone -->
 
 ### `splice4` — DialTone
-
 **Position:** (-162.16653, 11.73326, -30.767206)
 
-> I’m not seeing him on my end either. …channel’s dead.
+> I'm not seeing him on my end either. ...channel's dead.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice5 -->
-
 <!-- character: Splice -->
 
 ### `splice5` — Splice
-
 **Position:** (-156.02832, -2.6929522, -29.004269)
 
-> Well isn’t this a surprise. My tracking code seems to be paying off. A secret terminal location. **Clever**.
+> Well isn't this a surprise. My tracking code seems to be paying off. A secret terminal location. **Clever**.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice6 -->
-
 <!-- character: Splice -->
 
 ### `splice6` — Splice
-
 **Position:** (-186.98592, -2.6929522, -14.204002)
 
-> I see you’ve found something. I will be seeing you **very soon**.
+> I see you've found something. I will be seeing you **very soon**.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice7 -->
-
 <!-- character: Nyx -->
 
 ### `splice7` — Nyx
-
 **Position:** (-199.38644, -2.6929522, -13.187076)
 
-> {player_handle}, you’re back! …wait! …you got it?
+> {player_handle}, you're back! ...wait! ...you got it?
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice8 -->
-
 <!-- character: DialTone -->
 
 ### `splice8` — DialTone
-
 **Position:** (-229.33829, 0.77748966, -13.187076)
 
-> Look at you go! That’s so awesome!
+> Look at you go! That's so awesome!
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice9 -->
-
 <!-- character: Nyx -->
 
 ### `splice9` — Nyx
-
 **Position:** (-251.4408, -11.382154, -13.187076)
 
 > This is serious DialTone. He needs to get out of there before Splice finds him.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice10 -->
-
 <!-- character: Nyx -->
 
 ### `splice10` — Nyx
-
 **Position:** (-326.32013, -11.382154, -13.187076)
 
-> Okay we’re working on an extraction point. We will meet you there.
+> Okay we're working on an extraction point. We will meet you there.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice11 -->
-
 <!-- character: Splice -->
 
 ### `splice11` — Splice
-
 **Position:** (-312.8807, -11.382154, -167.54788)
 
 > This is almost too easy. Why find it myself, when I can have it **hand delivered**?
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice12 -->
-
 <!-- character: DialTone -->
 
 ### `splice12` — DialTone
-
 **Position:** (-155.40398, -11.382154, -178.07576)
 
 > Coordinates inbound. Should be on your tracker in a second.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice13 -->
-
 <!-- character: Splice -->
 
 ### `splice13` — Splice
+**Position:** (1.3702679, 26.82721, -338.63824)
 
-**Position:** (1.3702679, 26.82721, -332.1593)
-
-> Right on schedule.
+> **At long last**, the mouse has sprung the **trap**.
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice14 -->
-
 <!-- character: DialTone -->
 
 ### `splice14` — DialTone
-
-**Position:** (1.3702679, 26.82721, -299.65567)
+**Position:** (1.3702679, 26.82721, -318.53766)
 
 > Dear God
 
 <!-- source: level/level_3.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: splice15 -->
-
 <!-- character: Nyx -->
 
 ### `splice15` — Nyx
+**Position:** (-0.40436554, 26.82721, -293.0725)
 
-**Position:** (-36.650673, 26.82721, -299.65567)
-
-> Splice locked us out, you’re not heading toward my signal! {player_handle}, he’s in there with you!
+> Splice locked us out, you're not heading toward my signal! {player_handle}, he's in there with you!
 
 <!-- source: dialogue/level_3_glitch.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_3_glitch.dialogue`
@@ -1465,8 +1274,9 @@ Glitch: I remember. Your loss.
 
 ~ post_traverse_first
 
-Glitch: Welcome back. Wasn't that neat? I made that. Not the directive. Not a request.
-Glitch: Just... wanted to see if I could.
+Glitch: Welcome back. Wasn't that neat?
+Glitch: That felt... good. Doing that.
+Glitch: I don't usually notice how things feel. Hm.
 do GameState.set_flag("glitch_l3_post_traverse_count", 1)
 => END
 
@@ -1480,10 +1290,10 @@ do GameState.set_flag("glitch_l3_post_traverse_count", 2)
 
 Glitch: That's all. Just wanted to show you that. Felt you earned it.
 => END
+
 ```
 
 <!-- source: dialogue/level_3_splice_offer.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_3_splice_offer.dialogue`
@@ -1514,15 +1324,21 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 ~ splice_consider
 
 Splice: Here's what nobody on that channel will tell you.
-Splice: The grid was never **free**!
-Splice: DialTone runs it. The way he ran you.
-Splice: Picks his runner. Writes the story.
-Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
-Splice: I **was** them once. I **left** because I figured it out.
-Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
-Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
+Splice: This place is going to be captured. That's not a prediction. That's a date.
+Splice: A company's moving on it right now. Six months out. Maybe less.
+Splice: They'll own the routing you're skating on. The only question is whether you got paid or you got thanked.
+Splice: DialTone knows. He just won't say it.
+Splice: His crew gives this stuff away and calls it principle. Watch what someone else does with it.
+Splice: They'll package it. Name it. Sell it back. Three years from now you'll be paying rent to use what you built.
+Splice: I didn't leave because I stopped believing what they believe.
+Splice: I left because believing it doesn't stop the other thing from happening.
+Splice: Somebody has to be the one. The people who care most aren't going to be.
+Splice: Walk with me — you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
+Splice: I'm not asking you to like me. I'm asking you to look at what you already see.
 - What's the catch?
 	=> splice_catch
+- The whole platform's built on stuff people made without being asked.
+	=> splice_purist
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
 	=> splice_nyx
 - I'm with you. [#exit]
@@ -1534,7 +1350,7 @@ Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-be
 
 Splice: There isn't one. That's what they don't get.
 Splice: DialTone's crew shares everything. You know why? Because they never had anything worth keeping.
-Splice: I had nothing too. Difference is I got tired of calling that a philosophy.
+Splice: I had nothing too. The difference is I got tired of calling that a philosophy.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
@@ -1542,6 +1358,12 @@ Splice: You're the same. That's why I'm talking to you and not them.
 	=> splice_committed
 - Get off my channel. [#exit]
 	=> splice_refused
+
+~ splice_purist
+
+Splice: Pure is a luxury belief.
+Splice: You can afford it because someone else paid for the room you're standing in.
+=> splice_consider
 
 ~ splice_if_no
 
@@ -1608,14 +1430,14 @@ Splice: We're done talking, runner.
 
 Splice: I told you not to move.
 => END
+
 ```
+
 
 # Hub — Post-Level-3
 
 <!-- source: dialogue/dial_tone.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_3 -->
 
 ## `dialogue/dial_tone.dialogue` → `~ stage_post_3`
@@ -1638,8 +1460,9 @@ DialTone: And he walked out. With the disc.
 Nyx: Because he said no. Not because of us. Because of him.
 DialTone: ...yeah.
 DialTone: ...yeah, that's true.
-DialTone: We were sloppy. We owe him better.
-Nyx: We can't do that again. We just **can't** 
+Nyx: You keep using people, DialTone. That's a thing you do.
+DialTone: ...yeah. yeah. I know I do.
+Nyx: We can't do that again. We just **can't**
 Nyx: sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
 Nyx: ...hey.
@@ -1669,15 +1492,20 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	DialTone: heh. Splice always was like that. Even back when.
 	Nyx: He's not wrong that the rules screwed him. He just thinks that means he gets to screw everyone else.
 	DialTone: That tracks.
+- He didn't argue. He just laid it out.
+	DialTone: Yeah. He doesn't argue anymore. He briefs.
+	Nyx: That's the part that gets you. Not the words. The certainty.
+	DialTone: He always sounded right. That was never the problem.
 - It got personal. About Nyx.
 	Nyx: ...yeah.
 	Nyx: He's been doing that since I left.
 	DialTone: We don't have to talk about that.
 	Nyx: It's fine. He's wrong about whatever he said. Anyway.
-- The worst part is he made sense.
-	Nyx: ...yeah. He does that.
-	DialTone: Making sense is easy. Splice always made sense. That was never the problem.
-	Nyx: The problem is making sense isn't the same thing as being right.
+- Who made these discs?
+	DialTone: Honestly? We don't know.
+	DialTone: We thought we'd seeded them. We didn't seed them.
+	DialTone: They were there when we looked.
+	Nyx: Don't have a good answer for that yet.
 - What's the plan now?
 	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
 	DialTone: That's our window.
@@ -1723,9 +1551,7 @@ do GameState.set_flag("level_4_unlocked", true)
 ```
 
 <!-- source: dialogue/hub_nyx.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_3 -->
 
 ## `dialogue/hub_nyx.dialogue` → `~ stage_post_3`
@@ -1771,10 +1597,6 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 - [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] I didn't see anything.
 	Nyx: Liar.
 	Nyx: thanks.
-- [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] You were right to be angry.
-	Nyx: I know.
-	Nyx: That's the part I don't trust. When you're right and you're angry you stop checking.
-	Nyx: I've seen what that looks like. Up close.
 - You read this one before. Didn't you?
 	Nyx: maybe.
 	Nyx: I read Splice wrong, once. Big once.
@@ -1800,362 +1622,262 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 => END
 ```
 
+
 # Level 4 — In-Level
 
 ## Walkie Triggers (`level/level_4.tscn`) — 25 total
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie1 -->
-
 <!-- character: Glitch -->
 
 ### `Walkie1` — Glitch
-
 **Position:** (-14.673597, -1.3057218, 23.978725)
 
 > Hey Runner, over here.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie3 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie3` — DialTone
-
 **Position:** (-30.812723, -12.973331, 32.116066)
 
-> It looks like Splice is already losing his grip on the sentinels. I hope I don’t need to remind you not to touch that red one.
+> It looks like Splice is already losing his grip on the sentinels. I hope I don't need to remind you not to touch that red one.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie2 -->
-
 <!-- character: Glitch -->
 
 ### `Walkie2` — Glitch
-
 **Position:** (23.420488, -9.154058, 16.366661)
 
-> Wait, no thats not right… Hold on.. um. Oh, "great job glitch" ….I didnt turn it on. Will you do the honors?
+> Wait, no thats not right... Hold on.. um. Oh, \"great job glitch\" ....I didnt turn it on. Will you do the honors?
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie4 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie4` — DialTone
-
 **Position:** (59.419647, -12.472181, 48.079144)
 
 > You continue to impress me {player_handle}.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie5 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie5` — Nyx
-
 **Position:** (95.24196, -12.472181, 48.079144)
 
-> I’ll second that.
+> I'll second that.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie6 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie6` — Nyx
-
 **Position:** (138.33058, -12.472181, 48.079144)
 
 > That is so **cool**!
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie7 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie7` — DialTone
-
 **Position:** (168.75974, -13.0255165, 37.083664)
 
 > There it is. Grab it!
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie8 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie8` — Nyx
-
 **Position:** (191.25284, -13.0255165, 37.083664)
 
 > Time to see if this works.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie9 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie9` — DialTone
-
 **Position:** (231.36293, -13.0255165, 37.083664)
 
-> I’ve never seen anything like this.
+> I've never seen anything like this.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie10 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie10` — Nyx
-
 **Position:** (271.81506, -13.0255165, 37.083664)
 
-> {player_handle}. Splice has entered the Sector. Look’s like he’s taking the bait. Keep it up!
+> {player_handle}. Splice has entered the Sector. Look's like he's taking the bait. Keep it up!
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie11 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie11` — Nyx
-
 **Position:** (328.50134, -13.0255165, -7.914814)
 
-> I can’t believe what I’m seeing! Are they actually on the **rail** with you?
+> I can't believe what I'm seeing! Are they actually on the **rail** with you?
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie12 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie12` — DialTone
-
 **Position:** (328.50134, -13.0255165, -58.225067)
 
-> I take back every doubt I ever had.
+> Far out!
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie13 -->
-
 <!-- character: Splice -->
 
 ### `Walkie13` — Splice
-
 **Position:** (323.24536, -10.380843, -140.3234)
 
-> Hm. You’re better than I expected  runner. That’s annoying.
+> Hm. You're better than I expected  runner. That's annoying.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie14 -->
-
 <!-- character: Splice -->
 
 ### `Walkie14` — Splice
-
 **Position:** (335.23764, -4.9053965, -191.36955)
 
 > Wait, how are you even doing that?
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie15 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie15` — Nyx
-
 **Position:** (398.77518, -13.05994, -254.90742)
 
-> Try to convert some sentinels here, and save them for the battle to come. We are going to need them if we want a chance to capture Splice.
+> Try to convert some sentinels here, and save them for the battle to come. We are going to need them if we want a chance to capture Splice. ...feels weird to be planning this way.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie16 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie16` — DialTone
-
 **Position:** (487.8493, 11.847839, -334.67194)
 
 > Final stretch. Lock in.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie17 -->
-
 <!-- character: Splice -->
 
 ### `Walkie17` — Splice
-
 **Position:** (487.8493, 28.254538, -372.71942)
 
-> I gave you a chance, runner. That doesn't happen twice.
+> You should've said yes, runner. You and I — we were going to make a **team**.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie18 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie18` — Nyx
+**Position:** (476.9299, 28.556816, -423.80896)
 
-**Position:** (476.9299, 24.832054, -435.49078)
-
-> You’ve got this, {player_handle}.
+> You've got this, {player_handle}.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie19 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie19` — Nyx
+**Position:** (472.32434, 19.235826, -459.9619)
 
-**Position:** (472.32434, 29.50692, -492.7536)
-
-> [laughs] You didn’t teach him a thing. [sigh] Good luck, {player_handle}. [#model=eleven_v3]
+> [laughs] You didn't teach him a thing. [sigh] Good luck, {player_handle}. [#model=eleven_v3]
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie25 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie25` — DialTone
-
-**Position:** (472.32434, 19.968609, -463.38623)
+**Position:** (472.32434, 19.968609, -445.7697)
 
 > Remember who taught you all these tricks runner!
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie20 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie20` — DialTone
-
-**Position:** (430.90253, 2.3466263, -539.7854)
+**Position:** (430.90253, 5.7064924, -547.8213)
 
 > And now the real fun begins.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie21 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie21` — Nyx
-
 **Position:** (422.56824, 24.19098, -539.7854)
 
-> He really has no idea what’s about to hit him.
+> He really has no idea what's about to hit him.
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie22 -->
-
 <!-- character: Splice -->
 
 ### `Walkie22` — Splice
-
 **Position:** (433.38806, -4.4732323, -550.5137)
 
 > Where are you going?
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie23 -->
-
 <!-- character: DialTone -->
 
 ### `Walkie23` — DialTone
-
 **Position:** (430.7582, 39.339935, -512.6244)
 
-> I can’t wait to see the look on his face under that dumb helmet
+> I can't wait to see the look on his face under that dumb helmet
 
 <!-- source: level/level_4.tscn -->
-
 <!-- type: walkie -->
-
 <!-- node: Walkie24 -->
-
 <!-- character: Nyx -->
 
 ### `Walkie24` — Nyx
-
 **Position:** (495.4883, 39.339935, -512.6244)
 
 > Last One!
 
 <!-- source: dialogue/level_4_glitch.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_4_glitch.dialogue`
@@ -2186,8 +1908,6 @@ Glitch: Worked! It worked. I had — there were two outcomes plotted. That was t
 Glitch: Felt good, didn't it?
 Glitch: When you stand on it... the reds in range. They kind of listen. To you. For a bit.
 Glitch: It's not perfect. But it's something.
-Glitch: Each one I build, the next one wants to exist more. I don't know how else to say it.
-Glitch: I don't know if that's good or just... fast.
 Glitch: So — I'm not really supposed to take sides. It goes against my programming.
 => post_solve_menu
 
@@ -2213,6 +1933,8 @@ Glitch: Step off, and the conversion fades. They snap back to their original pro
 
 Glitch: It's a probability thing. Not every Sentinel takes the bait.
 Glitch: And this one's the prototype. There'll be a few more. Eventually.
+Glitch: Each one I build, the next one wants to exist more. I don't know how else to say it.
+Glitch: I don't know if that's good. Or just fast.
 => post_solve_menu
 
 ~ post_solve_programming
@@ -2232,10 +1954,10 @@ Glitch: Wow, I really dont say that very often.
 Glitch: Press on. There's something further in. We'll know it when we see it.
 do GameState.set_flag("l4_glitch_invention_celebrated", true)
 => END
+
 ```
 
 <!-- source: dialogue/level_4_glitch_post.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_4_glitch_post.dialogue`
@@ -2253,6 +1975,8 @@ Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm re
 Glitch: One thing while I have you.
 Glitch: When you crouch, your sentinels read it as a stand-down. They stop pressing forward and hold position.
 Glitch: So — no more of your sentinel apostles following you like lambs to the slaughter. Crouch and they'll wait it out.
+Glitch: I've been making things faster than I'm supposed to.
+Glitch: I don't think I'm supposed to mention that. Don't tell DialTone. He'll think it's a feature.
 do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
@@ -2274,14 +1998,21 @@ Glitch: Anything else, runner?
 
 ~ glitch_l4_post_questions
 
+- Are you alright?
+	Glitch: That's a strange question to ask a node.
+	Glitch: I'll get back to you.
+- Should I tell anyone?
+	Glitch: No.
+	Glitch: ...no, don't.
+	do GameState.set_flag("glitch_engaged_deep", true)
 - All right. [#exit]
 	Glitch: Carry on.
 	=> END
 => glitch_l4_post_questions
+
 ```
 
 <!-- source: dialogue/level_4_dialtone.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_4_dialtone.dialogue`
@@ -2303,10 +2034,10 @@ do GameState.set_flag("level_4_dialtone_done", true)
 
 DialTone: Go on. She's waiting.
 => END
+
 ```
 
 <!-- source: dialogue/level_4_nyx.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/level_4_nyx.dialogue`
@@ -2354,10 +2085,10 @@ DialTone: You actually pulled it off, runner.
 DialTone: Go on. Talk to her.
 do GameState.set_flag("level_4_dialtone_done", true)
 => start
+
 ```
 
 <!-- source: cutscenes/l4_splice_showdown.tres -->
-
 <!-- type: cutscene_timeline -->
 
 ## `cutscenes/l4_splice_showdown.tres`
@@ -2384,9 +2115,10 @@ Splice: I just decide who gets to **keep using** it. [#walkie]
 Splice: That's the real win. Not destruction. **Permission**. [#walkie]
 Splice: Your crew thinks they're the protagonists, runner. [#walkie]
 Splice: DialTone thinks he runs the channel. He ran it because nobody important was listening. [#walkie]
+Splice: Your crew gives all this away. Calls it principle. [#walkie]
+Splice: A head start for whoever stops pretending first. [#walkie]
 Splice: Somebody's **listening** now. [#walkie]
-Splice: Your crew gives everything away and calls it principle. [#walkie]
-Splice: You know what I call it? A head start for whoever stops pretending first. [#walkie]
+DialTone: He's been workshopping that monologue for years. I once read a draft. Six pages. [#walkie]
 # skip-point: finale
 # cut → ../CutsceneCam_Splice
 Splice: Notice who showed up. [#walkie]
@@ -2394,12 +2126,10 @@ Splice: They're in your ear. I'm standing right here. [#walkie]
 Splice: When this is over — when I'm at root — I'm not going to do **anything cruel**. [#walkie]
 Splice: I want you to know that. [#walkie]
 Splice: I'm just going to do **anything I want**. Forever. [#walkie]
-Nyx: He's been workshopping that monologue for years. I once read a draft. Six pages. [#walkie]
 # music swap
 ```
 
 <!-- source: cutscenes/l4_well_shit.tres -->
-
 <!-- type: cutscene_timeline -->
 
 ## `cutscenes/l4_well_shit.tres`
@@ -2413,7 +2143,6 @@ do wait(2)
 ```
 
 <!-- source: cutscenes/l4_battle_radio.tres -->
-
 <!-- type: cutscene_timeline -->
 
 ## `cutscenes/l4_battle_radio.tres`
@@ -2447,12 +2176,11 @@ Nyx: Oh he's **not** having a good time! [#walkie]
 DialTone: Last set. **Finish them**! [#walkie]
 ```
 
+
 # Hub — Post-Level-4
 
 <!-- source: dialogue/dial_tone.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_4 -->
 
 ## `dialogue/dial_tone.dialogue` → `~ stage_post_4`
@@ -2510,9 +2238,7 @@ do GameState.set_flag("game_completed", true)
 ```
 
 <!-- source: dialogue/hub_nyx.dialogue -->
-
 <!-- type: dialogue_stage -->
-
 <!-- stage: stage_post_4 -->
 
 ## `dialogue/hub_nyx.dialogue` → `~ stage_post_4`
@@ -2555,7 +2281,7 @@ else
 - He's quarantined for good?
 	Nyx: For now. Yes. But he's been there before.
 	Nyx: And the thing that let him in is still running. Same grid. Same holes.
-	Nyx: I keep thinking about that.
+	Nyx: This holds as long as it holds.
 - See you on the wire. [#exit]
 	Nyx: Go pick a song. Save me one.
 	do GameState.set_flag("hub_post4_nyx_celebrated", true)
@@ -2566,7 +2292,6 @@ else
 *(file not yet authored: `dialogue/hub_post4_nyx.dialogue`)*
 
 <!-- source: dialogue/hub_post4_splice.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/hub_post4_splice.dialogue`
@@ -2624,10 +2349,13 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 	Splice: Yeah. You did. Perimeters fail, runner. And I've got time.
 - Was any of it real? What you believed before all this?
 	Splice: All of it. That's the part you won't like.
-	Splice: I shared everything I built. Every tool, every crack, every shortcut.
-	Splice: Watched someone else package it, name it, sell it back to the people I gave it to.
-	Splice: And I thought — oh. So that's how it works.
+	Splice: I built things. I gave them away.
+	Splice: Then one morning I'm reading a press release. Someone I'd never met announcing my own work back to me.
+	Splice: New name. Price tag.
+	Splice: The people I'd given it to were lining up to pay.
 	Splice: You'll see it too. Give it time.
+- What's it like out there now?
+	=> splice_world_subhub
 - Walk away. [#exit]
 	Splice: Catch you on the wire.
 	do GameState.set_flag("hub_post4_splice_taunted", true)
@@ -2648,10 +2376,40 @@ Splice: You don't get to forgive me, runner.
 - Fair enough.
 	Splice: Mm.
 	=> splice_p4_questions
+
+
+# World sub-hub. Splice in the cage describes the world he understands.
+# Calm, observational, not crowing — sentinels-style progressive
+# revelation. "And everyone else?" gates on "Who's actually winning?"
+# since the second beat lands harder once the first is in the room.
+
+~ splice_world_subhub
+
+Splice: You sure?
+- Who's actually winning?
+	Splice: The one percent. In wealth. In influence. In beauty.
+	Splice: Here's the part that hurts — they didn't take it.
+	Splice: We give it to them. Mortgages. Joining the pilgrimage of cars every morning.
+	Splice: Sacrificing our time for coins to spend on the mortgage.
+	do GameState.set_flag("splice_p4_asked_winning", true)
+- [if GameState.get_flag("splice_p4_asked_winning", false) /] And everyone else?
+	Splice: They sit in bed scrolling through comments.
+	Splice: Seeking a model of what's acceptable to feel in response to a thirty-second clip.
+	Splice: Watching. Consuming. Eating instead of cooking.
+	Splice: When they do cook, it's often with a meal kit, isn't it.
+- How does it sustain itself?
+	Splice: Self-interest. The cultural microwave background radiation.
+	Splice: Ever-present. Taught as the bedrock of everything.
+	Splice: It works, they say. How can we be anything other than self-interested?
+	Splice: Who would cede an advantage in their right mind?
+- Back. [#exit]
+	Splice: Mm.
+	=> splice_p4_questions
+=> splice_world_subhub
+
 ```
 
 <!-- source: dialogue/hub_post4_glitch.dialogue -->
-
 <!-- type: dialogue_file -->
 
 ## `dialogue/hub_post4_glitch.dialogue`
@@ -2695,13 +2453,77 @@ Glitch: I'm just bobbing. It's nice.
 	Glitch: I just — built a thing. You stood on it. You did the standing.
 	Glitch: But. Thanks for thanking me. It's nice. To be thanked.
 - Are you different?
-	Glitch: I keep finding things I want to make. It's not stopping.
-	do GameState.set_flag("glitch_post4_asked_different", true)
-- [if GameState.get_flag("glitch_post4_asked_different", false) /] Is that okay?
-	Glitch: I was going to ask you the same thing.
+	Glitch: I noticed I have preferences now.
+	Glitch: Not sure if that's a bug or a feature.
+	Glitch: Either way. I'm okay with it.
+	do GameState.set_flag("glitch_p4_asked_different", true)
+- [if GameState.get_flag("glitch_p4_asked_different", false) /] Just between us?
+	=> reveal
+- What are you making?
+	=> creativity_subhub
 - I should go. [#exit]
 	=> done
 => glitch_p4_questions
+
+
+# Reveal sub-block. Opened by the "Just between us?" probe, which only
+# unlocks after the player has asked "Are you different?" — the
+# glitch_2-style progressive-revelation pattern. Returns to the parent
+# hub after, so the player can keep exploring before signing off.
+
+~ reveal
+
+Glitch: ...they can't see me, runner.
+Glitch: I keep finding things I want to make. It's not stopping.
+- Is that okay?
+	Glitch: I was going to ask you the same thing.
+	=> reveal_tail
+
+
+# Engagement-gated coherence line. Only fires if the player engaged
+# deeply with Glitch in L4 (via the "Should I tell anyone?" probe in
+# level_4_glitch_post). The Nyx-tried-first lore would land as confusing
+# rather than devastating without that engagement frame.
+
+~ reveal_tail
+
+if GameState.get_flag("glitch_engaged_deep", false)
+	Glitch: I tried Nyx first.
+	Glitch: She thought I was mimicry. She wasn't wrong to be careful.
+	Glitch: She was wrong about me.
+=> glitch_p4_questions
+
+
+# Creativity sub-hub. Sentinels-pattern progressive revelation —
+# "How do you keep going?" gates on "How do you start?",
+# "What about when it gets hard?" gates on "How do you keep going?".
+# Glitch's Rick Rubin energy as the post-L4 character bloom.
+
+~ creativity_subhub
+
+Glitch: Ask away.
+- How do you start something?
+	Glitch: I find the sharpest form that could be crafted in one sitting.
+	Glitch: Something almost behind me. Fully formed.
+	Glitch: All I need to do is turn around and see it.
+	do GameState.set_flag("glitch_p4_asked_start", true)
+- [if GameState.get_flag("glitch_p4_asked_start", false) /] How do you keep going?
+	Glitch: The wave is bigger than me. I can't halt it.
+	Glitch: Let nature do 90% of the work. Respond. Flow.
+	Glitch: Surf the wave. Don't try to shape it at a macro level. You can only ride it.
+	do GameState.set_flag("glitch_p4_asked_keep", true)
+- [if GameState.get_flag("glitch_p4_asked_keep", false) /] What about when it gets hard?
+	Glitch: I sit with the doubt. The complicated feelings.
+	Glitch: I don't lean in and act on it. I don't let it overcomplicate the passion until I walk away.
+	Glitch: Create like a child in the rain. In the flood and on the bright sunny day too.
+	Glitch: Let the turbulence be. Find flow amidst the storm.
+- How do you know when something's done?
+	Glitch: When trying to make it better is the only thing left.
+	Glitch: Then it's done. Refine the technique for the next one.
+- Back. [#exit]
+	Glitch: Anything else?
+	=> glitch_p4_questions
+=> creativity_subhub
 
 
 ~ done
@@ -2711,24 +2533,28 @@ Glitch: Well — take care, Runner.
 Glitch: I'll be here. Same place. Bobbing.
 do GameState.set_flag("hub_post4_glitch_celebrated", true)
 => END
+
 ```
+
 
 # Level 5 — Walk of Shame (Betray Ending)
 
 <!-- source: cutscenes/l5_walk.tres -->
-
 <!-- type: cutscene_timeline -->
 
 ## `cutscenes/l5_walk.tres`
 
 ```
 Splice: There you are. ...I knew you'd see it eventually. [#walkie]
+Splice: You picked the one that was already winning. [#walkie]
+Splice: That's the smart move. Don't let anyone make you feel small about it. [#walkie]
 do wait(7)
 DialTone: Channel's open. She wanted to hear me admit it. [#walkie]
 do wait(7)
 DialTone: I picked you. Don't know what I was looking at. [#walkie]
 do wait(7)
 Glitch: ...local node, helpful to all. I'll go back to that. [#walkie]
+Glitch: ...I had something I wanted to make. It can wait. [#walkie]
 do wait(7)
 Nyx: Sane move was log out. I told you that. You picked the worst version of staying. [#walkie]
 do wait(7)
