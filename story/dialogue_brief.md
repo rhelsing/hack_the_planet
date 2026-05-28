@@ -960,15 +960,15 @@ DialTone: You got the plan?
 # Gateway-taken set is moved INTO the exit options inside dt_paragon_k so
 # the one-shot only burns once the player actually finishes the conversation,
 # not the moment they click the gateway.
-# - [if StoryVec.value(&"dialtone_trust") >= 2 and not GameState.get_flag("dt_paragon_k_taken", false) /] What's actually at stake here, for you?
-# 	=> dt_paragon_k
+- [if StoryVec.value(&"dialtone_trust") >= 2 and not GameState.get_flag("dt_paragon_k_taken", false) /] What's actually at stake here, for you?
+	=> dt_paragon_k
 
 # SPELUNK (J) — DT optimism: the witty-T-shirt cope. Gated on K-taken so it
 # lands as the *follow-on* once DT has named the enemy. Verbatim corpus #J
 # (DT attribution: "this is pure dial tone"). Gateway-taken set is moved
 # into dt_paragon_j response options for the same reason as K.
-# - [if GameState.get_flag("dt_paragon_k_taken", false) and not GameState.get_flag("dt_paragon_j_taken", false) /] You think a boycott would even matter?
-# 	=> dt_paragon_j
+- [if GameState.get_flag("dt_paragon_k_taken", false) and not GameState.get_flag("dt_paragon_j_taken", false) /] You think a boycott would even matter?
+	=> dt_paragon_j
 
 # SPELUNK (ESPN duet) — the four-beat group exchange. Nyx delivers the
 # "is there really a bad guy" framing + self-implication; DT delivers the
@@ -976,8 +976,8 @@ DialTone: You got the plan?
 # briefly bleeds Splice register, which is the design). Verbatim corpus
 # #42. Gated on J-taken so it surfaces only after K→J ladder. One-shot.
 # Gateway-taken set moved into response options.
-# - [if GameState.get_flag("dt_paragon_j_taken", false) and not GameState.get_flag("dt_nyx_espn_duet_taken", false) /] Why do people keep going along with it?
-# 	=> dt_nyx_espn_duet
+- [if GameState.get_flag("dt_paragon_j_taken", false) and not GameState.get_flag("dt_nyx_espn_duet_taken", false) /] Why do people keep going along with it?
+	=> dt_nyx_espn_duet
 
 # CANON — re-entry exit; gated on level_3_unlocked so first visit funnels
 # through "I'm in." Re-visits get a clean leave.
@@ -1359,18 +1359,18 @@ Nyx: Anything else, runner?
 # SPELUNK (25) — Nyx philosophy: no enemy, just gravity, we built it.
 # Gateway-taken set moved into exit options inside nyx_paragon_25 so
 # the one-shot only burns when the player finishes the conversation.
-# - [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
-# 	=> nyx_paragon_25
+- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
+	=> nyx_paragon_25
 
 # SPELUNK (38) — Nyx wound: regret on getting hyped. Verbatim corpus #38
 # ("definitely Nick's regretting"). Gateway-taken in responses.
-# - [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
-# 	=> nyx_paragon_38
+- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
+	=> nyx_paragon_38
 
 # SPELUNK (39) — Nyx fantasy: drop ambition, lake, shun the rat race.
 # Verbatim corpus #39. Gated on 38-taken. Gateway-taken in responses.
-# - [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
-# 	=> nyx_paragon_39
+- [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
+	=> nyx_paragon_39
 
 - All right, see you on the wire. [#exit]
 	=> END
@@ -2177,7 +2177,7 @@ do GameState.set_flag("hub_nyx_post3_done", true)
 ### `Walkie3` — DialTone
 **Position:** (-30.812723, -12.973331, 32.116066)
 
-> It looks like Splice is already losing his grip on the sentinels. I hope I don't need to remind you not to touch that red one.
+> It looks like Splice is already losing his grip on the sentinels. I hope I don't need to remind you not to mess with the red one.
 
 <!-- source: level/level_4.tscn -->
 <!-- type: walkie -->

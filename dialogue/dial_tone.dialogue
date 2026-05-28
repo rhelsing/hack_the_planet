@@ -257,15 +257,15 @@ DialTone: You got the plan?
 # Gateway-taken set is moved INTO the exit options inside dt_paragon_k so
 # the one-shot only burns once the player actually finishes the conversation,
 # not the moment they click the gateway.
-# - [if StoryVec.value(&"dialtone_trust") >= 2 and not GameState.get_flag("dt_paragon_k_taken", false) /] What's actually at stake here, for you?
-# 	=> dt_paragon_k
+- [if StoryVec.value(&"dialtone_trust") >= 2 and not GameState.get_flag("dt_paragon_k_taken", false) /] What's actually at stake here, for you?
+	=> dt_paragon_k
 
 # SPELUNK (J) — DT optimism: the witty-T-shirt cope. Gated on K-taken so it
 # lands as the *follow-on* once DT has named the enemy. Verbatim corpus #J
 # (DT attribution: "this is pure dial tone"). Gateway-taken set is moved
 # into dt_paragon_j response options for the same reason as K.
-# - [if GameState.get_flag("dt_paragon_k_taken", false) and not GameState.get_flag("dt_paragon_j_taken", false) /] You think a boycott would even matter?
-# 	=> dt_paragon_j
+- [if GameState.get_flag("dt_paragon_k_taken", false) and not GameState.get_flag("dt_paragon_j_taken", false) /] You think a boycott would even matter?
+	=> dt_paragon_j
 
 # SPELUNK (ESPN duet) — the four-beat group exchange. Nyx delivers the
 # "is there really a bad guy" framing + self-implication; DT delivers the
@@ -273,8 +273,8 @@ DialTone: You got the plan?
 # briefly bleeds Splice register, which is the design). Verbatim corpus
 # #42. Gated on J-taken so it surfaces only after K→J ladder. One-shot.
 # Gateway-taken set moved into response options.
-# - [if GameState.get_flag("dt_paragon_j_taken", false) and not GameState.get_flag("dt_nyx_espn_duet_taken", false) /] Why do people keep going along with it?
-# 	=> dt_nyx_espn_duet
+- [if GameState.get_flag("dt_paragon_j_taken", false) and not GameState.get_flag("dt_nyx_espn_duet_taken", false) /] Why do people keep going along with it?
+	=> dt_nyx_espn_duet
 
 # CANON — re-entry exit; gated on level_3_unlocked so first visit funnels
 # through "I'm in." Re-visits get a clean leave.

@@ -144,18 +144,18 @@ Nyx: Anything else, runner?
 # SPELUNK (25) — Nyx philosophy: no enemy, just gravity, we built it.
 # Gateway-taken set moved into exit options inside nyx_paragon_25 so
 # the one-shot only burns when the player finishes the conversation.
-# - [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
-# 	=> nyx_paragon_25
+- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
+	=> nyx_paragon_25
 
 # SPELUNK (38) — Nyx wound: regret on getting hyped. Verbatim corpus #38
 # ("definitely Nick's regretting"). Gateway-taken in responses.
-# - [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
-# 	=> nyx_paragon_38
+- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
+	=> nyx_paragon_38
 
 # SPELUNK (39) — Nyx fantasy: drop ambition, lake, shun the rat race.
 # Verbatim corpus #39. Gated on 38-taken. Gateway-taken in responses.
-# - [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
-# 	=> nyx_paragon_39
+- [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
+	=> nyx_paragon_39
 
 - All right, see you on the wire. [#exit]
 	=> END
