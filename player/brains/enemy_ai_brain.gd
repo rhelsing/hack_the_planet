@@ -859,6 +859,8 @@ func _waypoint_for(origin: Vector3) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
 	for wp: Node3D in _wp_graph.keys():
+		if not is_instance_valid(wp):
+			continue
 		var wp_pos: Vector3 = wp.global_position
 		var dy: float = absf(wp_pos.y - origin.y)
 		var dx: float = wp_pos.x - origin.x
