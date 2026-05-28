@@ -197,7 +197,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro4" parent="." index="22" unique_id=753024947 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1.9975219, -61.89376, 8.698025, 127.47084)
-line = "Wait — how are you doing that? I've never seen anyone move like that. Where'd you even get the wheels?"
+line = "Wait — how are you doing that? I've never seen anyone move like that. Where'd you even get wheels from?"
 require_flag = &""
 
 [node name="WalkieTriggerIntro5" parent="." index="23" unique_id=175229872 instance=ExtResource("2_walkie")]
@@ -222,7 +222,7 @@ require_flag = &""
 
 [node name="WalkieTriggerIntro2" parent="." index="27" unique_id=1095229215 instance=ExtResource("2_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -51.97108, 5.6971655, 169.44095)
-line = "I see you've started collecting some cans. Jolt: all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
+line = "I see you've started collecting the cans. Jolt: all the sugar and twice the caffeine. The more you collect, well... Let's just say it expands your options later."
 require_flag = &""
 
 [node name="Nyx" parent="." index="28" unique_id=1420528326 instance=ExtResource("3_companion")]

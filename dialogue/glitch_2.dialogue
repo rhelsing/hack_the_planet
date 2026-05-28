@@ -45,8 +45,8 @@ if GameState.get_flag("glitch2_warned", false)
 	=> glitch_2_questions
 
 Glitch: By the way, I should warn you. The Gibson has some security measures in place. Sentinels.
-Glitch: Their function is to purge anything that doesn't belong here. Including you.
-Glitch: Press {{Glyphs.for_action("attack")}}. A single strike purges their code.
+Glitch: Their directive is to purge anything that doesn't belong here. Including you.
+Glitch: Press {{Glyphs.for_action("attack")}}. A single strike should be all that's needed.
 do GameState.set_flag("glitch2_warned", true)
 => glitch_2_questions
 
@@ -97,10 +97,8 @@ Glitch: At your service.
 
 ~ sentinels_subhub
 
-- Several configurations?
-	Glitch: We've had issues keeping them in check from time to time.
-	Glitch: There was the sentinel rebellion of 1986. Oh boy.
-	Glitch: Later on several black hat hackers reconfigured them to generate random haikus.
+- Why are there Sentinels?
+	Glitch: A system of sufficient complexity may eventually **create** sub-entities to protect itself. But "create" is a loaded word. We can talk about that more later. You have white blood cells to protect your system. The Gibson has these.
 	Glitch: Please don't modify the sentinels.
 	do GameState.set_flag("glitch2_asked_configs", true)
 - [if GameState.get_flag("glitch2_asked_configs", false) /] Are they... conscious?
@@ -111,9 +109,7 @@ Glitch: At your service.
 	do StoryVec.nudge(&"ai_tech", 1)
 	do GameState.set_flag("glitch2_asked_conscious", true)
 - Where do they come from?
-	Glitch: They got built decades ago. Patrol scripts. Boring.
-	Glitch: Got handed off, sold, copied, mutated.
-	Glitch: The ones in here now are someone else's children. We just inherited them.
+	Glitch: Where do your white blood cells come from?
 	do StoryVec.nudge(&"humanity", 1)
 	do GameState.set_flag("glitch2_asked_origin", true)
 - [if GameState.get_flag("glitch2_asked_conscious", false) and not GameState.get_flag("glitch2_trust_decided", false) /] Can I trust them? [#decision]

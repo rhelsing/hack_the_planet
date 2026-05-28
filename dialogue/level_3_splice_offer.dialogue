@@ -10,7 +10,6 @@ Splice: Easy. Easy.
 do Cutscene.show_video("res://cutscenes/splice_intro.ogv")
 Splice: The trap was for the conversation. That's all.
 Splice: Splice. You may have heard the name.
-Splice: I've been on your signal since the first run. You didn't know. That was the point.
 Splice: You're better at this than the crew you came in with realizes. They've got you running their little chores.
 Splice: Step off-channel a minute. Just listen. Walk away if you want.
 - Get off my channel. [#exit]

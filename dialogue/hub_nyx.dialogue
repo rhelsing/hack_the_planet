@@ -43,19 +43,14 @@ Nyx: Talk.
 
 ~ nyx_post_1_questions
 
-- Why off-channel?
-	Nyx: DialTone gets worse with an audience.
 - You pulled my log?
 	Nyx: I pull everyone's log. Don't read into it.
 - What do you want?
-	Nyx: DialTone scouted you. He's calling it casting.
+	Nyx: DialTone scouted you to help with this place.
 	Nyx: But I have doubts
 	do GameState.set_flag("nyx_post_1_asked_dare", true)
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Doubts about what?
 	Nyx: Whether you're going to waste our time.
-	Nyx: Prove me wrong then.
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
-	Nyx: DialTone's smug enough already.
 - All right, see you on the wire. [#exit]
 	Nyx: Mm. We'll see.
 	=> END
@@ -120,13 +115,13 @@ Nyx: Anything else, runner?
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Who was he to you?
 	Nyx: He was the smartest person I'd ever met.
 	Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
-	Nyx: I didn't. That's — yeah.
+	Nyx: I didn't. That's — yeah, that's on me.
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
 	if not GameState.get_flag("nyx_trust_who_was_he_nudged", false)
 		do StoryVec.nudge(&"nyx_trust", 1)
 		do GameState.set_flag("nyx_trust_who_was_he_nudged", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
-	Nyx: He never listened. He just waited for his turn to talk.
+	Nyx: I dont think so. I've tried. He mostly just waited for his turn to talk.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
 	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.
@@ -149,18 +144,18 @@ Nyx: Anything else, runner?
 # SPELUNK (25) — Nyx philosophy: no enemy, just gravity, we built it.
 # Gateway-taken set moved into exit options inside nyx_paragon_25 so
 # the one-shot only burns when the player finishes the conversation.
-- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
-	=> nyx_paragon_25
+# - [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
+# 	=> nyx_paragon_25
 
 # SPELUNK (38) — Nyx wound: regret on getting hyped. Verbatim corpus #38
 # ("definitely Nick's regretting"). Gateway-taken in responses.
-- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
-	=> nyx_paragon_38
+# - [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
+# 	=> nyx_paragon_38
 
 # SPELUNK (39) — Nyx fantasy: drop ambition, lake, shun the rat race.
 # Verbatim corpus #39. Gated on 38-taken. Gateway-taken in responses.
-- [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
-	=> nyx_paragon_39
+# - [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
+# 	=> nyx_paragon_39
 
 - All right, see you on the wire. [#exit]
 	=> END

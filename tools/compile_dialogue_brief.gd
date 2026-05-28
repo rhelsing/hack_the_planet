@@ -289,7 +289,7 @@ func _extract_stage(content: String, stage: String) -> String:
 		if line.begins_with("~ " + stage):
 			capturing = true
 			out.append(line)
-		elif capturing and (line.begins_with("# ──") or _is_other_stage_header(line, stage)):
+		elif capturing and _is_other_stage_header(line, stage):
 			break
 		elif capturing:
 			out.append(line)

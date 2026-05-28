@@ -1,14 +1,14 @@
 ~ start
 
-Glitch: Three things those wheels do that your worn out sneakers didn't.
-Glitch: First, rails. You can grind them all day long. Use rails to get places you only dreamed of before.
-Glitch: Two — speed. You can go real fast now
-Glitch: Three. You can now jump real high, real far. Enough said.
+Glitch: Three things those wheels can do that your worn out sneakers cannot.
+Glitch: First, rails. Use rails to get places you only dreamed of before.
+Glitch: Two — speed. Now you can go real fast.
+Glitch: Three. You can now jump real high and real far. Enough said.
 - Got it. [#exit]
 	=> done
 
 ~ done
 
-Glitch: I'll be a little further along. Find me when you've practiced.
+Glitch: I'll be a little further along. Find me when you've had some time to practice.
 do GameState.set_flag("glitch_grind_done", true)
 => END
