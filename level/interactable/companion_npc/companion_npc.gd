@@ -83,6 +83,9 @@ func _ready() -> void:
 	super()
 	_maybe_swap_skin()
 	_auto_derive_character()
+	# Bonkable = punchable visual-only target. Player's attack sweep includes
+	# this group; take_hit below forwards to the skin's on_hit (no damage).
+	add_to_group(&"bonkable")
 	_swivel = get_node_or_null(swivel_target_path) as Node3D
 	_sfx = AudioStreamPlayer.new()
 	_sfx.bus = &"SFX" if AudioServer.get_bus_index(&"SFX") != -1 else &"Master"
@@ -420,3 +423,69 @@ func _find_anim_player(n: Node) -> AnimationPlayer:
 		if r != null:
 			return r
 	return null
+
+
+# Visual-only flinch when the player's attack sweep connects. Re-enables the
+# AnimationTree if a wave was in progress so the Hit clip isn't muted by the
+# direct AnimationPlayer hold.
+var _bonk_index: int = 0
+const _BONK_CLIPS: Array[StringName] = [&"Hit_Chest", &"Hit_Knockback"]
+
+# Bonk-bark cadence. _bonk_hit_count increments on every connecting punch;
+# when it reaches _bonk_bark_threshold the NPC speaks the next line from
+# Dialogue.fire_bonk_bark and a fresh threshold is rolled in [3,7].
+var _bonk_hit_count: int = 0
+var _bonk_bark_threshold: int = randi_range(3, 7)
+
+func take_hit(_impact_direction: Vector3, _force: float, _damage: int = 0, _attacker: Node = null) -> void:
+	if _swivel == null:
+		return
+	# Stacked NyxPost1..4 share a transform — only the currently-visible one
+	# should register. Without this guard, every swing fans out to all four
+	# instances and the bark counter fires 4× too fast.
+	if not visible:
+		return
+	# If we were mid-wave, re-arm the AnimationTree so state_machine.start
+	# actually drives the rig.
+	if _wave_anim_tree != null and not _wave_anim_tree.active:
+		_wave_anim_tree.active = true
+		_waving = false
+	# Strict alternation through the skin's own hit-clip list — anime_character
+	# returns [Hit_Chest, Hit_Knockback]; nyx/splice return [Yelling, Dodging
+	# Right, Header Soccerball]. Falls back to _BONK_CLIPS for older skins.
+	var clips: Array = _BONK_CLIPS
+	if _swivel.has_method(&"get_hit_clips"):
+		var skin_clips: Array = _swivel.call(&"get_hit_clips")
+		if not skin_clips.is_empty():
+			clips = skin_clips
+	var clip: StringName = clips[_bonk_index % clips.size()]
+	_bonk_index = (_bonk_index + 1) % clips.size()
+	# Poke the skin's Hit animation node directly to bypass on_hit()'s random
+	# pick, then fire the Hit state. Falls back to on_hit() if the skin doesn't
+	# expose the node (older skins) — still a flinch, just RNG-picked.
+	if "_hit_anim_node" in _swivel and _swivel.get(&"_hit_anim_node") != null \
+			and "state_machine" in _swivel:
+		var hit_node = _swivel.get(&"_hit_anim_node")
+		hit_node.animation = clip
+		_swivel.get(&"state_machine").start("Hit")
+	elif _swivel.has_method(&"on_hit"):
+		_swivel.call(&"on_hit")
+
+	# Every 3–7 hits, fire the next bonk-bark in this NPC's cycle.
+	_bonk_hit_count += 1
+	if _bonk_hit_count >= _bonk_bark_threshold:
+		_bonk_hit_count = 0
+		_bonk_bark_threshold = randi_range(3, 7)
+		Dialogue.fire_bonk_bark(_bonk_bark_character())
+
+
+# Derive the bark-bank key from the NPC's node name. NyxPost1..4 → "Nyx",
+# DialTone → "DialTone", postL4Show/Splice → "Splice", Glitch → "Glitch".
+# Empty string = no bark bank (fire_bonk_bark no-ops).
+func _bonk_bark_character() -> String:
+	var lower := name.to_lower()
+	if "dialtone" in lower: return "DialTone"
+	if "glitch" in lower:   return "Glitch"
+	if "nyx" in lower:      return "Nyx"
+	if "splice" in lower:   return "Splice"
+	return ""

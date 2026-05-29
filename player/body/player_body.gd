@@ -288,7 +288,7 @@ const _FACTION_GROUP: Dictionary = {
 	&"gold":           &"allies",
 }
 const _FACTION_TARGETS: Dictionary = {
-	&"player":         [&"enemies", &"splice_enemies"],
+	&"player":         [&"enemies", &"splice_enemies", &"bonkable"],
 	&"green":          [&"player",  &"allies"],
 	&"red":            [&"player",  &"allies"],
 	&"splice_stealth": [&"player",  &"allies"],

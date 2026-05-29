@@ -73,6 +73,15 @@ const _DEATH_BUS_OVERRIDE: StringName = &"Companion"
 var _death_interrupts: Dictionary = {}
 var _death_interrupts_loaded: bool = false
 
+## Lazy-loaded bonk-bark bank: lowercased character name → Array[String] of
+## speaker lines, in file order. Same parse shape as death_interrupts.
+## fire_bonk_bark() advances _bonk_indices[character] each call so the lines
+## cycle strictly in order (not random) regardless of which NPC was hit.
+const _BONK_BARKS_PATH: String = "res://dialogue/bonk_barks.dialogue"
+var _bonk_barks: Dictionary = {}
+var _bonk_barks_loaded: bool = false
+var _bonk_indices: Dictionary = {}
+
 # TTS request queue — FIFO, one outstanding HTTP request at a time.
 # Each entry: { "character": String, "text": String, "voice_id": String, "path": String }
 var _tts_queue: Array = []
@@ -440,6 +449,54 @@ func _load_death_interrupts() -> void:
 	_log("_load_death_interrupts: loaded %d banks: %s" % [
 		_death_interrupts.size(),
 		", ".join(_death_interrupts.keys().map(func(k): return "%s(%d)" % [k, _death_interrupts[k].size()])),
+	])
+
+
+## Bonk-bark trigger. Called by companion_npc.take_hit every 3–7 swings.
+## Speaks the next line in `character`'s bank through Walkie on the Companion
+## bus, then advances the per-character cycle index. No-op if no bank.
+func fire_bonk_bark(character: String) -> void:
+	if character == "":
+		return
+	if not _bonk_barks_loaded:
+		_load_bonk_barks()
+	var key := character.to_lower()
+	var lines: Array = _bonk_barks.get(key, [])
+	if lines.is_empty():
+		_log('fire_bonk_bark: no bank for "%s"' % character)
+		return
+	var idx: int = _bonk_indices.get(key, 0)
+	var pick: String = lines[idx % lines.size()]
+	_bonk_indices[key] = (idx + 1) % lines.size()
+	_log('fire_bonk_bark: speaker=%s idx=%d line="%s"' % [character, idx, pick])
+	Walkie.speak(character, pick, _DEATH_BUS_OVERRIDE)
+
+
+## Parse bonk_barks.dialogue with the same regex shape as death_interrupts.
+## Section headers (`~ name`) are ignored; "Character: text" lines are the
+## source of truth. File order = play order.
+func _load_bonk_barks() -> void:
+	_bonk_barks_loaded = true
+	var f := FileAccess.open(_BONK_BARKS_PATH, FileAccess.READ)
+	if f == null:
+		push_warning("Dialogue: bonk_barks.dialogue missing at %s" % _BONK_BARKS_PATH)
+		return
+	var re := RegEx.create_from_string("^([A-Z][A-Za-z_0-9]*): (.+)$")
+	while not f.eof_reached():
+		var line := f.get_line().strip_edges()
+		var m := re.search(line)
+		if m == null:
+			continue
+		var character := m.get_string(1)
+		var text := m.get_string(2).strip_edges()
+		var key := character.to_lower()
+		if not _bonk_barks.has(key):
+			_bonk_barks[key] = []
+		_bonk_barks[key].append(text)
+	f.close()
+	_log("_load_bonk_barks: loaded %d banks: %s" % [
+		_bonk_barks.size(),
+		", ".join(_bonk_barks.keys().map(func(k): return "%s(%d)" % [k, _bonk_barks[k].size()])),
 	])
 
 

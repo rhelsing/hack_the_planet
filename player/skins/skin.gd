@@ -154,6 +154,12 @@ func land() -> void: pass
 ## flinch / hit-react clip override and travel their Hit state. No-op default.
 func on_hit() -> void: pass
 
+## Clip names this skin uses for bonk/hit reactions, in alternation order.
+## companion_npc.take_hit reads this and rotates strictly through the list
+## (per-NPC _bonk_index). Empty = no override; companion_npc falls back to
+## its hardcoded anime_character defaults.
+func get_hit_clips() -> Array: return []
+
 ## Called every physics tick by the body to toggle the skin's ground-dust
 ## emitter. Skins with a `DustParticles` GPUParticles3D override to pipe the
 ## bool through to that node. Skins without feet or dust (cutscene props,

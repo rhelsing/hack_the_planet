@@ -17,6 +17,9 @@ const PROGRESSION: Array = [
 	["Death Interrupts — Per-NPC Barks", [
 		["dialogue_file", "res://dialogue/death_interrupts.dialogue"],
 	]],
+	["Bonk Barks — Per-NPC Punch Reactions", [
+		["dialogue_file", "res://dialogue/bonk_barks.dialogue"],
+	]],
 	["Hub — Pre-Level-1", [
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_intro"],
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_nudge"],

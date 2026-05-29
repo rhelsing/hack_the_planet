@@ -32,7 +32,7 @@ const _ATTACK_CLIPS := [&"Fighting Left Jab", &"Fighting Right Jab"]
 
 # Hit alternates between Hit_Chest and Hit_Knockback.
 var _hit_anim_node: AnimationNodeAnimation
-const _HIT_CLIPS := [&"Hit_Chest", &"Hit_Knockback"]
+const _HIT_CLIPS := [&"Hit_Chest"]
 
 # Idle cycles between the three idle variants for life when standing still.
 var _idle_anim_node: AnimationNodeAnimation
@@ -189,6 +189,9 @@ func on_hit() -> void:
 	if _hit_anim_node != null:
 		_hit_anim_node.animation = _HIT_CLIPS[randi() % _HIT_CLIPS.size()]
 	state_machine.start("Hit")
+
+
+func get_hit_clips() -> Array: return _HIT_CLIPS
 
 
 func dash(_direction: Vector3 = Vector3.ZERO) -> void:
