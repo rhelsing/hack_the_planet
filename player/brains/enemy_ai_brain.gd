@@ -858,7 +858,11 @@ func _ensure_wp_graph(body: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
 func _waypoint_for(origin: Vector3) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
-	for wp: Node3D in _wp_graph.keys():
+	# Untyped loop var on purpose: a typed `wp: Node3D` would force assignment
+	# of each key before the body runs, and assigning a freed instance throws
+	# "invalid previously freed instance" — making the guard below dead code.
+	# Stale keys appear when waypoints are freed on level/platform reload.
+	for wp in _wp_graph.keys():
 		if not is_instance_valid(wp):
 			continue
 		var wp_pos: Vector3 = wp.global_position
@@ -894,7 +898,11 @@ func _bfs_full_path(start: Node3D, goal: Node3D) -> Array[Node3D]:
 				node = visited.get(node)
 			out.reverse()
 			return out
-		for nb: Node3D in _wp_graph.get(cur, []):
+		# Untyped + validity guard: cached neighbor refs can be freed after a
+		# same-scene reload (e.g. glitch platform), same as in _waypoint_for.
+		for nb in _wp_graph.get(cur, []):
+			if not is_instance_valid(nb):
+				continue
 			if visited.has(nb):
 				continue
 			visited[nb] = cur
