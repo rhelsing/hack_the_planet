@@ -8,6 +8,161 @@ this doc covers the why and the rules.
 
 ---
 
+## Design principle — the three types
+
+**NPC dialogue must feel like the player is making real choices at many turns.**
+Several options at each turn. Commit to the ones that matter. Often can't go back.
+
+Every line, option, and block in any `.dialogue` file fits exactly **one of three
+types.** There is no fourth.
+
+### 1. CANON
+
+NPC speaks fixed content. No player choice. Required for the story to progress.
+
+Where it lives:
+- Stage openers (the obligatory beat — Rule 1).
+- `*_entry` greetings (Rule 2).
+- `*_done` exit beats that set progression flags.
+- Setup lines at the top of a side block (e.g. *"Trust. Different word again."*
+  in `sentinels_trust_branch`).
+
+Convention: comment the block with `# CANON — <reason>`.
+
+### 2. VECTOR CHOICE POINTS
+
+Moments where the **NPC asks the player a clear question.** The options are
+*commitments*. They:
+
+- **Disappear from the menu once chosen.** Every option of the decision sets
+  the same `*_decided` flag; the parent probe gates on `not *_decided`.
+- **Are usually unlocked by pulling an unseeming thread** — the player explored
+  a world-build sub-hub first (Rule 6 progressive revelation), and the vector
+  point appears as a follow-up. Sometimes they're top-level from the start, but
+  usually they're earned.
+- **Nudge a `StoryVec` axis** (Rule 11). Both options of a decision nudge in
+  different directions; both set the same `*_decided` flag.
+- **Tagged `[#decision]`** on the parent probe (Rule 10) — marks the gateway
+  for the dim engine.
+- **Tagged `[#vector]`** on EACH commit option inside the side block — this
+  is what gets visually highlighted and toasted. The parent `[#decision]`
+  probe is just the unseeming thread; the *real choices* are the options
+  inside.
+- **Implemented as a Rule 8 side block** with mutually-exclusive options that
+  both return to the parent hub.
+
+UI treatment (engine — live):
+- Each `[#vector]`-tagged commit option renders with a **purple outline**
+  (`scroll_balloon.gd::_style_vector_buttons`).
+- A **toast notification** (`> CHOICE :: <text>`) fires when a `[#vector]`
+  option is picked, via `Events.dialogue_vector_committed`.
+
+Convention: comment the side block with `# VECTOR — <axis or theme>` and the
+parent-opener probe with `# VECTOR (gate) — opens <branch>`.
+
+Reference: `glitch_2.dialogue::sentinels_trust_branch` — *"Treat them like
+tools"* vs *"Treat them like neighbors"* is the canonical shape.
+
+### 3. WORLD-BUILD EXPLORATIONS
+
+Player asks the NPC questions to learn more about the world. Re-pickable.
+Visited probes dim (Rule 10's dim engine).
+
+Where it lives:
+- **ALWAYS in a sub-branch / sub-hub** like `glitch_2::sentinels_subhub`.
+  **Never top-level** as a flat probe in the main question hub. Top-level
+  probes that surface world-build are violating the pattern.
+- Opened by a parent probe in the main hub (e.g. *"About those Sentinels..."*).
+- Sub-hub uses Rule 6 progressive-revelation gating internally (probe B gated
+  on having asked probe A).
+- Sub-hub exit (`[#exit]`) returns to the parent hub.
+- Multiple world-build sub-hubs can hang off the same parent.
+
+Convention: comment the sub-hub block with `# WORLD-BUILD — <topic>` and the
+parent-opener probe with `# WORLD-BUILD (gate) — opens <subhub>`.
+
+---
+
+## Menu sort order
+
+The player sees the options menu in this order:
+
+1. **Above the fold:** all unpicked options in authored order — canon exits,
+   world-build parent openers, vector points (if unlocked and not yet decided).
+2. **The exit option** (`[#exit]` that leaves the conversation or advances
+   the stage).
+3. **Below the fold, dimmed:** visited world-build probes that remain
+   re-pickable.
+
+Visited stuff goes **below the exit.** The player who wants to keep exploring
+still can; the player who wants to leave gets a clean exit at the boundary.
+
+Vector points that have been committed are **gone entirely** (removed via the
+`not *_decided` gate, not just dimmed). The visited list never contains
+committed vector points.
+
+(Engine — live: `scroll_balloon.gd::_sort_responses_visited_below_exit`.
+New-unlocked options stay at the very top via `_style_new_responses`'s
+existing reorder; the sort pass runs after and moves visited below the exit
+without disturbing the new-unlocked zone.)
+
+---
+
+## Comment convention for dialogue files
+
+Every block in a `.dialogue` file gets a one-line type tag in a `#` comment
+above the block header:
+
+```
+# CANON — stage_post_2 opener; Splice surfaces; sets the stakes
+~ stage_post_2
+
+# CANON — entry greeting on re-talk
+~ post_2_entry
+
+# Question hub. Holds canon exits + world-build parent openers + (when present) vector points.
+~ post_2_questions
+
+# WORLD-BUILD — Splice lore sub-hub (opened by "Who is Splice?")
+~ splice_lore_subhub
+
+# VECTOR — player decides how to read Splice (good/works axis)
+~ splice_judgment_branch
+```
+
+For probes inside a hub, tag the probe inline if its type isn't obvious from
+context:
+
+```
+# WORLD-BUILD (gate) — opens splice_lore_subhub
+- Who is Splice?
+	=> splice_lore_subhub
+
+# VECTOR (gate) — gated on having explored splice_lore_subhub
+- [if asked_lore /] How should we treat him? [#decision]
+	=> splice_judgment_branch
+
+# Inside the side block, EACH commit option gets [#vector]:
+~ splice_judgment_branch
+- He's done. Burn him. [#vector]
+	do StoryVec.nudge(&"works", 1)
+	do GameState.set_flag("splice_judgment_decided", true)
+	=> splice_lore_subhub
+- He's salvageable. [#vector]
+	do StoryVec.nudge(&"good", 1)
+	do GameState.set_flag("splice_judgment_decided", true)
+	=> splice_lore_subhub
+```
+
+The three-type tag is *not* documentation for documentation's sake — **it is
+the contract.** Reviewing a `.dialogue` file should let you tell at a glance
+whether the player has any real choices, where they are, and where the world
+is being explored.
+
+If a probe doesn't fit any of the three types, it shouldn't exist.
+
+---
+
 ## The shape
 
 For any NPC that the player can revisit (hub characters, post-level

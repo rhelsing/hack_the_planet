@@ -160,6 +160,23 @@ channel = "walkie"
 bus_override = &"Companion"
 label = "Splice: dialtone / channel"
 
+[sub_resource type="Resource" id="line_12b"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "Your crew gives all this away. Calls it principle."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: gives it away / principle"
+
+[sub_resource type="Resource" id="line_12c"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "A head start for whoever stops pretending first."
+channel = "walkie"
+bus_override = &"Companion"
+hold_after = 0.4
+label = "Splice: head start for whoever stops pretending"
+
 [sub_resource type="Resource" id="line_13"]
 script = ExtResource("2_line")
 character = &"Splice"
@@ -235,7 +252,7 @@ label = "music out: one_love"
 
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("2_rp5n3")]([SubResource("flag_outset_started"), SubResource("cut_splice_1"), SubResource("stinger_braam"), SubResource("music_in"), SubResource("wait_stinger_ring"), SubResource("line_1"), SubResource("flag_says_name"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_nyx_1"), SubResource("skip_halfpipe"), SubResource("cut_halfpipe"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10"), SubResource("line_11"), SubResource("line_12"), SubResource("line_13"), SubResource("line_dialtone_workshop"), SubResource("skip_finale"), SubResource("cut_splice_2"), SubResource("line_15"), SubResource("line_15b"), SubResource("line_16"), SubResource("line_17"), SubResource("line_18"), SubResource("music_out")])
+steps = Array[ExtResource("2_rp5n3")]([SubResource("flag_outset_started"), SubResource("cut_splice_1"), SubResource("stinger_braam"), SubResource("music_in"), SubResource("wait_stinger_ring"), SubResource("line_1"), SubResource("flag_says_name"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_nyx_1"), SubResource("skip_halfpipe"), SubResource("cut_halfpipe"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10"), SubResource("line_11"), SubResource("line_12"), SubResource("line_12b"), SubResource("line_12c"), SubResource("line_13"), SubResource("line_dialtone_workshop"), SubResource("skip_finale"), SubResource("cut_splice_2"), SubResource("line_15"), SubResource("line_15b"), SubResource("line_16"), SubResource("line_17"), SubResource("line_18"), SubResource("music_out")])
 hide_hud = true
 scene_duration = 90.0
 done_flag = &"l4_splice_cutscene_done"

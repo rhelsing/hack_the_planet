@@ -25,7 +25,7 @@ var _edge_anim_node: AnimationNodeAnimation
 const _ATTACK_CLIPS := [&"Punching"]
 
 var _hit_anim_node: AnimationNodeAnimation
-const _HIT_CLIPS := [&"Yelling"]
+const _HIT_CLIPS := [&"Yelling", &"Dodging Right", &"Header Soccerball"]
 
 var _idle_anim_node: AnimationNodeAnimation
 const _IDLE_CLIPS := [&"Breathing Idle"]
@@ -209,6 +209,9 @@ func on_hit() -> void:
 	if _hit_anim_node != null:
 		_hit_anim_node.animation = _HIT_CLIPS[randi() % _HIT_CLIPS.size()]
 	state_machine.start("Hit")
+
+
+func get_hit_clips() -> Array: return _HIT_CLIPS
 
 
 func dash(_direction: Vector3 = Vector3.ZERO) -> void:

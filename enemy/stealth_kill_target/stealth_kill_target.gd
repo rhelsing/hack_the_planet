@@ -201,6 +201,17 @@ func _eligible_for_highlight(actor: Node3D) -> bool:
 		return false
 	if "is_dying" in pawn and bool(pawn.call(&"is_dying")):
 		return false
+	# Once the pawn has spotted the player (HOSTILE chase), the [E] hack is
+	# off the table — sneak windows close the moment they go red. Brain
+	# lookup is lazy via _push_hack_state_to_brain's cache; refresh here.
+	if _brain_cached == null or not is_instance_valid(_brain_cached):
+		for child: Node in pawn.get_children():
+			if child.has_method(&"is_chasing"):
+				_brain_cached = child
+				break
+	if _brain_cached != null and _brain_cached.has_method(&"is_chasing") \
+			and bool(_brain_cached.call(&"is_chasing")):
+		return false
 	# Distance gate. Without this, behind+crouched lit up sentinels across
 	# the entire level. max_highlight_distance defaults to 4m — comfortable
 	# backstab range, requires the player to actually be sneaking close.

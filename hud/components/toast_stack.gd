@@ -12,6 +12,7 @@ const MAX_LIVE := 3
 const COLOR_SUCCESS := Color(0.20, 1.00, 0.40)
 const COLOR_FAILURE := Color(1.00, 0.33, 0.47)
 const COLOR_ACCENT  := Color(0.00, 1.00, 1.00)
+const COLOR_VECTOR  := Color(0.65, 0.45, 0.95)  # purple — matches dialogue [#vector] outline
 
 # Flag-driven pickup toasts. Map of flag id → "> LABEL :: VERB". The flag is
 # the source of truth (used by the chip, walkie_trigger, etc.); toasting off
@@ -37,6 +38,7 @@ func _ready() -> void:
 	Events.puzzle_solved.connect(_on_puzzle_solved)
 	Events.puzzle_failed.connect(_on_puzzle_failed)
 	Events.flag_set.connect(_on_flag_set)
+	Events.dialogue_vector_committed.connect(_on_dialogue_vector_committed)
 	# PlayerBody signals are local, not on the Events bus. Look up the pawn
 	# after the tree is fully in place; guarded in case the current scene has
 	# no player (main menu, loader, etc.).
@@ -83,6 +85,10 @@ func _on_flag_set(id: StringName, value: Variant) -> void:
 		return
 	if _PICKUP_FLAG_TOASTS.has(id):
 		_push(_PICKUP_FLAG_TOASTS[id], COLOR_ACCENT)
+
+
+func _on_dialogue_vector_committed(label: String) -> void:
+	_push("> CHOICE :: %s" % label.to_upper(), COLOR_VECTOR)
 
 
 func _on_ability_granted(ability_id: StringName) -> void:

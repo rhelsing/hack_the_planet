@@ -463,7 +463,7 @@ require_flag = &""
 
 [node name="Walkie3" parent="." index="62" unique_id=686050591 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 13.082044, -30.812723, -12.973331, 32.116066)
-line = "It looks like Splice is already losing his grip on the sentinels. I hope I don't need to remind you not to touch that red one."
+line = "It looks like Splice is already losing his grip on the sentinels. I hope I don't need to remind you not to mess with the red one."
 require_flag = &""
 
 [node name="Walkie2" parent="." index="63" unique_id=1735128929 instance=ExtResource("13_walkie")]
@@ -540,7 +540,7 @@ require_flag = &""
 [node name="Walkie15" parent="." index="75" unique_id=477027558 instance=ExtResource("13_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 6.1212006, 0, 0, 0, 19.415428, 398.77518, -13.05994, -254.90742)
 character = &"Nyx"
-line = "Try to convert some sentinels here, and save them for the battle to come. We are going to need them if we want a chance to capture Splice."
+line = "Try to convert some sentinels here, and save them for the battle to come. We are going to need them if we want a chance to capture Splice. ...feels weird to be planning this way."
 require_flag = &""
 
 [node name="Walkie16" parent="." index="76" unique_id=1987610947 instance=ExtResource("13_walkie")]

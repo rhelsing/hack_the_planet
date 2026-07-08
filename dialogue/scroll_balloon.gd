@@ -26,6 +26,8 @@ const EXIT_TAG: String = "exit"
 ## Treat-as-neighbors branch — the player picks one and the question is
 ## answered. Subsequent visits aren't expected.
 const DECISION_TAG: String = "decision"
+const VECTOR_TAG: String = "vector"
+const VECTOR_OUTLINE: Color = Color(0.65, 0.45, 0.95, 1.0)  # purple — vector choice commits
 const PORTRAITS_PATH: String = "res://dialogue/voice_portraits.tres"
 
 ## Per-character speaker colors used for the log entries and the current
@@ -328,7 +330,9 @@ func apply_dialogue_line() -> void:
 	_style_skill_check_buttons()  # P4 — amber tint for [SKILL PCT%] prefixed responses
 	_style_can_gated_buttons()    # speaker-color outline for [CAN]-prefixed unlock options
 	_style_new_responses()        # B.3 — green outline + reorder to top for newly-unlocked options
+	_style_vector_buttons()       # purple outline for [#vector] commit options — three-type framework
 	_dim_visited_responses()      # ported from 3dPFormer
+	_sort_responses_visited_below_exit()  # unpicked → exit → visited (dimmed) at bottom
 	_mark_responses_seen()        # B.2 — commit seen AFTER render so the next render flips them to "not new"
 
 	# Show our balloon
@@ -424,6 +428,10 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 		print("[balloon] visit RECORDED  scope=%s  text=%s" %
 			[scope, response.text])
 		DialogueState.visit_dialogue(scope, response.text)
+	# Vector commit signal — fires the toast for [#vector]-tagged options.
+	# See docs/dialogue_dry_pattern.md (three-type framework).
+	if VECTOR_TAG in response.tags:
+		Events.dialogue_vector_committed.emit(response.text)
 	next(response.next_id)
 
 
@@ -979,6 +987,71 @@ func _is_exit_response(response: DialogueResponse) -> bool:
 ## The 3.x DialogueResponsesMenu stores the DialogueResponse via
 ## `item.set_meta("response", response)` — use that instead of matching by
 ## button text (which loses identity if two responses share the same text).
+## Purple outline for options tagged [#vector] — the commit options inside
+## a vector choice side block (e.g. sentinels_trust_branch's
+## "Treat them like tools" / "Treat them like neighbors"). Per the three-type
+## framework: the parent [#decision] probe is a gateway; the [#vector]-tagged
+## options inside are the actual commitments. Author marks each commit option;
+## engine renders purple. See docs/dialogue_dry_pattern.md.
+func _style_vector_buttons() -> void:
+	for child: Node in responses_menu.get_children():
+		if not (child is Button): continue
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		if not (VECTOR_TAG in response.tags): continue
+		var btn := child as Button
+		for state: String in ["normal", "hover", "pressed", "focus"]:
+			var sb := StyleBoxFlat.new()
+			var fill_alpha: float = 0.0
+			match state:
+				"hover": fill_alpha = 0.10
+				"focus": fill_alpha = 0.28
+				"pressed": fill_alpha = 0.40
+			sb.bg_color = Color(VECTOR_OUTLINE.r, VECTOR_OUTLINE.g, VECTOR_OUTLINE.b, fill_alpha)
+			sb.border_width_left = 2
+			sb.border_width_top = 2
+			sb.border_width_right = 2
+			sb.border_width_bottom = 2
+			sb.border_color = VECTOR_OUTLINE
+			sb.corner_radius_top_left = 3
+			sb.corner_radius_top_right = 3
+			sb.corner_radius_bottom_left = 3
+			sb.corner_radius_bottom_right = 3
+			btn.add_theme_stylebox_override(state, sb)
+
+
+## After visited-dim runs, reorder the menu into three zones:
+##   1. unpicked options (incl. new-unlocked, in current authored order)
+##   2. exit option(s)
+##   3. visited options (dimmed, at bottom — still re-pickable for world-build)
+## Visited goes BELOW the exit so the player who wants to leave gets a clean
+## exit and the player who wants to keep exploring still can. Per the three-
+## type framework in docs/dialogue_dry_pattern.md.
+func _sort_responses_visited_below_exit() -> void:
+	if not is_instance_valid(dialogue_line): return
+	var exits: Array = []
+	var visited: Array = []
+	for child: Node in responses_menu.get_children():
+		if not (child is Control): continue
+		if not child.has_meta("response"): continue  # skip template
+		var matching: DialogueResponse = child.get_meta("response")
+		if matching == null: continue
+		if _is_exit_response(matching):
+			exits.append(child)
+		elif (child as CanvasItem).modulate == VISITED_DIM:
+			visited.append(child)
+	# Move exits to end first, then visited — both groups end up at the
+	# bottom in original relative order via the move_child(-1) trick.
+	for ch in exits:
+		responses_menu.move_child(ch, -1)
+	for ch in visited:
+		responses_menu.move_child(ch, -1)
+	if (exits.size() + visited.size()) > 0:
+		if responses_menu.has_method(&"configure_focus"):
+			responses_menu.call(&"configure_focus")
+
+
 func _dim_visited_responses() -> void:
 	if not is_instance_valid(dialogue_line): return
 	var scope: String = _visit_scope()

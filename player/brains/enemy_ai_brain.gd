@@ -501,6 +501,17 @@ func tick(body: Node3D, delta: float) -> Intent:
 	# and this advance fn drives the stochastic flicker-to-0 envelope.
 	_advance_cone_alpha(delta)
 
+	# Hack-in-progress freeze: the moment StealthKillTarget toggles
+	# set_hack_active(true, …), the pawn drops to a standstill — no patrol,
+	# no chase, no attack swing — until the hack completes or the player
+	# breaks contact (which flips active=false). Intent edges were already
+	# zeroed at line 486. Rebuild the cone mesh first so the flicker-to-0
+	# envelope from _advance_cone_alpha actually reaches the per-vertex
+	# alpha; without this the cone freezes at its last pre-hack frame.
+	if _hack_active:
+		_update_vision_debug(body, delta)
+		return _intent
+
 	# Cone yaw + per-slice raycasts run BEFORE alert phase. _can_see_target
 	# (called inside _update_alert_phase) reads _slice_distances; the visual
 	# rebuild reads them too. Single shared source.
@@ -511,6 +522,17 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_update_vision_debug(body, delta)
 	_update_state(body)
 	_update_debug_label(body)
+
+	# SUSPECT freeze: while ramping yellow→red on a target (stealth cone),
+	# stop the patrol entirely. Pawn stands still, cone tracks the target
+	# (see _update_vision_yaw), suspect_window keeps ticking up to HOSTILE.
+	# Bypasses the wander/follow/patrol branches below. CHASE/WIND_UP/IDLE
+	# still take precedence above this gate.
+	if _state != State.CHASE and _state != State.WIND_UP and _state != State.IDLE \
+			and _alert_phase == _AlertPhase.SUSPECT and _target != null:
+		_intent.move_direction = Vector3.ZERO
+		_navigate(body)
+		return _intent
 
 	match _state:
 		State.CHASE:
@@ -836,7 +858,13 @@ func _ensure_wp_graph(body: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
 func _waypoint_for(origin: Vector3) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
-	for wp: Node3D in _wp_graph.keys():
+	# Untyped loop var on purpose: a typed `wp: Node3D` would force assignment
+	# of each key before the body runs, and assigning a freed instance throws
+	# "invalid previously freed instance" — making the guard below dead code.
+	# Stale keys appear when waypoints are freed on level/platform reload.
+	for wp in _wp_graph.keys():
+		if not is_instance_valid(wp):
+			continue
 		var wp_pos: Vector3 = wp.global_position
 		var dy: float = absf(wp_pos.y - origin.y)
 		var dx: float = wp_pos.x - origin.x
@@ -870,7 +898,11 @@ func _bfs_full_path(start: Node3D, goal: Node3D) -> Array[Node3D]:
 				node = visited.get(node)
 			out.reverse()
 			return out
-		for nb: Node3D in _wp_graph.get(cur, []):
+		# Untyped + validity guard: cached neighbor refs can be freed after a
+		# same-scene reload (e.g. glitch platform), same as in _waypoint_for.
+		for nb in _wp_graph.get(cur, []):
+			if not is_instance_valid(nb):
+				continue
 			if visited.has(nb):
 				continue
 			visited[nb] = cur
@@ -1749,7 +1781,15 @@ func _play_phase_sound(body: Node3D, stream: AudioStream) -> void:
 func _update_vision_yaw(delta: float) -> void:
 	if vision_cone_deg <= 0.0 and not vision_debug_visible:
 		return
-	var target_yaw: float = atan2(_direction.x, _direction.z) + PI
+	# SUSPECT lock: while ramping yellow→red, stop the patrol swivel and aim
+	# the cone at the target instead. Body is also frozen in the state match
+	# block — pawn stands still and focuses, suspect_window keeps ticking.
+	var target_yaw: float
+	if _alert_phase == _AlertPhase.SUSPECT and _target != null and is_instance_valid(_target) and _body_ref != null:
+		var to_t: Vector3 = (_target as Node3D).global_position - _body_ref.global_position
+		target_yaw = atan2(to_t.x, to_t.z) + PI
+	else:
+		target_yaw = atan2(_direction.x, _direction.z) + PI
 	if vision_swivel_smoothing <= 0.0:
 		_vision_cone_yaw = target_yaw
 	else:
@@ -2001,6 +2041,13 @@ var _hack_progress: float = 0.0
 # active=false → cone returns to normal alpha logic (crouch / stand) on
 # the next frame. active=true → flicker on (1 - progress) envelope, with
 # alpha=0 at progress >= 1.0.
+## Public read: true while this brain is actively chasing a target (HOSTILE
+## alert phase). StealthKillTarget gates the hack prompt on this so the
+## player can't hack a pawn that has already spotted them.
+func is_chasing() -> bool:
+	return _alert_phase == _AlertPhase.HOSTILE
+
+
 func set_hack_active(active: bool, progress: float = 0.0) -> void:
 	_hack_active = active
 	_hack_progress = clampf(progress, 0.0, 1.0)

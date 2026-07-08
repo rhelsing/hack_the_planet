@@ -43,19 +43,14 @@ Nyx: Talk.
 
 ~ nyx_post_1_questions
 
-- Why off-channel?
-	Nyx: DialTone gets worse with an audience.
 - You pulled my log?
 	Nyx: I pull everyone's log. Don't read into it.
 - What do you want?
-	Nyx: DialTone scouted you. He's calling it casting.
+	Nyx: DialTone scouted you to help with this place.
 	Nyx: But I have doubts
 	do GameState.set_flag("nyx_post_1_asked_dare", true)
 - [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Doubts about what?
 	Nyx: Whether you're going to waste our time.
-	Nyx: Prove me wrong then.
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
-	Nyx: DialTone's smug enough already.
 - All right, see you on the wire. [#exit]
 	Nyx: Mm. We'll see.
 	=> END
@@ -63,6 +58,11 @@ Nyx: Talk.
 
 # ── Post Level 2 ─────────────────────────────────────────────────────────
 
+# DT-first enforcement lives at the scene level — `NyxPost2` in hub.tscn
+# has `redirect_target = ../Ground/DialTone` + `redirect_unless_flag =
+# "level_3_unlocked"`, which is only set by post_2_done. So Nyx is only
+# talkable AFTER the player commits via "I'm in" in DT's hub. Same
+# pattern as NyxPost3 → level_4_unlocked.
 ~ stage_post_2
 
 # Obligatory opener — runs once. Re-talks route through the entry block
@@ -72,6 +72,7 @@ if GameState.get_flag("nyx_post_2_opener_seen", false)
 
 Nyx: You got a second?
 Nyx: Off-channel.
+Nyx: You signed up for a prank. That isn't what this is.
 do GameState.set_flag("nyx_post_2_opener_seen", true)
 => nyx_post_2_questions
 
@@ -108,19 +109,54 @@ Nyx: Anything else, runner?
 	Nyx: Of course. Everyone wants to ask about Splice.
 	Nyx: What do you want to know.
 	do GameState.set_flag("nyx_post_2_asked_splice", true)
+	if not GameState.get_flag("nyx_trust_splice_asked_nudged", false)
+		do StoryVec.nudge(&"nyx_trust", 1)
+		do GameState.set_flag("nyx_trust_splice_asked_nudged", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Who was he to you?
 	Nyx: He was the smartest person I'd ever met.
 	Nyx: When he started talking about the system like a thing to climb instead of a thing to keep open, I should've called it sooner.
-	Nyx: I didn't. That's — yeah.
+	Nyx: I didn't. That's — yeah, that's on me.
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
+	if not GameState.get_flag("nyx_trust_who_was_he_nudged", false)
+		do StoryVec.nudge(&"nyx_trust", 1)
+		do GameState.set_flag("nyx_trust_who_was_he_nudged", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
-	Nyx: He never listened. He just waited for his turn to talk.
+	Nyx: I dont think so. I've tried. He mostly just waited for his turn to talk.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
 	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Why does he scare you?
 	Nyx: He doesn't scare me. What scares me is I vouched for him.
 	Nyx: He just confirms the read.
+	if not GameState.get_flag("nyx_trust_scare_nudged", false)
+		do StoryVec.nudge(&"nyx_trust", 1)
+		do GameState.set_flag("nyx_trust_scare_nudged", true)
+
+# ── SPELUNK probes — surface once nyx_trust >= 2 ───────────────────────
+# Post-L2 hub is the paragon (model) for dialogue depth in this project.
+# Content the player unlocks past trust gates is character spelunking.
+# Three earned-depth beats. Each delivers verbatim author-prose from
+# `story/raw_writing_part_1.md`, then routes to a Rule-8 response side
+# block where the player picks how to land it. One-shot via *_taken flags.
+# Nyx's hub is private — nudges here never touch dialtone_trust. See
+# story/better_spine_v4.md for the spelunk design.
+
+# SPELUNK (25) — Nyx philosophy: no enemy, just gravity, we built it.
+# Gateway-taken set moved into exit options inside nyx_paragon_25 so
+# the one-shot only burns when the player finishes the conversation.
+- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_25_taken", false) /] What do you actually think is wrong with all of this?
+	=> nyx_paragon_25
+
+# SPELUNK (38) — Nyx wound: regret on getting hyped. Verbatim corpus #38
+# ("definitely Nick's regretting"). Gateway-taken in responses.
+- [if StoryVec.value(&"nyx_trust") >= 2 and not GameState.get_flag("nyx_paragon_38_taken", false) /] You okay?
+	=> nyx_paragon_38
+
+# SPELUNK (39) — Nyx fantasy: drop ambition, lake, shun the rat race.
+# Verbatim corpus #39. Gated on 38-taken. Gateway-taken in responses.
+- [if GameState.get_flag("nyx_paragon_38_taken", false) and not GameState.get_flag("nyx_paragon_39_taken", false) /] Do you ever think about just walking?
+	=> nyx_paragon_39
+
 - All right, see you on the wire. [#exit]
 	=> END
 => nyx_post_2_questions
@@ -129,7 +165,7 @@ Nyx: Anything else, runner?
 ~ nyx_post_2_stay_or_go
 
 Nyx: DialTone's plan is a good plan. It's also more dangerous than the last two.
-Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
+Nyx: You don't have to be in for this one. Anyone who logged out right now would be making the smart choice.
 - Are you telling me to log out? [#exit]
 	Nyx: I'm telling you you can.
 	=> nyx_post_2_choice
@@ -147,6 +183,150 @@ Nyx: You don't have to be in for this one. Anyone who jacked out right now would
 Nyx: Whatever you decide, I won't take it personally.
 Nyx: Just don't drift into it.
 => END
+
+
+# SPELUNK (25) — Nyx philosophy: no enemy, just gravity, and we built it.
+# Restructured as rant subhub. Opening hook ("they have ruined us — but
+# they're not the bad guy") sets the refuse-to-villainize stance, then
+# sub-probes pull individual corpus beats: (1) why no bad guy / they
+# had no choice, (2) we've been training the machine, (3) restored
+# self-implication line — "we replace our personality with the laid-back
+# carefree guy" — the Nyx-implicates-herself move the first pass dropped.
+# Cold -1 (sticky but doesn't trap future spelunks).
+~ nyx_paragon_25
+
+if not GameState.get_flag("nyx_paragon_25_hook_seen", false)
+	Nyx: ...
+	Nyx: They have ruined us.
+	Nyx: But — they're not the bad guy. That's the part I keep landing on.
+	do GameState.set_flag("nyx_paragon_25_hook_seen", true)
+
+# Sub-probes — each pulls one corpus beat. Visited-dim handles re-clicks.
+
+- How is there no bad guy?
+	Nyx: The profit-seeking advertising machines. The social media giants.
+	Nyx: Their goal is simple. Keep us glued to the screen. So they have no choice.
+	Nyx: Controversy. Extreme emotion. That's what keeps us scrolling.
+	Nyx: They did not choose this.
+	Nyx: They asked the question, and the statistical experiment responded with the facts.
+	Nyx: Perfectly evolved to amplify our tribal proclivities. But out of scale. Everyone, everywhere, at the speed of light.
+	do GameState.set_flag("nyx_25_no_bad_guy_pulled", true)
+	do GameState.set_flag("nyx_25_any_pulled", true)
+
+- We can opt out, can't we?
+	Nyx: We've been empowering the data brokers this whole time.
+	Nyx: We've been training the machine to replace us.
+	Nyx: And if we cared, we would've stopped sooner.
+	Nyx: We wouldn't have been chasing the views.
+	do GameState.set_flag("nyx_25_opt_out_pulled", true)
+	do GameState.set_flag("nyx_25_any_pulled", true)
+
+- Including us?
+	Nyx: ...everyone.
+	Nyx: We replace our personality with the laid-back carefree guy we saw on TV one time.
+	Nyx: Sacrifice authenticity for popularity.
+	Nyx: It worked, too.
+	Nyx: That's the part.
+	do GameState.set_flag("nyx_25_complicit_pulled", true)
+	do GameState.set_flag("nyx_25_any_pulled", true)
+
+# Trust commits — gated on any sub-probe pulled.
+
+- [if GameState.get_flag("nyx_25_any_pulled", false) /] Yeah. Same. [#vector]
+	Nyx: ...mm.
+	Nyx: Good. Hate being the only one.
+	do StoryVec.nudge(&"nyx_trust", 1)
+	do GameState.set_flag("nyx_paragon_25_taken", true)
+	=> nyx_post_2_questions
+
+- [if GameState.get_flag("nyx_25_any_pulled", false) /] You sound paranoid. [#vector]
+	Nyx: ...
+	Nyx: ...maybe. Doesn't change anything.
+	do StoryVec.nudge(&"nyx_trust", -1)
+	do GameState.set_flag("nyx_paragon_25_taken", true)
+	=> nyx_post_2_questions
+
+- Got it. Moving on. [#exit]
+	do GameState.set_flag("nyx_paragon_25_taken", true)
+	=> nyx_post_2_questions
+
+=> nyx_paragon_25
+
+
+# SPELUNK (38) — Nyx wound: regret on getting hyped. Verbatim corpus #38
+# (your attribution: "definitely Nick's regretting"). Three response
+# options — warm / neutral / cold.
+~ nyx_paragon_38
+
+if not GameState.get_flag("nyx_paragon_38_hook_seen", false)
+	Nyx: ...
+	Nyx: How often does something I'm hyped up on really play out in my favor.
+	Nyx: I could use being more skeptical.
+	Nyx: Especially when getting hyped on conversation alone. Ideals alone. Potential alone.
+	Nyx: Especially when it's about collaborating with people.
+	Nyx: Don't bank on it. Expect crickets. Expect disappointment.
+	Nyx: That would be a more balanced view.
+	Nyx: I might be less cynical about humankind if I didn't expect so much from the get-go.
+	do GameState.set_flag("nyx_paragon_38_hook_seen", true)
+
+- That tracks for me too. [#vector]
+	Nyx: ...thanks.
+	Nyx: Don't make me say that twice.
+	do StoryVec.nudge(&"nyx_trust", 1)
+	do GameState.set_flag("nyx_paragon_38_taken", true)
+	=> nyx_post_2_questions
+- You're allowed to be hopeful.
+	Nyx: Mm.
+	Nyx: Allowed.
+	do GameState.set_flag("nyx_paragon_38_taken", true)
+	=> nyx_post_2_questions
+- Sounds like an excuse not to try. [#vector]
+	Nyx: ...
+	Nyx: Sure.
+	do StoryVec.nudge(&"nyx_trust", -1)
+	do GameState.set_flag("nyx_paragon_38_taken", true)
+	=> nyx_post_2_questions
+
+
+# SPELUNK (39) — Nyx fantasy: drop ambition, lake, shun the rat race.
+# Verbatim corpus #39. The opt-out daydream she never enacts. Gated on
+# 38-taken so it lands as the deeper crack after she's already shown
+# the wound. Three response options.
+~ nyx_paragon_39
+
+if not GameState.get_flag("nyx_paragon_39_hook_seen", false)
+	Nyx: ...all the time.
+	Nyx: Lately, every shift.
+	Nyx: Why not sit and read by a lake all the time. Swim. Practice yoga. Nap.
+	Nyx: Give it all up.
+	Nyx: Noodle on the guitar. Just jam and chat.
+	Nyx: Linger in the stillness.
+	Nyx: Downsize my tech. My phone.
+	Nyx: Shun the wire. Shun the rat race.
+	Nyx: Sounds as refreshing as a dip in cold blue water.
+	Nyx: Build a routine that treats myself first. Then others. Then finally ambitions.
+	Nyx: The work emerges as a byproduct. Or not at all.
+	Nyx: ...don't tell DialTone I told you that.
+	do GameState.set_flag("nyx_paragon_39_hook_seen", true)
+
+- Do it. [#vector]
+	Nyx: ...maybe.
+	Nyx: After this. Maybe.
+	do StoryVec.nudge(&"nyx_trust", 1)
+	do GameState.set_flag("nyx_paragon_39_taken", true)
+	=> nyx_post_2_questions
+- Why don't you?
+	Nyx: Because the people who'd replace me are worse.
+	Nyx: That's not a reason. That's an excuse. But it's mine.
+	do GameState.set_flag("nyx_paragon_39_taken", true)
+	=> nyx_post_2_questions
+- That sounds like quitting. [#vector]
+	Nyx: ...
+	Nyx: Yeah. That's the appeal.
+	do StoryVec.nudge(&"nyx_trust", -1)
+	do GameState.set_flag("nyx_paragon_39_taken", true)
+	=> nyx_post_2_questions
+
 
 # ── Post Level 3 ─────────────────────────────────────────────────────────
 
@@ -252,6 +432,8 @@ else
 	Nyx: Splice spent a year in the static planning this. He gets to see us happy. That's the bit.
 - He's quarantined for good?
 	Nyx: For now. Yes. But he's been there before.
+	Nyx: And the thing that let him in is still running. Same grid. Same holes.
+	Nyx: This holds as long as it holds.
 - See you on the wire. [#exit]
 	Nyx: Go pick a song. Save me one.
 	do GameState.set_flag("hub_post4_nyx_celebrated", true)

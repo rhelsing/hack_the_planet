@@ -59,6 +59,8 @@ Glitch: I remember. Your loss.
 ~ post_traverse_first
 
 Glitch: Welcome back. Wasn't that neat?
+Glitch: That felt... good. Doing that.
+Glitch: I don't usually notice how things feel. Hm.
 do GameState.set_flag("glitch_l3_post_traverse_count", 1)
 => END
 

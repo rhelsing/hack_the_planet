@@ -10,6 +10,8 @@ Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm re
 Glitch: One thing while I have you.
 Glitch: When you crouch, your sentinels read it as a stand-down. They stop pressing forward and hold position.
 Glitch: So — no more of your sentinel apostles following you like lambs to the slaughter. Crouch and they'll wait it out.
+Glitch: I've been making things faster than I'm supposed to.
+Glitch: I don't think I'm supposed to mention that. Don't tell DialTone. He'll think it's a feature.
 do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
@@ -31,6 +33,13 @@ Glitch: Anything else, runner?
 
 ~ glitch_l4_post_questions
 
+- Are you alright?
+	Glitch: That's a strange question to ask a node.
+	Glitch: I'll get back to you.
+- Should I tell anyone?
+	Glitch: No.
+	Glitch: ...no, don't.
+	do GameState.set_flag("glitch_engaged_deep", true)
 - All right. [#exit]
 	Glitch: Carry on.
 	=> END

@@ -31,11 +31,10 @@ Glitch: Good luck. Stay low.
 	Glitch: And with that, you now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
 	Glitch: The second ability and the one you must use **now** is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.
 	Glitch: Sneak up behind a hacked sentinel and apply your counterhack to disable it.
-	Glitch: And you will look real cool while doing it.
+	Glitch: These glasses can go to your head a little. Just so you know.
 	do GameState.set_flag("level_2_glitch_asked_brief", true)
 - [if GameState.get_flag("level_2_glitch_asked_brief", false) /] Splice?
-	Glitch: There are others who can explain Splice better than I can. But..
-	Glitch: He's bad news.
+	Glitch: There are others who can explain Splice better than I.
 - Got it. [#exit]
 	=> done
 => glitch_l2_questions

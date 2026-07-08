@@ -13,6 +13,22 @@ channel = "walkie"
 bus_override = &"Companion"
 label = "Splice: there you are"
 
+[sub_resource type="Resource" id="line_splice_1b"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "You picked the one that was already winning."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: picked the one already winning"
+
+[sub_resource type="Resource" id="line_splice_1c"]
+script = ExtResource("2_line")
+character = &"Splice"
+text = "That's the smart move. Don't let anyone make you feel small about it."
+channel = "walkie"
+bus_override = &"Companion"
+label = "Splice: don't let anyone make you feel small"
+
 [sub_resource type="Resource" id="wait_1"]
 script = ExtResource("4_wait")
 seconds = 7.0
@@ -48,6 +64,13 @@ character = &"Glitch"
 text = "...local node, helpful to all. I'll go back to that."
 channel = "walkie"
 label = "Glitch: local node helpful to all"
+
+[sub_resource type="Resource" id="line_glitch_2b"]
+script = ExtResource("2_line")
+character = &"Glitch"
+text = "...I had something I wanted to make. It can wait."
+channel = "walkie"
+label = "Glitch: had something I wanted to make"
 
 [sub_resource type="Resource" id="wait_5"]
 script = ExtResource("4_wait")
@@ -139,7 +162,7 @@ label = "Splice: don't stop walking"
 
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_great"), SubResource("wait_great"), SubResource("line_splice_4")])
+steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("line_splice_1b"), SubResource("line_splice_1c"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_2"), SubResource("line_glitch_2b"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_great"), SubResource("wait_great"), SubResource("line_splice_4")])
 freeze_player = false
 scene_duration = 0.0
 done_flag = &"l5_walk_done"

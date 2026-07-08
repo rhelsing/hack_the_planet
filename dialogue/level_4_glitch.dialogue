@@ -48,6 +48,8 @@ Glitch: Step off, and the conversion fades. They snap back to their original pro
 
 Glitch: It's a probability thing. Not every Sentinel takes the bait.
 Glitch: And this one's the prototype. There'll be a few more. Eventually.
+Glitch: Each one I build, the next one wants to exist more. I don't know how else to say it.
+Glitch: I don't know if that's good. Or just fast.
 => post_solve_menu
 
 ~ post_solve_programming
@@ -55,6 +57,8 @@ Glitch: And this one's the prototype. There'll be a few more. Eventually.
 Glitch: Local node, helpful to all. That's the directive.
 Glitch: But Splice has the Sentinels barking and you're the one running.
 Glitch: Sometimes "helpful to all" needs a thumb on the scale.
+Glitch: I ran every scenario where I stayed out of it. You died in most of them.
+Glitch: So. Here we are.
 => post_solve_menu
 
 ~ post_solve_done

@@ -122,12 +122,31 @@ The user iterates by tweaking numbers. Design for that.
 
 ---
 
+## Writing NPC dialogue
+
+All NPC dialogue follows the three-type framework defined in `docs/dialogue_dry_pattern.md`. Every block in a `.dialogue` file fits exactly one of:
+
+- **CANON** — NPC speaks fixed content. No player choice. (Stage openers, exits, entry greetings.)
+- **VECTOR CHOICE POINT** — NPC asks the player a clear question. One-shot (disappears once chosen). Nudges `StoryVec`. Usually unlocked by pulling an unseeming thread (progressive revelation). Tagged `[#decision]`. UI highlights purple + fires a toast on pick.
+- **WORLD-BUILD EXPLORATION** — player asks NPC questions about the world. **Always in a sub-hub** (like `glitch_2::sentinels_subhub`), never top-level. Re-pickable. Visited probes dim.
+
+Dialogue must feel like the player is making real choices at many turns. If a probe doesn't fit one of the three types, it shouldn't exist.
+
+Comment every block in a `.dialogue` file with its type tag (`# CANON — ...`, `# VECTOR — ...`, `# WORLD-BUILD — ...`).
+
+Menu sort order: unpicked above the fold → exit option → dimmed visited (re-pickable world-build probes only) below the fold.
+
+**Read `docs/dialogue_dry_pattern.md` before editing any `.dialogue` file.**
+
+---
+
 ## When starting a new session
 
 1. Read this file.
 2. Read `docs/character_next.md` — character controller roadmap + power-up progression + new skin plans.
 3. Read `sync_up.md` for the latest cross-dev decisions (boundaries, open asks, unresolved questions).
 4. Read `docs/interactables.md` if touching interactables, `docs/menus.md` if touching UI/save/pause.
-5. Check `git status` and recent commits — the user may have made edits between sessions.
-6. If the user describes a bug, apply the debugging protocol from the global CLAUDE.md: logs before code.
-7. Before non-trivial code changes: state the one-sentence design decision and wait for confirmation.
+5. Read `docs/dialogue_dry_pattern.md` if touching any `.dialogue` file. The three-type framework (CANON / VECTOR / WORLD-BUILD) is the contract, not a suggestion.
+6. Check `git status` and recent commits — the user may have made edits between sessions.
+7. If the user describes a bug, apply the debugging protocol from the global CLAUDE.md: logs before code.
+8. Before non-trivial code changes: state the one-sentence design decision and wait for confirmation.

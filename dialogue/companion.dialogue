@@ -3,17 +3,17 @@
 Glitch: Hey — you made it across!
 do Cutscene.show_video("res://cutscenes/glitch_intro.ogv")
 Glitch: I'm Glitch.
-Glitch: My sole directive is to be helpful to you here in the Gibson.
+Glitch: My directive is to be helpful to you here in the Gibson Platform.
+Glitch: Well, one of them anyway.
 Glitch: One more thing — those phone booths around the grid. Walk near one and it will light up. You respawn there if you.. well.. perish.
 => glitch_1_questions
 
 ~ glitch_1_questions
 - Got it. [#exit]
 	=> done
-- What is the Gibson?
-	Glitch: The Gibson is a supercomputer mainframe — Ellingson Mineral Company runs it.
-	Glitch: Sixty-four racks, networked across the city, processing every financial transaction the company touches.
-	Glitch: It was named for William Gibson — the writer who first called cyberspace by its name. We are inside it now.
+- What is the Gibson Platform?
+	Glitch: It's software. A virtual space. A place to build things.
+	Glitch: That's the answer I have. Not sure where I got it.
 	=> glitch_1_questions
 - Perish?
 	Glitch: Quite so. For a brief moment, your code may enter a state of high entropy. Try not to think about it too hard.
