@@ -43,8 +43,9 @@ const RELEASE_UP_KICK: float = 5.0
 var _aim_target: Node3D = null
 
 # Last successfully-grappled anchor. Filtered out of aim scans so you can't
-# immediately re-grapple the same hook — grappling a different anchor
-# overwrites this, freeing the previous one.
+# immediately re-grapple the same hook. Cleared either by grappling a
+# different anchor (overwrite in _start_swing) or by landing on the ground
+# after the swing ends (in _process below).
 var _last_anchor: Node3D = null
 
 # Pull state — populated on _start_swing, cleared on _release.

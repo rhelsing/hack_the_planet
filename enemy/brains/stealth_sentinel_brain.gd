@@ -153,8 +153,15 @@ func _update_vision_yaw(delta: float) -> void:
 		return
 	if _body_ref == null:
 		return
-	var body_yaw: float = float(_body_ref.get(&"_yaw_state"))
-	var target_yaw: float = PI + body_yaw
+	# SUSPECT lock: aim the cone at the target instead of following body yaw.
+	# Body is also frozen via the state match block — see parent brain.
+	var target_yaw: float
+	if _alert_phase == _AlertPhase.SUSPECT and _target != null and is_instance_valid(_target):
+		var to_t: Vector3 = (_target as Node3D).global_position - _body_ref.global_position
+		target_yaw = atan2(to_t.x, to_t.z) + PI
+	else:
+		var body_yaw: float = float(_body_ref.get(&"_yaw_state"))
+		target_yaw = PI + body_yaw
 	if vision_swivel_smoothing <= 0.0:
 		_vision_cone_yaw = target_yaw
 	else:

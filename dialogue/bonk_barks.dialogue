@@ -1,0 +1,43 @@
+~ start
+
+# Bank of bonk-reaction barks fired when the player punches a companion NPC
+# repeatedly. companion_npc.take_hit counts hits; every 3–7 swings it calls
+# Dialogue.fire_bonk_bark(character), which advances a per-character index
+# and routes the next line through Walkie.speak on the Companion bus. The
+# four ~ sections below group lines by speaker; section name = active
+# character lowercased. Order matters — lines play in file order, cycling.
+
+=> END
+
+~ dialtone
+
+DialTone: Hey — easy.
+DialTone: Save it for the run, runner.
+DialTone: I felt that one. Knock it off.
+DialTone: Hands to yourself, {player_handle}.
+=> END
+
+~ glitch
+
+Glitch: this is unusual behavior
+Glitch: I'm noting this for the record
+Glitch: ow. that does compute as ow
+Glitch: every action has a consequence I guess
+=> END
+
+~ nyx
+
+Nyx: Mature.
+Nyx: Do you feel better now?
+Nyx: You'll get yours, {player_handle}.
+Nyx: Charming.
+=> END
+
+~ splice
+
+Splice: I just want to talk.
+Splice: Harder.
+Splice: I've had worse.
+Splice: Try the face.
+Splice: Is that all?
+=> END

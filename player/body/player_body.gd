@@ -288,7 +288,7 @@ const _FACTION_GROUP: Dictionary = {
 	&"gold":           &"allies",
 }
 const _FACTION_TARGETS: Dictionary = {
-	&"player":         [&"enemies", &"splice_enemies"],
+	&"player":         [&"enemies", &"splice_enemies", &"bonkable"],
 	&"green":          [&"player",  &"allies"],
 	&"red":            [&"player",  &"allies"],
 	&"splice_stealth": [&"player",  &"allies"],
@@ -2136,15 +2136,6 @@ func _snap_camera_to_player() -> void:
 		_camera_pivot.position = pivot_offset
 
 
-## Public: returns the grind direction this pawn is currently riding on
-## `rail` (+1.0 / -1.0), or 0.0 if not grinding that specific rail. Used by
-## ally pawns to gate their own grind-entry on the player's state.
-func grinding_dir_on(rail: Path3D) -> float:
-	if not _grinding or _grind_rail != rail:
-		return 0.0
-	return _grind_direction
-
-
 func _on_rail_touched(rail: Node, body: Node) -> void:
 	if body != self or _grinding:
 		return
@@ -2154,36 +2145,23 @@ func _on_rail_touched(rail: Node, body: Node) -> void:
 	var path_rail: Path3D = rail as Path3D
 	if path_rail == null:
 		return
-	# Faction gate: only the player grinds freely. Allies (gold) can chain
-	# off the player's rail but locked to the same direction. Everything
-	# else (red enemies, splice, stealth) is barred from rails entirely.
-	var forced_direction: float = 0.0  # 0 = derive from velocity below
-	if pawn_group != "player":
-		if not is_in_group(&"allies"):
-			return
-		var tree := get_tree()
-		var player := tree.get_first_node_in_group(&"player") if tree != null else null
-		if player == null or not player.has_method(&"grinding_dir_on"):
-			return
-		forced_direction = player.call(&"grinding_dir_on", path_rail)
-		if forced_direction == 0.0:
-			return
+	# Skates-only gate: anyone on blades grinds, regardless of faction.
+	# Matches the wheels-visible and halfpipe-stick rule (see line 646-647).
+	# Walkers (no skate_profile or not currently in skate mode) skip rails.
+	if skate_profile == null or _current_profile != skate_profile:
+		return
 	_grind_rail = path_rail
 	_grind_progress = _grind_rail.closest_progress(global_position)
 	var pf: PathFollow3D = _grind_rail.get_node_or_null("PathFollow3D") as PathFollow3D
-	if forced_direction != 0.0:
-		# Ally chained onto player's rail — lock to the player's direction.
-		_grind_direction = forced_direction
-	else:
-		# Player entry: pick direction by comparing velocity to curve tangent
-		# at the entry point. If they disagree, grind backward along the curve.
-		_grind_direction = 1.0
-		if pf != null:
-			pf.progress = _grind_progress
-			var tangent: Vector3 = -pf.global_transform.basis.z
-			var h_vel: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
-			if h_vel.length() > 0.1 and h_vel.dot(tangent) < 0.0:
-				_grind_direction = -1.0
+	# Pick direction by comparing velocity to curve tangent at the entry
+	# point. If they disagree, grind backward along the curve.
+	_grind_direction = 1.0
+	if pf != null:
+		pf.progress = _grind_progress
+		var tangent: Vector3 = -pf.global_transform.basis.z
+		var h_vel: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
+		if h_vel.length() > 0.1 and h_vel.dot(tangent) < 0.0:
+			_grind_direction = -1.0
 	_grinding = true
 	_grind_snap_t = 0.0
 	_grind_start_pos = global_position
