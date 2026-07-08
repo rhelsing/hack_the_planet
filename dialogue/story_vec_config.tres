@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-axes = Array[StringName]([&"ai_tech", &"humanity"])
+axes = Array[StringName]([&"ai_tech", &"humanity", &"dialtone_trust", &"nyx_trust"])
 bounds_min = -10.0
 bounds_max = 10.0
 regions = [{

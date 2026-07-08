@@ -71,6 +71,12 @@ signal skill_cooldown_started(skill: StringName, seconds: float)
 @warning_ignore("unused_signal")
 signal skill_granted(skill: StringName, new_level: int)
 
+# Dialogue vector commit — fired when the player picks a [#vector]-tagged
+# option (the "NPC asks YOU a question" choice points per the three-type
+# framework in docs/dialogue_dry_pattern.md). ToastStack surfaces it.
+@warning_ignore("unused_signal")
+signal dialogue_vector_committed(label: String)
+
 # ── ui_dev / menus.md additions ──────────────────────────────────────────
 # Modal stack: anyone (Dialogue, Puzzles, PauseMenu, SettingsMenu, etc.) that
 # wants consumers to know "a modal is up" emits modal_opened(&"id") on show

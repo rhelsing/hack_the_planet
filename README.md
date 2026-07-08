@@ -1,5 +1,7 @@
 # Hack The Planet
 
+> **Writing NPC dialogue?** Read [`docs/dialogue_dry_pattern.md`](docs/dialogue_dry_pattern.md) first. Every block in a `.dialogue` file is exactly one of three types: **CANON** (fixed content), **VECTOR CHOICE POINT** (NPC asks the player a clear question; one-shot; nudges `StoryVec`), or **WORLD-BUILD EXPLORATION** (player asks the NPC; always in a sub-hub; re-pickable). The three-type framework is the contract.
+
 > **"Bake audio"** = run `tools/prime_all_dialogue.tscn` (TTS voice cache for every `.dialogue`, level walkie, and cutscene LineStep). Not `tools/bake_audio.gd` — that's just the 6 placeholder SFX synths.
 >
 > ```
