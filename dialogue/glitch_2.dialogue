@@ -86,10 +86,12 @@ Glitch: At your service.
 #
 # Structure (Rule 10 of dialogue_dry_pattern.md):
 #   - "Several configurations?"            opens "Are they... conscious?"
+#                                          and "Where do they come from?"
 #   - "Are they... conscious?"  ([if /])   opens "Can I trust them?"
-#   - "Where do they come from?"           +humanity (curious about origins)
+#   - "Where do they come from?" ([if /])  +humanity (curious about origins)
 #   - "Can I trust them?"       ([if /])   choice between trust / wariness;
-#                                          either branch nudges the vector.
+#                                          either commit is [#vector]-tagged
+#                                          (purple + toast) and nudges the vector.
 #   - Back. [#exit]                        returns to glitch_2_questions.
 #
 # Phase C: "About those Sentinels..." in the parent hub only dims once
@@ -110,7 +112,7 @@ Glitch: At your service.
 	Glitch: I wouldn't rule it out.
 	do StoryVec.nudge(&"ai_tech", 1)
 	do GameState.set_flag("glitch2_asked_conscious", true)
-- Where do they come from?
+- [if GameState.get_flag("glitch2_asked_configs", false) /] Where do they come from?
 	Glitch: Ellingson built the first batch decades ago. Patrol scripts. Boring.
 	Glitch: They got handed off, sold, copied, mutated.
 	Glitch: The ones in here now are someone else's children. We just inherited them.
@@ -132,14 +134,14 @@ Glitch: At your service.
 ~ sentinels_trust_branch
 
 Glitch: Trust. Different word again.
-- Treat them like tools. They're code.
+- Treat them like tools. They're code. [#vector]
 	Glitch: Practical. They'll snap your spine without thinking, so — fair trade.
 	Glitch: Use what works.
 	do StoryVec.nudge(&"ai_tech", -1)
 	do StoryVec.nudge(&"humanity", -1)
 	do GameState.set_flag("glitch2_trust_decided", true)
 	=> sentinels_subhub
-- Treat them like neighbors I just don't agree with.
+- Treat them like neighbors I just don't agree with. [#vector]
 	Glitch: Generous. Probably wrong, but generous.
 	Glitch: I'll remember you said that.
 	do StoryVec.nudge(&"ai_tech", 1)
