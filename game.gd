@@ -69,6 +69,12 @@ func _ready() -> void:
 		SaveService.current_level, saved_scene])
 	if saved_scene != null:
 		_mount_level(saved_scene)
+		# Boot/Continue lands here (SaveService reboots game.tscn), so it
+		# must fire the same post-mount hook as in-game transitions
+		# (load_level below) — the hub's post-L4 victory ignition lives in
+		# before_reveal() and was silently skipped on Continue.
+		if _current_level != null and _current_level.has_method(&"before_reveal"):
+			await _current_level.before_reveal()
 
 
 func _process(delta: float) -> void:

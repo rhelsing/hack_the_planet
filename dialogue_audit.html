@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dialogue menu audit</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background: #0d1117; color: #e6edf3; font: 15px/1.5 -apple-system, "Segoe UI", sans-serif;
+         max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.3rem; color: #00ffff; }
+  .sub { color: #8b949e; margin-bottom: 1.5rem; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+          padding: 1rem 1.2rem; margin-bottom: 1rem; }
+  .card.commented { border-color: #a673f2; }
+  .loc { font-family: ui-monospace, monospace; font-size: 0.9rem; color: #00ffff; }
+  .loc a { color: inherit; }
+  .badges { margin: 0.4rem 0 0.6rem; }
+  .badge { display: inline-block; font-size: 0.78rem; padding: 0.1rem 0.55rem;
+           border-radius: 10px; margin-right: 0.4rem; border: 1px solid #30363d; color: #8b949e; }
+  .badge.total { color: #ff5478; border-color: #ff5478; }
+  ul.opts { margin: 0.3rem 0 0.8rem; padding-left: 1.3rem; color: #c9d1d9; }
+  ul.opts li { margin: 0.1rem 0; }
+  ul.opts .gate { color: #d29922; font-size: 0.85em; }
+  ul.opts .exit { color: #3fb950; font-size: 0.85em; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 3.2rem; resize: vertical;
+             background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 6px;
+             padding: 0.5rem 0.7rem; font: inherit; }
+  textarea:focus { outline: none; border-color: #a673f2; }
+  .toolbar { position: sticky; top: 0; background: #0d1117; padding: 0.8rem 0;
+             display: flex; gap: 0.8rem; align-items: center; z-index: 2; }
+  button { background: #a673f2; color: #0d1117; font-weight: 600; border: 0;
+           border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; font: inherit; }
+  button:hover { filter: brightness(1.1); }
+  .count { color: #8b949e; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<h1>Dialogue menu audit — moments with &gt; 3 options</h1>
+<div class="sub">Comment on what to change under each finding. Comments save
+automatically in this browser. Regenerate the file with
+<code>godot --headless --script res://tools/dialogue_audit_html.gd --quit</code>.</div>
+<div class="toolbar">
+  <button onclick="downloadMd()">Download markdown</button>
+  <span class="count" id="count"></span>
+</div>
+<div id="cards"></div>
+<script>
+const FINDINGS = [{"exits":2,"file":"dialogue/dial_tone.dialogue","gated":4,"line":41,"menu":"dialtone_questions","options":["Are you who messaged me?","Who's Nyx?","[if GameState.get_flag(\"dialtone_asked_nyx\", false) /] What am I looking for down there?","[if GameState.get_flag(\"dialtone_asked_looking\", false) /] Why can't you go yourself?","[if !GameState.get_flag(\"dialtone_greeted\", false) /] I'm in. Where's the portal? [#exit]","[if GameState.get_flag(\"dialtone_greeted\", false) /] That's all. [#exit]"],"total":6},{"exits":1,"file":"dialogue/dial_tone.dialogue","gated":9,"line":175,"menu":"post_2_questions","options":["So what's the plan?","[if GameState.get_flag(\"post_2_asked_plan\", false) /] What am I looking for?","[if GameState.get_flag(\"post_2_asked_target\", false) /] Vague.","[if GameState.get_flag(\"post_2_asked_plan\", false) /] Why split?","[if GameState.get_flag(\"post_2_asked_plan\", false) /] Who is Splice?","[if GameState.get_flag(\"post_2_asked_who\", false) /] Pull that thread.","[if GameState.get_flag(\"post_2_asked_who\", false) /] How did he get into the sentinels?","[if GameState.get_flag(\"post_2_asked_who\", false) /] You weren't expecting him.","[if GameState.get_flag(\"post_2_asked_admit\", false) /] And the prank?","[if GameState.get_flag(\"dialtone_messenger_thread\", 0) == 2 /] You said boards earlier.","I'm in. [#exit]"],"total":11},{"exits":1,"file":"dialogue/dial_tone.dialogue","gated":3,"line":276,"menu":"post_3_questions","options":["Bitter. World-rigged. He went on about being wronged.","It got personal. About Nyx.","[if GameState.get_flag(\"post_3_debriefed\", false) /] What's the plan now?","[if GameState.get_flag(\"dialtone_messenger_thread\", 0) == 3 and GameState.get_flag(\"post_3_debriefed\", false) /] Let's talk about how I got here.","[if GameState.get_flag(\"post_3_debriefed\", false) /] I'm ready for the next one. [#exit]"],"total":5},{"exits":1,"file":"dialogue/glitch_2.dialogue","gated":3,"line":102,"menu":"sentinels_subhub","options":["Several configurations?","[if GameState.get_flag(\"glitch2_asked_configs\", false) /] Are they... conscious?","[if GameState.get_flag(\"glitch2_asked_configs\", false) /] Where do they come from?","[if GameState.get_flag(\"glitch2_asked_conscious\", false) and not GameState.get_flag(\"glitch2_trust_decided\", false) /] Can I trust them? [#decision]","Back. [#exit]"],"total":5},{"exits":1,"file":"dialogue/hub_nyx.dialogue","gated":3,"line":46,"menu":"nyx_post_1_questions","options":["Why off-channel?","[if GameState.get_flag(\"nyx_post_1_asked_channel\", false) /] You pulled my log?","What do you want?","[if GameState.get_flag(\"nyx_post_1_asked_dare\", false) /] Doubts about what?","[if GameState.get_flag(\"nyx_post_1_asked_dare\", false) /] Why?","All right, see you on the wire. [#exit]"],"total":6},{"exits":1,"file":"dialogue/hub_nyx.dialogue","gated":7,"line":97,"menu":"nyx_post_2_questions","options":["What's up?","You did the saving this time.","[if GameState.get_flag(\"nyx_post_2_asked_save\", false) /] You make it sound routine.","[if GameState.get_flag(\"nyx_post_2_asked_save\", false) /] Thanks anyway.","[if GameState.get_flag(\"nyx_post_2_thanked\", false) /] Tell me about Splice.","[if GameState.get_flag(\"nyx_post_2_asked_splice\", false) /] Who was he to you?","[if GameState.get_flag(\"nyx_post_2_asked_splice_ex\", false) /] Does he still listen to you?","[if GameState.get_flag(\"nyx_post_2_asked_splice\", false) /] What's he actually after?","[if GameState.get_flag(\"nyx_post_2_asked_splice\", false) /] Why does he scare you?","All right, see you on the wire. [#exit]"],"total":10},{"exits":1,"file":"dialogue/hub_nyx.dialogue","gated":4,"line":183,"menu":"nyx_post_3_questions","options":["About earlier...","[if GameState.get_flag(\"nyx_post_3_asked_earlier\", false) /] Glad you didn't.","[if GameState.get_flag(\"nyx_post_3_asked_earlier\", false) /] I didn't see anything.","You read this one before. Didn't you?","[if GameState.get_flag(\"nyx_post_3_asked_read\", false) /] What does that mean?","[if GameState.get_flag(\"nyx_post_3_asked_read\", false) /] It mattered to you.","All right, see you on the wire. [#exit]"],"total":7},{"exits":1,"file":"dialogue/hub_post4_glitch.dialogue","gated":2,"line":28,"menu":"glitch_p4_questions","options":["How are you?","What happens now?","[if GameState.get_flag(\"glitch_p4_asked_how\", false) /] Thank you. For the platform.","[if GameState.get_flag(\"glitch_p4_asked_how\", false) /] Are you different?","I should go. [#exit]"],"total":5},{"exits":1,"file":"dialogue/hub_post4_splice.dialogue","gated":3,"line":36,"menu":"splice_p4_questions","options":["You shouldn't have come at us.","You okay in there?","[if GameState.get_flag(\"splice_p4_asked_okay\", false) /] This is kind of cruel.","[if GameState.get_flag(\"splice_p4_asked_cruel\", false) /] You're not getting out. But you can dance. [#decision]","[if GameState.get_flag(\"splice_p4_confronted\", false) /] I won.","Walk away. [#exit]"],"total":6}];
+const key = f => `dlg_audit::${f.file}::${f.line}::${f.menu}`;
+
+function render() {
+  const root = document.getElementById('cards');
+  FINDINGS.forEach((f, i) => {
+    const saved = localStorage.getItem(key(f)) || '';
+    const card = document.createElement('div');
+    card.className = 'card' + (saved ? ' commented' : '');
+    const opts = f.options.map(o => {
+      let cls = '', txt = o;
+      if (o.includes('[#exit]')) cls = 'exit';
+      else if (o.startsWith('[if ')) cls = 'gate';
+      return `<li class="${cls}">${txt.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</li>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="loc">${f.file} :: ~${f.menu} <span style="color:#8b949e">(line ${f.line})</span></div>
+      <div class="badges">
+        <span class="badge total">${f.total} options</span>
+        <span class="badge">${f.total - f.gated} always-on</span>
+        <span class="badge">${f.gated} [if]-gated</span>
+        <span class="badge">${f.exits} exit</span>
+      </div>
+      <ul class="opts">${opts}</ul>
+      <textarea placeholder="What should change here?" data-i="${i}">${saved}</textarea>`;
+    root.appendChild(card);
+  });
+  root.addEventListener('input', e => {
+    if (e.target.tagName !== 'TEXTAREA') return;
+    const f = FINDINGS[+e.target.dataset.i];
+    const v = e.target.value.trim();
+    v ? localStorage.setItem(key(f), e.target.value)
+      : localStorage.removeItem(key(f));
+    e.target.closest('.card').classList.toggle('commented', !!v);
+    updateCount();
+  });
+  updateCount();
+}
+
+function updateCount() {
+  const n = FINDINGS.filter(f => (localStorage.getItem(key(f)) || '').trim()).length;
+  document.getElementById('count').textContent =
+    `${FINDINGS.length} findings — ${n} commented`;
+}
+
+function downloadMd() {
+  const lines = ['# Dialogue menu audit — comments', '',
+    `Exported: ${new Date().toISOString().slice(0,16).replace('T',' ')}`, ''];
+  let n = 0;
+  FINDINGS.forEach(f => {
+    const c = (localStorage.getItem(key(f)) || '').trim();
+    if (!c) return;
+    n++;
+    lines.push(`## ${f.file} :: ~${f.menu} (line ${f.line})`, '',
+      `${f.total} options (${f.total - f.gated} always-on, ${f.gated} gated, ${f.exits} exit)`, '',
+      ...f.options.map(o => `- ${o}`), '',
+      `**Change:** ${c}`, '');
+  });
+  if (!n) { alert('No comments yet.'); return; }
+  const blob = new Blob([lines.join('\n')], {type: 'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'dialogue_audit_comments.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+render();
+</script>
+</body>
+</html>

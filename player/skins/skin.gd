@@ -69,6 +69,12 @@ func walk_unlock() -> void: pass
 ## Move state ignore it and play at fixed authored rate.
 func set_walk_speed_scale(_scale: float) -> void: pass
 
+## Gait blend position for skins whose Move state is a walk↔run
+## BlendSpace1D (AJ). Body passes speed/max_speed each tick in walk mode
+## and pins 1.0 (pure run) in skate mode. No-op default for skins whose
+## Move is a single clip.
+func set_gait_blend(_ratio: float) -> void: pass
+
 ## Called once on the frame a dash fires. `direction` is the world-space
 ## dash vector (horizontal, y=0). Skins with directional dodge clips use it
 ## to pick forward/back/left/right. No-op default.

@@ -7,9 +7,6 @@ if GameState.get_flag("level_4_glitch_post_opener_seen", false)
 
 Glitch: Ah. I see you've moved well beyond needing my platforms.
 Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
-Glitch: One thing while I have you.
-Glitch: When you crouch, your sentinels read it as a stand-down. They stop pressing forward and hold position.
-Glitch: So — no more of your sentinel apostles following you like lambs to the slaughter. Crouch and they'll wait it out.
 do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
@@ -23,9 +20,9 @@ Glitch: Anything else, runner?
 => glitch_l4_post_questions
 
 
-# Single shared question hub. No probes — the crouch tip is one-shot in
-# the opener and there's nothing else to ask. Hub exists per the project
-# DRY pattern (every elegant dialogue file uses the four-block shape; see
+# Single shared question hub. No probes — the opener is a two-line gag
+# and there's nothing else to ask. Hub exists per the project DRY pattern
+# (every elegant dialogue file uses the four-block shape; see
 # docs/dialogue_dry_pattern.md). The exit option carries the "Carry on."
 # sign-off so it lands consistently on first visit AND on revisit.
 

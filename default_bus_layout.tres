@@ -55,11 +55,11 @@ voice/2/level_db = -14.0
 [sub_resource type="AudioEffectReverb" id="8"]
 resource_name = "CompanionReverb"
 predelay_msec = 30.0
-room_size = 0.6
-damping = 0.4
+room_size = 0.5
+damping = 0.55
 spread = 0.7
-dry = 0.9
-wet = 0.07
+dry = 1.0
+wet = 0.04
 
 [sub_resource type="AudioEffectLowPassFilter" id="9"]
 resource_name = "CompanionDistance"

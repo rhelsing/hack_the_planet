@@ -190,6 +190,12 @@ extends Brain
 ## peer claim makes a target look ~22% farther linearly. Only applied
 ## when this brain's body is in the "allies" physics group.
 @export_range(1.0, 4.0) var ally_target_spread_penalty: float = 1.5
+## Horizontal arrive threshold (m) for the rail-follow branch: when the
+## follow subject is grinding, the ally runs at the nearest endpoint of
+## that rail and stops once within this distance. Set BELOW the body's
+## rail_grab_radius (1.5) so a skating ally pushes inside the grab radius
+## and auto-grabs instead of parking just outside it.
+@export var follow_rail_arrive_distance: float = 1.0
 
 ## When > 0 AND follow_subject_group is set, the pawn drops its current
 ## chase target if the follow subject (typically the player) has drifted
@@ -711,6 +717,17 @@ func _follow_direction(body: Node3D) -> Vector3:
 	# stealth" beat. Auto-resumes the moment the subject uncrouches.
 	if "_was_crouched" in subject and bool(subject.get(&"_was_crouched")):
 		return Vector3.ZERO
+	# Rail-follow: subject is mid-grind. Steering at the player would just
+	# hug the ground under the curve — run for the nearest END of the rail
+	# they're riding instead. Takes priority over ALL distance zones
+	# (a player grinding overhead must not trigger the personal-space
+	# push-away). A skating ally that arrives inside the body's
+	# rail_grab_radius auto-grabs (_try_grab_candidate_rails is skates-only
+	# but faction-agnostic) and follows along the curve; a walking ally
+	# just waits at the mouth until the zones take over again.
+	var rail_dir: Vector3 = _rail_entry_direction(body, subject)
+	if rail_dir != Vector3.ZERO:
+		return rail_dir
 	var to_subject: Vector3 = subject.global_position - body.global_position
 	to_subject.y = 0.0
 	if to_subject.length_squared() < 0.0001:
@@ -743,6 +760,33 @@ func _follow_direction(body: Node3D) -> Vector3:
 			_follow_engaged = true
 			return travel_dir
 	return Vector3.ZERO  # mid-zone → caller falls through to wander
+
+
+## When `subject` is mid-grind, returns the horizontal direction toward the
+## endpoint of their rail nearest to `body`. ZERO when the subject isn't
+## grinding, the rail reference is stale, or the body has already arrived
+## (within follow_rail_arrive_distance — stop steering; the skate auto-grab
+## takes it from there). Duck-types the body's private grind state the same
+## way the crouch-pause reads `_was_crouched`.
+func _rail_entry_direction(body: Node3D, subject: Node3D) -> Vector3:
+	if not ("_grinding" in subject) or not bool(subject.get(&"_grinding")):
+		return Vector3.ZERO
+	var rail: Path3D = subject.get(&"_grind_rail") as Path3D
+	if rail == null or not is_instance_valid(rail) \
+			or rail.curve == null or rail.curve.point_count < 2:
+		return Vector3.ZERO
+	var start_p: Vector3 = rail.to_global(rail.curve.get_point_position(0))
+	var end_p: Vector3 = rail.to_global(
+		rail.curve.get_point_position(rail.curve.point_count - 1))
+	var body_pos: Vector3 = body.global_position
+	var target: Vector3 = start_p \
+		if body_pos.distance_squared_to(start_p) <= body_pos.distance_squared_to(end_p) \
+		else end_p
+	var to_end: Vector3 = target - body_pos
+	to_end.y = 0.0
+	if to_end.length() <= follow_rail_arrive_distance:
+		return Vector3.ZERO
+	return to_end.normalized()
 
 
 ## Returns a horizontal direction toward the closest reachable "ally_waypoints"
@@ -1043,6 +1087,20 @@ func _ensure_target(body: Node3D) -> void:
 	var tree := body.get_tree()
 	if tree == null:
 		return
+	# Rail override — the follow subject grinding outranks any fight. Drop
+	# the current target AND refuse acquisition entirely, so the state
+	# machine decays to WANDER and its follow branch steers to the rail
+	# mouth (_rail_entry_direction). Gating here (not in tick) matters:
+	# a one-shot state flip would re-CHASE next tick because the enemy is
+	# still inside the 40m detection sphere; refusing targets every tick
+	# the subject stays on the rail keeps the break-off sticky.
+	if follow_subject_group != &"":
+		var rail_subject := _nearest_in_group(body, follow_subject_group)
+		if rail_subject != null and "_grinding" in rail_subject \
+				and bool(rail_subject.get(&"_grinding")):
+			if _target != null:
+				_set_target(null)
+			return
 	# Priority sweep: if any member of priority_target_groups sits within
 	# priority_target_radius, lock the nearest one and skip the regular
 	# pick. Bypasses the 2:1 hysteresis so the moment a priority target
@@ -1208,6 +1266,13 @@ func _exit_tree() -> void:
 	# the registry doesn't leak references to dead nodes.
 	if _target != null:
 		_set_target(null)
+	# The vision cone fan is parented to the BODY (top_level), not to this
+	# brain — free it explicitly here or a runtime brain swap (GOD-blast
+	# stealth conversion via replace_brain) leaves the fan frozen on screen
+	# with no owner ever updating it again.
+	if _vision_cone_mesh != null and is_instance_valid(_vision_cone_mesh):
+		_vision_cone_mesh.queue_free()
+		_vision_cone_mesh = null
 
 
 ## Public hook: called by external systems (e.g., PlayerBody.take_hit) to

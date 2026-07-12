@@ -17,6 +17,11 @@ signal coin_collected(coin: Node)
 signal flag_reached
 @warning_ignore("unused_signal")
 signal rail_touched(rail: Node, body: Node)
+# Rail broad-phase exit — pairs with rail_touched. The body keeps a
+# candidate-rail set between the two and runs the precise grab-distance
+# check per tick while any candidate is live.
+@warning_ignore("unused_signal")
+signal rail_left(rail: Node, body: Node)
 @warning_ignore("unused_signal")
 signal checkpoint_reached(position: Vector3)
 
@@ -76,6 +81,12 @@ signal skill_granted(skill: StringName, new_level: int)
 # framework in docs/dialogue_dry_pattern.md). ToastStack surfaces it.
 @warning_ignore("unused_signal")
 signal dialogue_vector_committed(label: String)
+
+# Telltale-style "X will remember that" notice — emitted by Dialogue.notice()
+# from `do` mutations inside .dialogue files when an NPC registers something
+# about the player (curiosity, kindness, a lie). ToastStack surfaces it.
+@warning_ignore("unused_signal")
+signal dialogue_noticed(text: String)
 
 # ── ui_dev / menus.md additions ──────────────────────────────────────────
 # Modal stack: anyone (Dialogue, Puzzles, PauseMenu, SettingsMenu, etc.) that

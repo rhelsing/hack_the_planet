@@ -4,10 +4,9 @@ extends Ability
 ## "GOD" power-up. On flare_shoot input, every eligible enemy within
 ## `radius` of the player permanently flips to faction "gold" (your
 ## rollerblade ally posse). Eligible = standard enemies (`enemies` group)
-## AND regular splice (red faction in the `splice_enemies` group).
-## STEALTH splice (faction = "splice_stealth") is EXCLUDED — they stay
-## hostile regardless of god power, by design (the stealth threat should
-## never be defused by a single button press).
+## AND all splice in the `splice_enemies` group — stealth included (the
+## L4 stealth yard is designed around converting them; coin-driven radius
+## is the difficulty knob, not a faction filter).
 ##
 ## Visualization: a transparent gold sphere expands from the player to
 ## `radius` over `vfx_duration`, fading to zero alpha as it grows. A
@@ -46,10 +45,9 @@ extends Ability
 
 # Groups whose members are eligible for conversion. Allies (gold) skipped
 # since they're already on our side; player skipped to avoid self-conversion.
-# Stealth enemies share the `splice_enemies` group with regular splice but
-# carry faction "splice_stealth" — that's filtered out per-node below.
 const _TARGET_GROUPS: Array[StringName] = [&"enemies", &"splice_enemies"]
-const _STEALTH_FACTION: StringName = &"splice_stealth"
+# Standard enemy brain, swapped in wholesale when converting a stealth pawn.
+const _GOLD_BRAIN_SCENE: PackedScene = preload("res://enemy/brains/default_enemy_ai.tscn")
 
 
 var _cooldown_remaining: float = 0.0
@@ -125,11 +123,13 @@ func _convert_in_radius(player: Node3D, radius: float) -> void:
 				continue
 			if not node.has_method(&"set_faction"):
 				continue
-			# Stealth pawns share the splice_enemies group but should never
-			# flip — they're a deliberate threat archetype, not a power-up
-			# obstacle. Read the current faction and skip the stealth ones.
-			if "faction" in node and StringName(node.get(&"faction")) == _STEALTH_FACTION:
-				continue
+			# Stealth pawns get a TOTAL conversion: replace the stealth brain
+			# wholesale with the standard enemy brain — cone, patrol, alert
+			# and chase state all die with the old brain node. Permanent;
+			# a GOD-blast gold is gold forever. Must run BEFORE set_faction
+			# so the gold config lands on the replacement brain.
+			if node.get(&"_brain") is StealthSentinelBrain and node.has_method(&"replace_brain"):
+				node.call(&"replace_brain", _GOLD_BRAIN_SCENE)
 			node.call(&"set_faction", &"gold")
 			# GOD-power converts get the rollerblade visual + skate profile.
 			# (ControlPortal converts skip this path → they walk.)

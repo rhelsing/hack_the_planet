@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dtestglrev001"]
+
+[ext_resource type="Script" uid="uid://ofivuosxt85h" path="res://tests/test_glitch_reveal.gd" id="1_test"]
+
+[node name="TestGlitchReveal" type="Node"]
+script = ExtResource("1_test")

@@ -452,6 +452,14 @@ func _load_death_interrupts() -> void:
 	])
 
 
+## Telltale-style notice. Called from `do` mutations in .dialogue files
+## when an NPC registers something about the player — e.g.
+##   do Dialogue.notice("Expressed curiosity. Glitch will remember that.")
+## Emits Events.dialogue_noticed; ToastStack renders it purple mid-dialogue.
+func notice(text: String) -> void:
+	Events.dialogue_noticed.emit(text)
+
+
 ## Bonk-bark trigger. Called by companion_npc.take_hit every 3–7 swings.
 ## Speaks the next line in `character`'s bank through Walkie on the Companion
 ## bus, then advances the per-character cycle index. No-op if no bank.

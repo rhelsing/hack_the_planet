@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://hyhh56bgmm1u" path="res://enemy/enemy_kaykit_splice_stealth.tscn" id="9_rgj0g"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="10_rgj0g"]
 [ext_resource type="Script" uid="uid://dolwonf6pfi0h" path="res://level/csg_collider_swap.gd" id="11_csgswap"]
-[ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="12_edsleep"]
+[ext_resource type="Script" uid="uid://cp156hyvoifj0" path="res://level/enemy_distance_sleep.gd" id="12_edsleep"]
 [ext_resource type="PackedScene" uid="uid://c6800is15rab5" path="res://level/interactable/bouncy_platform/bouncy_platform.tscn" id="22_3c4pw"]
 [ext_resource type="PackedScene" uid="uid://cuxx2hw1ftmcy" path="res://level/interactable/coin/coin.tscn" id="23_3c4pw"]
 [ext_resource type="PackedScene" uid="uid://cb2n4kunssn0k" path="res://enemy/enemy_spawner.tscn" id="24_fpfi6"]
@@ -560,11 +560,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.422516, 15.789865, -54.16
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform6" parent="." index="97" unique_id=764327557 instance=ExtResource("22_3c4pw")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.6055, 29.894535, -27.564915)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.6055, 27.04681, -27.564915)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform7" parent="." index="98" unique_id=1527042711 instance=ExtResource("22_3c4pw")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.6055, 32.918427, -18.574696)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.6055, 29.827457, -18.574696)
 size = Vector3(7, 1, 7)
 
 [node name="BouncyPlatform8" parent="." index="99" unique_id=1570850092 instance=ExtResource("22_3c4pw")]
@@ -594,13 +594,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.469543, 1.1705515, -60.88
 
 [node name="Nyx2" parent="." index="107" unique_id=1915612002 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -7.898148, 0.6830478, -2.5471535)
-character = &"DialTone"
 line = "Hey runner, we're tracking your signal. This should be an easy one. Point A to Point B."
 require_flag = &""
 
 [node name="Nyx3" parent="." index="108" unique_id=1109282511 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -41.997135, 33.569866, -18.763172)
-character = &"DialTone"
 line = "Runner, something is wrong. We're seeing rogue sentinels everywhere."
 require_flag = &""
 music_loop = ExtResource("61_dustmotions")

@@ -33,6 +33,7 @@
 [ext_resource type="AudioStream" uid="uid://c2vqfrtvru20x" path="res://audio/music/tyler_ono_fast_paced_low.mp3" id="33_tylertense"]
 [ext_resource type="AudioStream" uid="uid://bo37srf1txc6y" path="res://audio/cutscene/dramatic_braam.mp3" id="34_braam"]
 [ext_resource type="Script" uid="uid://ct3m1r1q8yj5o" path="res://level/level_3_splice_glitch.gd" id="35_spliceglitch"]
+[ext_resource type="Script" uid="uid://dqlc6lgpdwkw4" path="res://level/interactable/glitch_reveal/glitch_reveal.gd" id="36_glitchreveal"]
 
 [sub_resource type="Curve3D" id="Curve3D_8reer"]
 resource_local_to_scene = true
@@ -246,12 +247,20 @@ palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 size = Vector3(7, 0.3, 7)
 
+[node name="GlitchReveal" type="Node" parent="PortalAlpha1" index="2" unique_id=1918273645]
+script = ExtResource("36_glitchreveal")
+reveal_flag = &"glitch_l3_portal_revealed"
+
 [node name="PortalAlpha2" parent="." index="43" unique_id=1484985069 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.413664, 28.071827, -136.7956)
 link_id = &"l3_alpha"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 size = Vector3(7, 0.3, 7)
+
+[node name="GlitchReveal" type="Node" parent="PortalAlpha2" index="2" unique_id=1918273646]
+script = ExtResource("36_glitchreveal")
+reveal_flag = &"glitch_l3_portal_revealed"
 
 [node name="PortalBeta1" parent="." index="44" unique_id=1254587178 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.29187, 34.968452, -119.92958)
@@ -260,12 +269,20 @@ palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 size = Vector3(7, 0.3, 7)
 
+[node name="GlitchReveal" type="Node" parent="PortalBeta1" index="2" unique_id=1918273647]
+script = ExtResource("36_glitchreveal")
+reveal_flag = &"glitch_l3_portal_revealed"
+
 [node name="PortalBeta2" parent="." index="45" unique_id=288564988 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -181.29823, 44.63256, -127.418564)
 link_id = &"l3_beta"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 size = Vector3(7, 0.3, 7)
+
+[node name="GlitchReveal" type="Node" parent="PortalBeta2" index="2" unique_id=1918273648]
+script = ExtResource("36_glitchreveal")
+reveal_flag = &"glitch_l3_portal_revealed"
 
 [node name="PortalGamma1" parent="." index="46" unique_id=44065169 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.478882, 27.129602, -131.70486)
@@ -274,12 +291,20 @@ palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 size = Vector3(7, 0.3, 7)
 
+[node name="GlitchReveal" type="Node" parent="PortalGamma1" index="2" unique_id=1918273649]
+script = ExtResource("36_glitchreveal")
+reveal_flag = &"glitch_l3_portal_revealed"
+
 [node name="PortalGamma2" parent="." index="47" unique_id=102743654 instance=ExtResource("8_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131.90128, 45.011814, -112.61408)
 link_id = &"l3_gamma"
 palette_base = Color(0, 0.04, 0.06, 1)
 palette_highlight = Color(0.3, 0.85, 0.95, 1)
 size = Vector3(7, 0.3, 7)
+
+[node name="GlitchReveal" type="Node" parent="PortalGamma2" index="2" unique_id=1918273650]
+script = ExtResource("36_glitchreveal")
+reveal_flag = &"glitch_l3_portal_revealed"
 
 [node name="CsgColliderSwap" type="Node" parent="." index="48" unique_id=1477089886]
 script = ExtResource("6_csgswap")

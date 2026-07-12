@@ -79,8 +79,8 @@ extends Interactable
 
 ## Speed cap (meters per second) for the approach. If the distance divided
 ## by approach_duration exceeds this, duration is extended so walk speed
-## stays natural. 4.0 ≈ brisk walk, 7.0 ≈ jog.
-@export var approach_speed_mps: float = 4.0
+## stays natural. 4.0 ≈ brisk walk, 8.0 ≈ run.
+@export var approach_speed_mps: float = 8.0
 
 ## Walk-anim threshold (meters). If the player is already closer than this
 ## to the approach_spot, skip the walk/run animation and stay in idle —
@@ -102,7 +102,6 @@ var _cinematic_active: bool = false
 var _saved_camera: Camera3D = null
 var _cinematic_cam: Camera3D = null
 var _saved_player_physics: bool = true
-var _saved_dust_emitting: bool = false
 # Transparent input-blocking overlay placed on its own CanvasLayer below the
 # dialogue balloon (~1500) and above HUD (~1) for the duration of the cinematic.
 # Without it kbd/controller can navigate to and click on HUD/menu Controls
@@ -151,12 +150,11 @@ func _exit_tree() -> void:
 	# blocker into the next scene, and its mouse_filter=STOP / action-eat
 	# script silently swallows mouse-motion + button input → camera locks.
 	_free_input_blocker()
-	# Player — thaw physics + restore dust. Actor survives scene swaps (it
-	# lives in game.tscn, not the level scene) so these calls are safe.
+	# Player — thaw physics. Dust needs no explicit restore: the body's
+	# _physics_process reasserts set_dust_emitting from live state every
+	# tick once it resumes. Actor survives scene swaps (it lives in
+	# game.tscn, not the level scene) so these calls are safe.
 	if _saved_actor != null and is_instance_valid(_saved_actor):
-		var dust: GPUParticles3D = _saved_actor.get_node_or_null(^"%DustParticles") as GPUParticles3D
-		if dust != null:
-			dust.emitting = _saved_dust_emitting
 		_saved_actor.set_physics_process(_saved_player_physics)
 	_saved_actor = null
 	_cinematic_active = false
@@ -260,8 +258,12 @@ func _enter_cinematic(actor: Node3D) -> void:
 	var walk_tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	if approach_node != null:
+		# Linear, not the tween's cubic ease-out default: constant speed
+		# matches the fixed-speed run cycle, and the tween ends the moment
+		# the body arrives — the ease-out tail left the character running
+		# in place at the spot for up to a second before idle() fired.
 		walk_tween.tween_property(actor, "global_position",
-			approach_node.global_position, walk_time)
+			approach_node.global_position, walk_time).set_trans(Tween.TRANS_LINEAR)
 
 	if camera_node != null and _saved_camera != null:
 		_cinematic_cam = Camera3D.new()
@@ -357,11 +359,13 @@ func _freeze_player_for_cinematic(actor: Node3D, skin: Node3D) -> void:
 	if actor.get("_prev_h_vel") != null:
 		actor.set("_prev_h_vel", Vector3.ZERO)
 
-	# 3. Stop dust particles (they don't care about physics_process).
-	var dust: GPUParticles3D = actor.get_node_or_null(^"%DustParticles") as GPUParticles3D
-	if dust != null:
-		_saved_dust_emitting = dust.emitting
-		dust.emitting = false
+	# 3. Stop dust particles (they don't care about physics_process). Routed
+	#    through the CharacterSkin contract — the emitter lives INSIDE the
+	#    skin's instanced scene, so a %DustParticles lookup on the body can
+	#    never resolve (unique names don't cross scene boundaries). That
+	#    null-lookup was the "dust clouds during dialogue" bug.
+	if skin != null and skin.has_method(&"set_dust_emitting"):
+		skin.call(&"set_dust_emitting", false)
 
 	# 4. Reset the skin. Identity basis strips lean/tilt/offset; we preserve
 	#    the skin's uniform_scale so a non-1.0 scale (e.g. AJ at 1.3) doesn't
@@ -413,12 +417,9 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 			_saved_camera.make_current()
 		_saved_camera = null
 		_saved_skin_rotation_y = _SAVED_YAW_UNSET
-		# Restore dust + physics immediately. Death anim + skin pose are
-		# handled by _start_death; no skin rotation tween needed (the die
-		# clip will overwrite it).
-		var dust: GPUParticles3D = actor.get_node_or_null(^"%DustParticles") as GPUParticles3D
-		if dust != null:
-			dust.emitting = _saved_dust_emitting
+		# Restore physics immediately (dust reasserts on the next body tick).
+		# Death anim + skin pose are handled by _start_death; no skin
+		# rotation tween needed (the die clip will overwrite it).
 		actor.set_physics_process(_saved_player_physics)
 		_saved_actor = null
 		return
@@ -457,12 +458,9 @@ func _exit_cinematic(_ended_id: StringName, actor: Node3D) -> void:
 	if restore_tween != null and restore_tween.is_running():
 		await restore_tween.finished
 
-	# Restore dust particles BEFORE resuming physics so the body's
-	# _physics_process sees them in their original emitting state.
+	# Resume physics — the body's per-tick set_dust_emitting reasserts the
+	# correct dust state on the first tick, so no explicit restore needed.
 	if is_instance_valid(actor):
-		var dust: GPUParticles3D = actor.get_node_or_null(^"%DustParticles") as GPUParticles3D
-		if dust != null:
-			dust.emitting = _saved_dust_emitting
 		actor.set_physics_process(_saved_player_physics)
 		# Reverse the enter-side set_skate_mode(false). The body's profile
 		# was never changed during the cinematic, so we just re-sync the

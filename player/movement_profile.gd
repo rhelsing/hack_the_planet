@@ -31,6 +31,12 @@ extends Resource
 ## Continuous sway amplitude once the startup burst has settled. Keeps a
 ## low-level side-to-side rock going while moving. 0 = fully settle to still.
 @export var cruise_sway_amplitude := 0.0
+## Depth of the per-stroke thrust pulse keyed to the sway oscillation:
+## acceleration peaks as the body rolls into each sway extreme (the push-off)
+## and slackens through center (the glide). 0 = constant accel (walk).
+## At 0.5, accel swings ±50% across each stroke — the sway reads as *why*
+## you're moving instead of decoration.
+@export_range(0.0, 1.0) var stroke_accel_pulse := 0.0
 ## One-shot inverse-lean kick when releasing forward input at speed. Decays.
 @export var brake_impulse_amount := 0.0
 ## Exponential decay rate for the brake impulse. ~4 ≈ 95% in 0.75s.

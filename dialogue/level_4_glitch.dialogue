@@ -8,6 +8,7 @@ if GameState.get_flag("l4_invention_terminal_solved", false)
 # the terminal, conversation picks up at post_solve.
 Glitch: Hey — Runner. I — uh. I've been working on something.
 Glitch: That platform. Over there. Step on for a sec.
+do GameState.set_flag("l4_platforms_revealed", true)
 Glitch: Trust me. Mostly.
 do GameState.set_flag("l4_glitch_intro_done", true)
 => END
@@ -61,7 +62,6 @@ Glitch: Sometimes "helpful to all" needs a thumb on the scale.
 
 Glitch: Very limited release though. I don't have the parts to make many.
 Glitch: Open to whatever feedback you have.
-Glitch: Wow, I really dont say that very often.
 Glitch: Press on. There's something further in. We'll know it when we see it.
 do GameState.set_flag("l4_glitch_invention_celebrated", true)
 => END

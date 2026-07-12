@@ -17,6 +17,9 @@ const PROGRESSION: Array = [
 	["Death Interrupts — Per-NPC Barks", [
 		["dialogue_file", "res://dialogue/death_interrupts.dialogue"],
 	]],
+	["Bonk Barks — Per-NPC Punch Reactions", [
+		["dialogue_file", "res://dialogue/bonk_barks.dialogue"],
+	]],
 	["Hub — Pre-Level-1", [
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_intro"],
 		["dialogue_stage", "res://dialogue/dial_tone.dialogue", "stage_nudge"],
@@ -289,7 +292,7 @@ func _extract_stage(content: String, stage: String) -> String:
 		if line.begins_with("~ " + stage):
 			capturing = true
 			out.append(line)
-		elif capturing and (line.begins_with("# ──") or _is_other_stage_header(line, stage)):
+		elif capturing and _is_other_stage_header(line, stage):
 			break
 		elif capturing:
 			out.append(line)

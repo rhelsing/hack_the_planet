@@ -67,12 +67,53 @@ func _ready() -> void:
 			ps.global_transform = ts.global_transform
 		GameState.set_flag(FLAG_HUB_VISITED, true)
 	_setup_first_enemies()
+	_setup_post3_overheard()
 	# Splice's dance unlocks via dialogue: the player offers, Splice accepts
 	# ("...it's a fine song."), `hub_post4_splice_danced` flips true. Listen
 	# for it live so we can put his caged skin into the dance loop the
 	# moment the flag fires. Replay (re-entering hub with the flag already
 	# set) is handled inside _enter_victory_state.
 	Events.flag_set.connect(_on_flag_set_for_splice_dance)
+
+
+# The Nyx/DialTone argument the player overhears on their first hub entry
+# after level 3 (dialogue/dial_tone.dialogue ~post_3_overheard). Plays as
+# in-room voice (Companion bus) via the Post3Overheard CutsceneSequence in
+# background-dialogue mode. Armed from code, not arm_flag: level_3_completed
+# flips inside level 3, and CutsceneSequence treats an already-true arm_flag
+# at _ready as "beat already passed".
+func _setup_post3_overheard() -> void:
+	if not GameState.get_flag(&"level_3_completed", false):
+		return
+	if GameState.get_flag(&"post_3_overheard_seen", false):
+		return
+	# Old saves where the player already had the post-3 talk: the argument's
+	# moment has passed — never play it after "How long were you standing there?".
+	if GameState.get_flag(&"post_3_opener_seen", false):
+		return
+	var seq := get_node_or_null(^"Post3Overheard")
+	if seq == null:
+		push_error("[hub] Post3Overheard node missing — overheard argument won't play")
+		return
+	# If the player opens ANY dialogue mid-argument, cut the ambient cleanly:
+	# the stop_flag halts the walk between lines, and Companion.stop() cuts the
+	# line currently playing (Audio.stop_companion emits companion_finished, so
+	# the walk's await resolves instead of hanging).
+	Events.dialogue_started.connect(_on_dialogue_cut_post3_overheard)
+	# Settle beat so the first line lands after the fade-in, not under it.
+	await get_tree().create_timer(1.5).timeout
+	if not is_instance_valid(seq):
+		return
+	seq.call(&"arm")
+
+
+func _on_dialogue_cut_post3_overheard(_id: StringName) -> void:
+	Events.dialogue_started.disconnect(_on_dialogue_cut_post3_overheard)
+	if GameState.get_flag(&"post_3_overheard_seen", false):
+		return  # walk already finished naturally — nothing to cut
+	print("[hub] post3 overheard CUT by dialogue open")
+	GameState.set_flag(&"post_3_overheard_cut", true)
+	Companion.stop()
 
 
 # Called by Game.load_level after _mount_level but before the fade-in. Heavy

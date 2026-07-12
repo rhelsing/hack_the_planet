@@ -1,6 +1,34 @@
 ~ start
 
+# Sync the CANS derived skill to the cans collected right now: 10% per can,
+# 10 cans authored in L1, clamped 5-95 by the skill system. The [CANS 0%]
+# prefix below renders the live effective chance on the button.
+do Skills.set_level_bonus("cans", 10)
+do Skills.set_level("cans", GameState.coin_count)
+
+# CANON — third station beat; he's watching you skate.
 Glitch: I see you are breaking those in quite nicely.
-Glitch: I'll be seeing you.
+=> questions
+
+~ questions
+
+# CHECK — cans-driven percent roll (first live skill check in the game).
+# One-shot: gate drops the option after the roll, pass or fail.
+- [CANS 0%] Why did you give me rollerblades? [if not GameState.get_flag("l1_blade_q_rolled", false) /]
+	do GameState.set_flag("l1_blade_q_rolled", true)
+	if Skills.roll("cans", 0)
+		Glitch: You noticed the cans, right? You're the only one who picks them up.
+		Glitch: Seemed like feet that deserved wheels.
+	else
+		Glitch: Hm. Checking...
+		Glitch: Inconclusive.
+	=> questions
+- All right. [#exit]
+	=> done
+
+~ done
+
+# CANON — exit beat; sets the flag that sends him down to GlitchStation3.
+Glitch: I'll be seeing you around.
 do GameState.set_flag("glitch_chance_done", true)
 => END

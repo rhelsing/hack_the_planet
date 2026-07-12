@@ -66,6 +66,11 @@ var _drive_latched: bool = false
 @export var scene_duration: float = 30.0
 
 @export_group("Music")
+## When false, the sequence never touches music: no stop at start, no
+## cutscene_music swap-in, no playlist resume at end. Use for background-
+## dialogue mode (e.g. an ambient overheard conversation) where the level's
+## music should keep playing underneath the lines.
+@export var manage_music: bool = true
 ## One-shot stinger played at the very start of the cutscene as a SEQUENCED
 ## step — sequence awaits its `finished` signal before kicking off
 ## `cutscene_music` and the first shot. Empty = no stinger.
@@ -186,17 +191,20 @@ func _run() -> void:
 	# silence. _swap_music_in below will then start cutscene_music after
 	# the stinger ends. Order matters: gameplay → silence → stinger →
 	# cutscene_music — three discrete beats rather than overlapping.
-	Audio.stop_music(0.0)
-	print("[cs] %s _run pre-stinger (music stopped)" % name)
+	if manage_music:
+		Audio.stop_music(0.0)
+		print("[cs] %s _run pre-stinger (music stopped)" % name)
 	await _play_stinger()
 	print("[cs] %s _run post-stinger" % name)
-	_swap_music_in()
+	if manage_music:
+		_swap_music_in()
 	if dialogue_file != null:
 		await _walk_dialogue()
 	# Force cameras to their endpoints in case dialogue ran longer than
 	# scene_duration would have taken to finish drifting on its own.
 	_finalize_camera_drifts()
-	_swap_music_out()
+	if manage_music:
+		_swap_music_out()
 	_restore_camera_and_unfreeze()
 	if done_flag != &"":
 		GameState.set_flag(done_flag, true)

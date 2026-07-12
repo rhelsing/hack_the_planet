@@ -68,10 +68,6 @@ Glitch: At your service.
 
 ~ glitch_2_questions
 
-- Refresh the controls.
-	Glitch: Press {{Glyphs.for_action("jump")}} to jump. Tap twice to chain a second.
-	Glitch: Press {{Glyphs.for_action("dash")}} to dash mid-flight. The same dash will sidestep an incoming attack.
-	Glitch: Press {{Glyphs.for_action("attack")}} to strike.
 - About those Sentinels...
 	Glitch: Ask away.
 	=> sentinels_subhub

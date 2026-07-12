@@ -45,7 +45,8 @@ Nyx: Talk.
 
 - Why off-channel?
 	Nyx: DialTone gets worse with an audience.
-- You pulled my log?
+	do GameState.set_flag("nyx_post_1_asked_channel", true)
+- [if GameState.get_flag("nyx_post_1_asked_channel", false) /] You pulled my log?
 	Nyx: I pull everyone's log. Don't read into it.
 - What do you want?
 	Nyx: DialTone scouted you. He's calling it casting.
@@ -102,9 +103,10 @@ Nyx: Anything else, runner?
 	Nyx: It's not routine.
 	Nyx: You're not the first runner I've yanked off a hot wire. Won't be the last.
 	Nyx: ...probably.
-- Thanks anyway.
+- [if GameState.get_flag("nyx_post_2_asked_save", false) /] Thanks anyway.
 	Nyx: Mm.
-- Tell me about Splice.
+	do GameState.set_flag("nyx_post_2_thanked", true)
+- [if GameState.get_flag("nyx_post_2_thanked", false) /] Tell me about Splice.
 	Nyx: Of course. Everyone wants to ask about Splice.
 	Nyx: What do you want to know.
 	do GameState.set_flag("nyx_post_2_asked_splice", true)

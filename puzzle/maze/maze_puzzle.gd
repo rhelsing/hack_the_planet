@@ -120,6 +120,14 @@ const _BUFFER_DURATION: float = 0.18
 # direction. Less "I'm stuck on this edge" feel.
 const _PERP_TURN_THRESHOLD: float = 0.45
 const _PERP_TURN_FORWARD_GATE: float = 0.45
+# Off-axis last-resort candidate at junctions, gated by magnitude. A blocked
+# dominant axis falls through to the other axis ONLY when the player is
+# meaningfully pressing it (≥ this threshold). Replaces the old boolean:
+# unconditional fallback felt "almost a bit too forgiving" (threaded corners
+# off ~0.1 stick noise), but fully off dead-stopped every diagonal whose
+# slightly-stronger axis pointed at a wall — a 0.58/0.55 press stalled on a
+# coin flip. 0.3 = same commitment bar as _TURN_BIAS_THRESHOLD.
+const _OFF_AXIS_FALLBACK_THRESHOLD: float = 0.3
 # Sentinel — "no active edge" (cursor sitting on a node). Coordinates are
 # negative so they can never collide with a real grid node.
 const _NO_NEIGHBOR: Vector2i = Vector2i(-99, -99)
@@ -229,6 +237,9 @@ static var _STATIC_FOOTSTEP_POOL: Array[AudioStream] = []
 var _footstep_pool: Array[AudioStream] = []
 var _footstep_phase: float = 0.0
 var _coin_timer: float = 0.0
+# DEBUG (temporary) — tracks moved-state so the stall logger below fires
+# exactly once per moving→stuck transition. Strip after the hang is fixed.
+var _dbg_was_moving: bool = false
 var _coin_next_at: float = 0.6
 
 @onready var _maze_root: Control = %MazeRoot
@@ -441,6 +452,13 @@ func _process(delta: float) -> void:
 	var prev_pos: Vector2 = _cursor_world_pos()
 	_step_cursor(input_unit, distance)
 	var moved: bool = prev_pos.distance_squared_to(_cursor_world_pos()) > 0.001
+	# DEBUG (temporary): one line per moving→stuck transition, with the live
+	# axis values — input is held (deadzone already passed) but the cursor
+	# consumed zero distance this frame.
+	if not moved and _dbg_was_moving:
+		print("[maze] STALL node=%s tip=%s t=%.2f input=(%.2f, %.2f)" % [
+			_path[_path.size() - 1], _is_at_tip(), _cursor_t, input_v.x, input_v.y])
+	_dbg_was_moving = moved
 	_set_sliding(moved)
 	if moved:
 		_drive_slide_flair(delta, magnitude)
@@ -506,18 +524,21 @@ func _detect_input_press_edges(input_v: Vector2) -> void:
 
 
 # Combined input vector: ui_* (arrows + D-pad + left-stick axis) AND
-# move_* (WASD + left-stick axis). Same axes overlap on the gamepad — clamp
-# the sum to keep magnitude in [-1, 1]. y is screen-down-positive.
+# move_* (WASD + left-stick axis). Same stick feeds BOTH bindings on a
+# gamepad, so take the larger-magnitude reading per axis — summing then
+# clamping flattened every moderate diagonal to (±1, ±1), erasing which
+# axis the player was actually favoring. y is screen-down-positive.
 func _read_input() -> Vector2:
-	var x: float = clampf(
-			Input.get_axis(&"ui_left", &"ui_right")
-			+ Input.get_axis(&"move_left", &"move_right"),
-			-1.0, 1.0)
-	var y: float = clampf(
-			Input.get_axis(&"ui_up", &"ui_down")
-			+ Input.get_axis(&"move_up", &"move_down"),
-			-1.0, 1.0)
-	return Vector2(x, y)
+	return Vector2(
+			_axis_max(Input.get_axis(&"ui_left", &"ui_right"),
+					Input.get_axis(&"move_left", &"move_right")),
+			_axis_max(Input.get_axis(&"ui_up", &"ui_down"),
+					Input.get_axis(&"move_up", &"move_down")))
+
+
+# Signed pick of whichever reading deflects further.
+static func _axis_max(a: float, b: float) -> float:
+	return a if absf(a) >= absf(b) else b
 
 
 # Move the cursor `distance` grid units (cells) in `input_unit`'s direction.
@@ -614,11 +635,20 @@ func _try_enter_edge_from_tip(input_unit: Vector2) -> bool:
 	if entry.y != 0 and ax >= _TURN_BIAS_THRESHOLD and x_dir != Vector2i.ZERO:
 		if not (x_dir in candidates):
 			candidates.append(x_dir)
-	var dom: Vector2i = x_dir if ax >= ay else y_dir
-	var off: Vector2i = y_dir if ax >= ay else x_dir
+	# Dominant axis. Exact ties (keyboard diagonals: ax == ay == 0.707)
+	# continue along the entry axis — riding a straight line while holding
+	# a perfect diagonal reads as "keep going", not "turn into the wall".
+	var dom: Vector2i
+	if entry != Vector2i.ZERO and is_equal_approx(ax, ay):
+		dom = y_dir if entry.y != 0 else x_dir
+	else:
+		dom = x_dir if ax >= ay else y_dir
+	var off: Vector2i = y_dir if dom == x_dir else x_dir
 	if dom != Vector2i.ZERO and not (dom in candidates):
 		candidates.append(dom)
-	if off != Vector2i.ZERO and not (off in candidates):
+	var off_mag: float = ay if off == y_dir else ax
+	if off != Vector2i.ZERO and off_mag >= _OFF_AXIS_FALLBACK_THRESHOLD \
+			and not (off in candidates):
 		candidates.append(off)
 	for d: Vector2i in candidates:
 		if _try_enter_dir(here, d):

@@ -31,6 +31,7 @@
 [ext_resource type="PackedScene" uid="uid://r4ed0j7155go" path="res://library/interactables/hacking_terminal.tscn" id="30_hackterm"]
 [ext_resource type="PackedScene" uid="uid://dhnuc5e3b6465" path="res://hud/components/beacon.tscn" id="31_beacon"]
 [ext_resource type="Script" uid="uid://dhiqbme07lowd" path="res://level/hub_terminal_sequence.gd" id="32_hubseq"]
+[ext_resource type="PackedScene" uid="uid://dcutscene0001" path="res://level/interactable/cutscene_sequence/cutscene_sequence.tscn" id="33_csseq"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -422,3 +423,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 label = "Okay I swear I'm the last one"
 visible_when_flag = &"hub_terminal_4"
 hide_when_flag = &"hub_terminal_5"
+
+[node name="Post3Overheard" parent="." unique_id=246813579 instance=ExtResource("33_csseq")]
+freeze_player = false
+manage_music = false
+done_flag = &"post_3_overheard_seen"
+stop_flag = &"post_3_overheard_cut"
+dialogue_file = ExtResource("18_dialtonedlg")
+dialogue_start = "post_3_overheard"

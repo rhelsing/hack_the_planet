@@ -49,10 +49,11 @@
 [ext_resource type="PackedScene" uid="uid://dgsmark0001" path="res://level/interactable/gold_stage_marker/gold_stage_marker.tscn" id="54_goldmark"]
 [ext_resource type="PackedScene" path="res://level/interactable/scene_setup_on_flag/scene_setup_on_flag.tscn" id="55_scnsetup"]
 [ext_resource type="PackedScene" uid="uid://ddelayflag001" path="res://level/interactable/delayed_flag/delayed_flag.tscn" id="56_delayflag"]
+[ext_resource type="Script" uid="uid://dqlc6lgpdwkw4" path="res://level/interactable/glitch_reveal/glitch_reveal.gd" id="57_glitchreveal"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_h0kaq"]
 
-[sub_resource type="Curve3D" id="Curve3D_h0kaq"]
+[sub_resource type="Curve3D" id="Curve3D_ht88j"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -61,7 +62,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_ht88j"]
+[sub_resource type="Curve3D" id="Curve3D_e61q6"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -70,7 +71,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_e61q6"]
+[sub_resource type="Curve3D" id="Curve3D_c4upc"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -79,7 +80,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_c4upc"]
+[sub_resource type="Curve3D" id="Curve3D_0xqme"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -169,12 +170,20 @@ convert_zone_id = &"l4_arena"
 require_flag = &"l4_terminal_5"
 done_flag = &"l4_invention_terminal_solved"
 
+[node name="GlitchReveal" type="Node" parent="ControlPlatform1" index="2" unique_id=1918273651]
+script = ExtResource("57_glitchreveal")
+reveal_flag = &"l4_platforms_revealed"
+
 [node name="ControlPlatform2" parent="." index="18" unique_id=1894314890 instance=ExtResource("5_portal")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 138.5868, -14.757157, 49.831856)
 size = Vector3(7, 0.4, 7)
-convert_zone_id = &"l4_arena"
+convert_zone_id = &"l4_arena_2"
 require_flag = &"l4_terminal_5"
 done_flag = &"l4_invention_terminal_solved"
+
+[node name="GlitchReveal" type="Node" parent="ControlPlatform2" index="2" unique_id=1918273652]
+script = ExtResource("57_glitchreveal")
+reveal_flag = &"l4_platforms_revealed"
 
 [node name="ConvertZone" parent="." index="19" unique_id=1123867091 instance=ExtResource("6_zone")]
 transform = Transform3D(2.0400226, 0, 0, 0, 1, 0, 0, 0, 3.2133813, 32.324352, -16.907764, 25.655907)
@@ -183,7 +192,7 @@ forbid_enemy_jump = true
 
 [node name="ConvertZone2" parent="." index="20" unique_id=45829271 instance=ExtResource("6_zone")]
 transform = Transform3D(5.6696057, 0, 0, 0, 1, 0, 0, 0, 1.1662204, 108.63913, -16.907764, 41.293335)
-id = &"l4_arena"
+id = &"l4_arena_2"
 forbid_enemy_jump = true
 
 [node name="Nyx" parent="." index="21" unique_id=1878992773 instance=ExtResource("8_companion")]
@@ -221,12 +230,13 @@ label = "DIALTONE"
 visible_when_flag = &"l4_well_shit_done"
 
 [node name="Glitch" parent="." index="23" unique_id=298627196 instance=ExtResource("8_companion")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.691387, -5.511229, 10.306131)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.691387, -5.9368124, 10.306131)
 warp_sfx = ExtResource("17_warp")
 skin_scene = ExtResource("11_robot")
 stations = Array[NodePath]([NodePath("../GlitchStation1")])
 travel_duration = 5.0
 dialogue_resource = ExtResource("14_l4glitch")
+camera_target = NodePath("../GlitchCamOverride")
 interactable_id = &"npc_glitch_l4"
 
 [node name="GlitchStation1" parent="." index="24" unique_id=1648724607 instance=ExtResource("12_station")]
@@ -1016,15 +1026,15 @@ visible_when_flag = &"chain_hint:l4:phonebooth4"
 
 [node name="Rail" parent="." index="191" unique_id=584524852 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.05427049, 0, 0.9985263, 0, 1, 0, -0.9985263, 0, 0.05427049, 317.7961, -15.262541, -3.9363518)
-curve = SubResource("Curve3D_h0kaq")
+curve = SubResource("Curve3D_ht88j")
 
 [node name="Rail2" parent="." index="192" unique_id=195334167 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.2513599, 0, 0.9678937, 0, 1, 0, -0.9678937, 0, 0.2513599, 323.27863, -16.471245, -142.0285)
-curve = SubResource("Curve3D_ht88j")
+curve = SubResource("Curve3D_e61q6")
 
 [node name="Rail3" parent="." index="193" unique_id=1223991201 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.03549255, 0, 0.9993699, 0, 1, 0, -0.9993699, 0, 0.03549255, 487.89822, 4.785468, -295.13412)
-curve = SubResource("Curve3D_e61q6")
+curve = SubResource("Curve3D_c4upc")
 
 [node name="EnemySpawner13" parent="." index="194" unique_id=1810548121 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.06946, 26.671904, -406.64682)
@@ -1079,7 +1089,7 @@ material = ExtResource("17_sdk3c")
 
 [node name="Rail4" parent="." index="204" unique_id=1161704299 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.023280619, 0, 0.999729, 0, 1, 0, -0.999729, 0, 0.023280619, 475.61304, 28.395216, -440.52612)
-curve = SubResource("Curve3D_c4upc")
+curve = SubResource("Curve3D_0xqme")
 
 [node name="GlitchPostPlatforms" parent="." index="205" unique_id=1299642312 instance=ExtResource("8_companion")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 365.06467, -8.128251, -249.55788)
@@ -1524,3 +1534,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.57523, 3.8106077, -268.53
 
 [node name="AllyWaypoint_BigRamp32_Top10" type="Marker3D" parent="." index="303" unique_id=439814458 groups=["ally_waypoints"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.57523, 3.8106077, -261.38675)
+
+[node name="GlitchCamOverride" type="Marker3D" parent="." index="304" unique_id=1918273654]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7211776, -0.46212626, 7.6196966)

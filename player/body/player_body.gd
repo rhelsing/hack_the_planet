@@ -443,6 +443,20 @@ enum FollowMode { PARENTED, DETACHED }
 ## feet, so without lift the body's back clips into the floor. Ramps in with
 ## tilt_progress so it's only applied when the body has rotated.
 @export var death_pose_lift := 0.6
+## ── Stealth-kill fall (hack backstab) ── the stealth path has no knockback
+## flight, so it plays its own timeline: eased tip-over, then two ballistic
+## flop bounces. Combat knockback deaths are untouched.
+## Seconds for the tip-over phase.
+@export var stealth_fall_tip_duration := 0.65
+## Ease-in exponent for the tip. 2 = constant angular acceleration (the
+## rotational ½gt², reads as gravity); higher = longer teeter, harder slam.
+@export var stealth_fall_tip_exponent := 2.0
+## Peak height (m) of the first flop bounce after impact.
+@export var stealth_fall_bounce_height := 0.05
+## First bounce duration (s). The second bounce lasts this × restitution.
+@export var stealth_fall_bounce_duration := 0.2
+## Restitution between bounces: second bounce height = h × e², like a ball.
+@export_range(0.0, 1.0) var stealth_fall_restitution := 0.6
 ## Seconds without being hit before HP fully refills. Set high to make damage
 ## sticky, low to make the player resilient. 0 disables regen.
 @export var health_regen_delay := 4.0
@@ -484,6 +498,14 @@ enum FollowMode { PARENTED, DETACHED }
 ## player launches off it on the same input. Player only — allies aren't
 ## affected.
 @export var rail_jump_lockout_seconds: float = 1.5
+## Max distance (m) from the rail curve at which the grab engages. The rail's
+## Area3D box is only a broad-phase (its AABB bloats badly on curved/diagonal
+## rails); this is the real, uniform grab tube around the curve.
+@export var rail_grab_radius: float = 1.5
+## Seconds after leaving a grind (jump or end-of-rail) before another grab
+## can engage. Without this the per-tick distance check re-grabs instantly —
+## you're still ~0m from the rail on the exit frame.
+@export var rail_regrab_cooldown: float = 0.4
 ## Horizontal knockback speed (m/s) applied to hit enemies.
 @export var attack_knockback := 14.0
 ## Horizontal speed added to the player on attack (the "jostle" forward).
@@ -529,16 +551,24 @@ enum FollowMode { PARENTED, DETACHED }
 ## anim at ~0.55× authored which looks laggy. Set false on AI pawn variants
 ## (enemy_kaykit_splice etc.) so their walk always plays at authored speed.
 @export var walk_anim_speed_scaling: bool = true
+## ── Walk↔run gait bands (walk mode, skins with a gait BlendSpace1D) ──
+## Below cutover_start the Move state is pure Walking; between start and
+## end it crossfades (phase-synced) to Running; above end it's pure Running.
+@export_range(0.0, 1.0) var gait_cutover_start: float = 0.5
+@export_range(0.0, 1.0) var gait_cutover_end: float = 0.7
+## Tempo floor for each gait's band: the clip plays at this scale at the
+## bottom of its band and ramps to 1.0 at the top (walk: 0→cutover_start,
+## run: cutover_end→1). The cutover dips back to the floor so the incoming
+## run cycle starts unhurried.
+@export_range(0.1, 1.0) var gait_tempo_floor: float = 0.7
 
 @export_group("Skate Strides")
-## Pool of stride sounds played while skating. Phase-driven cadence; with
-## two clips and the no-immediate-repeat picker this reads as strict L/R
-## alternation.
+## Pool of stride sounds played while skating. Cadence rides the sway
+## stroke clock (one stride per sway extreme — see the profile's
+## speedup_frequency); with two clips and the no-immediate-repeat picker
+## this reads as strict L/R alternation.
 @export var skate_stride_pool: Array[AudioStream] = []
 @export_dir var skate_stride_auto_load_dir: String = ""
-## Strides per second when moving at full skate max_speed. Skate cadence is
-## typically slower than walk because of the longer push-glide cycle.
-@export var skate_stride_cadence_at_max: float = 4.0
 @export var skate_stride_min_speed: float = 1.5
 @export_range(-30.0, 12.0) var skate_stride_volume_db: float = 9.0
 @export_range(0.0, 0.5) var skate_stride_pitch_jitter: float = 0.04
@@ -552,6 +582,18 @@ enum FollowMode { PARENTED, DETACHED }
 ## 1.0 = always silent. Default 0.3 = ~70% of strides play, which reads
 ## as light keyboard chatter under the skate roll.
 @export_range(0.0, 1.0) var walk_during_skate_dropout: float = 0.3
+
+@export_group("Skate Roll")
+## Looping wheel-roll bed under skate movement. Volume/pitch track speed.
+## OFF by default — the synth placeholder read as static; enable once a
+## real wheel recording replaces skate_roll_stream.
+@export var skate_roll_stream: AudioStream = preload("res://audio/sfx/skate_roll_loop.tres")
+@export var skate_roll_enabled: bool = false
+## Volume at full skate speed. Low speeds fade down from here (−18dB at
+## walking pace) so the bed swells with momentum instead of switching on.
+@export_range(-40.0, 6.0) var skate_roll_volume_db: float = -8.0
+## Pitch spread across the speed range: crawl = 1−spread, max = 1+spread.
+@export_range(0.0, 0.5) var skate_roll_pitch_spread: float = 0.12
 
 @export_group("Attack SFX")
 ## Kick: plays at the start of an attack swing (before the active window
@@ -822,6 +864,10 @@ var _hp_align_active_this_tick: bool = false
 # on _on_halfpipe and stops firing the instant you leave.
 var _hp_needs_reupright: bool = false
 var _speedup_timer := 999.0
+# Accumulated sway oscillation phase (radians). Advanced at speedup_frequency
+# scaled by speed/max_speed so the rock slows with the body; reset on the
+# start-moving edge alongside _speedup_timer.
+var _sway_phase := 0.0
 var _was_moving := false
 var _brake_impulse := 0.0
 var _was_pressing_forward := false
@@ -830,6 +876,12 @@ var _wall_ride_timer := 0.0
 var _wall_normal := Vector3.ZERO
 var _grinding := false
 var _grind_rail: Path3D = null
+# Rails whose broad-phase box we're currently inside (entered - exited).
+# _try_grab_candidate_rails runs the precise distance check against these.
+var _candidate_rails: Array[Path3D] = []
+# Absolute time (s) before which no rail grab may engage — armed on every
+# grind exit so the continuous check can't instantly re-grab.
+var _rail_regrab_block_until := 0.0
 var _grind_progress := 0.0
 var _grind_direction := 1.0
 var _grind_snap_t := 1.0
@@ -871,7 +923,10 @@ var _death_sound_pool_resolved: Array[AudioStream] = []
 var _attack_kick_pool_resolved: Array[AudioStream] = []
 var _attack_impact_pool_resolved: Array[AudioStream] = []
 var _footstep_phase: float = 0.0
-var _skate_phase: float = 0.0
+# Sway half-cycle index of the last stride SFX. Strides fire when this
+# changes (one per sway extreme); sentinel = stride audio inactive.
+const _STROKE_IDX_INACTIVE: int = -0x7FFFFFFF
+var _stride_stroke_idx: int = _STROKE_IDX_INACTIVE
 # Phase counter for the walk-bursts-during-skate layer. Independent of
 # `_footstep_phase` (which is for walk-mode strides) so the two never
 # step on each other — you can be in skate mode with this ticking and walk
@@ -907,6 +962,9 @@ var _brain_default_wind_up: float = -1.0
 var _brain_default_detection_radius: float = -1.0
 var _brain_default_chase_exit_radius: float = -1.0
 var _footstep_player_a: AudioStreamPlayer3D
+# Looping wheel-roll bed (skate mode). Created in _ready when enabled;
+# volume/pitch chase speed each audio tick, stops once faded out.
+var _roll_player: AudioStreamPlayer3D = null
 var _footstep_player_b: AudioStreamPlayer3D
 var _footstep_player_toggle: bool = false
 var _death_sfx_player: AudioStreamPlayer3D
@@ -943,6 +1001,9 @@ var _death_pose_timer := 0.0
 var _death_flight_time := 0.0
 var _death_impact_dir := Vector3.BACK
 var _death_skin_basis_start := Basis.IDENTITY
+# Stealth-fall timeline clock. -1 = inactive; stealth_kill() starts it at 0
+# and _tick_stealth_fall() flips it back to -1 once the body settles.
+var _stealth_fall_time := -1.0
 var _regen_timer := 0.0
 var _tint_timer := 0.0
 ## Absolute time (seconds) until which take_hit no-ops. -INF = never invuln.
@@ -1150,6 +1211,7 @@ func _ready() -> void:
 	if is_active_player:
 		_register_debug_panel()
 	Events.rail_touched.connect(_on_rail_touched)
+	Events.rail_left.connect(_on_rail_left)
 	Events.checkpoint_reached.connect(_on_checkpoint_reached)
 	# Player-only: hold the most recent RespawnMessageZone text. Enemies don't
 	# subscribe (they don't respawn into hint UI). Duplicates skip too — only
@@ -1206,6 +1268,34 @@ func _swap_brain_if_overridden() -> void:
 			c.queue_free()
 	add_child(new_brain)
 	_brain = new_brain
+
+
+## Permanently replace the brain at runtime and re-apply the current
+## faction's brain config to the fresh instance. Used by the GOD blast on
+## stealth pawns: the entire stealth kit — vision cone, patrol scan,
+## alert/chase state, current target — dies with the old brain node.
+## Total conversion, no residue, never comes back.
+func replace_brain(scene: PackedScene) -> void:
+	if scene == null:
+		return
+	var new_brain := scene.instantiate()
+	if not (new_brain is Brain):
+		push_error("replace_brain: scene root must extend Brain, got %s" % new_brain.get_class())
+		new_brain.queue_free()
+		return
+	for c: Node in get_children():
+		if c is Brain:
+			c.queue_free()
+	add_child(new_brain)
+	_brain = new_brain
+	# The per-variant default caches were read off the OLD brain — reset so
+	# set_faction re-caches from the replacement's authored exports.
+	_brain_default_detection_radius = -1.0
+	_brain_default_chase_exit_radius = -1.0
+	_brain_default_attack_cooldown = -1.0
+	_brain_default_wind_up = -1.0
+	print("[faction] %s brain replaced -> %s" % [name, scene.resource_path])
+	set_faction(faction)
 
 
 ## If skin_scene is set, replace the default skin child with a fresh instance
@@ -1473,6 +1563,10 @@ func _setup_pawn_audio() -> void:
 	_death_sfx_player = _make_pawn_3d_player()
 	_kick_sfx_player = _make_pawn_3d_player()
 	_impact_sfx_player = _make_pawn_3d_player()
+	if skate_roll_enabled and skate_roll_stream != null:
+		_roll_player = _make_pawn_3d_player()
+		_roll_player.stream = skate_roll_stream
+		_roll_player.volume_db = -60.0
 
 
 func _make_pawn_3d_player() -> AudioStreamPlayer3D:
@@ -1542,21 +1636,46 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 	if profile == null or _skin == null:
 		return
 	var in_walk: bool = profile == walk_profile and walk_profile != null
-	if in_walk and walk_anim_speed_scaling:
+	if walk_anim_speed_scaling:
+		# Both modes: Move (and CrouchMove, on skins that wire it) plays at
+		# speed/max_speed — so half stick = half-rate cycle, and the accel
+		# ramp from standstill sweeps the rate up naturally. Crouched, the
+		# ratio tops out at crouch_speed_multiplier, slowing the cycle to
+		# match the reduced speed cap.
 		var max_speed: float = maxf(profile.max_speed, 0.001)
 		var ratio: float = clampf(h_speed / max_speed, 0.0, 1.0)
-		var anim_scale: float = lerpf(walk_anim_min_scale, 1.0, ratio)
+		# Gait-band tempo (both modes): each gait ramps gait_tempo_floor→1.0
+		# across its own band (walk 0→cutover_start, run cutover_end→1.0);
+		# through the cutover the tempo eases back to the floor so the
+		# incoming run cycle starts unhurried. Which CLIP plays is the blend
+		# space's job (set_gait_blend below). The band floor (0.7) also
+		# means a slow glide never drops into slow-motion territory the way
+		# the old walk_anim_min_scale floor (0.35) did.
+		var anim_scale: float
+		if ratio < gait_cutover_start:
+			anim_scale = lerpf(gait_tempo_floor, 1.0,
+				ratio / maxf(gait_cutover_start, 0.001))
+		elif ratio < gait_cutover_end:
+			anim_scale = lerpf(1.0, gait_tempo_floor,
+				(ratio - gait_cutover_start) / maxf(gait_cutover_end - gait_cutover_start, 0.001))
+		else:
+			anim_scale = lerpf(gait_tempo_floor, 1.0,
+				(ratio - gait_cutover_end) / maxf(1.0 - gait_cutover_end, 0.001))
 		if h_speed < walk_footstep_min_speed:
 			# Below the walking threshold the Move state is unlikely to be
 			# active anyway; reset to authored rate so anything that does
 			# play (transitions, idle->move) reads natural.
 			anim_scale = 1.0
 		_skin.set_walk_speed_scale(anim_scale)
+		# Speed drives the walk↔run blend in BOTH modes — slow skate glide
+		# reads as steps, cruising reads as the run cycle.
+		_skin.set_gait_blend(ratio)
 	else:
-		# Either skating (handled by skate cadence below) OR scaling is
-		# disabled on this pawn (AI variants — see walk_anim_speed_scaling).
-		# Authored playback speed regardless of body velocity.
+		# Scaling disabled on this pawn (AI variants — see
+		# walk_anim_speed_scaling). Authored playback speed regardless of
+		# body velocity.
 		_skin.set_walk_speed_scale(1.0)
+		_skin.set_gait_blend(1.0)
 	# --- walk footsteps ---
 	if walk_footsteps_enabled and not _walk_footstep_pool_resolved.is_empty():
 		if not in_walk or _dying or not is_on_floor() or h_speed < walk_footstep_min_speed:
@@ -1575,21 +1694,25 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 			if _footstep_phase >= 1.0:
 				_footstep_phase -= 1.0
 				_play_random_footstep()
-	# --- skate strides ---
+	# --- skate strides (synced to the sway stroke clock) ---
+	# One stride per sway extreme (_sway_phase crossing π/2 + k·π): the roll,
+	# the accel pulse, and the push sound all peak on the same beat, and two
+	# clips + no-immediate-repeat reads as L/R alternation for free.
 	var in_skate: bool = profile == skate_profile and skate_profile != null
 	if skate_strides_enabled and not _skate_stride_pool_resolved.is_empty():
 		if not in_skate or _dying or not is_on_floor() or h_speed < skate_stride_min_speed:
-			if _skate_phase != 0.0:
+			if _stride_stroke_idx != _STROKE_IDX_INACTIVE:
 				_stop_stride_audio()
-			_skate_phase = 0.0
-		elif _skate_phase == 0.0:
-			_play_random_skate_stride()
-			_skate_phase = 0.0001
+			_stride_stroke_idx = _STROKE_IDX_INACTIVE
 		else:
-			var max_speed_s: float = maxf(profile.max_speed, 0.001)
-			_skate_phase += (h_speed / max_speed_s) * skate_stride_cadence_at_max * delta
-			if _skate_phase >= 1.0:
-				_skate_phase -= 1.0
+			var stroke_idx: int = int(floorf((_sway_phase + PI * 0.5) / PI))
+			if _stride_stroke_idx == _STROKE_IDX_INACTIVE:
+				# Entry stride on the start-moving edge, matching the old
+				# play-immediately behavior; subsequent strides ride the phase.
+				_play_random_skate_stride()
+				_stride_stroke_idx = stroke_idx
+			elif stroke_idx != _stride_stroke_idx:
+				_stride_stroke_idx = stroke_idx
 				_play_random_skate_stride()
 	# --- walk strides layered on top of skate (occasional keyboard-bursts
 	# while rolling). Same pool + cadence as walk mode but each stride rolls
@@ -1612,6 +1735,23 @@ func _tick_walk_audio_visual(delta: float, h_speed: float, profile: MovementProf
 					_play_random_footstep()
 	else:
 		_skate_walk_phase = 0.0
+	# --- wheel-roll bed --- volume swells with speed (full skate_roll_volume_db
+	# at max, −18dB down at a crawl), pitch spreads across the speed range.
+	# Smoothed chase both directions so ground gaps / brief stops don't gate
+	# the loop on and off; player stops once faded below audibility.
+	if _roll_player != null:
+		var roll_on: bool = in_skate and not _dying and is_on_floor() and h_speed > 0.5
+		var ratio: float = clampf(h_speed / maxf(profile.max_speed, 0.001), 0.0, 1.0)
+		var target_db: float = (skate_roll_volume_db - 18.0 * (1.0 - ratio)) if roll_on else -60.0
+		var k: float = 1.0 - exp(-10.0 * delta)
+		_roll_player.volume_db = lerpf(_roll_player.volume_db, target_db, k)
+		if roll_on:
+			_roll_player.pitch_scale = lerpf(1.0 - skate_roll_pitch_spread,
+					1.0 + skate_roll_pitch_spread, ratio)
+			if not _roll_player.playing:
+				_roll_player.play()
+		elif _roll_player.playing and _roll_player.volume_db < -50.0:
+			_roll_player.stop()
 
 
 func _stop_stride_audio() -> void:
@@ -1777,13 +1917,14 @@ func stealth_kill(impact_direction: Vector3 = Vector3.BACK) -> void:
 		var dir: Vector3 = impact_direction
 		dir.y = 0.0
 		_death_impact_dir = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.BACK
-		# Pre-landed: skip the flight phase entirely; pose-hold + tilt starts
-		# now. _tick_knockback_death sees _death_landed = true and goes
-		# straight into the lying-down sequence.
+		# Pre-landed: no knockback flight. _tick_knockback_death sees
+		# _death_landed = true and runs the stealth-fall timeline (eased
+		# tip-over + flop bounces) before the pose-hold sequence.
 		_death_landed = true
 		_death_pose_timer = 0.0
 		_death_flight_time = 0.0
 		_death_skin_basis_start = _skin.basis
+		_stealth_fall_time = 0.0
 		# Zero velocity = falls in place via gravity, no launch.
 		velocity = Vector3.ZERO
 		_skin.on_hit()
@@ -1817,6 +1958,10 @@ func _tick_knockback_death(delta: float) -> void:
 			_skin.freeze_animation()
 			_apply_death_skin_pose(1.0)
 		return
+	if _stealth_fall_time >= 0.0:
+		_stealth_fall_time += delta
+		if _tick_stealth_fall(delta):
+			return  # tip/bounce timeline still playing; pose hold starts after.
 	_death_pose_timer += delta
 	_apply_death_skin_pose(1.0)
 	if not dies_permanently:
@@ -1832,6 +1977,45 @@ func _tick_knockback_death(delta: float) -> void:
 		_skin.set_glitch_progress(_death_glitch_value)
 		if _death_pose_timer >= _DEATH_POSE_HOLD + _DEATH_FLICKER_DURATION:
 			_dying_timer = 0.0
+
+
+## Stealth-kill fall timeline. Phase 1: tip-over with a power ease-in
+## (inverted-pendulum approximation — near-zero angular speed upright,
+## maximum at impact). Phase 2: two ballistic flop bounces on the skin's
+## Y, decaying by restitution² in height and restitution in duration.
+## Returns true while animating; flips _stealth_fall_time to -1 and
+## returns false once settled so the caller's pose-hold takes over.
+func _tick_stealth_fall(delta: float) -> bool:
+	if _skin == null:
+		_stealth_fall_time = -1.0
+		return false
+	var t: float = _stealth_fall_time
+	var tip_d: float = maxf(stealth_fall_tip_duration, 0.01)
+	if t < tip_d:
+		_apply_death_skin_pose(pow(t / tip_d, maxf(stealth_fall_tip_exponent, 1.0)))
+		return true
+	var after: float = t - tip_d
+	# First grounded frame = impact: freeze the skin's animation mid-pose,
+	# mirroring what the knockback flight path does on landing.
+	if after - delta < 0.0:
+		_skin.freeze_animation()
+	var e: float = stealth_fall_restitution
+	var b1: float = maxf(stealth_fall_bounce_duration, 0.01)
+	var b2: float = b1 * e
+	var bounce_y: float = 0.0
+	if after < b1:
+		var u: float = after / b1
+		bounce_y = 4.0 * stealth_fall_bounce_height * u * (1.0 - u)
+	elif b2 > 0.0 and after < b1 + b2:
+		var u: float = (after - b1) / b2
+		bounce_y = 4.0 * stealth_fall_bounce_height * e * e * u * (1.0 - u)
+	else:
+		_stealth_fall_time = -1.0
+		_apply_death_skin_pose(1.0)
+		return false
+	_apply_death_skin_pose(1.0)
+	_skin.position.y += bounce_y
+	return true
 
 
 ## Build the skin basis at `tilt_progress` ∈ [0, 1] from upright (captured
@@ -2136,20 +2320,56 @@ func _snap_camera_to_player() -> void:
 		_camera_pivot.position = pivot_offset
 
 
+# Broad-phase only: the rail's Area3D box entered/exited maintain the
+# candidate set; _try_grab_candidate_rails does the real distance check
+# per tick. Grabbing on this edge alone was the "sticky rails" bug — the
+# box is the curve's AABB and bloats badly on curved/diagonal rails.
 func _on_rail_touched(rail: Node, body: Node) -> void:
-	if body != self or _grinding:
+	if body != self:
+		return
+	var path_rail: Path3D = rail as Path3D
+	if path_rail == null or path_rail.curve == null:
+		return
+	if not _candidate_rails.has(path_rail):
+		_candidate_rails.append(path_rail)
+
+
+func _on_rail_left(rail: Node, body: Node) -> void:
+	if body != self:
+		return
+	_candidate_rails.erase(rail as Path3D)
+
+
+## Per-tick narrow phase: while inside any rail's broad-phase box, grab the
+## first rail whose curve passes within rail_grab_radius of the body. Runs
+## from _physics_process; near-free when the candidate set is empty.
+func _try_grab_candidate_rails() -> void:
+	if _grinding or _candidate_rails.is_empty():
+		return
+	if (Time.get_ticks_msec() / 1000.0) < _rail_regrab_block_until:
 		return
 	var profile: MovementProfile = _current_profile
 	if profile == null or profile.grind_speed <= 0.0:
-		return
-	var path_rail: Path3D = rail as Path3D
-	if path_rail == null:
 		return
 	# Skates-only gate: anyone on blades grinds, regardless of faction.
 	# Matches the wheels-visible and halfpipe-stick rule (see line 646-647).
 	# Walkers (no skate_profile or not currently in skate mode) skip rails.
 	if skate_profile == null or _current_profile != skate_profile:
 		return
+	for i in range(_candidate_rails.size() - 1, -1, -1):
+		var path_rail: Path3D = _candidate_rails[i]
+		if path_rail == null or not is_instance_valid(path_rail) or path_rail.curve == null:
+			_candidate_rails.remove_at(i)
+			continue
+		var local_pos: Vector3 = path_rail.to_local(global_position)
+		var closest: Vector3 = path_rail.curve.sample_baked(
+			path_rail.curve.get_closest_offset(local_pos))
+		if path_rail.to_global(closest).distance_to(global_position) <= rail_grab_radius:
+			_grab_rail(path_rail)
+			return
+
+
+func _grab_rail(path_rail: Path3D) -> void:
 	_grind_rail = path_rail
 	_grind_progress = _grind_rail.closest_progress(global_position)
 	var pf: PathFollow3D = _grind_rail.get_node_or_null("PathFollow3D") as PathFollow3D
@@ -2438,6 +2658,7 @@ func _physics_process(delta: float) -> void:
 
 	_tick_health_regen(delta)
 	_tick_damage_tint(delta)
+	_try_grab_candidate_rails()
 
 	# Attack: edge-triggered from intent (formerly handled in _input).
 	if intent.attack_pressed:
@@ -2505,6 +2726,7 @@ func _physics_process(delta: float) -> void:
 	var is_moving: bool = speed > 0.5
 	if is_moving and not _was_moving:
 		_speedup_timer = 0.0
+		_sway_phase = 0.0
 	if is_moving:
 		_speedup_timer += delta
 	_was_moving = is_moving
@@ -2514,9 +2736,16 @@ func _physics_process(delta: float) -> void:
 		if _speedup_timer < profile.speedup_duration:
 			var t: float = _speedup_timer / max(profile.speedup_duration, 0.001)
 			amp = lerpf(profile.speedup_amplitude, profile.cruise_sway_amplitude, t)
-		speedup_roll = amp * sin(TAU * profile.speedup_frequency * _speedup_timer)
-	# Kill the sway while airborne so jumps read clean.
-	if not is_on_floor():
+		# Pendulum rate tracks body speed (same speed/max ratio the anim
+		# scale uses): slow glide = slow rock, full speed = authored
+		# frequency. Phase is ACCUMULATED (not sin(f·t)) so a changing
+		# ratio bends the oscillation smoothly instead of popping.
+		var sway_ratio: float = clampf(speed / maxf(profile.max_speed, 0.001), 0.0, 1.0)
+		_sway_phase += TAU * profile.speedup_frequency * sway_ratio * delta
+		speedup_roll = amp * sin(_sway_phase)
+	# Kill the sway while airborne (jumps read clean) and while crouched
+	# (a sneaking body doesn't rock).
+	if not is_on_floor() or intent.crouch_held:
 		speedup_roll = 0.0
 	var target_pitch: float = clamp(-speed * profile.forward_lean_amount, -0.6, 0.6)
 	# Smooth the lean/centripetal components only. Sway is applied unsmoothed
@@ -2628,6 +2857,12 @@ func _physics_process(delta: float) -> void:
 	var on_floor := is_on_floor()
 	var air_mult := 1.0 if on_floor else profile.air_accel_mult
 	var accel_now := profile.accel * air_mult
+	# Stroke pulse: thrust surges with each sway extreme (push-off) and
+	# slackens through center (glide). Same _sway_phase that drives the roll
+	# and the stride SFX — one stroke clock, three outputs. Floor-only:
+	# airborne there's nothing to push against.
+	if on_floor and profile.stroke_accel_pulse > 0.0:
+		accel_now *= 1.0 + profile.stroke_accel_pulse * (absf(sin(_sway_phase)) * 2.0 - 1.0)
 	var friction_now := profile.friction * air_mult
 
 	if intent.hard_brake:
@@ -2966,6 +3201,7 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 			velocity += Vector3.UP * (profile.jump_impulse + profile.grind_exit_boost)
 		_grinding = false
 		_grind_rail = null
+		_rail_regrab_block_until = Time.get_ticks_msec() / 1000.0 + rail_regrab_cooldown
 		if _grind_sparks != null:
 			_grind_sparks.emitting = false
 		_stop_grind_loop()
@@ -3309,6 +3545,14 @@ func _register_debug_panel() -> void:
 			func() -> float: return skate_profile.speedup_frequency,
 			func(v: float) -> void: skate_profile.speedup_frequency = v,
 			"skate_profile.tres")
+		DebugPanel.add_slider("Skin/Sway/skate/accel_pulse", 0.0, 1.0, 0.05,
+			func() -> float: return skate_profile.stroke_accel_pulse,
+			func(v: float) -> void: skate_profile.stroke_accel_pulse = v,
+			"skate_profile.tres")
+		DebugPanel.add_slider("Skate/roll_volume_db", -40.0, 6.0, 0.5,
+			func() -> float: return skate_roll_volume_db,
+			func(v: float) -> void: skate_roll_volume_db = v,
+			"player_body.gd")
 		DebugPanel.add_slider("Skin/Sway/skate/pivot_height", 0.0, 3.0, 0.05,
 			func() -> float: return _skin.lean_pivot_height,
 			func(v: float) -> void: _skin.lean_pivot_height = v,
@@ -3417,10 +3661,6 @@ func _register_debug_panel() -> void:
 		DebugPanel.add_toggle("Skate/strides_enabled",
 			func() -> bool: return skate_strides_enabled,
 			func(v: bool) -> void: skate_strides_enabled = v,
-			"player_body.gd")
-		DebugPanel.add_slider("Skate/cadence_at_max", 0.2, 8.0, 0.05,
-			func() -> float: return skate_stride_cadence_at_max,
-			func(v: float) -> void: skate_stride_cadence_at_max = v,
 			"player_body.gd")
 		DebugPanel.add_slider("Skate/min_speed", 0.0, 6.0, 0.05,
 			func() -> float: return skate_stride_min_speed,

@@ -14,6 +14,9 @@ Glitch: One more thing — those phone booths around the grid. Walk near one and
 	Glitch: The Gibson is a supercomputer mainframe — Ellingson Mineral Company runs it.
 	Glitch: Sixty-four racks, networked across the city, processing every financial transaction the company touches.
 	Glitch: It was named for William Gibson — the writer who first called cyberspace by its name. We are inside it now.
+	do StoryVec.nudge(&"ai_tech", 1)
+	do GameState.set_flag("glitch1_asked_gibson", true)
+	do Dialogue.notice("Expressed curiosity. Glitch will remember that.")
 	=> glitch_1_questions
 - Perish?
 	Glitch: Quite so. For a brief moment, your code may enter a state of high entropy. Try not to think about it too hard.

@@ -36,17 +36,20 @@ Splice: Back already? The DJ's got taste, I'll give them that.
 - You shouldn't have come at us.
 	Splice: I came at the Gibson. You were **just** in the way.
 	Splice: That'll be on the record forever, runner. Won't it.
+	do GameState.set_flag("splice_p4_confronted", true)
 - You okay in there?
 	Splice: Not really, no.
 	Splice: Quarantine's a soft jail. I get bored, I poke the walls. See what gives.
 	Splice: I'm not dancing. I'm watching. Better view, honestly. Front row to every move you make.
-- This is kind of cruel.
+	do GameState.set_flag("splice_p4_asked_okay", true)
+- [if GameState.get_flag("splice_p4_asked_okay", false) /] This is kind of cruel.
 	Splice: Hmm
 	Splice: It is what it is, runner. Don't lose sleep on my behalf.
 	Splice: I wouldn't.
-- You're not getting out. But you can dance. [#decision]
+	do GameState.set_flag("splice_p4_asked_cruel", true)
+- [if GameState.get_flag("splice_p4_asked_cruel", false) /] You're not getting out. But you can dance. [#decision]
 	=> dance_offer
-- I won.
+- [if GameState.get_flag("splice_p4_confronted", false) /] I won.
 	Splice: Yeah. You did. Perimeters fail, runner. And I've got time.
 - Walk away. [#exit]
 	Splice: Catch you on the wire.

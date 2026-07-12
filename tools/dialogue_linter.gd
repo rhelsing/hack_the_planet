@@ -9,6 +9,7 @@ class_name DialogueLinter extends RefCounted
 ##   E.2 — flag write/read audit (orphan writers, orphan readers).
 ##   E.3 — StoryVec axis/region validation (typos vs config).
 ##   E.4 — untagged-exit detection (options routing to END without [#exit]).
+##   E.7 — menu-size audit (moments with more than MAX_MENU_OPTIONS options).
 
 
 # ── Regexes ────────────────────────────────────────────────────────────
@@ -37,6 +38,12 @@ const VALUE_RE: String = "StoryVec\\.value\\s*\\(\\s*&?\"([^\"]+)\""
 
 const EXIT_TAG: String = "exit"
 const LEGACY_EXIT_TEXT: String = "End the conversation"
+
+## E.7 — worst-case simultaneous options a single response menu may show
+## before the linter warns. Every [if]-gated option counts as visible
+## (static analysis can't prove gates mutually exclusive), so the number
+## reported is the ceiling, not necessarily what a given save sees.
+const MAX_MENU_OPTIONS: int = 3
 
 # Allowlist for flag names that are set with DYNAMIC names in .gd code
 # (e.g. LevelProgression's `_completed_key(num)` builds "level_N_completed"
@@ -114,6 +121,71 @@ func _scan_dialogue(path: String, report: LintReport) -> void:
 
 	_collect_flags(path, report)
 	_check_exit_tags(path, dr, report)
+	_check_menu_sizes(path, report)
+
+
+# ── E.7 — menu-size audit ──────────────────────────────────────────────
+# A "menu" (a moment the player picks from) is a consecutive run of `- `
+# option lines at the same tab depth. Lines indented DEEPER belong to the
+# option above them (its body); any line at the same or shallower depth
+# ends the run. Nested menus inside an option body are audited as their
+# own moments. Reports title + line + gated/exit breakdown so triage can
+# tell "5 options but 3 are progressive unlocks" from a genuine wall.
+
+func _check_menu_sizes(path: String, report: LintReport) -> void:
+	var src := _read_text(path)
+	if src.is_empty():
+		return
+	var title := "(top)"
+	var open: Dictionary = {}  # tab depth → menu dict (see _open_menu)
+	var line_no := 0
+	for raw: String in src.split("\n"):
+		line_no += 1
+		var stripped := raw.strip_edges()
+		if stripped.is_empty() or stripped.begins_with("#"):
+			continue
+		var depth := 0
+		while depth < raw.length() and raw[depth] == "\t":
+			depth += 1
+		if stripped.begins_with("~ "):
+			# New section: every open menu ends here.
+			_flush_menus_at_or_deeper(path, open, 0, report)
+			title = stripped.substr(2).strip_edges()
+			continue
+		if stripped.begins_with("- "):
+			# An option at this depth ends any deeper menu's run.
+			_flush_menus_at_or_deeper(path, open, depth + 1, report)
+			if not open.has(depth):
+				open[depth] = {"title": title, "line": line_no,
+						"total": 0, "gated": 0, "exits": 0}
+			var m: Dictionary = open[depth]
+			m.total += 1
+			if stripped.begins_with("- [if "):
+				m.gated += 1
+			if "[#%s]" % EXIT_TAG in stripped:
+				m.exits += 1
+			continue
+		# Non-option line: ends any menu at this depth or deeper. A body
+		# line one level deeper than its option leaves the option's menu
+		# open; a speaker/do/=> line back at the menu's own depth closes it.
+		_flush_menus_at_or_deeper(path, open, depth, report)
+	_flush_menus_at_or_deeper(path, open, 0, report)
+
+
+func _flush_menus_at_or_deeper(path: String, open: Dictionary, min_depth: int,
+		report: LintReport) -> void:
+	for d: int in open.keys().duplicate():
+		if d < min_depth:
+			continue
+		var m: Dictionary = open[d]
+		open.erase(d)
+		if m.total <= MAX_MENU_OPTIONS:
+			continue
+		report.warn(path, "menu in '~ %s' (line %d) shows up to %d options (%d always-on, %d [if]-gated, %d exit) — target ≤ %d"
+				% [m.title, m.line, m.total, m.total - m.gated, m.gated,
+				   m.exits, MAX_MENU_OPTIONS],
+				{"menu": m.title, "line": m.line, "total": m.total,
+				 "gated": m.gated, "exits": m.exits})
 
 
 func _collect_flags(path: String, report: LintReport) -> void:

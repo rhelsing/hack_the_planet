@@ -46,6 +46,18 @@ animation = &"Running"
 [sub_resource type="AnimationNodeAnimation" id="ANA_Run"]
 animation = &"Running"
 
+[sub_resource type="AnimationNodeAnimation" id="ANA_Walk"]
+animation = &"Walking"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="ABS_gait"]
+blend_point_0/node = SubResource("ANA_Walk")
+blend_point_0/pos = 0.5
+blend_point_1/node = SubResource("ANA_Run")
+blend_point_1/pos = 0.7
+min_space = 0.0
+max_space = 1.0
+sync = true
+
 [sub_resource type="AnimationNodeTimeScale" id="ANTS_runspeed"]
 
 [sub_resource type="AnimationNodeAdd3" id="ANA3_tilt"]
@@ -56,13 +68,22 @@ nodes/L/node = SubResource("ANA_RunTiltL")
 nodes/L/position = Vector2(-100, 320)
 nodes/R/node = SubResource("ANA_RunTiltR")
 nodes/R/position = Vector2(-240, 240)
-nodes/Run/node = SubResource("ANA_Run")
+nodes/Run/node = SubResource("ABS_gait")
 nodes/Run/position = Vector2(-120, 120)
 nodes/tilt/node = SubResource("ANA3_tilt")
 nodes/tilt/position = Vector2(80, 160)
 nodes/RunSpeed/node = SubResource("ANTS_runspeed")
 nodes/RunSpeed/position = Vector2(240, 160)
 node_connections = [&"output", 0, &"RunSpeed", &"tilt", 0, &"L", &"tilt", 1, &"Run", &"tilt", 2, &"R", &"RunSpeed", 0, &"tilt"]
+
+[sub_resource type="AnimationNodeTimeScale" id="ANTS_crouchspeed"]
+
+[sub_resource type="AnimationNodeBlendTree" id="ABT_crouchmove"]
+nodes/CrouchWalk/node = SubResource("ANA_CrouchMove")
+nodes/CrouchWalk/position = Vector2(-120, 120)
+nodes/CrouchSpeed/node = SubResource("ANTS_crouchspeed")
+nodes/CrouchSpeed/position = Vector2(120, 120)
+node_connections = [&"output", 0, &"CrouchSpeed", &"CrouchSpeed", 0, &"CrouchWalk"]
 
 [sub_resource type="AnimationNodeAnimation" id="ANA_WallSlide"]
 animation = &"Falling Idle"
@@ -191,7 +212,7 @@ states/Attack/node = SubResource("ANA_Attack")
 states/Attack/position = Vector2(327, 290)
 states/Crouch/node = SubResource("ANA_Crouch")
 states/Crouch/position = Vector2(180, 290)
-states/CrouchMove/node = SubResource("ANA_CrouchMove")
+states/CrouchMove/node = SubResource("ABT_crouchmove")
 states/CrouchMove/position = Vector2(80, 360)
 states/Dash/node = SubResource("ANA_Dash")
 states/Dash/position = Vector2(627, 44)

@@ -28,14 +28,15 @@ Glitch: I'm just bobbing. It's nice.
 - How are you?
 	Glitch: Functional. The directive's settled.
 	Glitch: Quieter than it was. That's good.
+	do GameState.set_flag("glitch_p4_asked_how", true)
 - What happens now?
 	Glitch: Whoever shows up next, I'll be here.
 	Glitch: ...you can come by. If you want. Even without a mission.
-- Thank you. For the platform.
+- [if GameState.get_flag("glitch_p4_asked_how", false) /] Thank you. For the platform.
 	Glitch: Oh. Um.
 	Glitch: I just — built a thing. You stood on it. You did the standing.
 	Glitch: But. Thanks for thanking me. It's nice. To be thanked.
-- Are you different?
+- [if GameState.get_flag("glitch_p4_asked_how", false) /] Are you different?
 	Glitch: I noticed I have preferences now.
 	Glitch: I think I'm slightly more than what I was. Not sure if that's a bug or a feature.
 	Glitch: Either way. I'm okay with it.

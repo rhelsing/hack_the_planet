@@ -36,12 +36,14 @@ const _TINT_LOCKED: Color = Color(0.45, 0.15, 0.15, 1.0)
 
 var _was_locked: bool = true
 var _tinted_material: ShaderMaterial
+var _auto_prompt: bool = false
 
 
 func _ready() -> void:
 	super._ready()
-	if prompt_verb == "interact":
-		prompt_verb = "enter"
+	# Auto-manage the prompt only when the inspector didn't override it.
+	_auto_prompt = prompt_verb == "interact"
+	_refresh_prompt()
 	Events.flag_set.connect(_on_flag_set)
 	scale = Vector3.ZERO
 	_was_locked = is_locked()
@@ -92,6 +94,19 @@ func _on_flag_set(_id: StringName, _value: Variant) -> void:
 		Audio.play_sfx(&"portal_appear")
 	_was_locked = locked_now
 	_refresh_tint()
+	_refresh_prompt()
+
+
+## "[E] enter level N", with "(complete)" appended once level_N_completed
+## is set. Re-run on every flag_set so the suffix appears live when the
+## player returns from clearing the level.
+func _refresh_prompt() -> void:
+	if not _auto_prompt:
+		return
+	var base := "enter level %d" % level_num
+	if LevelProgression.is_level_complete(level_num):
+		base += " (complete)"
+	prompt_verb = base
 
 
 func _set_interactive(on: bool) -> void:

@@ -39,6 +39,12 @@ func _ready() -> void:
 	Events.puzzle_failed.connect(_on_puzzle_failed)
 	Events.flag_set.connect(_on_flag_set)
 	Events.dialogue_vector_committed.connect(_on_dialogue_vector_committed)
+	Events.dialogue_noticed.connect(_on_dialogue_noticed)
+	# Dialogue pauses the tree while the balloon is up, and the vector /
+	# noticed toasts fire mid-conversation. Run the stack under pause (toast
+	# children inherit) so those play live instead of freezing mid-reveal
+	# until the balloon closes.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	# PlayerBody signals are local, not on the Events bus. Look up the pawn
 	# after the tree is fully in place; guarded in case the current scene has
 	# no player (main menu, loader, etc.).
@@ -89,6 +95,10 @@ func _on_flag_set(id: StringName, value: Variant) -> void:
 
 func _on_dialogue_vector_committed(label: String) -> void:
 	_push("> CHOICE :: %s" % label.to_upper(), COLOR_VECTOR)
+
+
+func _on_dialogue_noticed(text: String) -> void:
+	_push("> %s" % text.to_upper(), COLOR_VECTOR)
 
 
 func _on_ability_granted(ability_id: StringName) -> void:

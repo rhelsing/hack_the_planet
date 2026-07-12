@@ -37,6 +37,8 @@ const _HEAD_BONE := &"mixamorig_Head"
 @onready var state_machine: AnimationNodeStateMachinePlayback = animation_tree.get("parameters/StateMachine/playback")
 @onready var move_tilt_path: String = "parameters/StateMachine/Move/tilt/add_amount"
 @onready var run_speed_path: String = "parameters/StateMachine/Move/RunSpeed/scale"
+@onready var crouch_speed_path: String = "parameters/StateMachine/CrouchMove/CrouchSpeed/scale"
+@onready var gait_blend_path: String = "parameters/StateMachine/Move/Run/blend_position"
 
 var _dash_anim_node: AnimationNodeAnimation
 var _attack_anim_node: AnimationNodeAnimation
@@ -327,10 +329,21 @@ func walk_unlock() -> void:
 
 
 func set_walk_speed_scale(scale: float) -> void:
-	# Drives the AnimationNodeTimeScale wrapping Move so the Run cycle slows
-	# at low gamepad input. Idle/Jump/Fall keep their authored rates.
+	# Drives the AnimationNodeTimeScale wrapping Move AND CrouchMove so the
+	# run / crouched-walk cycles track body speed (stick % and accel ramp).
+	# Idle/Jump/Fall keep their authored rates.
 	if animation_tree != null:
 		animation_tree.set(run_speed_path, max(0.0, scale))
+		animation_tree.set(crouch_speed_path, max(0.0, scale))
+
+
+## Walk↔run gait. The Move state's middle input is a BlendSpace1D with
+## Walking anchored at 0.5 and Running at 0.7 (sync on, so the clips share
+## phase through the crossfade): ratio ≤ 0.5 = pure walk, 0.5–0.7 = the
+## quick cutover, ≥ 0.7 = pure run.
+func set_gait_blend(ratio: float) -> void:
+	if animation_tree != null:
+		animation_tree.set(gait_blend_path, clampf(ratio, 0.0, 1.0))
 
 func fall() -> void: state_machine.travel("Fall")
 func jump() -> void: state_machine.travel("Jump")

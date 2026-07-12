@@ -123,6 +123,19 @@ func get_level(skill: StringName) -> int:
 	return _level.get(skill, 0)
 
 
+## Set a skill's level to an absolute value — for "derived" skills whose level
+## mirrors a world counter rather than accumulating grants. Used by the L1
+## CANS check: `do Skills.set_level("cans", GameState.coin_count)` right
+## before the menu renders, so the displayed % and the roll both track the
+## live can count. Emits the same signal as grant() so HUDs react uniformly.
+func set_level(skill: StringName, level: int) -> void:
+	var new_level: int = maxi(0, level)
+	if _level.get(skill, 0) == new_level:
+		return
+	_level[skill] = new_level
+	Events.skill_granted.emit(skill, new_level)
+
+
 ## Grant N levels in the skill (default +1). Called from .dialogue files
 ## (`do Skills.grant("composure")`) or world interactables (books, trainers,
 ## mods). Emits Events.skill_granted(skill, new_level).

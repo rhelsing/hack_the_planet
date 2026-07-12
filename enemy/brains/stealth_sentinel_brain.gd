@@ -66,6 +66,16 @@ var _scan_phase_offset: float = 0.0
 var _pause_yaw_anchor: float = 0.0
 var _pause_elapsed: float = 0.0
 
+# Stealth-kit toggle. set_faction (GOD blast → gold, etc.) rewrites the
+# pawn's data but never swaps the brain, so this brain watches its body's
+# faction each tick: any non-stealth faction sheds the whole stealth kit —
+# vision cone (visual + targeting gate), vertical vision bound, patrol
+# scan, crouch ally-filter — and defers wholesale to EnemyAIBrain
+# behavior. Restored if the pawn ever reverts to splice_stealth.
+var _stealth_mode: bool = true
+var _saved_cone_deg: float = 0.0
+var _saved_cone_visible: bool = false
+
 
 func _ready() -> void:
 	super._ready()
@@ -85,7 +95,27 @@ func tick(body: Node3D, delta: float) -> Intent:
 	# the current target yaw; walk phase + chase + everything else leaves
 	# it false → body falls through to its existing velocity-tracked yaw.
 	_intent.face_yaw_override_set = false
+	# Faction watch — shed/restore the stealth kit on conversion. Zeroing
+	# the cone flags makes the parent's _update_vision_debug free the cone
+	# mesh next tick AND drops the cone targeting gate (deg 0 = no arc
+	# check); the overrides below defer on _stealth_mode for the rest.
+	var stealth_now: bool = _faction_is_stealth(body)
+	if stealth_now != _stealth_mode:
+		_stealth_mode = stealth_now
+		if stealth_now:
+			vision_cone_deg = _saved_cone_deg
+			vision_debug_visible = _saved_cone_visible
+		else:
+			_saved_cone_deg = vision_cone_deg
+			_saved_cone_visible = vision_debug_visible
+			vision_cone_deg = 0.0
+			vision_debug_visible = false
 	return super.tick(body, delta)
+
+
+func _faction_is_stealth(body: Node) -> bool:
+	return body != null and "faction" in body \
+			and StringName(body.get(&"faction")) == &"splice_stealth"
 
 
 # Override: when the player is crouched, sentinels don't actively pre-target
@@ -96,7 +126,7 @@ func tick(body: Node3D, delta: float) -> Intent:
 # scan inside super._ensure_target. Standing player → no filter, normal
 # wide-net targeting (the "fair game" mode).
 func _ensure_target(body: Node3D) -> void:
-	if not _is_player_crouched_for_filter():
+	if not _stealth_mode or not _is_player_crouched_for_filter():
 		super._ensure_target(body)
 		return
 	var saved_targets: Array[StringName] = target_groups.duplicate()
@@ -136,7 +166,7 @@ func _is_player_crouched_for_filter() -> bool:
 # entirely (intentional — once committed, jumping on a platform doesn't
 # drop the chase).
 func _can_see_target(body: Node3D, range_cap: float) -> bool:
-	if _target != null and is_instance_valid(_target):
+	if _stealth_mode and _target != null and is_instance_valid(_target):
 		var dy: float = absf(_target.global_position.y - body.global_position.y)
 		if dy > vertical_cone_half_height:
 			return false
@@ -178,6 +208,10 @@ func _update_vision_yaw(delta: float) -> void:
 #                 sine-modulated yaw into face_yaw_override so the head
 #                 visibly looks left-right while body is stationary.
 func _wander_direction(body: Node3D, delta: float) -> Vector3:
+	# Converted pawns wander/follow like any other pawn — no sentinel
+	# arc-and-scan routine on your gold allies.
+	if not _stealth_mode:
+		return super._wander_direction(body, delta)
 	_patrol_timer -= delta
 	if _patrol_timer <= 0.0:
 		_patrol_walking = not _patrol_walking

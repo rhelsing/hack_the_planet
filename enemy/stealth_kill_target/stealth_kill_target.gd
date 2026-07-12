@@ -201,6 +201,10 @@ func _eligible_for_highlight(actor: Node3D) -> bool:
 		return false
 	if "is_dying" in pawn and bool(pawn.call(&"is_dying")):
 		return false
+	# Converted pawns aren't stealth anymore — no backstab prompt on your
+	# own gold allies. Faction is the live signal; set_faction rewrites it.
+	if "faction" in pawn and StringName(pawn.get(&"faction")) != &"splice_stealth":
+		return false
 	# Once the pawn has spotted the player (HOSTILE chase), the [E] hack is
 	# off the table — sneak windows close the moment they go red. Brain
 	# lookup is lazy via _push_hack_state_to_brain's cache; refresh here.

@@ -17,11 +17,19 @@ func _ready() -> void:
 	var area: Area3D = get_node_or_null("Area3D")
 	if area != null:
 		area.body_entered.connect(_on_body_entered)
+		area.body_exited.connect(_on_body_exited)
 	_fit_area_to_curve()
 
 
+# The Area3D box is a broad-phase only: entered/exited maintain a candidate
+# set on the body, which does the real per-tick distance-to-curve check
+# (rail_grab_radius). See PlayerBody._try_grab_candidate_rails.
 func _on_body_entered(body: Node3D) -> void:
 	Events.rail_touched.emit(self, body)
+
+
+func _on_body_exited(body: Node3D) -> void:
+	Events.rail_left.emit(self, body)
 
 
 func closest_progress(world_pos: Vector3) -> float:
