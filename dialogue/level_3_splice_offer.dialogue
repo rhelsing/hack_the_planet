@@ -30,6 +30,12 @@ Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
 Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
+- They say you will destroy the Gibson.
+	Splice: It's not destruction. It's just **monetization**.
+	Splice: If I don't do it someone else will. This is just the way the world works.
+	Splice: DialTone's going to come to the same conclusion in about a month.
+	Splice: Just wait.
+	=> splice_consider
 - What's the catch?
 	=> splice_catch
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
@@ -42,7 +48,7 @@ Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-be
 ~ splice_catch
 
 Splice: There isn't one. That's what they don't get.
-Splice: They built the "hackers for the people" thing because none of them had anything worth keeping. I had **nothin'**. Now I've got **something**.
+Splice: They built the "hackers for the people" thing because none of them had anything worth keeping.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no

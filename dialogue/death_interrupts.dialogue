@@ -12,7 +12,7 @@
 
 DialTone: Get up, runner — GET UP!
 DialTone: Damn it. Move!
-DialTone: They got you. Reset, reset.
+DialTone: They got you. Reset, my guy.
 DialTone: Shake it off, {player_handle}. Again.
 => END
 
@@ -26,9 +26,6 @@ Glitch: that's bad! that's so bad
 
 ~ nyx
 
-Nyx: Sloppy.
-Nyx: Disappointing.
-Nyx: We've been over this.
 Nyx: Try harder, {player_handle}.
 => END
 

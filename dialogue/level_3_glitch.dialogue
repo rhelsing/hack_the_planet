@@ -22,7 +22,7 @@ Glitch: Want to see?
 
 ~ show
 
-Glitch: Cool, check it out. Jump on the platform behind me.
+Glitch: Cool, check it out. Jump on this platform.
 do GameState.set_flag("glitch_l3_portal_revealed", true)
 => END
 

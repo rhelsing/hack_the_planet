@@ -21,6 +21,3 @@ Nyx: Let's go have a little chat with him, shall we?
 - Head back to the hub. [#exit]
 	do LevelProgression.advance()
 	=> END
-- I'll hang out here a sec. [#exit]
-	Nyx: Suit yourself. Don't take too long.
-	=> END

@@ -160,9 +160,9 @@ DialTone: Hey — time's ticking.
 	DialTone: I wanted to see what you were made of.
 	DialTone: You do want to become a **real** hacker right?
 	- Yes
-	   DialTone: Well, I need you to help my friend first.
+		DialTone: Well, I need you to help my friend first.
 	- Thinking about it
-	   DialTone: Don't think too long.
+		DialTone: Don't think too long.
 	do GameState.set_flag("dialtone_messenger_thread", 1)
 - Who's Nyx?
 	DialTone: Nyx. Sharpest hacker on the grid and she's stuck. Don't ask me how.
@@ -533,7 +533,7 @@ DialTone: What else would you like to know?
 ~ post_1_questions
 
 - So what was that about?
-	DialTone: Come on. Nyx? Stuck? 
+	DialTone: Come on. Nyx? Stuck?
 	DialTone: She's the best there is! I just wanted to see both of your faces.
 	Nyx: You're an idiot.
 	DialTone: Completely worth it.
@@ -552,11 +552,11 @@ DialTone: What else would you like to know?
 DialTone: Alright — got the next job queued. Softball, this time. Real one. Grab a few files for us and you will be back here in no time.
 DialTone: You do still want to be a hacker right?
 - Not after that
-    Nyx: I don't blame you.
-    DialTone: Come on. It's all in good fun.
-    Nyx: Is it?
+	Nyx: I don't blame you.
+	DialTone: Come on. It's all in good fun.
+	Nyx: Is it?
 - Sure
-    DialTone: That's the spirit!
+	DialTone: That's the spirit!
 DialTone: This is the easiest hop on the grid.
 Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
@@ -571,58 +571,63 @@ do GameState.set_flag("level_2_unlocked", true)
 
 ## `dialogue/hub_nyx.dialogue` → `~ stage_post_1`
 
-THIS whole nyx section thing needs a refactor..  - lets talk about how to stage it out well. some of these might be checks or nudges.. most is inconsequential and funny.
-
 ```
 ~ stage_post_1
 
-# Obligatory opener — runs once. Re-talks route through the entry block
-# for an abbreviated greeting, then drop into the questions hub.
+# CANON — obligatory opener, one-shot interactive scene (not a probe hub):
+# Nyx sizes up the new recruit. Interleaved beats: world-build recruit
+# probe → the "this life isn't easy" warning → flavor persona choice (sets
+# nyx_said_bad_boy, paid off in nyx_post_3's opener) → the VECTOR "do you
+# actually want to be a hacker?" commitment. Runs once; re-talks route
+# through the entry block into the (now minimal) questions hub.
 if GameState.get_flag("nyx_post_1_opener_seen", false)
 	=> nyx_post_1_entry
 
 Nyx: Quick word. Off-channel.
 - Why off-channel?
 	Nyx: DialTone gets worse with an audience. I need to learn a bit about our new recruit.
+	# WORLD-BUILD — one-shot nested pair; whichever thread the player pulls,
+	# the scene continues into the warning below.
 	- your new "recruit"?
-	   Nyx: DialTone doesn't let just anyone in here. 
-	   Nyx: But he's also getting more desperate
+		Nyx: DialTone doesn't let just anyone in here.
+		Nyx: But he's also getting more desperate
 	- why do you need a new recruit?
-	   Nyx: Our last runner..
-	   Nyx: Let's just say things didn't go as planned on our last job.
-	   Nyx: Maybe I'll tell you more if you make the cut.
+		Nyx: Our last runner..
+		Nyx: Let's just say things didn't go as planned on our last job.
+		Nyx: Maybe I'll tell you more if you make the cut.
 Nyx: DialTone makes light of things but this life isn't always easy.
 Nyx: He's not allowed to leave this hub because he pissed off the wrong people.
 Nyx: It could happen to you too if you're not careful.
 Nyx: You seem like a nice guy.
+# Flavor persona beat. Both bad-boy picks set nyx_said_bad_boy — read by
+# the nyx_post_3 opener ("Of course, I told you I'm a bad boy").
 - Thanks
-    Nyx: Nice guys don't make it very far in here.
+	Nyx: Nice guys don't make it very far in here.
 - I'm a bad boy
-    Nyx: Sure. Sure you are.
+	Nyx: Sure. Sure you are.
+	do GameState.set_flag("nyx_said_bad_boy", true)
 - I'm bad to the bone
-    Nyx: What?
-    - Sorry
-    Nyx: That was weird.
-    - Sorry
-    Nyx: No worries.
-Nyx: So, you actually want to be a hacker? 
-    - Yes, I do
-        Nyx: Then you will have to prove it. DialTone thinks you might have what it takes.
-        Nyx: I'm not so sure yet.
-        Nyx: And then if you get what you want, it can have a way of changing you.
-    - I'm not sure yet
-        Nyx: You better figure it out quick. This place won't tolerate indecision for long.
-    - Not at all
-        Nyx: Then stop. Just walk away.
-        Nyx: You're wasting my time if you're not serious about this.
-        - I was kidding, I really want to be a hacker please?
-            Nyx: God, you are an odd one.
-- All right, see you on the wire. [#exit]
-	Nyx: Mm. We'll see.
-	=> END
-=> nyx_post_1_questions
-
-
+	Nyx: What?
+	- Sorry
+	Nyx: That was weird.
+	- Sorry
+	Nyx: No worries.
+	do GameState.set_flag("nyx_said_bad_boy", true)
+# VECTOR — commitment read on the player's intent; nudges nyx_trust.
+Nyx: So, you actually want to be a hacker?
+- Yes, I do [#vector]
+	Nyx: Then you will have to prove it. DialTone thinks you might have what it takes.
+	Nyx: I'm not so sure yet.
+	Nyx: And then if you get what you want, it can have a way of changing you.
+	do StoryVec.nudge(&"nyx_trust", 1)
+- I'm not sure yet [#vector]
+	Nyx: You better figure it out quick. This place won't tolerate indecision for long.
+- Not at all [#vector]
+	Nyx: Then stop. Just walk away.
+	Nyx: You're wasting my time if you're not serious about this.
+	- I was kidding, I really want to be a hacker please?
+		Nyx: God, you are an odd one.
+	do StoryVec.nudge(&"nyx_trust", -1)
 do GameState.set_flag("nyx_post_1_opener_seen", true)
 => nyx_post_1_questions
 
@@ -636,10 +641,18 @@ Nyx: Talk.
 => nyx_post_1_questions
 
 
-# Single shared question hub. "What do you want?" gates two follow-ups
-# (Wrong about what? / Why?) on a flag set when that probe is asked.
+# Question hub — minimal by design: the whole post-1 Nyx beat lives in the
+# one-shot opener scene above. Exit only.
 
 ~ nyx_post_1_questions
+
+- All right, see you on the wire. [#exit]
+	Nyx: Mm. We'll see.
+	=> END
+=> nyx_post_1_questions
+
+# ── Post Level 2 ─────────────────────────────────────────────────────────
+```
 
 
 # Level 2 — In-Level
@@ -772,14 +785,13 @@ do GameState.set_flag("level_2_glitch_briefed", true)
 
 Nyx: Hey {{HandlePicker.chosen_name()}}. Still in one piece?
 - Thanks to you [#exit]
-    Nyx: Don't.. anyone would have needed help out of that.
+	Nyx: Don't.. anyone would have needed help out of that.
 - Yeah I'm a tough guy
-    Nyx: Seriously, what is wrong with you?
-    - Sorry
+	Nyx: Seriously, what is wrong with you?
+	- Sorry
 Nyx: Let's get out of here before Splice warps in.
 do LevelProgression.advance()
 => END
-    
 
 ```
 
@@ -972,7 +984,7 @@ DialTone: A power-up. The kind that opens a door to the next door.
 DialTone: If he gets all the way down? Root. After that the Gibson is his and the rest of us are gone.
 Nyx: Hackers as a thing — done.
 - What do we do?
-DialTone: We find it first.
+	DialTone: We find it first.
 do GameState.set_flag("post_2_opener_seen", true)
 => post_2_questions
 
@@ -987,35 +999,36 @@ DialTone: You got the plan?
 
 
 # Single shared question hub. Inline mini-dialogues per option, with
-# flag-gated follow-ups (Pull that thread / And the prank? / Vague.)
-# that only appear once their parent question has been asked. Loops
+# flag-gated follow-ups ("Run is putting it lightly?" off the Splice probe;
+# "Vague." off the target probe) per Rule 6 progressive revelation. Loops
 # back via trailing => post_2_questions; "I'm in." exits to post_2_done.
-
-Will need to help reorganize this a bit too.
 
 ~ post_2_questions
 
+# WORLD-BUILD — the stakes: what Splice controlling the Gibson costs everyone.
 - Why does it matter?
-    DialTone: You're kind of thick aren't you?
-    Nyx: If Splice controls the Gibson, thats the end of the Grid soon after.
-    DialTone: Do you like being able to host your own e-sites, play free games, write a blog? All that is history without paying a platform fee and ads shoved in your face once Splice is in control.
+	DialTone: You're kind of thick aren't you?
+	Nyx: If Splice controls the Gibson, thats the end of the Grid soon after.
+	DialTone: Do you like being able to host your own e-sites, play free games, write a blog? All that is history without paying a platform fee and ads shoved in your face once Splice is in control.
+# WORLD-BUILD — Splice history reveal, with a flavor reaction beat. The
+# flag fires for the whole probe regardless of which reaction is picked.
 - Who is Splice and how do you know what he wants?
-    Nyx: Don't.
-    DialTone: He's going to find out sooner or later
-    Nyx: Fine.
-    Nyx: We used to run with Splice.
-    DialTone: Run is putting it lightly.
-    Nyx: Shut up.
-    DialTone: We know his end game. Hell, he almost convinced us.
-    DialTone: An opportunity, he called it.
-    Nyx: An opportunity to make massive profit margins and at the same time irrevocably pollute the biggest innovation since electricity - This place.
-    - That's horrible
-        DialTone: You can say that again
-        - That's horrible
-        Nyx: Dude, you are so weird.
-    - Sounds dope
-        Nyx: DialTone, what are we even doing with this clown?
-    	do GameState.set_flag("post_2_asked_who", true)
+	Nyx: Don't.
+	DialTone: He's going to find out sooner or later
+	Nyx: Fine.
+	Nyx: We used to run with Splice.
+	DialTone: Run is putting it lightly.
+	Nyx: Shut up.
+	DialTone: We know his end game. Hell, he almost convinced us.
+	DialTone: An opportunity, he called it.
+	Nyx: An opportunity to make massive profit margins and at the same time irrevocably pollute the biggest innovation since electricity - This place.
+	- That's horrible
+		DialTone: You can say that again
+		- That's horrible
+		Nyx: Dude, you are so weird.
+	- Sounds dope
+		Nyx: DialTone, what are we even doing with this clown?
+	do GameState.set_flag("post_2_asked_who", true)
 - [if GameState.get_flag("post_2_asked_who", false) /] Run is putting it lightly?
 	DialTone: They were a thing.
 	Nyx: Were. Past tense.
@@ -1060,8 +1073,8 @@ do GameState.set_flag("level_3_unlocked", true)
 # (Companion bus) on the player's first hub entry post-L3. Driven by the
 # Post3Overheard CutsceneSequence in hub.tscn (background-dialogue mode:
 # no cameras, no freeze, music untouched) — never reached from ~start
-# routing. Ends with Nyx clocking the player ("...hey."); stage_post_3's
-# opener picks up face-to-face from there.
+# routing. stage_post_3's opener ("How long were you standing there?")
+# picks up face-to-face from here.
 
 ~ post_3_overheard
 
@@ -1494,10 +1507,11 @@ Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
 - They say you will destroy the Gibson.
-    Splice: It's not destruction. It's just **monetization**.
-    Splice: If I don't do it someone else will. This is just the way the world works.
-    Splice: DialTone's going to come to the same conclusion in about a month.
-    Splice: Just wait.
+	Splice: It's not destruction. It's just **monetization**.
+	Splice: If I don't do it someone else will. This is just the way the world works.
+	Splice: DialTone's going to come to the same conclusion in about a month.
+	Splice: Just wait.
+	=> splice_consider
 - What's the catch?
 	=> splice_catch
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
@@ -1599,10 +1613,10 @@ Splice: I told you not to move.
 ```
 ~ stage_post_3
 
-# CANON — obligatory opener. Nyx spotted the player at the tail of the
-# overheard argument (post_3_overheard above); this picks up face-to-face.
-# Runs once. Re-talks route through the entry block for an abbreviated
-# greeting, then drop into the questions hub.
+# CANON — obligatory opener. The player overheard the argument
+# (post_3_overheard above); this picks up face-to-face. Runs once.
+# Re-talks route through the entry block for an abbreviated greeting,
+# then drop into the questions hub.
 if GameState.get_flag("post_3_opener_seen", false)
 	=> post_3_entry
 
@@ -1632,8 +1646,11 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	DialTone: heh. Splice always was like that. Even back when.
 	Nyx: He's not wrong that the rules screwed him. He just thinks that means he gets to screw everyone else.
 	DialTone: That tracks.
+	do GameState.set_flag("post_3_asked_bitter", true)
 	do GameState.set_flag("post_3_debriefed", true)
-- It got personal. About Nyx. (only after you ask first question)
+# Rule 6 progressive revelation — the personal thread only opens after the
+# player has given the surface-level debrief above.
+- [if GameState.get_flag("post_3_asked_bitter", false) /] It got personal. About Nyx.
 	Nyx: ...yeah.
 	Nyx: He's been doing that since I left.
 	DialTone: We don't have to talk about that.
@@ -1691,11 +1708,11 @@ if GameState.get_flag("nyx_post_3_opener_seen", false)
 Nyx: Hey.
 Nyx: You alright?
 - I'm good
-    Nyx: Good
+	Nyx: Good
 - I've been better
-    Nyx: I hear you
-- Of course, I told you I'm a bad boy (if bad boy)
-    Nyx: You are something. Not sure it's that.
+	Nyx: I hear you
+- [if GameState.get_flag("nyx_said_bad_boy", false) /] Of course, I told you I'm a bad boy
+	Nyx: You are something. Not sure it's that.
 do GameState.set_flag("nyx_post_3_opener_seen", true)
 => nyx_post_3_questions
 
@@ -2089,16 +2106,13 @@ Glitch: Ah. I see you've moved well beyond needing my platforms.
 Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
 Glitch: Quick question, while I have you.
 Glitch: Blue or Red?
-    - Blue
-        Glitch: So amazing how predictable you are.
-    - Red
-        Glitch: Amazing. I knew you were going to say that.
-    - Green
-        Glitch: So predictable. Excellent.
+- Blue
+	Glitch: So amazing how predictable you are.
+- Red
+	Glitch: Amazing. I knew you were going to say that.
+- Green
+	Glitch: So predictable. Excellent.
 Glitch: Thanks for playing blue or red.
-
-<!--remove the crouch stuff!-->
-
 do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
@@ -2113,9 +2127,9 @@ Glitch: Yeah, I said it!
 => glitch_l4_post_questions
 
 
-# Single shared question hub. No probes — the crouch tip is one-shot in
-# the opener and there's nothing else to ask. Hub exists per the project
-# DRY pattern (every elegant dialogue file uses the four-block shape; see
+# Single shared question hub. No probes — the opener is a two-line gag
+# and there's nothing else to ask. Hub exists per the project DRY pattern
+# (every elegant dialogue file uses the four-block shape; see
 # docs/dialogue_dry_pattern.md). The exit option carries the "Carry on."
 # sign-off so it lands consistently on first visit AND on revisit.
 
@@ -2188,7 +2202,7 @@ Nyx: Come on. Let's go celebrate.
 	Nyx: you are seriously a strange guy, {{HandlePicker.chosen_name()}}.
 	Nyx: anything else?
 	- That's it. That's what I've got.
-	Nyx: let's get out of here.
+		Nyx: let's get out of here.
 	do LevelProgression.advance()
 	=> END
 
@@ -2330,11 +2344,6 @@ DialTone: Anything else?
 	DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
 - About Splice — he's still in there.
 	DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 4 /] The whole thing was an audition, wasn't it?
-	DialTone: Yeah. Nyx was never stuck — you know that now. But the casting was real.
-	DialTone: Nobody builds the grid by accident. I went looking.
-	DialTone: You're in. For real this time.
-	do GameState.set_flag("dialtone_messenger_thread", 5)
 - Sign me out. [#exit]
 	=> post_4_done
 => post_4_questions

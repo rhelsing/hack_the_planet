@@ -8,6 +8,7 @@ do Skills.set_level("cans", GameState.coin_count)
 
 # CANON — third station beat; he's watching you skate.
 Glitch: I see you are breaking those in quite nicely.
+Glitch: You will be a hacker in no time at this rate.
 => questions
 
 ~ questions

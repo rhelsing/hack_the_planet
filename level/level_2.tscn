@@ -599,7 +599,7 @@ require_flag = &""
 
 [node name="Nyx3" parent="." index="108" unique_id=1109282511 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -41.997135, 33.569866, -18.763172)
-line = "Runner, something is wrong. We're seeing rogue sentinels everywhere."
+line = "Runner, something is wrong. We're seeing rogue sentinels on the tracker."
 require_flag = &""
 music_loop = ExtResource("61_dustmotions")
 stinger_oneshot = ExtResource("62_braam")
@@ -607,7 +607,7 @@ stinger_oneshot = ExtResource("62_braam")
 [node name="Nyx4" parent="." index="109" unique_id=1337046534 instance=ExtResource("54_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -44.886158, 34.003185, 4.0391345)
 character = &"Nyx"
-line = "Oh God! Not again..."
+line = "Oh God."
 require_flag = &""
 
 [node name="SpliceNewTraceWalkie" parent="." index="110" unique_id=-52543054 instance=ExtResource("63_flagwalk")]

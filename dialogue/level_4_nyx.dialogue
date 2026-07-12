@@ -18,17 +18,16 @@ Nyx: I had a line. It's gone.
 
 ~ closer
 
-Nyx: He's quarantined.
-Nyx: and I'm not carrying it anymore.
-Nyx: Huh.
 Nyx: Come on. Let's go celebrate.
 - Take me home. [#exit]
 	do LevelProgression.advance()
 	=> END
 - Linger in the moment and try to hold eye contact. [#exit]
 	Nyx: hmm.
-	Nyx: ...okay, I see you {{HandlePicker.chosen_name()}}.
-	Nyx: let's get out of here.
+	Nyx: you are seriously a strange guy, {{HandlePicker.chosen_name()}}.
+	Nyx: anything else?
+	- That's it. That's what I've got.
+		Nyx: let's get out of here.
 	do LevelProgression.advance()
 	=> END
 

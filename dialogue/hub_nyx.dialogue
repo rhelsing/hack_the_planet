@@ -17,14 +17,60 @@ elif GameState.get_flag("level_1_completed", false)
 
 ~ stage_post_1
 
-# Obligatory opener — runs once. Re-talks route through the entry block
-# for an abbreviated greeting, then drop into the questions hub.
+# CANON — obligatory opener, one-shot interactive scene (not a probe hub):
+# Nyx sizes up the new recruit. Interleaved beats: world-build recruit
+# probe → the "this life isn't easy" warning → flavor persona choice (sets
+# nyx_said_bad_boy, paid off in nyx_post_3's opener) → the VECTOR "do you
+# actually want to be a hacker?" commitment. Runs once; re-talks route
+# through the entry block into the (now minimal) questions hub.
 if GameState.get_flag("nyx_post_1_opener_seen", false)
 	=> nyx_post_1_entry
 
 Nyx: Quick word. Off-channel.
-Nyx: I pulled your log. DialTone will keep it light.
-Nyx: I'm not going to.
+- Why off-channel?
+	Nyx: DialTone gets worse with an audience. I need to learn a bit about our new recruit.
+	# WORLD-BUILD — one-shot nested pair; whichever thread the player pulls,
+	# the scene continues into the warning below.
+	- your new "recruit"?
+		Nyx: DialTone doesn't let just anyone in here.
+		Nyx: But he's also getting more desperate
+	- why do you need a new recruit?
+		Nyx: Our last runner..
+		Nyx: Let's just say things didn't go as planned on our last job.
+		Nyx: Maybe I'll tell you more if you make the cut.
+Nyx: DialTone makes light of things but this life isn't always easy.
+Nyx: He's not allowed to leave this hub because he pissed off the wrong people.
+Nyx: It could happen to you too if you're not careful.
+Nyx: You seem like a nice guy.
+# Flavor persona beat. Both bad-boy picks set nyx_said_bad_boy — read by
+# the nyx_post_3 opener ("Of course, I told you I'm a bad boy").
+- Thanks
+	Nyx: Nice guys don't make it very far in here.
+- I'm a bad boy
+	Nyx: Sure. Sure you are.
+	do GameState.set_flag("nyx_said_bad_boy", true)
+- I'm bad to the bone
+	Nyx: What?
+	- Sorry
+	Nyx: That was weird.
+	- Sorry
+	Nyx: No worries.
+	do GameState.set_flag("nyx_said_bad_boy", true)
+# VECTOR — commitment read on the player's intent; nudges nyx_trust.
+Nyx: So, you actually want to be a hacker?
+- Yes, I do [#vector]
+	Nyx: Then you'll have to prove it. DialTone thinks you might have what it takes.
+	Nyx: I'm not so sure yet.
+	Nyx: And then if you get what you want, it can have a way of changing you.
+	do StoryVec.nudge(&"nyx_trust", 1)
+- I'm not sure yet [#vector]
+	Nyx: You better figure it out quick. This place won't tolerate indecision for long.
+- Not at all [#vector]
+	Nyx: Then stop. Just walk away.
+	Nyx: You're wasting my time if you're not serious about this.
+	- I was kidding, I really want to be a hacker please?
+		Nyx: God, you are an odd one.
+	do StoryVec.nudge(&"nyx_trust", -1)
 do GameState.set_flag("nyx_post_1_opener_seen", true)
 => nyx_post_1_questions
 
@@ -38,25 +84,11 @@ Nyx: Talk.
 => nyx_post_1_questions
 
 
-# Single shared question hub. "What do you want?" gates two follow-ups
-# (Wrong about what? / Why?) on a flag set when that probe is asked.
+# Question hub — minimal by design: the whole post-1 Nyx beat lives in the
+# one-shot opener scene above. Exit only.
 
 ~ nyx_post_1_questions
 
-- Why off-channel?
-	Nyx: DialTone gets worse with an audience.
-	do GameState.set_flag("nyx_post_1_asked_channel", true)
-- [if GameState.get_flag("nyx_post_1_asked_channel", false) /] You pulled my log?
-	Nyx: I pull everyone's log. Don't read into it.
-- What do you want?
-	Nyx: DialTone scouted you. He's calling it casting.
-	Nyx: But I have doubts
-	do GameState.set_flag("nyx_post_1_asked_dare", true)
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Doubts about what?
-	Nyx: Whether you're going to waste our time.
-	Nyx: Prove me wrong then.
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
-	Nyx: DialTone's smug enough already.
 - All right, see you on the wire. [#exit]
 	Nyx: Mm. We'll see.
 	=> END
@@ -116,7 +148,7 @@ Nyx: Anything else, runner?
 	Nyx: I didn't. That's — yeah.
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
-	Nyx: He never listened. He just waited for his turn to talk.
+	Nyx: He didn't ever do much listening. He mostly waited for his turn to talk.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
 	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.
@@ -131,7 +163,7 @@ Nyx: Anything else, runner?
 ~ nyx_post_2_stay_or_go
 
 Nyx: DialTone's plan is a good plan. It's also more dangerous than the last two.
-Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
+Nyx: You don't have to be in for this one. Anyone who logged out right now would be making the sane call.
 - Are you telling me to log out? [#exit]
 	Nyx: I'm telling you you can.
 	=> nyx_post_2_choice
@@ -160,8 +192,13 @@ if GameState.get_flag("nyx_post_3_opener_seen", false)
 	=> nyx_post_3_entry
 
 Nyx: Hey.
-Nyx: Off-channel.
-Nyx: DialTone's busy convincing himself getting you out was his idea. Give it a minute.
+Nyx: You alright?
+- I'm good
+	Nyx: Good
+- I've been better
+	Nyx: I hear you
+- [if GameState.get_flag("nyx_said_bad_boy", false) /] Of course, I told you I'm a bad boy
+	Nyx: You are something. Not sure it's that.
 do GameState.set_flag("nyx_post_3_opener_seen", true)
 => nyx_post_3_questions
 
@@ -192,17 +229,6 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 - [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] I didn't see anything.
 	Nyx: Liar.
 	Nyx: thanks.
-- You read this one before. Didn't you?
-	Nyx: maybe.
-	Nyx: I read Splice wrong, once. Big once.
-	Nyx: Been not-trusting that since.
-	Nyx: When you said no to him — I knew before he did. That's new too.
-	do GameState.set_flag("nyx_post_3_asked_read", true)
-- [if GameState.get_flag("nyx_post_3_asked_read", false) /] What does that mean?
-	Nyx: Means I think I can stop waiting for you to disappoint me.
-- [if GameState.get_flag("nyx_post_3_asked_read", false) /] It mattered to you.
-	Nyx: yes.
-	Nyx: Moving on.
 - All right, see you on the wire. [#exit]
 	=> nyx_post_3_done
 => nyx_post_3_questions
@@ -211,8 +237,7 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 ~ nyx_post_3_done
 
 Nyx: Last sector.
-Nyx: If we land it — I'm done with Splice. Actually done. That'd be something.
-Nyx: That'd be... refreshing.
+Nyx: Show Splice what's up, {{HandlePicker.chosen_name()}}.
 do GameState.set_flag("hub_nyx_post3_done", true)
 => END
 

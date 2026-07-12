@@ -7,6 +7,15 @@ if GameState.get_flag("level_4_glitch_post_opener_seen", false)
 
 Glitch: Ah. I see you've moved well beyond needing my platforms.
 Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
+Glitch: Quick question, while I have you.
+Glitch: Blue or Red?
+- Blue
+	Glitch: So amazing how predictable you are.
+- Red
+	Glitch: Amazing. I knew you were going to say that.
+- Green
+	Glitch: So predictable. Excellent.
+Glitch: Thanks for playing blue or red.
 do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
@@ -16,7 +25,8 @@ do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 
 ~ glitch_l4_post_entry
 
-Glitch: Anything else, runner?
+Glitch: What are you doing wasting time with me? Go kick Splice's ass.
+Glitch: Yeah, I said it!
 => glitch_l4_post_questions
 
 

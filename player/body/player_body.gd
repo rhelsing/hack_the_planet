@@ -502,10 +502,12 @@ enum FollowMode { PARENTED, DETACHED }
 ## Area3D box is only a broad-phase (its AABB bloats badly on curved/diagonal
 ## rails); this is the real, uniform grab tube around the curve.
 @export var rail_grab_radius: float = 1.5
-## Seconds after leaving a grind (jump or end-of-rail) before another grab
-## can engage. Without this the per-tick distance check re-grabs instantly —
-## you're still ~0m from the rail on the exit frame.
-@export var rail_regrab_cooldown: float = 0.4
+## After leaving a grind (jump or end-of-rail), THAT rail can't re-grab
+## until the body has moved at least this far (m) from its curve. Stops
+## the "rail pulls me right back on" feel when you land beside it; other
+## rails are ungated so rail-to-rail transfers stay instant. Also covers
+## the exit frame itself (distance ≈ 0 there).
+@export var rail_escape_distance: float = 2.5
 ## Horizontal knockback speed (m/s) applied to hit enemies.
 @export var attack_knockback := 14.0
 ## Horizontal speed added to the player on attack (the "jostle" forward).
@@ -879,9 +881,10 @@ var _grind_rail: Path3D = null
 # Rails whose broad-phase box we're currently inside (entered - exited).
 # _try_grab_candidate_rails runs the precise distance check against these.
 var _candidate_rails: Array[Path3D] = []
-# Absolute time (s) before which no rail grab may engage — armed on every
-# grind exit so the continuous check can't instantly re-grab.
-var _rail_regrab_block_until := 0.0
+# The rail we most recently exited. Stays ungrabbable until the body gets
+# rail_escape_distance away from its curve (checked every tick in
+# _try_grab_candidate_rails, which then clears this back to null).
+var _escape_rail: Path3D = null
 var _grind_progress := 0.0
 var _grind_direction := 1.0
 var _grind_snap_t := 1.0
@@ -2344,9 +2347,21 @@ func _on_rail_left(rail: Node, body: Node) -> void:
 ## first rail whose curve passes within rail_grab_radius of the body. Runs
 ## from _physics_process; near-free when the candidate set is empty.
 func _try_grab_candidate_rails() -> void:
+	# Escape gate: measure distance to the last-ridden rail every tick and
+	# release the gate once the body is rail_escape_distance away. Runs
+	# BEFORE the candidate early-out on purpose — the escape almost always
+	# happens outside the rail's broad-phase box (a straight rail's box only
+	# extends ~0.4m past the curve), where the rail is no longer a candidate.
+	if _escape_rail != null:
+		if not is_instance_valid(_escape_rail) or _escape_rail.curve == null:
+			_escape_rail = null
+		else:
+			var esc_local: Vector3 = _escape_rail.to_local(global_position)
+			var esc_closest: Vector3 = _escape_rail.curve.sample_baked(
+				_escape_rail.curve.get_closest_offset(esc_local))
+			if _escape_rail.to_global(esc_closest).distance_to(global_position) >= rail_escape_distance:
+				_escape_rail = null
 	if _grinding or _candidate_rails.is_empty():
-		return
-	if (Time.get_ticks_msec() / 1000.0) < _rail_regrab_block_until:
 		return
 	var profile: MovementProfile = _current_profile
 	if profile == null or profile.grind_speed <= 0.0:
@@ -2360,6 +2375,8 @@ func _try_grab_candidate_rails() -> void:
 		var path_rail: Path3D = _candidate_rails[i]
 		if path_rail == null or not is_instance_valid(path_rail) or path_rail.curve == null:
 			_candidate_rails.remove_at(i)
+			continue
+		if path_rail == _escape_rail:
 			continue
 		var local_pos: Vector3 = path_rail.to_local(global_position)
 		var closest: Vector3 = path_rail.curve.sample_baked(
@@ -3200,8 +3217,8 @@ func _update_grind(delta: float, profile: MovementProfile, intent: Intent) -> vo
 		if jumped:
 			velocity += Vector3.UP * (profile.jump_impulse + profile.grind_exit_boost)
 		_grinding = false
+		_escape_rail = _grind_rail
 		_grind_rail = null
-		_rail_regrab_block_until = Time.get_ticks_msec() / 1000.0 + rail_regrab_cooldown
 		if _grind_sparks != null:
 			_grind_sparks.emitting = false
 		_stop_grind_loop()
