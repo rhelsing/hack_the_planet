@@ -31,7 +31,7 @@ Walkie triggers fire when the player overlaps each one's Area3D. They appear her
 
 DialTone: Get up, runner — GET UP!
 DialTone: Damn it. Move!
-DialTone: They got you. Reset, reset.
+DialTone: They got you. Reset, my guy.
 DialTone: Shake it off, {player_handle}. Again.
 => END
 
@@ -45,9 +45,6 @@ Glitch: that's bad! that's so bad
 
 ~ nyx
 
-Nyx: Sloppy.
-Nyx: Disappointing.
-Nyx: We've been over this.
 Nyx: Try harder, {player_handle}.
 => END
 
@@ -161,6 +158,11 @@ DialTone: Hey — time's ticking.
 	DialTone: ...perhaps.
 	DialTone: Let's just say I noticed you. The way you asked questions on Hacker News intrigued me.
 	DialTone: I wanted to see what you were made of.
+	DialTone: You do want to become a **real** hacker right?
+	- Yes
+	   DialTone: Well, I need you to help my friend first.
+	- Thinking about it
+	   DialTone: Don't think too long.
 	do GameState.set_flag("dialtone_messenger_thread", 1)
 - Who's Nyx?
 	DialTone: Nyx. Sharpest hacker on the grid and she's stuck. Don't ask me how.
@@ -272,7 +274,7 @@ do GameState.set_flag("glitch1_done", true)
 ### `WalkieTriggerIntro4` — DialTone
 **Position:** (-61.89376, 8.698025, 127.47084)
 
-> I see the new runner has blades now. I have to admit — I'm jealous. I didn't get those for a month.
+> I see the new runner has blades now. I have to admit — I'm jealous. I didn't get those for a while.
 
 <!-- source: level/level_1.tscn -->
 <!-- type: walkie -->
@@ -282,7 +284,7 @@ do GameState.set_flag("glitch1_done", true)
 ### `WalkieTriggerIntro5` — DialTone
 **Position:** (-61.89376, 11.094522, 24.566835)
 
-> Wow look at you go! Man, I wish I wasn't confined to this hub.
+> Wow look at you go! Man! I wish I wasn't confined to this hub.
 
 <!-- source: level/level_1.tscn -->
 <!-- type: walkie -->
@@ -430,6 +432,7 @@ do Skills.set_level("cans", GameState.coin_count)
 
 # CANON — third station beat; he's watching you skate.
 Glitch: I see you are breaking those in quite nicely.
+Glitch: You will be a hacker in no time at this rate.
 => questions
 
 ~ questions
@@ -486,9 +489,6 @@ Nyx: Let's go have a little chat with him, shall we?
 - Head back to the hub. [#exit]
 	do LevelProgression.advance()
 	=> END
-- I'll hang out here a sec. [#exit]
-	Nyx: Suit yourself. Don't take too long.
-	=> END
 
 ```
 
@@ -533,7 +533,8 @@ DialTone: What else would you like to know?
 ~ post_1_questions
 
 - So what was that about?
-	DialTone: Come on. Stuck? Nyx? She's the best there is! I just wanted to see both of your faces.
+	DialTone: Come on. Nyx? Stuck? 
+	DialTone: She's the best there is! I just wanted to see both of your faces.
 	Nyx: You're an idiot.
 	DialTone: Completely worth it.
 	do GameState.set_flag("post_1_asked_explain", true)
@@ -548,8 +549,14 @@ DialTone: What else would you like to know?
 
 ~ post_1_done
 
-DialTone: Alright — got the next ping queued. Softball, this time. Real one.
-DialTone: Time to prove yourself, runner.
+DialTone: Alright — got the next job queued. Softball, this time. Real one. Grab a few files for us and you will be back here in no time.
+DialTone: You do still want to be a hacker right?
+- Not after that
+    Nyx: I don't blame you.
+    DialTone: Come on. It's all in good fun.
+    Nyx: Is it?
+- Sure
+    DialTone: That's the spirit!
 DialTone: This is the easiest hop on the grid.
 Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
@@ -564,6 +571,8 @@ do GameState.set_flag("level_2_unlocked", true)
 
 ## `dialogue/hub_nyx.dialogue` → `~ stage_post_1`
 
+THIS whole nyx section thing needs a refactor..  - lets talk about how to stage it out well. some of these might be checks or nudges.. most is inconsequential and funny.
+
 ```
 ~ stage_post_1
 
@@ -573,8 +582,47 @@ if GameState.get_flag("nyx_post_1_opener_seen", false)
 	=> nyx_post_1_entry
 
 Nyx: Quick word. Off-channel.
-Nyx: I pulled your log. DialTone will keep it light.
-Nyx: I'm not going to.
+- Why off-channel?
+	Nyx: DialTone gets worse with an audience. I need to learn a bit about our new recruit.
+	- your new "recruit"?
+	   Nyx: DialTone doesn't let just anyone in here. 
+	   Nyx: But he's also getting more desperate
+	- why do you need a new recruit?
+	   Nyx: Our last runner..
+	   Nyx: Let's just say things didn't go as planned on our last job.
+	   Nyx: Maybe I'll tell you more if you make the cut.
+Nyx: DialTone makes light of things but this life isn't always easy.
+Nyx: He's not allowed to leave this hub because he pissed off the wrong people.
+Nyx: It could happen to you too if you're not careful.
+Nyx: You seem like a nice guy.
+- Thanks
+    Nyx: Nice guys don't make it very far in here.
+- I'm a bad boy
+    Nyx: Sure. Sure you are.
+- I'm bad to the bone
+    Nyx: What?
+    - Sorry
+    Nyx: That was weird.
+    - Sorry
+    Nyx: No worries.
+Nyx: So, you actually want to be a hacker? 
+    - Yes, I do
+        Nyx: Then you will have to prove it. DialTone thinks you might have what it takes.
+        Nyx: I'm not so sure yet.
+        Nyx: And then if you get what you want, it can have a way of changing you.
+    - I'm not sure yet
+        Nyx: You better figure it out quick. This place won't tolerate indecision for long.
+    - Not at all
+        Nyx: Then stop. Just walk away.
+        Nyx: You're wasting my time if you're not serious about this.
+        - I was kidding, I really want to be a hacker please?
+            Nyx: God, you are an odd one.
+- All right, see you on the wire. [#exit]
+	Nyx: Mm. We'll see.
+	=> END
+=> nyx_post_1_questions
+
+
 do GameState.set_flag("nyx_post_1_opener_seen", true)
 => nyx_post_1_questions
 
@@ -592,28 +640,6 @@ Nyx: Talk.
 # (Wrong about what? / Why?) on a flag set when that probe is asked.
 
 ~ nyx_post_1_questions
-
-- Why off-channel?
-	Nyx: DialTone gets worse with an audience.
-	do GameState.set_flag("nyx_post_1_asked_channel", true)
-- [if GameState.get_flag("nyx_post_1_asked_channel", false) /] You pulled my log?
-	Nyx: I pull everyone's log. Don't read into it.
-- What do you want?
-	Nyx: DialTone scouted you. He's calling it casting.
-	Nyx: But I have doubts
-	do GameState.set_flag("nyx_post_1_asked_dare", true)
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Doubts about what?
-	Nyx: Whether you're going to waste our time.
-	Nyx: Prove me wrong then.
-- [if GameState.get_flag("nyx_post_1_asked_dare", false) /] Why?
-	Nyx: DialTone's smug enough already.
-- All right, see you on the wire. [#exit]
-	Nyx: Mm. We'll see.
-	=> END
-=> nyx_post_1_questions
-
-# ── Post Level 2 ─────────────────────────────────────────────────────────
-```
 
 
 # Level 2 — In-Level
@@ -638,7 +664,7 @@ Nyx: Talk.
 ### `Nyx3` — DialTone
 **Position:** (-41.997135, 33.569866, -18.763172)
 
-> Runner, something is wrong. We're seeing rogue sentinels everywhere.
+> Runner, something is wrong. We're seeing rogue sentinels on the tracker.
 
 <!-- source: level/level_2.tscn -->
 <!-- type: walkie -->
@@ -648,7 +674,7 @@ Nyx: Talk.
 ### `Nyx4` — Nyx
 **Position:** (-44.886158, 34.003185, 4.0391345)
 
-> Oh God! Not again...
+> Oh God.
 
 <!-- source: level/level_2.tscn -->
 <!-- type: walkie -->
@@ -745,11 +771,15 @@ do GameState.set_flag("level_2_glitch_briefed", true)
 ~ start
 
 Nyx: Hey {{HandlePicker.chosen_name()}}. Still in one piece?
-- Thanks for.. [#exit]
-Nyx: Don't.. anyone would have needed help out of that.
+- Thanks to you [#exit]
+    Nyx: Don't.. anyone would have needed help out of that.
+- Yeah I'm a tough guy
+    Nyx: Seriously, what is wrong with you?
+    - Sorry
 Nyx: Let's get out of here before Splice warps in.
 do LevelProgression.advance()
 => END
+    
 
 ```
 
@@ -939,9 +969,10 @@ DialTone: The good news is you are officially a hacker.
 DialTone: The bad news is Splice is on your trail.
 DialTone: And he tipped his hand. He's hunting something.
 DialTone: A power-up. The kind that opens a door to the next door.
-DialTone: If he gets all the way down? Root. After that the grid is his and the rest of us are gone.
+DialTone: If he gets all the way down? Root. After that the Gibson is his and the rest of us are gone.
 Nyx: Hackers as a thing — done.
-DialTone: So we find it first.
+- What do we do?
+DialTone: We find it first.
 do GameState.set_flag("post_2_opener_seen", true)
 => post_2_questions
 
@@ -960,10 +991,38 @@ DialTone: You got the plan?
 # that only appear once their parent question has been asked. Loops
 # back via trailing => post_2_questions; "I'm in." exits to post_2_done.
 
+Will need to help reorganize this a bit too.
+
 ~ post_2_questions
 
+- Why does it matter?
+    DialTone: You're kind of thick aren't you?
+    Nyx: If Splice controls the Gibson, thats the end of the Grid soon after.
+    DialTone: Do you like being able to host your own e-sites, play free games, write a blog? All that is history without paying a platform fee and ads shoved in your face once Splice is in control.
+- Who is Splice and how do you know what he wants?
+    Nyx: Don't.
+    DialTone: He's going to find out sooner or later
+    Nyx: Fine.
+    Nyx: We used to run with Splice.
+    DialTone: Run is putting it lightly.
+    Nyx: Shut up.
+    DialTone: We know his end game. Hell, he almost convinced us.
+    DialTone: An opportunity, he called it.
+    Nyx: An opportunity to make massive profit margins and at the same time irrevocably pollute the biggest innovation since electricity - This place.
+    - That's horrible
+        DialTone: You can say that again
+        - That's horrible
+        Nyx: Dude, you are so weird.
+    - Sounds dope
+        Nyx: DialTone, what are we even doing with this clown?
+    	do GameState.set_flag("post_2_asked_who", true)
+- [if GameState.get_flag("post_2_asked_who", false) /] Run is putting it lightly?
+	DialTone: They were a thing.
+	Nyx: Were. Past tense.
+	DialTone: She doesn't like talking about it.
+	Nyx: No.
 - So what's the plan?
-	DialTone: We split. Stay synced up on the channel.
+	DialTone: You and Nyx Split. Stay synced up on the channel.
 	DialTone: Your portal's queued behind us.
 	do GameState.set_flag("level_3_unlocked", true)
 	do GameState.set_flag("post_2_asked_plan", true)
@@ -973,38 +1032,15 @@ DialTone: You got the plan?
 	do GameState.set_flag("post_2_asked_target", true)
 - [if GameState.get_flag("post_2_asked_target", false) /] Vague.
 	Nyx: He doesn't know.
-	DialTone: I genuinely don't know what shape it'll take.
-- [if GameState.get_flag("post_2_asked_plan", false) /] Why split?
-	DialTone: Three nodes, three angles. Splice can only watch one at a time.
-	DialTone: He'll guess wrong on at least one of us.
-	Nyx: If we're lucky.
-- [if GameState.get_flag("post_2_asked_plan", false) /] Who is Splice?
-	DialTone: Black-hat. Exiled.
-	Nyx: He used to run with us.
-	DialTone: Run is putting it lightly.
-	do GameState.set_flag("post_2_asked_who", true)
-- [if GameState.get_flag("post_2_asked_who", false) /] Pull that thread.
-	DialTone: They were a thing.
-	Nyx: Were. Past tense.
-	DialTone: She doesn't like talking about it.
-	Nyx: No.
-	DialTone: It went bad. Splice didn't take "no" well.
+	DialTone: I genuinely don't.
 - [if GameState.get_flag("post_2_asked_who", false) /] How did he get into the sentinels?
 	DialTone: Sentinels are old code. He found a backdoor.
 	Nyx: He made one.
 	DialTone: Either way — they listen to him now.
-- [if GameState.get_flag("post_2_asked_who", false) /] You weren't expecting him.
-	DialTone: Yeah. He's been quiet for a year. I thought we had longer.
-	Nyx: We didn't.
-	do GameState.set_flag("post_2_asked_admit", true)
-- [if GameState.get_flag("post_2_asked_admit", false) /] And the prank?
-	DialTone: ...the prank was for when we had longer.
 - [if GameState.get_flag("dialtone_messenger_thread", 0) == 2 /] You said boards earlier.
 	DialTone: The boards. Yeah.
 	DialTone: Honestly? You can clearly run with the best of them.
 	DialTone: If you want in, you're in.
-	Nyx: DialTone's been waiting to say that one.
-	DialTone: A little.
 	do GameState.set_flag("dialtone_messenger_thread", 3)
 - I'm in. [#exit]
 	=> post_2_done
@@ -1042,7 +1078,6 @@ DialTone: We were sloppy. We owe him better.
 Nyx: We can't do that again. We just **can't** 
 Nyx: sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
-Nyx: ...hey.
 => END
 ```
 
@@ -1105,7 +1140,7 @@ Nyx: Anything else, runner?
 	Nyx: I didn't. That's — yeah.
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
-	Nyx: He never listened. He just waited for his turn to talk.
+	Nyx: He didn't ever do much listening. He mostly waited for his turn to talk.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
 	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.
@@ -1120,7 +1155,7 @@ Nyx: Anything else, runner?
 ~ nyx_post_2_stay_or_go
 
 Nyx: DialTone's plan is a good plan. It's also more dangerous than the last two.
-Nyx: You don't have to be in for this one. Anyone who jacked out right now would be making the sane call.
+Nyx: You don't have to be in for this one. Anyone who logged out right now would be making the sane call.
 - Are you telling me to log out? [#exit]
 	Nyx: I'm telling you you can.
 	=> nyx_post_2_choice
@@ -1367,7 +1402,7 @@ Glitch: Want to see?
 
 ~ show
 
-Glitch: Cool, check it out. Jump on the platform behind me.
+Glitch: Cool, check it out. Jump on this platform.
 do GameState.set_flag("glitch_l3_portal_revealed", true)
 => END
 
@@ -1458,6 +1493,11 @@ Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
 Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
+- They say you will destroy the Gibson.
+    Splice: It's not destruction. It's just **monetization**.
+    Splice: If I don't do it someone else will. This is just the way the world works.
+    Splice: DialTone's going to come to the same conclusion in about a month.
+    Splice: Just wait.
 - What's the catch?
 	=> splice_catch
 - [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
@@ -1470,7 +1510,7 @@ Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-be
 ~ splice_catch
 
 Splice: There isn't one. That's what they don't get.
-Splice: They built the "hackers for the people" thing because none of them had anything worth keeping. I had **nothin'**. Now I've got **something**.
+Splice: They built the "hackers for the people" thing because none of them had anything worth keeping.
 Splice: You're the same. That's why I'm talking to you and not them.
 - And if I say no?
 	=> splice_if_no
@@ -1567,7 +1607,7 @@ if GameState.get_flag("post_3_opener_seen", false)
 	=> post_3_entry
 
 Nyx: How long were you standing there?
-DialTone: We didn't hear him in there. Channel was dead.
+DialTone: We couldn't hear you two in there. Channel was dead.
 DialTone: What did he say?
 do GameState.set_flag("post_3_opener_seen", true)
 => post_3_questions
@@ -1593,7 +1633,7 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	Nyx: He's not wrong that the rules screwed him. He just thinks that means he gets to screw everyone else.
 	DialTone: That tracks.
 	do GameState.set_flag("post_3_debriefed", true)
-- It got personal. About Nyx.
+- It got personal. About Nyx. (only after you ask first question)
 	Nyx: ...yeah.
 	Nyx: He's been doing that since I left.
 	DialTone: We don't have to talk about that.
@@ -1609,11 +1649,6 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	DialTone: But the breadcrumbs say it'll turn the tables.
 	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
 	do GameState.set_flag("post_3_plan_revealed", true)
-- [if GameState.get_flag("dialtone_messenger_thread", 0) == 3 and GameState.get_flag("post_3_debriefed", false) /] Let's talk about how I got here.
-	DialTone: You found the breadcrumbs because I left them. Every dead-drop hint, every loose link — placed.
-	DialTone: Splice's offer wasn't the first test. It was the third.
-	DialTone: You passed all three.
-	do GameState.set_flag("dialtone_messenger_thread", 4)
 - [if GameState.get_flag("post_3_debriefed", false) /] I'm ready for the next one. [#exit]
 	=> post_3_done
 => post_3_questions
@@ -1624,14 +1659,9 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 # Forced plan reveal if the player skipped that probe. Idempotent; the
 # flag also guards re-entry so this never plays twice.
 if !GameState.get_flag("post_3_plan_revealed", false)
-	DialTone: Hold on — before you go.
-	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
-	DialTone: That's our window.
-	Nyx: He's cocky now. He'll take a bait we set.
-	DialTone: We know where the last disc is. He doesn't know we know.
-	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do. He doesn't know that either.
-	Nyx: We don't know what it does.
-	DialTone: But the breadcrumbs say it'll turn the tables.
+	DialTone: Before you go.
+	DialTone: We know where the last disc is. Splice doesn't know we know.
+	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back.
 	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
 	do GameState.set_flag("post_3_plan_revealed", true)
 DialTone: We've got him, runner.
@@ -1659,8 +1689,13 @@ if GameState.get_flag("nyx_post_3_opener_seen", false)
 	=> nyx_post_3_entry
 
 Nyx: Hey.
-Nyx: Off-channel.
-Nyx: DialTone's busy convincing himself getting you out was his idea. Give it a minute.
+Nyx: You alright?
+- I'm good
+    Nyx: Good
+- I've been better
+    Nyx: I hear you
+- Of course, I told you I'm a bad boy (if bad boy)
+    Nyx: You are something. Not sure it's that.
 do GameState.set_flag("nyx_post_3_opener_seen", true)
 => nyx_post_3_questions
 
@@ -1691,17 +1726,6 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 - [if GameState.get_flag("nyx_post_3_asked_earlier", false) /] I didn't see anything.
 	Nyx: Liar.
 	Nyx: thanks.
-- You read this one before. Didn't you?
-	Nyx: maybe.
-	Nyx: I read Splice wrong, once. Big once.
-	Nyx: Been not-trusting that since.
-	Nyx: When you said no to him — I knew before he did. That's new too.
-	do GameState.set_flag("nyx_post_3_asked_read", true)
-- [if GameState.get_flag("nyx_post_3_asked_read", false) /] What does that mean?
-	Nyx: Means I think I can stop waiting for you to disappoint me.
-- [if GameState.get_flag("nyx_post_3_asked_read", false) /] It mattered to you.
-	Nyx: yes.
-	Nyx: Moving on.
 - All right, see you on the wire. [#exit]
 	=> nyx_post_3_done
 => nyx_post_3_questions
@@ -1710,8 +1734,7 @@ Nyx: {{HandlePicker.chosen_name()}}. What's up?
 ~ nyx_post_3_done
 
 Nyx: Last sector.
-Nyx: If we land it — I'm done with Splice. Actually done. That'd be something.
-Nyx: That'd be... refreshing.
+Nyx: Show Splice what's up, {{HandlePicker.chosen_name()}}.
 do GameState.set_flag("hub_nyx_post3_done", true)
 => END
 
@@ -2064,9 +2087,18 @@ if GameState.get_flag("level_4_glitch_post_opener_seen", false)
 
 Glitch: Ah. I see you've moved well beyond needing my platforms.
 Glitch: Don't tell anyone, but — they were genuinely taxing to produce. I'm relieved.
-Glitch: One thing while I have you.
-Glitch: When you crouch, your sentinels read it as a stand-down. They stop pressing forward and hold position.
-Glitch: So — no more of your sentinel apostles following you like lambs to the slaughter. Crouch and they'll wait it out.
+Glitch: Quick question, while I have you.
+Glitch: Blue or Red?
+    - Blue
+        Glitch: So amazing how predictable you are.
+    - Red
+        Glitch: Amazing. I knew you were going to say that.
+    - Green
+        Glitch: So predictable. Excellent.
+Glitch: Thanks for playing blue or red.
+
+<!--remove the crouch stuff!-->
+
 do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 => glitch_l4_post_questions
 
@@ -2076,7 +2108,8 @@ do GameState.set_flag("level_4_glitch_post_opener_seen", true)
 
 ~ glitch_l4_post_entry
 
-Glitch: Anything else, runner?
+Glitch: What are you doing wasting time with me? Go kick Splice's ass.
+Glitch: Yeah, I said it!
 => glitch_l4_post_questions
 
 
@@ -2146,16 +2179,15 @@ Nyx: I had a line. It's gone.
 
 ~ closer
 
-Nyx: He's quarantined.
-Nyx: and I'm not carrying it anymore.
-Nyx: Huh.
 Nyx: Come on. Let's go celebrate.
 - Take me home. [#exit]
 	do LevelProgression.advance()
 	=> END
 - Linger in the moment and try to hold eye contact. [#exit]
 	Nyx: hmm.
-	Nyx: ...okay, I see you {{HandlePicker.chosen_name()}}.
+	Nyx: you are seriously a strange guy, {{HandlePicker.chosen_name()}}.
+	Nyx: anything else?
+	- That's it. That's what I've got.
 	Nyx: let's get out of here.
 	do LevelProgression.advance()
 	=> END
@@ -2195,7 +2227,6 @@ Splice: After tonight, the Gibson is **mine**. [#walkie]
 Splice: Comms. Finance. Routing. Every sentinel that's ever responded to a ping. [#walkie]
 Splice: I don't **burn** it. I don't have to. [#walkie]
 Splice: I just decide who gets to **keep using** it. [#walkie]
-Splice: That's the real win. Not destruction. **Permission**. [#walkie]
 Splice: Your crew thinks they're the protagonists, runner. [#walkie]
 Splice: DialTone thinks he runs the channel. He ran it because nobody important was listening. [#walkie]
 Splice: Somebody's **listening** now. [#walkie]
