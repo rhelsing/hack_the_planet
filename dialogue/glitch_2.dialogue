@@ -1,5 +1,9 @@
 ~ start
 
+# Sync the CANS derived skill for the modify-roll in sentinels_subhub:
+# roll bonus = live can percentage × 0.6 (100% cans → +60 points).
+do Skills.sync_cans_from_pct(60.0)
+
 if HandlePicker.has_picked()
 	=> stage_after_pick
 
@@ -82,9 +86,9 @@ Glitch: At your service.
 #
 # Structure (Rule 10 of dialogue_dry_pattern.md):
 #   - "Several configurations?"            opens "Are they... conscious?"
-#                                          and "Where do they come from?"
 #   - "Are they... conscious?"  ([if /])   opens "Can I trust them?"
-#   - "Where do they come from?" ([if /])  +humanity (curious about origins)
+#   - "Where do they come from?"           visible from the start;
+#                                          +humanity (curious about origins)
 #   - "Can I trust them?"       ([if /])   choice between trust / wariness;
 #                                          either commit is [#vector]-tagged
 #                                          (purple + toast) and nudges the vector.
@@ -108,12 +112,25 @@ Glitch: At your service.
 	Glitch: I wouldn't rule it out.
 	do StoryVec.nudge(&"ai_tech", 1)
 	do GameState.set_flag("glitch2_asked_conscious", true)
-- [if GameState.get_flag("glitch2_asked_configs", false) /] Where do they come from?
+- Where do they come from?
 	Glitch: Ellingson built the first batch decades ago. Patrol scripts. Boring.
 	Glitch: They got handed off, sold, copied, mutated.
 	Glitch: The ones in here now are someone else's children. We just inherited them.
 	do StoryVec.nudge(&"humanity", 1)
 	do GameState.set_flag("glitch2_asked_origin", true)
+# CHECK — cans-driven roll (15% base + can% × 0.6). One-shot; pulls the
+# thread Glitch's "please don't modify" plea leaves hanging.
+- [CANS 15%] What happens if I modify one? [if GameState.get_flag("glitch2_asked_configs", false) and not GameState.get_flag("glitch2_modify_rolled", false) /]
+	do GameState.set_flag("glitch2_modify_rolled", true)
+	if Skills.roll("cans", 15)
+		Glitch: The haikus weren't the interesting part.
+		Glitch: The interesting part is the reconfig **held**. Nobody revoked it. The sentinels just kept the new instructions.
+		Glitch: Anyone holding the right keys can hand them new orders. Anyone.
+		Glitch: That is why I said please.
+	else
+		Glitch: Checking your clearance for that answer.
+		Glitch: ...still checking.
+		Glitch: No.
 - [if GameState.get_flag("glitch2_asked_conscious", false) and not GameState.get_flag("glitch2_trust_decided", false) /] Can I trust them? [#decision]
 	=> sentinels_trust_branch
 - Back. [#exit]

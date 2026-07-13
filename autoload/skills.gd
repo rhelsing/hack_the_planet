@@ -136,6 +136,18 @@ func set_level(skill: StringName, level: int) -> void:
 	Events.skill_granted.emit(skill, new_level)
 
 
+## Sync the derived CANS skill from the live can collection. `max_bonus_pct`
+## is the bonus (in percentage points) a 100% can collection adds to a roll's
+## base chance — sync_cans_from_pct(60.0) means "your can percentage × 0.6".
+## Sets the per-level bonus to 1 so level == bonus points, then derives the
+## level from GameState.coin_pct(). Call from a `do` line at conversation
+## start, before any [CANS N%] menu renders, so the displayed % and the roll
+## both track the live count.
+func sync_cans_from_pct(max_bonus_pct: float) -> void:
+	set_level_bonus(&"cans", 1)
+	set_level(&"cans", roundi(GameState.coin_pct() * max_bonus_pct))
+
+
 ## Grant N levels in the skill (default +1). Called from .dialogue files
 ## (`do Skills.grant("composure")`) or world interactables (books, trainers,
 ## mods). Emits Events.skill_granted(skill, new_level).

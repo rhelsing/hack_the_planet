@@ -1,5 +1,9 @@
 ~ start
 
+# Sync the CANS derived skill for the splice-roll in the questions hub:
+# roll bonus = live can percentage × 0.6 (100% cans → +60 points).
+do Skills.sync_cans_from_pct(60.0)
+
 # Obligatory opener — runs once. Re-talks route through glitch_l2_entry
 # for the warm "Good luck. Stay low." greeting, then drop into the
 # questions hub so the player can re-read the briefing.
@@ -36,6 +40,18 @@ Glitch: Good luck. Stay low.
 - [if GameState.get_flag("level_2_glitch_asked_brief", false) /] Splice?
 	Glitch: There are others who can explain Splice better than I can. But..
 	Glitch: He's bad news.
+	do GameState.set_flag("l2_glitch_asked_splice", true)
+# CHECK — cans-driven roll (15% base + can% × 0.6). One-shot; leans on
+# Glitch to say more than he's cleared to, ahead of the post-2 reveal.
+- [CANS 15%] You know more than "bad news". [if GameState.get_flag("l2_glitch_asked_splice", false) and not GameState.get_flag("l2_glitch_splice_rolled", false) /]
+	do GameState.set_flag("l2_glitch_splice_rolled", true)
+	if Skills.roll("cans", 15)
+		Glitch: One thing. And you didn't hear it from this node.
+		Glitch: Splice didn't claw his way in from outside. He moves like someone who **belonged** here.
+		Glitch: Ask the ones who knew him. Not me.
+	else
+		Glitch: I said "bad news".
+		Glitch: That was already more than I'm cleared to say.
 - Got it. [#exit]
 	=> done
 => glitch_l2_questions

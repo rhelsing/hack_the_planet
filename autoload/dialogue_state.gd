@@ -32,6 +32,14 @@ var visited: Dictionary = {}
 ## from the player's POV — same text on screen.
 var seen: Dictionary = {}
 
+## Cumulative curiosity counters — across every conversation, how many
+## distinct non-exit response options the player actually picked (explored)
+## out of everything that was offered on screen. scroll_balloon commits one
+## (explored, offered) pair per conversation at balloon close. The percent-
+## curious at any moment is curiosity_ratio().
+var curiosity_explored: int = 0
+var curiosity_offered: int = 0
+
 ## Active save slot — empty when no slot bound (e.g. main menu, before
 ## begin_new_game / load_from_slot). Sidecar I/O is gated on this; if no
 ## slot is bound, visit() still mutates in-memory state but never writes.
@@ -76,6 +84,25 @@ func has_seen(character: String, text: String) -> bool:
 	return seen.get(character, {}).has(text)
 
 
+# ---- Curiosity accumulation ---------------------------------------------
+
+## Add one conversation's exploration numbers to the running totals.
+## Called by scroll_balloon when a conversation ends. offered <= 0 means
+## the conversation had no menus — not a curiosity sample, records nothing.
+func record_curiosity(explored: int, offered: int) -> void:
+	if offered <= 0: return
+	curiosity_explored += clampi(explored, 0, offered)
+	curiosity_offered += offered
+	_mark_dirty()
+
+
+## Fraction [0, 1] of offered dialogue paths the player has explored across
+## all conversations so far. 0.0 before any menu has ever been offered.
+func curiosity_ratio() -> float:
+	if curiosity_offered <= 0: return 0.0
+	return float(curiosity_explored) / float(curiosity_offered)
+
+
 # ---- High-level API (matches GameState.visit_dialogue shape) -----------
 
 ## Convenience that mirrors GameState.visit_dialogue's signature so the
@@ -108,6 +135,8 @@ func to_dict() -> Dictionary:
 		"visited": visited.duplicate(true),
 		"seen": seen.duplicate(true),
 		"story_vec": story_vec_dict,
+		"curiosity_explored": curiosity_explored,
+		"curiosity_offered": curiosity_offered,
 	}
 
 
@@ -116,6 +145,8 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	visited = d.get("visited", {}).duplicate(true)
 	seen = d.get("seen", {}).duplicate(true)
+	curiosity_explored = int(d.get("curiosity_explored", 0))
+	curiosity_offered = int(d.get("curiosity_offered", 0))
 	# Push vector state into StoryVec so its in-memory dict matches the
 	# sidecar. Tolerant of missing field — first-run / pre-D saves won't
 	# have story_vec at all; StoryVec.from_dict({}) re-zeroes axes.
@@ -129,6 +160,8 @@ func from_dict(d: Dictionary) -> void:
 func reset() -> void:
 	visited.clear()
 	seen.clear()
+	curiosity_explored = 0
+	curiosity_offered = 0
 	# Phase D — vector state lives in StoryVec autoload; reset it too.
 	var sv := get_node_or_null(^"/root/StoryVec")
 	if sv != null and sv.has_method(&"reset"):
@@ -168,14 +201,19 @@ func bind_slot(slot: StringName) -> void:
 		_active_slot = &""
 		visited.clear()
 		seen.clear()
+		curiosity_explored = 0
+		curiosity_offered = 0
 		var sv := get_node_or_null(^"/root/StoryVec")
 		if sv != null and sv.has_method(&"reset"):
 			sv.call(&"reset")
 		return
 	_active_slot = slot
-	# Drop the previous slot's state before loading the new one.
+	# Drop the previous slot's state before loading the new one. Counters
+	# too — a slot with no sidecar file yet must not inherit the old slot's.
 	visited.clear()
 	seen.clear()
+	curiosity_explored = 0
+	curiosity_offered = 0
 	_load_from_disk()
 
 

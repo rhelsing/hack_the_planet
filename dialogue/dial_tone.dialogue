@@ -38,16 +38,23 @@ DialTone: Hey — time's ticking.
 
 ~ dialtone_questions
 
-- Are you who messaged me?
+# [#decision] for the dim walker: the hacker question below is a one-shot
+# fork (gated away on re-picks), so one visit answers the probe.
+- Are you who messaged me? [#decision]
 	DialTone: ...perhaps.
 	DialTone: Let's just say I noticed you. The way you asked questions on Hacker News intrigued me.
 	DialTone: I wanted to see what you were made of.
-	DialTone: You do want to become a **real** hacker right?
-	- Yes
-		DialTone: Well, I need you to help my friend first.
-	- Thinking about it
-		DialTone: Don't think too long.
-	do GameState.set_flag("dialtone_messenger_thread", 1)
+	# VECTOR — commitment read on the player's intent, mirrors Nyx's post-1
+	# "you actually want to be a hacker?" (nyx_trust). One-shot: re-picks of
+	# the probe skip the question so the nudge can't stack.
+	if GameState.get_flag("dialtone_messenger_thread", 0) == 0
+		DialTone: You do want to become a **real** hacker right?
+		- Yes [#vector]
+			DialTone: Well, I need you to help my friend first.
+			do StoryVec.nudge(&"dialtone_trust", 1)
+		- Thinking about it [#vector]
+			DialTone: Don't think too long.
+		do GameState.set_flag("dialtone_messenger_thread", 1)
 - Who's Nyx?
 	DialTone: Nyx. Sharpest hacker on the grid and she's stuck. Don't ask me how.
 	do GameState.set_flag("dialtone_asked_nyx", true)
@@ -132,13 +139,20 @@ DialTone: What else would you like to know?
 ~ post_1_done
 
 DialTone: Alright — got the next job queued. Softball, this time. Real one. Grab a few files for us and you will be back here in no time.
-DialTone: You do still want to be a hacker right?
-- Not after that
-	Nyx: I don't blame you.
-	DialTone: Come on. It's all in good fun.
-	Nyx: Is it?
-- Sure
-	DialTone: That's the spirit!
+# VECTOR — post-prank commitment read; nudges dialtone_trust. One-shot:
+# post_1_done re-runs on every exit until level 2 completes, so the flag
+# keeps DialTone from re-asking and the nudge from stacking.
+if !GameState.get_flag("post_1_hacker_commit", false)
+	DialTone: You do still want to be a hacker right?
+	- Not after that [#vector]
+		Nyx: I don't blame you.
+		DialTone: Come on. It's all in good fun.
+		Nyx: Is it?
+		do StoryVec.nudge(&"dialtone_trust", -1)
+	- Sure [#vector]
+		DialTone: That's the spirit!
+		do StoryVec.nudge(&"dialtone_trust", 1)
+	do GameState.set_flag("post_1_hacker_commit", true)
 DialTone: This is the easiest hop on the grid.
 Nyx: Runner, over here if you have a moment.
 do GameState.set_flag("level_2_unlocked", true)
@@ -189,25 +203,35 @@ DialTone: You got the plan?
 	DialTone: You're kind of thick aren't you?
 	Nyx: If Splice controls the Gibson, thats the end of the Grid soon after.
 	DialTone: Do you like being able to host your own e-sites, play free games, write a blog? All that is history without paying a platform fee and ads shoved in your face once Splice is in control.
-# WORLD-BUILD — Splice history reveal, with a flavor reaction beat. The
-# flag fires for the whole probe regardless of which reaction is picked.
-- Who is Splice and how do you know what he wants?
+	do GameState.set_flag("post_2_asked_matter", true)
+# WORLD-BUILD — Splice history reveal: who he is. Rule 6 progressive
+# revelation — unlocks after the stakes probe above. Ends on Nyx shutting
+# the thread down; pulling it further is the follow-up probe below.
+- [if GameState.get_flag("post_2_asked_matter", false) /] Who is Splice?
 	Nyx: Don't.
 	DialTone: He's going to find out sooner or later
 	Nyx: Fine.
 	Nyx: We used to run with Splice.
 	DialTone: Run is putting it lightly.
 	Nyx: Shut up.
-	DialTone: We know his end game. Hell, he almost convinced us.
-	DialTone: An opportunity, he called it.
-	Nyx: An opportunity to make massive profit margins and at the same time irrevocably pollute the biggest innovation since electricity - This place.
-	- That's horrible
-		DialTone: You can say that again
-		- That's horrible
-		Nyx: Dude, you are so weird.
-	- Sounds dope
-		Nyx: DialTone, what are we even doing with this clown?
 	do GameState.set_flag("post_2_asked_who", true)
+# WORLD-BUILD — the end-game reveal, with a flavor reaction beat. Rule 6 —
+# pulls the thread Nyx just shut down, so it only opens after the probe above.
+# [#decision] here is for the dim walker: the reaction fork is pick-one
+# flavor, so one visit answers the probe (it dims without exhausting both).
+- [if GameState.get_flag("post_2_asked_who", false) /] And how do you know what he wants? [#decision]
+	DialTone: We know his end game. Hell, he almost convinced us.
+	DialTone: He called it "an opportunity".
+	Nyx: An opportunity to make massive profit margins and at the same time irrevocably pollute the biggest innovation since electricity - This place.
+	- That's horrible [#vector]
+		DialTone: You can say that again
+		do StoryVec.nudge(&"humanity", 1)
+		- That's horrible [#vector]
+			do StoryVec.nudge(&"humanity", 1)
+		Nyx: Dude, you are so weird.
+	- Sounds dope [#vector]
+		Nyx: DialTone, what are we even doing with this clown?
+		do StoryVec.nudge(&"humanity", -1)
 - [if GameState.get_flag("post_2_asked_who", false) /] Run is putting it lightly?
 	DialTone: They were a thing.
 	Nyx: Were. Past tense.
@@ -303,15 +327,25 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 
 ~ post_3_questions
 
-- Bitter. World-rigged. He went on about being wronged.
+# Default debrief for the instant-refusal path — the player who shut Splice
+# down before the pitch. Mutually exclusive with "Bitter. World-rigged..."
+- [if not GameState.get_flag("splice_pitched", false) /] I didn't let him say much.
+	DialTone: Ha! Good.
+	Nyx: Nothing he says is worth hearing anyway.
+	do GameState.set_flag("post_3_debriefed", true)
+# Gated on having actually heard the pitch (splice_consider sets the flag;
+# an instant "Get off my channel." skips it entirely).
+- [if GameState.get_flag("splice_pitched", false) /] Bitter. World-rigged. He went on about being wronged.
 	DialTone: heh. Splice always was like that. Even back when.
 	Nyx: He's not wrong that the rules screwed him. He just thinks that means he gets to screw everyone else.
 	DialTone: That tracks.
 	do GameState.set_flag("post_3_asked_bitter", true)
 	do GameState.set_flag("post_3_debriefed", true)
 # Rule 6 progressive revelation — the personal thread only opens after the
-# player has given the surface-level debrief above.
-- [if GameState.get_flag("post_3_asked_bitter", false) /] It got personal. About Nyx.
+# player has given the surface-level debrief above, AND only if Splice
+# actually opened the Nyx thread in L3 (splice_nyx sets the flag; the door
+# roll can fail, in which case this debrief never happened).
+- [if GameState.get_flag("post_3_asked_bitter", false) and GameState.get_flag("splice_mentioned_nyx", false) /] It got personal. About Nyx.
 	Nyx: ...yeah.
 	Nyx: He's been doing that since I left.
 	DialTone: We don't have to talk about that.

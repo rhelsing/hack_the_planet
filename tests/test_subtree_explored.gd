@@ -16,6 +16,15 @@ extends Node
 ##      doesn't see them.
 ##   4. Cycle safety: a sub-hub that loops back via `=> start` doesn't
 ##      infinite-loop the walker.
+##   5. Nested reaction menu falling through to the GRANDPARENT hub (the
+##      dial_tone "Are you who messaged me?" → Yes / Thinking shape): once
+##      the nested options are picked, the probe is fully explored — the
+##      walker must not mistake the grandparent hub for the reaction's
+##      sub-hub (regression: probe never dimmed).
+##   6. [#decision]-tagged probe: fully explored regardless of its fork
+##      children — the tag means "pick one endpoint and the question is
+##      answered", checked at the top level (dim pass), not just when the
+##      probe appears as a child of another walk.
 
 const FIXTURE: String = """~ start
 
@@ -35,6 +44,22 @@ const FIXTURE: String = """~ start
 - Back. [#exit]
 	=> start
 => sub_a
+"""
+
+## Case 5 fixture — mirrors dial_tone's dialtone_questions hub: the probe's
+## body contains an inline reaction menu, and both reaction branches fall
+## through past the probe's body into the hub's trailing `=> hub` loop.
+const FIXTURE_NESTED: String = """~ hub
+
+- Probe
+	DialTone: intro line
+	- Yes
+		DialTone: yes line
+	- Thinking about it
+		DialTone: thinking line
+- Other probe
+	DialTone: other line
+=> hub
 """
 
 
@@ -138,6 +163,77 @@ func _ready() -> void:
 	if t1 - t0 > 1000:
 		failures.append("Subtree walker took >1s on small fixture — cycle detection likely missed (took %dms)" % (t1 - t0))
 
+	# ---- 5. Nested reaction menu falling through to grandparent hub ----
+	# Fresh balloon bound to the nested fixture; scoped to "DialTone".
+	var nested_resource: DialogueResource = dm.create_resource_from_text(FIXTURE_NESTED)
+	if nested_resource == null:
+		_finish(["create_resource_from_text returned null for FIXTURE_NESTED"]); return
+	var balloon2: CanvasLayer = balloon_packed.instantiate()
+	add_child(balloon2)
+	await get_tree().process_frame
+	balloon2.set("dialogue_resource", nested_resource)
+	balloon2.set("_last_known_speaker", "DialTone")
+
+	var hub_line: DialogueLine = await dm.get_next_dialogue_line(nested_resource, "hub", [balloon2])
+	var probe: DialogueResponse = null
+	for r in hub_line.responses:
+		if r.text == "Probe": probe = r
+	if probe == null:
+		_finish(["could not find Probe response in FIXTURE_NESTED"]); return
+
+	# Simulate renders: hub options + nested reaction options all seen.
+	for t in ["Probe", "Other probe", "Yes", "Thinking about it"]:
+		ds.mark_seen("DialTone", t)
+
+	# Probe visited but reactions not yet: NOT fully explored.
+	ds.visit_dialogue("DialTone", "Probe")
+	if balloon2.call("_subtree_fully_explored", probe, "DialTone"):
+		failures.append("Probe should NOT be explored before its reaction options are picked")
+
+	# Both reactions visited: fully explored — even though "Other probe"
+	# (a sibling in the grandparent hub) is untouched. Pre-fix, the walker
+	# treated the hub as Yes's sub-hub and this returned false forever.
+	ds.visit_dialogue("DialTone", "Yes")
+	ds.visit_dialogue("DialTone", "Thinking about it")
+	if not balloon2.call("_subtree_fully_explored", probe, "DialTone"):
+		failures.append("Probe SHOULD be explored once both nested reactions are picked (grandparent loop-back)")
+
+	# ---- 6. Decision-tagged probe explored without exhausting its fork ----
+	# Reuses the nested fixture's shape via a decision-tagged variant.
+	var decision_fixture := """~ hub
+
+- Pick one [#decision]
+	DialTone: choose
+	- Left
+		DialTone: left line
+	- Right
+		DialTone: right line
+- Filler
+	DialTone: filler line
+=> hub
+"""
+	var decision_resource: DialogueResource = dm.create_resource_from_text(decision_fixture)
+	var balloon3: CanvasLayer = balloon_packed.instantiate()
+	add_child(balloon3)
+	await get_tree().process_frame
+	balloon3.set("dialogue_resource", decision_resource)
+	balloon3.set("_last_known_speaker", "DialTone")
+	var hub2: DialogueLine = await dm.get_next_dialogue_line(decision_resource, "hub", [balloon3])
+	var pick_one: DialogueResponse = null
+	for r in hub2.responses:
+		if r.text == "Pick one": pick_one = r
+	if pick_one == null:
+		_finish(["could not find 'Pick one' response in decision fixture"]); return
+	for t in ["Pick one", "Filler", "Left", "Right"]:
+		ds.mark_seen("DialTone", t)
+	ds.visit_dialogue("DialTone", "Pick one")
+	ds.visit_dialogue("DialTone", "Left")  # Right stays unvisited on purpose
+	if not balloon3.call("_subtree_fully_explored", pick_one, "DialTone"):
+		failures.append("decision-tagged probe should be fully explored after one fork branch")
+	balloon3.queue_free()
+
+	balloon2.queue_free()
+
 	# ---- Cleanup ----
 	balloon.queue_free()
 	await get_tree().process_frame
@@ -155,7 +251,7 @@ func _ready() -> void:
 
 func _finish(failures: Array) -> void:
 	if failures.is_empty():
-		print("PASS test_subtree_explored: 4 cases clean")
+		print("PASS test_subtree_explored: 6 cases clean")
 		get_tree().quit(0)
 	else:
 		for f in failures:

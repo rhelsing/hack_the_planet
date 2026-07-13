@@ -237,9 +237,6 @@ static var _STATIC_FOOTSTEP_POOL: Array[AudioStream] = []
 var _footstep_pool: Array[AudioStream] = []
 var _footstep_phase: float = 0.0
 var _coin_timer: float = 0.0
-# DEBUG (temporary) — tracks moved-state so the stall logger below fires
-# exactly once per moving→stuck transition. Strip after the hang is fixed.
-var _dbg_was_moving: bool = false
 var _coin_next_at: float = 0.6
 
 @onready var _maze_root: Control = %MazeRoot
@@ -452,13 +449,6 @@ func _process(delta: float) -> void:
 	var prev_pos: Vector2 = _cursor_world_pos()
 	_step_cursor(input_unit, distance)
 	var moved: bool = prev_pos.distance_squared_to(_cursor_world_pos()) > 0.001
-	# DEBUG (temporary): one line per moving→stuck transition, with the live
-	# axis values — input is held (deadzone already passed) but the cursor
-	# consumed zero distance this frame.
-	if not moved and _dbg_was_moving:
-		print("[maze] STALL node=%s tip=%s t=%.2f input=(%.2f, %.2f)" % [
-			_path[_path.size() - 1], _is_at_tip(), _cursor_t, input_v.x, input_v.y])
-	_dbg_was_moving = moved
 	_set_sliding(moved)
 	if moved:
 		_drive_slide_flair(delta, magnitude)

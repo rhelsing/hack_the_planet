@@ -346,7 +346,7 @@ do GameState.set_flag("glitch1_done", true)
 ```
 ~ start
 
-Glitch: That gap ahead — you're not getting across that. Not in **those shoes** you aren't.
+Glitch: That gap ahead — you're not getting across that. Not in **those** shoes you aren't.
 Glitch: I've got something for you. A small upgrade.
 - What did you have in mind?
 	=> offer

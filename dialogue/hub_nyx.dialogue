@@ -98,6 +98,10 @@ Nyx: Talk.
 
 ~ stage_post_2
 
+# Sync the CANS derived skill for the almost-roll in the questions hub:
+# roll bonus = live can percentage × 0.6 (100% cans → +60 points).
+do Skills.sync_cans_from_pct(60.0)
+
 # Obligatory opener — runs once. Re-talks route through the entry block
 # for an abbreviated greeting, then drop into the questions hub.
 if GameState.get_flag("nyx_post_2_opener_seen", false)
@@ -149,6 +153,18 @@ Nyx: Anything else, runner?
 	do GameState.set_flag("nyx_post_2_asked_splice_ex", true)
 - [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) /] Does he still listen to you?
 	Nyx: He didn't ever do much listening. He mostly waited for his turn to talk.
+# CHECK — cans-driven roll (30% base + can% × 0.6). One-shot; the guarded
+# thread behind "Who was he to you?". Pass pre-echoes Splice's own L3 line
+# ("She almost ran with it... almost").
+- [CANS 30%] You almost went with him, didn't you? [if GameState.get_flag("nyx_post_2_asked_splice_ex", false) and not GameState.get_flag("nyx_post_2_almost_rolled", false) /]
+	do GameState.set_flag("nyx_post_2_almost_rolled", true)
+	if Skills.roll("cans", 30)
+		Nyx: ...yeah.
+		Nyx: He had the pitch long before he had the plan. Back then it sounded like keeping the doors open, just faster.
+		Nyx: By the time the plan showed up, I was halfway in.
+		Nyx: Walking out cost more than I'll ever let DialTone know.
+	else
+		Nyx: No.
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] What's he actually after?
 	Nyx: Power. He's convinced he's owed it.
 	Nyx: He got screwed. I'm not arguing that. But he turned it into a license.

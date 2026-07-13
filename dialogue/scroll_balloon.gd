@@ -92,6 +92,15 @@ var _last_known_speaker: String = ""
 ## render. Empty when nothing is new (the steady state).
 var _new_response_texts: Dictionary = {}
 
+## Curiosity tracking — distinct non-exit option texts offered (rendered)
+## vs picked during THIS conversation. Committed as one (N, Y) pair to
+## DialogueState's cumulative curiosity counters when the balloon closes.
+## Session-local on purpose: it measures behavior per opportunity ("of the
+## Y paths shown this conversation, the player took N"), so re-picking a
+## previously-visited probe in a later conversation still counts.
+var _session_offered: Dictionary = {}
+var _session_picked: Dictionary = {}
+
 ## The current line
 var dialogue_line: DialogueLine:
 	set(value):
@@ -112,6 +121,7 @@ var dialogue_line: DialogueLine:
 			apply_dialogue_line()
 		else:
 			# The dialogue has finished so close the balloon
+			_commit_curiosity()
 			if owner == null:
 				queue_free()
 			else:
@@ -334,6 +344,7 @@ func apply_dialogue_line() -> void:
 	_dim_visited_responses()      # ported from 3dPFormer
 	_sort_responses_visited_below_exit()  # unpicked → exit → visited (dimmed) at bottom
 	_mark_responses_seen()        # B.2 — commit seen AFTER render so the next render flips them to "not new"
+	_track_offered_responses()    # curiosity — count what was on screen this conversation
 
 	# Show our balloon
 	balloon.show()
@@ -428,6 +439,10 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 		print("[balloon] visit RECORDED  scope=%s  text=%s" %
 			[scope, response.text])
 		DialogueState.visit_dialogue(scope, response.text)
+	# Curiosity — unscoped on purpose (no _visit_scope gate): the session
+	# counters live on this balloon instance, not in the per-character dicts.
+	if not _is_exit_response(response):
+		_session_picked[response.text] = true
 	# Vector commit signal — fires the toast for [#vector]-tagged options.
 	# See docs/dialogue_dry_pattern.md (three-type framework).
 	if VECTOR_TAG in response.tags:
@@ -790,6 +805,46 @@ func _style_new_responses() -> void:
 		Audio.play_sfx(NEW_UNLOCK_SFX)
 
 
+# ── Curiosity — N of Y paths explored per conversation ─────────────────
+# Y = distinct non-exit option texts rendered during this conversation,
+# N = distinct non-exit option texts the player picked. One (N, Y) pair is
+# committed to DialogueState's cumulative counters at balloon close, so
+# "how curious is this player" = DialogueState.curiosity_ratio() over the
+# whole game. Conversations with no menus (barks) record nothing.
+
+## Fold the current render's options into the session's offered set. Runs
+## after the styling passes so [CAN]-stripped texts match what the pick
+## handler records.
+func _track_offered_responses() -> void:
+	for child: Node in responses_menu.get_children():
+		if not child.has_meta("response"): continue
+		var response: DialogueResponse = child.get_meta("response")
+		if response == null: continue
+		if _is_exit_response(response): continue
+		_session_offered[response.text] = true
+
+
+## Commit this conversation's exploration numbers to DialogueState and
+## reset the session sets. Idempotent — the clear makes a second call
+## (e.g. _exit_tree after the setter already committed) a no-op.
+func _commit_curiosity() -> void:
+	var offered: int = _session_offered.size()
+	if offered == 0: return  # no menus shown — not a curiosity sample
+	var picked: int = _session_picked.size()
+	DialogueState.record_curiosity(picked, offered)
+	print("[balloon] curiosity: %d of %d paths this conversation → totals %d/%d (%.0f%%)" %
+		[picked, offered, DialogueState.curiosity_explored,
+		DialogueState.curiosity_offered, DialogueState.curiosity_ratio() * 100.0])
+	_session_offered.clear()
+	_session_picked.clear()
+
+
+## Catches balloons torn down externally (death interrupts queue_free the
+## balloon without the dialogue reaching END) so the sample isn't lost.
+func _exit_tree() -> void:
+	_commit_curiosity()
+
+
 # ── Phase C — recursive subtree dim ────────────────────────────────────
 # A parent option dims only when every visible non-exit child has been
 # picked. To know what "the children" are, we walk the option's body
@@ -810,15 +865,19 @@ func _style_new_responses() -> void:
 ##
 ## Returns [] for leaf paths: END, walker cycle, unknown type, empty
 ## start_id, OR — critically — when the walked-into response set contains
-## `parent_response_id` in its own `responses` list. That last case is
-## "the option's body loops back to the hub it lives in" — the option is
-## a flat probe, not a parent of a sub-hub.
+## ANY id in `ancestor_response_ids`. That last case is "the walk fell back
+## into a hub it came from" — immediate parent OR a grandparent: a nested
+## reaction menu (e.g. dial_tone's Yes / "Thinking about it") falls through
+## to its grandparent hub's loop, and treating that hub as the reaction's
+## sub-hub would block the whole chain from ever counting as explored.
 ##
 ## `visited_block_ids` is mutated — pass {} on the top-level call; the
 ## recursion shares one accumulating set so a deeper walk can't revisit a
-## hub already on the stack.
+## hub already on the stack. `ancestor_response_ids` is NOT shared across
+## siblings — each recursion branch gets its own copy (see
+## _is_child_fully_explored).
 func _walk_subtree_from_id(start_id: String, visited_block_ids: Dictionary,
-		parent_response_id: String = "") -> Array[Dictionary]:
+		ancestor_response_ids: Dictionary = {}) -> Array[Dictionary]:
 	var children: Array[Dictionary] = []
 	if dialogue_resource == null: return children
 	var resource: DialogueResource = dialogue_resource
@@ -837,11 +896,12 @@ func _walk_subtree_from_id(start_id: String, visited_block_ids: Dictionary,
 		var t: String = String(data.get("type", ""))
 		if t == "response":
 			var ids: Array = data.get("responses", [])
-			# Loop-back detection: if this response set contains the option
-			# we started from, it's the option's PARENT hub, not a sub-hub.
-			# Treat as a leaf and bail.
-			if not parent_response_id.is_empty() and (parent_response_id in ids):
-				break
+			# Loop-back detection: if this response set contains any option
+			# the walk descended through, it's an ANCESTOR hub, not a
+			# sub-hub. Treat as a leaf and bail.
+			for id_v in ids:
+				if ancestor_response_ids.has(String(id_v)):
+					return children
 			for child_id_v in ids:
 				var child_id: String = String(child_id_v)
 				if not resource.lines.has(child_id): continue
@@ -865,7 +925,7 @@ func _walk_subtree_from_id(start_id: String, visited_block_ids: Dictionary,
 ## id to the walker so it can detect loop-backs to the option's parent hub.
 func _walk_response_subtree(response: DialogueResponse, visited_block_ids: Dictionary) -> Array[Dictionary]:
 	if response == null: return []
-	return _walk_subtree_from_id(response.next_id, visited_block_ids, response.id)
+	return _walk_subtree_from_id(response.next_id, visited_block_ids, {String(response.id): true})
 
 
 ## Returns true iff this child option (and the entire subtree underneath
@@ -878,8 +938,11 @@ func _walk_response_subtree(response: DialogueResponse, visited_block_ids: Dicti
 ##
 ## `visited_blocks` is the cycle-tracking set, accumulated across the whole
 ## recursion so a `=> back_to_parent` loop terminates cleanly.
+## `ancestor_ids` holds the option ids on the walk path ABOVE this child —
+## duplicated per branch (not shared across siblings) so one sibling's id
+## can't false-positive another sibling's loop-back check.
 func _is_child_fully_explored(child_data: Dictionary, character: String,
-		visited_blocks: Dictionary) -> bool:
+		visited_blocks: Dictionary, ancestor_ids: Dictionary = {}) -> bool:
 	var tags: PackedStringArray = child_data.get("tags", PackedStringArray())
 	if EXIT_TAG in tags: return true
 	var text: String = String(child_data.get("text", ""))
@@ -903,15 +966,18 @@ func _is_child_fully_explored(child_data: Dictionary, character: String,
 	if DECISION_TAG in tags:
 		return true
 
-	# Visited. Recurse into this child's subtree. Pass child's own id so the
-	# walker detects loop-backs to the sub-hub it lives in.
+	# Visited. Recurse into this child's subtree. The ancestor set grows by
+	# this child's id so the walker detects loop-backs to ANY hub on the
+	# path — its own sub-hub or a grandparent hub its body falls through to.
+	var child_ancestors: Dictionary = ancestor_ids.duplicate()
+	child_ancestors[String(child_data.get("id", ""))] = true
 	var grandkids: Array[Dictionary] = _walk_subtree_from_id(
 			String(child_data.get("next_id", "")),
 			visited_blocks,
-			String(child_data.get("id", "")))
+			child_ancestors)
 	if grandkids.is_empty(): return true  # leaf — done
 	for gk in grandkids:
-		if not _is_child_fully_explored(gk, character, visited_blocks):
+		if not _is_child_fully_explored(gk, character, visited_blocks, child_ancestors):
 			return false
 	return true
 
@@ -926,11 +992,18 @@ func _is_child_fully_explored(child_data: Dictionary, character: String,
 func _subtree_fully_explored(response: DialogueResponse, character: String) -> bool:
 	if response == null: return true
 	if character.is_empty(): return true
+	# Decision-tagged: one-way side block with mutually exclusive endpoints
+	# (pick one and the question is answered). Same rule _is_child_fully_
+	# explored applies one level down — without this, an option whose body
+	# is a flavor fork never dims until EVERY fork branch is picked.
+	if DECISION_TAG in response.tags:
+		return true
 	var visited_blocks: Dictionary = {}
 	var children: Array[Dictionary] = _walk_response_subtree(response, visited_blocks)
 	if children.is_empty(): return true  # leaf
+	var ancestors: Dictionary = {String(response.id): true}
 	for child in children:
-		if not _is_child_fully_explored(child, character, visited_blocks):
+		if not _is_child_fully_explored(child, character, visited_blocks, ancestors):
 			return false
 	return true
 

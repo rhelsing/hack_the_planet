@@ -1,5 +1,9 @@
 ~ start
 
+# Sync the CANS derived skill for the roll in splice_nyx:
+# roll bonus = live can percentage × 0.6 (100% cans → +60 points).
+do Skills.sync_cans_from_pct(60.0)
+
 if GameState.get_flag("refused_splice", false)
 	=> already_refused
 
@@ -17,11 +21,14 @@ Splice: Step off-channel a minute. Just listen. Walk away if you want.
 	=> splice_refused
 - Listening.
 	=> splice_consider
-- [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
-	=> splice_nyx
+- [CANS 0%] What about Nyx? [if not GameState.get_flag("splice_nyx_door_rolled", false) /]
+	=> splice_nyx_roll
 
 ~ splice_consider
 
+# Read by dial_tone's post-3 debrief ("Bitter. World-rigged...") — that
+# option only exists if the player actually sat through the pitch.
+do GameState.set_flag("splice_pitched", true)
 Splice: Here's what nobody on that channel will tell you.
 Splice: The grid was never **free**!
 Splice: DialTone runs it. The way he ran you.
@@ -38,8 +45,8 @@ Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-be
 	=> splice_consider
 - What's the catch?
 	=> splice_catch
-- [if GameState.coin_pct() >= 0.5 /] [CAN] What about Nyx?
-	=> splice_nyx
+- [CANS 0%] What about Nyx? [if not GameState.get_flag("splice_nyx_door_rolled", false) /]
+	=> splice_nyx_roll
 - I'm with you. [#exit]
 	=> splice_committed
 - Get off my channel. [#exit]
@@ -67,8 +74,26 @@ Splice: When you do — channel's open.
 - Get off my channel. [#exit]
 	=> splice_refused
 
+# CHECK — cans-driven door roll (0 base + can% × 0.6, clamp floors it at
+# 5%). Always visible until rolled so the player sees the odds they're
+# carrying — a missed door is a visible miss, not a silent one. Shared by
+# both menus above; one roll total, pass opens the splice_nyx sub-hub.
+
+~ splice_nyx_roll
+
+do GameState.set_flag("splice_nyx_door_rolled", true)
+if Skills.roll("cans", 0)
+	=> splice_nyx
+Splice: Nyx.
+Splice: No.
+Splice: We're here to talk about **you**.
+=> splice_consider
+
 ~ splice_nyx
 
+# Read by dial_tone's post-3 debrief ("It got personal. About Nyx.") —
+# that option only exists if Splice actually went here.
+do GameState.set_flag("splice_mentioned_nyx", true)
 Splice: yeah.
 Splice: I pitched the same thing to her. She almost ran with it... almost.
 Splice: she -
@@ -76,6 +101,19 @@ Splice: She's not part of this conversation, runner.
 Splice: Some things I keep mine.
 - "Almost"?
 	Splice: Long time ago. Doesn't matter.
+	=> splice_consider
+# CHECK — cans-driven roll (30% base + can% × 0.6). One-shot; pushes into
+# the sentence Splice cut off at "she -". Pass ties to dial_tone's backdoor
+# thread ("He found a backdoor. / He made one.") — Nyx burned it on sight.
+- [CANS 30%] You were about to say something else. [if not GameState.get_flag("splice_nyx_rolled", false) /]
+	do GameState.set_flag("splice_nyx_rolled", true)
+	if Skills.roll("cans", 30)
+		Splice: ...fine.
+		Splice: She found my backdoor before it was finished. Burned it within the hour. No warning. No goodbye.
+		Splice: She's as straightlaced as they come.
+	else
+		Splice: No.
+		Splice: You get the pitch, runner. You don't get **me**.
 	=> splice_consider
 - [if GameState.coin_pct() >= 0.8 /] [CAN] Are you trying to get her back?
 	Splice: I'm trying to get the Gibson. Nyx made her call a long time ago.
