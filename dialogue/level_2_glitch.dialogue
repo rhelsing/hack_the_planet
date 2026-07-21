@@ -30,7 +30,8 @@ Glitch: Good luck. Stay low.
 
 ~ glitch_l2_questions
 
-- Brief me on these abilities.
+- Brief me robot man.
+	Glitch: Hmm, I kind of like that.
 	Glitch: First off, you now are wearing sunglasses.
 	Glitch: And with that, you now have the ability to hack terminals. Hacking a terminal can unlock areas or just apply a counterhack to sentinels that Splice has modified.
 	Glitch: The second ability and the one you must use **now** is sneaking. You can crouch by pressing {{Glyphs.for_action("sneak_toggle")}}.

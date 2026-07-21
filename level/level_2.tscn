@@ -80,6 +80,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.424747, 51.39068, 65.6984
 transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -41.698, 33.22149, 7.952879)
 maze_path = "res://puzzle/maze/mazes/hello_world_exe.maze"
 convert_zone_id = &"l2_splice"
+target_factions = Array[StringName]([&"red"])
 interactable_id = &"l2_hack_terminal"
 
 [node name="HackTerminalUnlockOtherHackTerminal" parent="." index="14" unique_id=816224979 instance=ExtResource("2_hackterm")]
@@ -412,54 +413,67 @@ id = &"l2_splice"
 [node name="EnemyKayKit" parent="." index="62" unique_id=94915355 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.307285, 28.672976, 53.85262)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit2" parent="." index="63" unique_id=199422695 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57.27339, 28.672976, 55.21614)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit3" parent="." index="64" unique_id=205072112 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.298172, 28.672974, 50.85236)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit4" parent="." index="65" unique_id=1939759789 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.087204, 28.672974, 39.546875)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit5" parent="." index="66" unique_id=287886535 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.388603, 28.672976, 47.55289)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit6" parent="." index="67" unique_id=1756441464 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.839943, 28.672974, 33.4283)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit7" parent="." index="68" unique_id=1855396728 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.339844, 28.672974, 28.565435)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit8" parent="." index="69" unique_id=279215742 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -57.36341, 28.672974, 22.581963)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit9" parent="." index="70" unique_id=856364904 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -61.9366, 28.672974, 29.646332)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit10" parent="." index="71" unique_id=1786675099 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.53542, 28.672974, 19.830034)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit11" parent="." index="72" unique_id=1378679637 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.679024, 28.672976, 16.104403)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit12" parent="." index="73" unique_id=1554641863 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.98886, 28.672972, 17.774315)
 faction = &"red"
+max_health = 5
 
 [node name="EnemyKayKit13" parent="." index="74" unique_id=504858540 instance=ExtResource("10_rgj0g")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -51.5506, 28.672974, 36.255985)
 faction = &"red"
+max_health = 5
 
 [node name="ElevatorPlatform" parent="." index="75" unique_id=1275687264 instance=ExtResource("8_fvot5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.541435, 29.152025, 67.04286)

@@ -58,7 +58,6 @@ predelay_msec = 30.0
 room_size = 0.5
 damping = 0.55
 spread = 0.7
-dry = 1.0
 wet = 0.04
 
 [sub_resource type="AudioEffectLowPassFilter" id="9"]
