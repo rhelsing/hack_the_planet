@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://defq40mtn1sfw"]
+
+[ext_resource type="Script" path="res://tests/bump_boot_test.gd" id="1_script"]
+
+[node name="BumpBootTest" type="Node3D"]
+script = ExtResource("1_script")

@@ -719,30 +719,26 @@ func _effective_cone_deg() -> float:
 
 func _chase_direction(body: Node3D) -> Vector3:
 	var to_target: Vector3 = _target.global_position - body.global_position
-	# Capture vertical delta BEFORE flattening — used below to decide whether
-	# to consult the waypoint graph. Same-level chases skip the raycast cost.
-	var vertical_delta: float = absf(to_target.y)
 	to_target.y = 0.0
 	if to_target.length_squared() < 0.0001:
 		return Vector3.ZERO
-	# Waypoint detour: when target is on a different elevation tier
-	# (vertical delta > jump_height_threshold ≈ 1.5m), check the
-	# `ally_waypoints` graph for a reachable next-hop. _waypoint_steer's
-	# raycast gate decides which marker is reachable from current standing
-	# position — bottom-tier on the ground floor, mid-tier mid-way up the
-	# ramp, top-tier near the apex. Falls back to direct steering when no
-	# waypoint qualifies (open ground, same-level chase, no waypoints
-	# authored on this level).
 	var travel_dir: Vector3 = to_target.normalized()
 	_following_waypoint_path = false
 	# Rail takes precedence when the pawn is close to it: drive along the
-	# player-laid trail toward the player. Falls through to the waypoint graph
-	# when there's no rail nearby.
+	# player-laid trail toward the player. Otherwise consult the waypoint router.
 	var rail_dir: Vector3 = _rail_steer(body)
 	if rail_dir != Vector3.ZERO:
 		travel_dir = rail_dir
 		_following_waypoint_path = true  # walk the rail; no rabbit-hopping
-	elif vertical_delta > jump_height_threshold:
+	else:
+		# Consult the router whenever the target isn't DIRECTLY WALK-REACHABLE —
+		# not only across an elevation change (the old `vertical_delta >
+		# jump_height_threshold` gate skipped it for EVERY same-level chase, which
+		# is exactly why a pawn at a same-level corner-gap steered into the ledge
+		# and stood there instead of routing around). _waypoint_steer self-gates:
+		# it returns ZERO (→ direct steer) when the straight line is walkable, and
+		# ZERO when nav is off (no nav_graph nodes) — so this is a no-op on open
+		# ground and while the nav system is disabled.
 		var wp_dir: Vector3 = _waypoint_steer(body, _target)
 		if wp_dir != Vector3.ZERO:
 			travel_dir = wp_dir
@@ -816,7 +812,7 @@ func _follow_direction(body: Node3D) -> Vector3:
 	if dist < follow_personal_space:
 		_follow_engaged = false
 		return -dir
-	# Waypoint hop: if any "ally_waypoints" Marker3D sits between me and the
+	# Waypoint hop: if any "nav_graph" Marker3D sits between me and the
 	# subject (closer to subject than I am), steer toward THAT instead of
 	# straight at the subject. Lets allies hop ramps + corners that simple
 	# straight-line steering would faceplant into. Falls back to direct
@@ -909,7 +905,7 @@ func _rail_steer(body: Node3D) -> Vector3:
 	return rail.steer_along(body_pos)
 
 
-## Returns a horizontal direction toward the closest reachable "ally_waypoints"
+## Returns a horizontal direction toward the closest reachable "nav_graph"
 ## Marker3D between me and the subject. Used by BOTH the ally follow path and
 ## the hostile chase path — the group name is historical, not semantic.
 ##
@@ -927,8 +923,12 @@ func _rail_steer(body: Node3D) -> Vector3:
 ## Cost: one ray per candidate. Bounded by tick_every_n_frames; cheap enough
 ## for the waypoint counts we have (~13 on the L4 ramp).
 ##
-## Author waypoints by dropping Marker3Ds with groups = ["ally_waypoints"].
-## They define WHERE to go; the raycast decides WHICH ONE is reachable now.
+## Routing nodes live in the `nav_graph` group, populated at load by
+## AutoNavGraph (level/nav/auto_nav_graph.gd). Deliberately NOT `ally_waypoints`
+## — that group is NavTrail's activation probes (nav_trail.gd), a separate
+## concern; keeping them apart stops routing nodes from polluting NavTrail and
+## vice-versa. A level may also hand-drop Marker3Ds into `nav_graph` to force
+## routing nodes; the raycast decides which is reachable now.
 ## Ray endpoint lift (meters). ~face height — looking over the slope, not
 ## along it. Hits with upward normals are filtered out so a ramp doesn't
 ## occlude itself; walls and ceilings still block.
@@ -943,6 +943,22 @@ func _rail_steer(body: Node3D) -> Vector3:
 ## cross-link). Tune up if enemies skip steps; down if they take shortcuts
 ## across walls a higher K let through.
 @export_range(2, 12) var waypoint_graph_k: int = 3
+## Max distance (m) between two waypoints that will even be considered as
+## neighbors. Skips the reachability RAYCAST for far-apart pairs — the K nearest
+## are always local, so this turns the O(N^2) graph build into O(N*local),
+## which matters once AutoNavGraph produces hundreds of dense nodes (hand-placed
+## graphs have ~13 and are unaffected). 0 = unlimited (test every pair).
+## ~6 fits the dense auto-graph: at 3m spacing the K-nearest neighbors are always
+## the immediate ring (≤~4.3m), so testing beyond ~6m is wasted rays.
+@export var waypoint_max_connect_dist: float = 6.0
+## Ground-continuity sample step (m) along a candidate straight path for the
+## walk-reachability test. Smaller catches narrower gaps at the cost of more
+## down-rays. ~1.5 catches the level's inter-platform gaps.
+@export var walk_reach_sample_step: float = 1.5
+## Max drop (m) below the straight line still counted as continuous ground in
+## the walk-reachability test. A walkable step-down stays under this; a real
+## chasm exceeds it and reads as a gap → route around (or let _nav_smart drop).
+@export var walk_reach_max_drop: float = 3.0
 ## How heavily to weight elevation difference when picking the start/goal
 ## waypoint for an actor. Endpoint selection asks "which waypoint is on
 ## the floor this actor is standing on?" — NOT "which waypoint can it see"
@@ -960,6 +976,9 @@ func _rail_steer(body: Node3D) -> Vector3:
 # neighbors, ordered by 3D distance ascending.
 static var _wp_graph: Dictionary = {}
 static var _wp_graph_scene_path: String = ""
+# Node count the cached graph was built from — a change (progressive AutoNavGraph
+# streaming) forces a rebuild so late-arriving nodes get wired in.
+static var _wp_graph_node_count: int = 0
 
 
 ## Build the waypoint adjacency graph for the current scene. Idempotent:
@@ -971,43 +990,83 @@ func _ensure_wp_graph(body: Node3D, space: PhysicsDirectSpaceState3D) -> bool:
 	if tree == null or tree.current_scene == null:
 		return false
 	var scene_path := tree.current_scene.scene_file_path
-	if _wp_graph_scene_path == scene_path and not _wp_graph.is_empty():
+	var wps: Array[Node3D] = []
+	for n in tree.get_nodes_in_group(&"nav_graph"):
+		if n is Node3D:
+			wps.append(n as Node3D)
+	# Rebuild when the node COUNT changes, not just on scene change: AutoNavGraph
+	# streams nodes in progressively over the first ~1-2s, so a graph cached from
+	# a partial set must be invalidated as more arrive (it settles once the count
+	# stops growing, then this early-returns normally).
+	if _wp_graph_scene_path == scene_path and not _wp_graph.is_empty() \
+			and wps.size() == _wp_graph_node_count:
 		return true
+	if wps.is_empty():
+		return false
 	_wp_graph.clear()
 	_wp_graph_scene_path = scene_path
+	_wp_graph_node_count = wps.size()
+	var max_connect_sq: float = waypoint_max_connect_dist * waypoint_max_connect_dist
+	for a: Node3D in wps:
+		_wp_graph[a] = _build_node_edges(a, wps, space, max_connect_sq)
+	print("[wp] graph built (%s): %d nodes, k=%d" % [scene_path, wps.size(), waypoint_graph_k])
+	return true
+
+
+## K-nearest WALK-reachable neighbors of `a` among `wps`. Shared by the sync
+## build (_ensure_wp_graph) and the chunked async build (build_graph_async).
+func _build_node_edges(a: Node3D, wps: Array[Node3D], space: PhysicsDirectSpaceState3D, max_connect_sq: float) -> Array[Node3D]:
+	var candidates: Array = []  # [{wp, dist_sq}]
+	for b: Node3D in wps:
+		if b == a:
+			continue
+		# Spatial pre-filter: far-apart pairs can't be K-nearest neighbors, so
+		# skip the raycast (the expensive part). Keeps the build O(N*local).
+		var dist_sq: float = a.global_position.distance_squared_to(b.global_position)
+		if waypoint_max_connect_dist > 0.0 and dist_sq > max_connect_sq:
+			continue
+		# Edge only if a pawn can WALK a→b: no wall AND continuous ground, so BFS
+		# never routes over a gap the bare sightline happens to clear.
+		if not _walk_reachable(a.global_position, b.global_position, space, RID()):
+			continue
+		candidates.append({"wp": b, "dist_sq": dist_sq})
+	candidates.sort_custom(func(x, y): return x.dist_sq < y.dist_sq)
+	var neighbors: Array[Node3D] = []
+	for i in mini(waypoint_graph_k, candidates.size()):
+		neighbors.append(candidates[i].wp)
+	return neighbors
+
+
+## Resumable graph build — processes chunk_size nodes per physics frame, so the
+## full K-NN bake spreads across load frames instead of hanging one. Awaited by
+## AutoNavGraph while the loading bar is up, so the cost lives in the loading
+## screen, never on a gameplay frame. Uses the brain's parent as the query body.
+func build_graph_async(chunk_size: int = 250) -> void:
+	var body := get_parent()
+	if not (body is Node3D):
+		return
+	var body3d := body as Node3D
+	var space := body3d.get_world_3d().direct_space_state
+	var tree := body3d.get_tree()
+	if space == null or tree == null or tree.current_scene == null:
+		return
 	var wps: Array[Node3D] = []
-	for n in tree.get_nodes_in_group(&"ally_waypoints"):
+	for n in tree.get_nodes_in_group(&"nav_graph"):
 		if n is Node3D:
 			wps.append(n as Node3D)
 	if wps.is_empty():
-		return false
+		return
+	_wp_graph.clear()
+	_wp_graph_scene_path = tree.current_scene.scene_file_path
+	_wp_graph_node_count = wps.size()
+	var max_connect_sq: float = waypoint_max_connect_dist * waypoint_max_connect_dist
+	var processed: int = 0
 	for a: Node3D in wps:
-		var a_pos: Vector3 = a.global_position + Vector3.UP * waypoint_ray_lift
-		var candidates: Array = []  # [{wp, dist_sq}]
-		for b: Node3D in wps:
-			if b == a:
-				continue
-			# Reachability test between waypoints — same normal-filtered
-			# ray we use elsewhere. Slopes/stairs pass, walls/ceilings block.
-			var b_pos: Vector3 = b.global_position + Vector3.UP * waypoint_ray_lift
-			var query := PhysicsRayQueryParameters3D.create(a_pos, b_pos)
-			var hit: Dictionary = space.intersect_ray(query)
-			if not hit.is_empty():
-				var normal: Vector3 = hit.normal as Vector3
-				if normal.y < waypoint_floor_normal_dot:
-					continue
-			candidates.append({
-				"wp": b,
-				"dist_sq": a.global_position.distance_squared_to(b.global_position),
-			})
-		# Keep only the K nearest reachable neighbors.
-		candidates.sort_custom(func(x, y): return x.dist_sq < y.dist_sq)
-		var neighbors: Array[Node3D] = []
-		for i in mini(waypoint_graph_k, candidates.size()):
-			neighbors.append(candidates[i].wp)
-		_wp_graph[a] = neighbors
-	print("[wp] graph built (%s): %d nodes, k=%d" % [scene_path, wps.size(), waypoint_graph_k])
-	return true
+		_wp_graph[a] = _build_node_edges(a, wps, space, max_connect_sq)
+		processed += 1
+		if processed % chunk_size == 0:
+			await tree.physics_frame
+	print("[wp] graph built async (%s): %d nodes, k=%d" % [_wp_graph_scene_path, wps.size(), waypoint_graph_k])
 
 
 ## Pick the waypoint anchoring `origin` to the chain: the one on the
@@ -1093,6 +1152,41 @@ func _walkable_los(from_pos: Vector3, to_pos: Vector3, space: PhysicsDirectSpace
 	var normal: Vector3 = hit.normal as Vector3
 	return normal.y >= waypoint_floor_normal_dot
 
+
+## Stronger than _walkable_los: a straight foot-path counts as reachable only if
+## (a) no wall/ceiling blocks the chest-height line AND (b) there is continuous
+## GROUND beneath it. This is the LOS→walk fix: a clear sightline across an open
+## gap (the void sits below the chest ray) used to read as "walkable," so pawns
+## beelined into ledges instead of routing around. We sample the floor along the
+## line; a void — or a drop deeper than walk_reach_max_drop — at any interior
+## point means NOT reachable, so the caller falls to the graph route.
+func _walk_reachable(from_pos: Vector3, to_pos: Vector3, space: PhysicsDirectSpaceState3D, exclude_rid: RID, exclude_extra: RID = RID()) -> bool:
+	if not _walkable_los(from_pos, to_pos, space, exclude_rid, exclude_extra):
+		return false
+	var dx: float = to_pos.x - from_pos.x
+	var dz: float = to_pos.z - from_pos.z
+	var d: float = sqrt(dx * dx + dz * dz)
+	if d < 0.001:
+		return true
+	var exclude: Array[RID] = []
+	if exclude_rid != RID(): exclude.append(exclude_rid)
+	if exclude_extra != RID(): exclude.append(exclude_extra)
+	var steps: int = maxi(1, int(ceil(d / walk_reach_sample_step)))
+	for i in range(1, steps):  # interior samples only; endpoints sit on floor
+		var t: float = float(i) / float(steps)
+		var px: float = from_pos.x + dx * t
+		var pz: float = from_pos.z + dz * t
+		var py: float = lerpf(from_pos.y, to_pos.y, t)
+		var down := PhysicsRayQueryParameters3D.create(
+			Vector3(px, py + 0.5, pz), Vector3(px, py - walk_reach_max_drop, pz))
+		down.exclude = exclude
+		var dhit: Dictionary = space.intersect_ray(down)
+		if dhit.is_empty():
+			return false  # void beneath the straight path → gap
+		if (dhit.normal as Vector3).y < waypoint_floor_normal_dot:
+			return false  # steep face, not a floor
+	return true
+
 ## Graph-traversal waypoint steering with string-pull look-ahead. Each call:
 ##   1. Direct LOS check — if body can see the subject through walkable
 ##      geometry (floors don't block, walls/ceilings do), return ZERO so
@@ -1110,6 +1204,10 @@ func _waypoint_steer(body: Node3D, subject: Node3D) -> Vector3:
 	var tree := body.get_tree()
 	if tree == null:
 		return Vector3.ZERO
+	# Nav system off / no graph → skip routing entirely (not even the walk-reach
+	# gate) so it costs nothing and behavior is the pre-nav reactive fallback.
+	if tree.get_nodes_in_group(&"nav_graph").is_empty():
+		return Vector3.ZERO
 	var space := body.get_world_3d().direct_space_state
 	if space == null:
 		return Vector3.ZERO
@@ -1117,9 +1215,11 @@ func _waypoint_steer(body: Node3D, subject: Node3D) -> Vector3:
 	var subject_pos: Vector3 = subject.global_position
 	var body_rid: RID = (body as CollisionObject3D).get_rid() if body is CollisionObject3D else RID()
 	var subject_rid: RID = (subject as CollisionObject3D).get_rid() if subject is CollisionObject3D else RID()
-	# Shortcut: direct LOS to subject through walkable geometry. Skip the
-	# waypoint detour when we can just chase straight.
-	if _walkable_los(body_pos, subject_pos, space, body_rid, subject_rid):
+	# Shortcut: if the subject is WALK-reachable in a straight line (no wall AND
+	# continuous ground — not just a clear sightline across a gap), skip the
+	# detour and chase straight. This gap-aware gate is what makes the router
+	# engage at open corner-gaps instead of beelining into the ledge.
+	if _walk_reachable(body_pos, subject_pos, space, body_rid, subject_rid):
 		if _last_waypoint != null:
 			_log_waypoint_change(body, null, -1, false)
 		return Vector3.ZERO
@@ -1148,7 +1248,7 @@ func _waypoint_steer(body: Node3D, subject: Node3D) -> Vector3:
 	var target_wp: Node3D = path[0]
 	for i in range(path.size() - 1, -1, -1):
 		var wp: Node3D = path[i]
-		if _walkable_los(body_pos, wp.global_position, space, body_rid):
+		if _walk_reachable(body_pos, wp.global_position, space, body_rid):
 			target_wp = wp
 			break
 	_log_waypoint_change(body, target_wp, path.size() - 1, false)

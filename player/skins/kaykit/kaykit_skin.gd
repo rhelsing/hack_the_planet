@@ -458,6 +458,196 @@ func _process(delta: float) -> void:
 			_ambient_flicker_elapsed = 0.0
 
 
+# --- Ragdoll death ---
+# Scene-authored PhysicalBone3D rig under Model/Rig_Medium/Skeleton3D: 11
+# bones (hips, chest, head, upper/lower arms, upper/lower legs). Hands and
+# feet have no bodies — they ride their parent limb, which is what makes the
+# corpse read as a stiff action figure. Colliders are authored disabled so
+# live pawns cost nothing in broadphase; start_ragdoll enables them and hands
+# the skeleton to physics. One-way — dying pawns queue_free from the body side.
+
+## Multiplies the launch velocity the body passes into start_ragdoll. Each
+## bone gets impulse = mass * velocity, so the whole rig launches uniformly
+## at the requested speed; raise this for more send-off.
+@export var ragdoll_impulse_scale: float = 1.0
+
+## Gravity multiplier applied to every bone at start_ragdoll. Pawns fall at
+## the body's -30 m/s² gameplay gravity but the physics server default is
+## 9.8 — without this the corpse floats at a third of game gravity.
+@export var ragdoll_gravity_scale: float = 4.2
+
+## Per-tick speed caps while ragdolled. Ground impact can spike GodotPhysics
+## bone velocities into the hundreds of m/s (solver depenetration + joint
+## snapback); clamping every physics tick makes detonation impossible — the
+## excess bleeds off through damping and reads as stiff clatter instead.
+@export var ragdoll_max_bone_speed: float = 55.0
+@export var ragdoll_max_bone_spin: float = 25.0
+
+## Freeze every bone's rotation the instant the corpse lands (first bone
+## contact after the hips have dropped ragdoll_freeze_min_drop below their
+## launch height). The statue keeps its linear momentum and slides out on
+## friction — no post-landing tumbling.
+@export var ragdoll_freeze_rotation_on_land := true
+## Hips must fall this far (m) below their launch height before the landing
+## freeze can arm — otherwise a stealth-killed pawn whose feet already touch
+## the floor would freeze while still upright.
+@export var ragdoll_freeze_min_drop := 0.2
+## Seconds between the first landing contact and the rotation lock — gives
+## the corpse its impact tumble before it goes rigid and slides.
+@export var ragdoll_freeze_delay := 0.3
+
+## Random spin injected at launch, as one coherent whole-body rotation.
+## Yaw: [-max, max] rad/s about vertical — helicopter spin, either way.
+## Roll: [0, max] rad/s about the horizontal axis perpendicular to travel,
+## signed so the head tips toward travel — always reads as rolling backward
+## off the hit, never a forward flip.
+@export var ragdoll_spin_yaw_max := 15.0
+@export var ragdoll_spin_roll_max := 15.0
+
+var _ragdoll_active := false
+var _ragdoll_bones: Array[PhysicalBone3D] = []
+var _ragdoll_hips: PhysicalBone3D = null
+var _ragdoll_frozen := false
+var _ragdoll_start_hips_y := 0.0
+# -1 = not landed yet; >= 0 counts up from first contact toward freeze_delay.
+var _ragdoll_land_timer := -1.0
+
+
+## Hand the skeleton to physics. `launch_velocity` is a world-space velocity
+## (same units as the knockback death's launch), converted per-bone into a
+## momentum-consistent impulse so the rig takes off as one stiff piece.
+func start_ragdoll(launch_velocity: Vector3) -> void:
+	if _ragdoll_active:
+		return
+	var skel := _find_skeleton(self)
+	if skel == null:
+		push_error("KayKitSkin.start_ragdoll: no skeleton under %s" % get_path())
+		return
+	var bones: Array[PhysicalBone3D] = []
+	for c: Node in skel.get_children():
+		if c is PhysicalBone3D:
+			bones.append(c as PhysicalBone3D)
+	if bones.is_empty():
+		push_error("KayKitSkin.start_ragdoll: no PhysicalBone3D rig in %s" % get_path())
+		return
+	_ragdoll_active = true
+	_ragdoll_bones = bones
+	_ragdoll_frozen = false
+	_ragdoll_land_timer = -1.0
+	for pb: PhysicalBone3D in bones:
+		if pb.get("bone_name") == "hips":
+			_ragdoll_hips = pb
+			break
+	animation_tree.active = false
+	for pb: PhysicalBone3D in bones:
+		pb.gravity_scale = ragdoll_gravity_scale
+		# Landing detection reads real contacts off the direct body state —
+		# works at any ground height, unlike a global-y threshold.
+		PhysicsServer3D.body_set_max_contacts_reported(pb.get_rid(), 1)
+		for s: Node in pb.get_children():
+			if s is CollisionShape3D:
+				(s as CollisionShape3D).disabled = false
+	skel.physical_bones_start_simulation()
+	var v: Vector3 = launch_velocity * ragdoll_impulse_scale
+	for pb: PhysicalBone3D in bones:
+		pb.apply_central_impulse(v * pb.mass)
+	_apply_launch_spin(bones, v)
+	_ragdoll_start_hips_y = ragdoll_reference_position().y
+
+
+## Give the rig a coherent random tumble: same angular velocity on every
+## bone PLUS the matching ω×r linear component about the hips. Without the
+## linear part, the per-bone angular damping (29+) eats the spin within a
+## few frames and the tumble never reads.
+func _apply_launch_spin(bones: Array[PhysicalBone3D], launch: Vector3) -> void:
+	if ragdoll_spin_yaw_max <= 0.0 and ragdoll_spin_roll_max <= 0.0:
+		return
+	var dir: Vector3 = launch
+	dir.y = 0.0
+	if dir.length_squared() < 0.0001:
+		return
+	dir = dir.normalized()
+	var omega: Vector3 = Vector3.UP * randf_range(-ragdoll_spin_yaw_max, ragdoll_spin_yaw_max) \
+		+ Vector3.UP.cross(dir) * randf_range(0.0, ragdoll_spin_roll_max)
+	var com: Vector3 = ragdoll_reference_position()
+	for pb: PhysicalBone3D in bones:
+		pb.angular_velocity = omega
+		pb.apply_central_impulse(omega.cross(pb.global_position - com) * pb.mass)
+
+
+func _physics_process(delta: float) -> void:
+	# Ragdoll stabilizer: hard speed cap per bone per tick (see the export
+	# comment — GodotPhysics ground impacts can otherwise explode the rig).
+	if not _ragdoll_active:
+		return
+	if _ragdoll_frozen:
+		# Frozen statue: every bone shares the hips' linear velocity, zero
+		# spin. Axis locks alone leave linear DOFs free — segments can still
+		# orbit-translate around their joint pivots (parallelogram flail)
+		# and the settling torso presses the thin arm capsules through the
+		# floor. Velocity sync makes the assembly translate as one piece.
+		if _ragdoll_hips != null:
+			var hv: Vector3 = _ragdoll_hips.linear_velocity
+			for pb: PhysicalBone3D in _ragdoll_bones:
+				if pb != _ragdoll_hips:
+					pb.linear_velocity = hv
+				pb.angular_velocity = Vector3.ZERO
+		return
+	for pb: PhysicalBone3D in _ragdoll_bones:
+		var lv: Vector3 = pb.linear_velocity
+		if lv.length_squared() > ragdoll_max_bone_speed * ragdoll_max_bone_speed:
+			pb.linear_velocity = lv.normalized() * ragdoll_max_bone_speed
+		var av: Vector3 = pb.angular_velocity
+		if av.length_squared() > ragdoll_max_bone_spin * ragdoll_max_bone_spin:
+			pb.angular_velocity = av.normalized() * ragdoll_max_bone_spin
+	_tick_land_freeze(delta)
+
+
+## Landing freeze: once the hips have fallen far enough and any bone touches
+## something, wait ragdoll_freeze_delay (the impact tumble), then lock every
+## bone's angular axes and zero its spin. Linear DOFs stay free, so the whole
+## assembly slides as one statue and friction stops it.
+func _tick_land_freeze(delta: float) -> void:
+	if _ragdoll_frozen or not ragdoll_freeze_rotation_on_land:
+		return
+	if _ragdoll_land_timer < 0.0:
+		if _ragdoll_start_hips_y - ragdoll_reference_position().y < ragdoll_freeze_min_drop:
+			return
+		for pb: PhysicalBone3D in _ragdoll_bones:
+			var state := PhysicsServer3D.body_get_direct_state(pb.get_rid())
+			if state != null and state.get_contact_count() > 0:
+				_ragdoll_land_timer = 0.0
+				break
+		return
+	_ragdoll_land_timer += delta
+	if _ragdoll_land_timer < ragdoll_freeze_delay:
+		return
+	_ragdoll_frozen = true
+	for pb: PhysicalBone3D in _ragdoll_bones:
+		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_ANGULAR_X, true)
+		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_ANGULAR_Y, true)
+		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_ANGULAR_Z, true)
+		pb.angular_velocity = Vector3.ZERO
+
+
+func is_ragdolled() -> bool:
+	return _ragdoll_active
+
+
+## Where the corpse actually ended up — the hips bone's global position.
+## The body node stays at the death spot while the bones tumble away, so
+## confetti/glitch effects should anchor here, not at the body origin.
+func ragdoll_reference_position() -> Vector3:
+	if _ragdoll_hips != null:
+		return _ragdoll_hips.global_position
+	var skel := _find_skeleton(self)
+	if skel != null:
+		for c: Node in skel.get_children():
+			if c is PhysicalBone3D and c.get("bone_name") == "hips":
+				return (c as PhysicalBone3D).global_position
+	return global_position
+
+
 func set_skate_mode(active: bool) -> void:
 	var model: Node3D = get_node_or_null("Model") as Node3D
 	if model != null:

@@ -373,6 +373,15 @@ const _FACTION_TINT: Dictionary = {
 ## enemy CharacterBody3D. Pushes them off so an enemy head isn't a stable
 ## platform. 0 disables the slide-off entirely.
 @export var enemy_head_slide_speed: float = 6.0
+## Pawn↔pawn bump: kinematic bodies exchange no momentum on their own, so
+## plowing into another pawn pushes their velocity along the contact normal
+## up to this speed (m/s), with a half-strength recoil on us. Capped, not
+## accumulated, so sustained contact can't launch anyone. 0 disables.
+@export var pawn_bump_speed: float = 2.5
+## Impulse scale for kicking ragdoll corpse bones we walk or skate through.
+## Impulse = our horizontal speed × bone mass × this — skating through a
+## corpse pile scatters it, creeping through nudges it. 0 disables.
+@export var ragdoll_kick_scale: float = 1.0
 
 @export_group("Crouch")
 ## max_speed multiplier while crouch_held is true. Only applied in walk mode.
@@ -469,6 +478,24 @@ enum FollowMode { PARENTED, DETACHED }
 @export var stealth_fall_bounce_duration := 0.2
 ## Restitution between bounces: second bounce height = h × e², like a ball.
 @export_range(0.0, 1.0) var stealth_fall_restitution := 0.6
+## ── Ragdoll death ── skins with a scene-authored PhysicalBone3D rig (KayKit)
+## take this path instead of the scripted knockback/stealth pose timelines.
+## Seconds after the ragdoll launch before the confetti burst + glitch
+## dissolve start. Long enough for the bones to clatter down and settle.
+@export var ragdoll_settle_time := 1.6
+## Ragdoll launch velocity (m/s), separate from death_knockback_* so
+## cop_riot's scripted knockback death keeps its own numbers. Mostly
+## backward, barely up: a low hard blast-away rather than an arc.
+@export var ragdoll_launch_backward := 19.0
+@export var ragdoll_launch_vertical := 4.5
+## Sideways bias blended into the launch so the hit reads as sweeping across
+## the body right-to-left (toward the victim's OWN left). 0 = launch straight
+## along the knockback direction, 1 = 45° between backward and left, bigger =
+## mostly sideways. Negative flips to left-to-right.
+@export var ragdoll_launch_side_bias := 0.6
+## Launch speed (m/s) handed to the ragdoll on a stealth kill — a gentle
+## shove so the corpse tips over in place instead of flying.
+@export var stealth_ragdoll_push := 2.0
 ## Seconds without being hit before HP fully refills. Set high to make damage
 ## sticky, low to make the player resilient. 0 disables regen.
 @export var health_regen_delay := 4.0
@@ -1025,6 +1052,10 @@ const _MOVE_IDLE_DEADZONE := 0.15
 const _PLAYER_DEATH_DURATION := 2.0
 var _death_burst_done := false
 var _death_glitch_value := 0.0
+# True while dying via the skin's PhysicalBone3D ragdoll (KayKit enemies).
+# The body node freezes in place — no gravity/move_and_slide — while the
+# bones simulate; effects anchor to the skin's ragdoll_reference_position.
+var _ragdoll_death := false
 var _death_landed := false
 var _death_pose_timer := 0.0
 var _death_flight_time := 0.0
@@ -1900,7 +1931,29 @@ func _start_death(impact_direction: Vector3) -> void:
 	# Death sfx is now played from _spawn_death_confetti() so it lands with
 	# the burst, not at launch. (Legacy path spawns confetti immediately
 	# below; knockback path waits for the pose-hold then bursts.)
-	if _skin.uses_knockback_death:
+	_ragdoll_death = dies_permanently and _skin != null and _skin.has_method(&"start_ragdoll")
+	if _ragdoll_death:
+		# Physics ragdoll: the skin's PhysicalBone3D rig takes over. The body
+		# node stays put (no move_and_slide while dying); the bones launch
+		# along the kill impulse and clatter down under joint limits.
+		var rdir: Vector3 = impact_direction
+		rdir.y = 0.0
+		_death_impact_dir = rdir.normalized() if rdir.length_squared() > 0.0001 else Vector3.BACK
+		velocity = Vector3.ZERO
+		_death_pose_timer = 0.0
+		# Blend the victim's own left (+X in skin space — where the .l bones
+		# live) into the launch so the blast sweeps across the body right-to-
+		# left instead of flying straight back. Direction only; speed stays
+		# ragdoll_launch_backward.
+		var launch_dir: Vector3 = _death_impact_dir
+		var victim_left: Vector3 = _skin.global_transform.basis.x
+		victim_left.y = 0.0
+		if not is_zero_approx(ragdoll_launch_side_bias) and victim_left.length_squared() > 0.0001:
+			launch_dir = (_death_impact_dir + victim_left.normalized() * ragdoll_launch_side_bias).normalized()
+		_skin.call(&"start_ragdoll",
+			launch_dir * ragdoll_launch_backward + Vector3.UP * ragdoll_launch_vertical)
+		_dying_timer = _DEATH_SAFETY_TIMEOUT
+	elif _skin.uses_knockback_death:
 		# Procedural knockback: launch along impact + lift, capture the skin's
 		# current basis to slerp from, let physics carry them. Death tick
 		# detects landing → freezes pose → holds → burst+flicker → poof.
@@ -1942,7 +1995,22 @@ func stealth_kill(impact_direction: Vector3 = Vector3.BACK) -> void:
 		_skin.damage_tint = 0.0
 	_death_burst_done = false
 	_death_glitch_value = 0.0
-	if _skin != null and _skin.uses_knockback_death:
+	_ragdoll_death = dies_permanently and _skin != null and _skin.has_method(&"start_ragdoll")
+	if _ragdoll_death:
+		# Stealth takedown, ragdoll style: no launch, just a gentle shove so
+		# the corpse tips over in place. Layer drops to 0 here too — the
+		# bones carry collision from now on, and the rig's mask would
+		# otherwise pair with our own capsule.
+		_pre_death_collision_layer = collision_layer
+		collision_layer = 0
+		var rdir: Vector3 = impact_direction
+		rdir.y = 0.0
+		rdir = rdir.normalized() if rdir.length_squared() > 0.0001 else Vector3.BACK
+		velocity = Vector3.ZERO
+		_death_pose_timer = 0.0
+		_skin.call(&"start_ragdoll", rdir * stealth_ragdoll_push)
+		_dying_timer = _DEATH_SAFETY_TIMEOUT
+	elif _skin != null and _skin.uses_knockback_death:
 		var dir: Vector3 = impact_direction
 		dir.y = 0.0
 		_death_impact_dir = dir.normalized() if dir.length_squared() > 0.0001 else Vector3.BACK
@@ -2005,6 +2073,22 @@ func _tick_knockback_death(delta: float) -> void:
 		_death_glitch_value = minf(_death_glitch_value + delta / _DEATH_GLITCH_RAMP, 1.0)
 		_skin.set_glitch_progress(_death_glitch_value)
 		if _death_pose_timer >= _DEATH_POSE_HOLD + _DEATH_FLICKER_DURATION:
+			_dying_timer = 0.0
+
+
+## Per-frame work for the ragdoll death: wait for the bones to settle, then
+## run the same confetti burst + glitch flicker tail as the knockback path.
+## Only dies_permanently pawns take this path (gated in _start_death), so
+## there's no player-respawn branch here.
+func _tick_ragdoll_death(delta: float) -> void:
+	_death_pose_timer += delta
+	if not _death_burst_done and _death_pose_timer >= ragdoll_settle_time:
+		_death_burst_done = true
+		_spawn_death_confetti()
+	if _death_burst_done:
+		_death_glitch_value = minf(_death_glitch_value + delta / _DEATH_GLITCH_RAMP, 1.0)
+		_skin.set_glitch_progress(_death_glitch_value)
+		if _death_pose_timer >= ragdoll_settle_time + _DEATH_FLICKER_DURATION:
 			_dying_timer = 0.0
 
 
@@ -2143,7 +2227,12 @@ func _spawn_death_confetti() -> void:
 	if _skin != null and _skin.confetti_glitch_material != null:
 		burst.call("set_overlay_material", _skin.confetti_glitch_material)
 	get_parent().add_child(burst)
-	burst.global_position = global_position
+	# Ragdoll corpses tumble away from the body node, which stays frozen at
+	# the death spot — anchor the burst to where the bones actually landed.
+	if _ragdoll_death and _skin != null and _skin.has_method(&"ragdoll_reference_position"):
+		burst.global_position = _skin.call(&"ragdoll_reference_position")
+	else:
+		burst.global_position = global_position
 
 
 ## Universal damage entry point. Decrement HP, apply knockback, flash tint;
@@ -2739,11 +2828,15 @@ func _physics_process(delta: float) -> void:
 
 	if _dying:
 		_dying_timer -= delta
-		velocity.y += _gravity * delta
-		move_and_slide()
+		if _ragdoll_death:
+			# Body stays frozen; the skin's physical bones carry the corpse.
+			_tick_ragdoll_death(delta)
+		else:
+			velocity.y += _gravity * delta
+			move_and_slide()
+			if _skin != null and _skin.uses_knockback_death:
+				_tick_knockback_death(delta)
 		_update_follow_camera(delta)
-		if _skin != null and _skin.uses_knockback_death:
-			_tick_knockback_death(delta)
 		if _dying_timer <= 0.0:
 			_finish_death()
 		return
@@ -3204,8 +3297,54 @@ func _physics_process(delta: float) -> void:
 	_was_on_floor_last_frame = on_floor
 	move_and_slide()
 	_slide_off_enemy_head()
+	_apply_contact_physics()
 
 	_update_follow_camera(delta)
+
+
+## Contact physics for this tick's slide collisions. Two cases:
+## 1. Live pawn (CharacterBody3D with take_hit): symmetric shove — their
+##    velocity gets pushed along the contact normal up to pawn_bump_speed,
+##    ours recoils at half strength. Both are capped against the current
+##    velocity component (not accumulated) so a held contact converges
+##    instead of compounding every tick. Both pawns run this script, so
+##    A-hits-B and B-hits-A resolve to the same capped result.
+## 2. Ragdoll corpse bone (PhysicalBone3D): kick it along our travel,
+##    scaled by our speed and the bone's mass, with a bit of upward pop so
+##    parts hop rather than scrape.
+func _apply_contact_physics() -> void:
+	if pawn_bump_speed <= 0.0 and ragdoll_kick_scale <= 0.0:
+		return
+	for i: int in get_slide_collision_count():
+		var col: KinematicCollision3D = get_slide_collision(i)
+		var other: Object = col.get_collider()
+		# Normal points from the collider toward us; away = push direction.
+		var away: Vector3 = -col.get_normal()
+		away.y = 0.0
+		if away.length_squared() < 0.0001:
+			continue
+		away = away.normalized()
+		if other is PhysicalBone3D:
+			if ragdoll_kick_scale <= 0.0:
+				continue
+			var h: Vector3 = velocity
+			h.y = 0.0
+			var speed: float = maxf(h.length(), 1.0)
+			var bone := other as PhysicalBone3D
+			bone.apply_central_impulse(
+				(away + Vector3.UP * 0.2) * speed * bone.mass * ragdoll_kick_scale)
+		elif other is CharacterBody3D and other != self \
+				and (other as Node).has_method(&"take_hit"):
+			if pawn_bump_speed <= 0.0:
+				continue
+			var o := other as CharacterBody3D
+			var their_push: float = pawn_bump_speed - o.velocity.dot(away)
+			if their_push > 0.0:
+				o.velocity += away * their_push
+			var recoil_dir: Vector3 = -away
+			var our_push: float = pawn_bump_speed * 0.5 - velocity.dot(recoil_dir)
+			if our_push > 0.0:
+				velocity += recoil_dir * our_push
 
 
 ## Push this pawn horizontally off any OTHER pawn it's currently standing on.

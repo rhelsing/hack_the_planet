@@ -10,6 +10,34 @@
 [ext_resource type="SphereMesh" uid="uid://jcvev0gdjevs" path="res://library/fx/dust_sphere.tres" id="8_dustmesh"]
 [ext_resource type="Script" uid="uid://dmbg6hbusxlkh" path="res://player/skins/kaykit/kaykit_powerup_display.gd" id="9_powerup_display"]
 
+[sub_resource type="CapsuleShape3D" id="cap_hips"]
+radius = 0.15
+height = 0.34
+
+[sub_resource type="CapsuleShape3D" id="cap_chest"]
+radius = 0.16
+height = 0.36
+
+[sub_resource type="CapsuleShape3D" id="cap_head"]
+radius = 0.13
+height = 0.3
+
+[sub_resource type="CapsuleShape3D" id="cap_upperarm"]
+radius = 0.055
+height = 0.26
+
+[sub_resource type="CapsuleShape3D" id="cap_lowerarm"]
+radius = 0.05
+height = 0.38
+
+[sub_resource type="CapsuleShape3D" id="cap_upperleg"]
+radius = 0.07
+height = 0.26
+
+[sub_resource type="CapsuleShape3D" id="cap_lowerleg"]
+radius = 0.06
+height = 0.28
+
 [sub_resource type="AnimationNodeAnimation" id="ANA_Crouch"]
 animation = &"Crouching"
 
@@ -250,3 +278,254 @@ lifetime = 0.7
 explosiveness = 0.05
 process_material = ExtResource("7_dustproc")
 draw_pass_1 = ExtResource("8_dustmesh")
+
+[node name="Physical Bone hips" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.40566343, 0)
+collision_layer = 8
+collision_mask = 15
+mass = 3.0
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "hips"
+joint_type = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+shape = SubResource("cap_hips")
+disabled = true
+
+[node name="Physical Bone chest" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, 0, 1.4210853e-14, 0, 0.99999994, 0, -1.4210853e-14, 0, 1, 0, 0.9726289, 0)
+collision_layer = 8
+collision_mask = 15
+mass = 3.0
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "chest"
+joint_type = 2
+joint_rotation = Vector3(0, 0, -1.5707964)
+"joint_constraints/swing_span" = 25.0
+"joint_constraints/twist_span" = 20.0
+"joint_constraints/bias" = 0.01
+"joint_constraints/softness" = 1.5
+"joint_constraints/relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone chest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
+shape = SubResource("cap_chest")
+disabled = true
+
+[node name="Physical Bone head" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, 0, 1.4210854e-14, 0, 0.99999994, 0, -1.4210854e-14, 0, 1, 0, 1.2414254, 0)
+collision_layer = 8
+collision_mask = 15
+mass = 1.0
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 41.0
+bone_name = "head"
+joint_type = 2
+joint_rotation = Vector3(0, 0, -1.5707964)
+"joint_constraints/swing_span" = 30.0
+"joint_constraints/twist_span" = 25.0
+"joint_constraints/bias" = 0.01
+"joint_constraints/softness" = 1.5
+"joint_constraints/relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 0)
+shape = SubResource("cap_head")
+disabled = true
+
+[node name="Physical Bone upperarm_l" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(0.057284202, 0.9983573, -4.5386042e-07, -3.8742994e-07, 4.7683687e-07, 0.9999997, 0.9983573, -0.057284202, 4.1410917e-07, 0.21200737, 1.106761, 8.402462e-08)
+collision_layer = 8
+collision_mask = 15
+mass = 0.8
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "upperarm.l"
+joint_type = 2
+joint_rotation = Vector3(0, 0, -1.5707964)
+"joint_constraints/swing_span" = 50.0
+"joint_constraints/twist_span" = 20.0
+"joint_constraints/bias" = 0.01
+"joint_constraints/softness" = 1.5
+"joint_constraints/relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperarm_l"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+shape = SubResource("cap_upperarm")
+disabled = true
+
+[node name="Physical Bone upperarm_r" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(0.05728419, -0.99835724, 4.4361707e-07, 5.662436e-07, 4.768367e-07, 0.9999997, -0.99835724, -0.05728419, 5.9262936e-07, -0.21200737, 1.106761, 8.402462e-08)
+collision_layer = 8
+collision_mask = 15
+mass = 0.8
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "upperarm.r"
+joint_type = 2
+joint_rotation = Vector3(0, 0, -1.5707964)
+"joint_constraints/swing_span" = 50.0
+"joint_constraints/twist_span" = 20.0
+"joint_constraints/bias" = 0.01
+"joint_constraints/softness" = 1.5
+"joint_constraints/relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperarm_r"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
+shape = SubResource("cap_upperarm")
+disabled = true
+
+[node name="Physical Bone lowerarm_l" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(-0.053286575, 0.9985785, -4.5709825e-07, -3.1349884e-07, 4.4101935e-07, 0.99999964, 0.99857885, 0.05328655, 2.8955316e-07, 0.4535073, 1.106761, -0.013856813)
+collision_layer = 8
+collision_mask = 15
+mass = 0.6
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "lowerarm.l"
+joint_type = 3
+"joint_constraints/angular_limit_enabled" = true
+"joint_constraints/angular_limit_lower" = -110.0
+"joint_constraints/angular_limit_upper" = 10.0
+"joint_constraints/angular_limit_bias" = 0.01
+"joint_constraints/angular_limit_softness" = 1.5
+"joint_constraints/angular_limit_relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerarm_l"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19, 0)
+shape = SubResource("cap_lowerarm")
+disabled = true
+
+[node name="Physical Bone lowerarm_r" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(-0.053286575, -0.9985784, 4.468549e-07, 4.9121945e-07, 4.212778e-07, 0.99999964, -0.9985788, 0.053286552, 4.6807332e-07, -0.4535073, 1.106761, -0.013856809)
+collision_layer = 8
+collision_mask = 15
+mass = 0.6
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "lowerarm.r"
+joint_type = 3
+"joint_constraints/angular_limit_enabled" = true
+"joint_constraints/angular_limit_lower" = -10.0
+"joint_constraints/angular_limit_upper" = 110.0
+"joint_constraints/angular_limit_bias" = 0.01
+"joint_constraints/angular_limit_softness" = 1.5
+"joint_constraints/angular_limit_relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerarm_r"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19, 0)
+shape = SubResource("cap_lowerarm")
+disabled = true
+
+[node name="Physical Bone upperleg_l" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, -1.4221489e-07, -2.6560253e-08, -1.4305179e-07, -0.9993962, -0.034741182, -2.1603478e-08, 0.034741133, -0.9993976, 0.17094506, 0.5192507, 1.3923272e-08)
+collision_layer = 8
+collision_mask = 15
+mass = 1.2
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "upperleg.l"
+joint_type = 2
+joint_rotation = Vector3(0, 0, -1.5707964)
+"joint_constraints/swing_span" = 40.0
+"joint_constraints/twist_span" = 15.0
+"joint_constraints/bias" = 0.01
+"joint_constraints/softness" = 1.5
+"joint_constraints/relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperleg_l"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0)
+shape = SubResource("cap_upperleg")
+disabled = true
+
+[node name="Physical Bone upperleg_r" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, 1.4961098e-07, -6.086259e-08, 1.4740625e-07, -0.9993962, -0.034741182, -6.6023425e-08, 0.034741133, -0.9993976, -0.17094506, 0.5192507, 1.3923272e-08)
+collision_layer = 8
+collision_mask = 15
+mass = 1.2
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "upperleg.r"
+joint_type = 2
+joint_rotation = Vector3(0, 0, -1.5707964)
+"joint_constraints/swing_span" = 40.0
+"joint_constraints/twist_span" = 15.0
+"joint_constraints/bias" = 0.01
+"joint_constraints/softness" = 1.5
+"joint_constraints/relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperleg_r"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0)
+shape = SubResource("cap_upperleg")
+disabled = true
+
+[node name="Physical Bone lowerleg_l" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, 1.6673487e-08, 1.2493702e-07, -5.724598e-09, -0.98418176, 0.17716354, 1.2591482e-07, -0.17716396, -0.9841827, 0.17094503, 0.2923103, 0.00788895)
+collision_layer = 8
+collision_mask = 15
+mass = 1.0
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "lowerleg.l"
+joint_type = 3
+joint_rotation = Vector3(0, 1.5707964, 0)
+"joint_constraints/angular_limit_enabled" = true
+"joint_constraints/angular_limit_lower" = -10.0
+"joint_constraints/angular_limit_upper" = 120.0
+"joint_constraints/angular_limit_bias" = 0.01
+"joint_constraints/angular_limit_softness" = 1.5
+"joint_constraints/angular_limit_relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerleg_l"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
+shape = SubResource("cap_lowerleg")
+disabled = true
+
+[node name="Physical Bone lowerleg_r" type="PhysicalBone3D" parent="Model/Rig_Medium/Skeleton3D"]
+transform = Transform3D(1, -2.7912229e-08, -2.1194941e-07, 1.0079072e-08, -0.98418176, 0.17716354, -2.1354177e-07, -0.17716396, -0.9841827, -0.17094503, 0.2923103, 0.00788895)
+collision_layer = 8
+collision_mask = 15
+mass = 1.0
+friction = 1.0
+bounce = 0.3
+angular_damp_mode = 1
+angular_damp = 29.0
+bone_name = "lowerleg.r"
+joint_type = 3
+joint_rotation = Vector3(0, 1.5707964, 0)
+"joint_constraints/angular_limit_enabled" = true
+"joint_constraints/angular_limit_lower" = -10.0
+"joint_constraints/angular_limit_upper" = 120.0
+"joint_constraints/angular_limit_bias" = 0.01
+"joint_constraints/angular_limit_softness" = 1.5
+"joint_constraints/angular_limit_relaxation" = 0.7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerleg_r"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
+shape = SubResource("cap_lowerleg")
+disabled = true
+
+[editable path="Model"]

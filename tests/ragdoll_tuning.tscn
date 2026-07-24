@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dw1f1h32ofwnw"]
+
+[ext_resource type="Script" path="res://tests/ragdoll_tuning.gd" id="1_script"]
+
+[node name="RagdollTuning" type="Node3D"]
+script = ExtResource("1_script")
