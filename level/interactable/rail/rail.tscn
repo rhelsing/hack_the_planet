@@ -22,7 +22,7 @@ roughness = 0.25
 [node name="Rail" type="Path3D"]
 curve = SubResource("Curve3D_rail")
 script = ExtResource("1_rail")
-grab_pad = 1.5
+grab_pad = 2.5
 
 [node name="Area3D" type="Area3D" parent="."]
 

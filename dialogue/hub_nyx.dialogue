@@ -131,10 +131,12 @@ Nyx: Anything else, runner?
 ~ nyx_post_2_questions
 
 - What's up?
+	do GameState.set_flag("nyx_post_2_opened", true)
 	=> nyx_post_2_stay_or_go
 - You did the saving this time.
 	Nyx: Anyone would have needed pulling out of that. Don't make it a thing.
 	do GameState.set_flag("nyx_post_2_asked_save", true)
+	do GameState.set_flag("nyx_post_2_opened", true)
 - [if GameState.get_flag("nyx_post_2_asked_save", false) /] You make it sound routine.
 	Nyx: It's not routine.
 	Nyx: You're not the first runner I've yanked off a hot wire. Won't be the last.
@@ -171,7 +173,7 @@ Nyx: Anything else, runner?
 - [if GameState.get_flag("nyx_post_2_asked_splice", false) /] Why does he scare you?
 	Nyx: He doesn't scare me. What scares me is I vouched for him.
 	Nyx: He just confirms the read.
-- All right, see you on the wire. [#exit]
+- [if GameState.get_flag("nyx_post_2_opened", false) /] All right, see you on the wire. [#exit]
 	=> END
 => nyx_post_2_questions
 

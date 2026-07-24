@@ -245,6 +245,47 @@ enum NavMode { NONE, DUMB, SMART, COMPANION }
 ## safety factor < 1.0 prevents marginal jumps that miss by a hair.
 @export_range(0.3, 1.0) var smart_jump_safety_factor: float = 0.7
 
+@export_group("Rail Following")
+## When on, a pawn near the player-laid NavTrail rail is driven along it toward
+## the player, taking precedence over the waypoint graph. Off = fall back to the
+## probe/waypoint graph (_waypoint_steer) — the pre-rail behavior.
+@export var rail_follow_enabled: bool = true
+## Horizontal distance (m) to the rail within which a pawn snaps onto it. Beyond
+## this, the pawn steers normally. Larger = easier to catch the rail.
+@export var rail_snap_radius: float = 4.0
+## Dismount when this close (m, horizontal) to the head (the player) — hand back
+## to normal steering / attack so the pawn can close in and swing.
+@export var rail_dismount_dist: float = 3.0
+
+@export_group("Stuck Escape")
+## Bug-algorithm deadlock breaker. When a pursuing/following pawn stops
+## displacing while its target is out of attack range — the classic
+## ledge-brake-vs-chase flicker at a concave corner-gap — commit to a
+## ledge-tested escape direction for a fixed window instead of oscillating
+## in place. Off = legacy behavior (flicker at the corner).
+@export var stuck_escape_enabled: bool = true
+## Seconds the pawn must stay effectively stationary (moved less than
+## stuck_move_epsilon) while actively trying to reach a target before an
+## escape maneuver triggers. Lower = twitchier, quicker to give up on the
+## direct line; higher = tolerates brief legitimate pauses.
+@export var stuck_no_progress_time: float = 1.0
+## Displacement (m) over the watchdog window below which the pawn counts as
+## "not moving." Any real step above this resets the stuck timer, so a pawn
+## that's genuinely walking (even chasing a fleeing player) never triggers.
+@export var stuck_move_epsilon: float = 0.4
+## Seconds to COMMIT to a chosen escape direction once triggered. This latch
+## is what actually kills the flicker — during the window the pawn ignores the
+## chase-vs-brake re-decision. ~0.6-0.9s clears a typical corner.
+@export var escape_duration: float = 0.7
+## Probability the escape picks the single most target-aligned walkable cardinal
+## (the axis-snap). The remainder picks randomly among all walkable cardinals
+## (perpendicular wall-follow / back-off) so a cluster of pawns don't all fail
+## the same way and it reads organic.
+@export_range(0.0, 1.0) var escape_axis_bias: float = 0.7
+## Multiplier on attack_range: while the target is within this, the pawn is
+## close enough to fight and is never considered stuck (it arrived).
+@export var stuck_attack_range_mult: float = 1.5
+
 @export_group("Ledges")
 @export var turn_at_ledges := true
 @export var ledge_probe_distance := 1.5
@@ -328,6 +369,14 @@ var _body_ref: Node3D = null
 # toward the subject; while false, they wander (unless within
 # follow_personal_space, in which case they push away regardless).
 var _follow_engaged: bool = false
+# Stuck-escape watchdog state. _stuck_ref_pos is the position we measure
+# displacement from; _no_progress_timer accrues while the pawn stays within
+# stuck_move_epsilon of it. _escape_timer > 0 means we're committed to
+# _escape_dir this many more seconds (the anti-flicker latch).
+var _stuck_ref_pos: Vector3 = Vector3.INF
+var _no_progress_timer: float = 0.0
+var _escape_timer: float = 0.0
+var _escape_dir: Vector3 = Vector3.ZERO
 # Last waypoint picked by _waypoint_steer. Per-brain so the dedup'd log
 # fires per pawn, not globally. Clears on null (no eligible waypoint) and
 # changes whenever the pick flips — gives a clean trace of each pawn's
@@ -529,6 +578,15 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_update_state(body)
 	_update_debug_label(body)
 
+	# Per-tick reset of the waypoint-path flag. It's written ONLY by
+	# _chase_direction, so without this reset it stays sticky: a gold ally that
+	# routed a chase via the waypoint graph (flag = true) keeps it set after it
+	# reverts to following the player, and _navigate then early-returns before
+	# _nav_smart ever runs — bypassing every ledge brake / drop check and walking
+	# the ally straight off cliffs. Default false each tick; _chase_direction
+	# re-arms it only when it actually routes through a waypoint THIS tick.
+	_following_waypoint_path = false
+
 	# SUSPECT freeze: while ramping yellow→red on a target (stealth cone),
 	# stop the patrol entirely. Pawn stands still, cone tracks the target
 	# (see _update_vision_yaw), suspect_window keeps ticking up to HOSTILE.
@@ -573,6 +631,13 @@ func tick(body: Node3D, delta: float) -> Intent:
 	# we just computed — and so SMART can override the chase-direction's
 	# ledge brake when target is below + drop is safe.
 	_navigate(body)
+
+	# Stuck-escape watchdog runs LAST so it sees the final move_direction +
+	# hard_brake and can override them: when a pursuing/following pawn stops
+	# displacing while its target is out of attack range (the ledge-brake vs
+	# chase deadlock at a corner-gap), commit to a Bug-style escape maneuver
+	# for a fixed window instead of flickering in place.
+	_update_stuck_escape(body, delta)
 
 	return _intent
 
@@ -670,7 +735,14 @@ func _chase_direction(body: Node3D) -> Vector3:
 	# authored on this level).
 	var travel_dir: Vector3 = to_target.normalized()
 	_following_waypoint_path = false
-	if vertical_delta > jump_height_threshold:
+	# Rail takes precedence when the pawn is close to it: drive along the
+	# player-laid trail toward the player. Falls through to the waypoint graph
+	# when there's no rail nearby.
+	var rail_dir: Vector3 = _rail_steer(body)
+	if rail_dir != Vector3.ZERO:
+		travel_dir = rail_dir
+		_following_waypoint_path = true  # walk the rail; no rabbit-hopping
+	elif vertical_delta > jump_height_threshold:
 		var wp_dir: Vector3 = _waypoint_steer(body, _target)
 		if wp_dir != Vector3.ZERO:
 			travel_dir = wp_dir
@@ -680,7 +752,12 @@ func _chase_direction(body: Node3D) -> Vector3:
 	# into a wall stalls naturally. We previously zeroed intent on is_on_wall
 	# but that flag is direction-agnostic AND sticky when stationary, so the
 	# pawn would freeze and never re-track when the target moved.
-	if turn_at_ledges and body.has_method("is_on_floor") and body.is_on_floor() and not _has_ground_ahead(body):
+	# The ledge brake is suppressed while following the rail/waypoint path: that
+	# path is known walkable (the player skated it), so _has_ground_ahead's
+	# downward probe reading uphill ramp ground as a phantom "ledge" would brake
+	# the pawn mid-climb — the stop/go churn up ramps. Same rationale as
+	# _navigate suppressing jumps when _following_waypoint_path.
+	if turn_at_ledges and not _following_waypoint_path and body.has_method("is_on_floor") and body.is_on_floor() and not _has_ground_ahead(body):
 		# Friction alone can't brake red (2.5×) within stop-distance of the
 		# ledge probe; flag a hard_brake so the body zeros h_vel this tick.
 		# Self-clears next tick when the brain stops requesting it.
@@ -745,19 +822,35 @@ func _follow_direction(body: Node3D) -> Vector3:
 	# straight-line steering would faceplant into. Falls back to direct
 	# steering when no useful waypoint exists.
 	var travel_dir: Vector3 = dir
-	var wp_dir: Vector3 = _waypoint_steer(body, subject)
-	if wp_dir != Vector3.ZERO:
-		travel_dir = wp_dir
+	# Rail takes precedence when close; otherwise fall back to the waypoint graph.
+	var on_rail: bool = false
+	var nav_rail_dir: Vector3 = _rail_steer(body)
+	if nav_rail_dir != Vector3.ZERO:
+		travel_dir = nav_rail_dir
+		on_rail = true
+	else:
+		var wp_dir: Vector3 = _waypoint_steer(body, subject)
+		if wp_dir != Vector3.ZERO:
+			travel_dir = wp_dir
 	# Hysteresis: drop out of engaged once we've arrived; jump back in once
-	# we drift past the outer threshold.
+	# we drift past the outer threshold. The _following_waypoint_path stand-down
+	# (same as the chase path — rail is pre-verified walkable, so _navigate must
+	# not run SMART jumps/drops/ledge brakes that fight it) is armed ONLY at the
+	# return sites that actually move along the rail. NOT on the mid-zone ZERO
+	# return below: that falls through to wander, where suppressing nav would let
+	# the ally walk off a cliff (see the flag-reset note at top of fill_intent).
 	if _follow_engaged:
 		if dist <= follow_arrive_distance:
 			_follow_engaged = false
 		else:
+			if on_rail:
+				_following_waypoint_path = true
 			return travel_dir
 	else:
 		if dist > follow_engage_distance:
 			_follow_engaged = true
+			if on_rail:
+				_following_waypoint_path = true
 			return travel_dir
 	return Vector3.ZERO  # mid-zone → caller falls through to wander
 
@@ -787,6 +880,33 @@ func _rail_entry_direction(body: Node3D, subject: Node3D) -> Vector3:
 	if to_end.length() <= follow_rail_arrive_distance:
 		return Vector3.ZERO
 	return to_end.normalized()
+
+
+## Returns a horizontal direction to follow the player-laid NavTrail rail toward
+## its head (the player), or ZERO when there's no rail, the pawn is too far from
+## it (rail_snap_radius), or the pawn has reached the head (rail_dismount_dist —
+## hand back to normal steering so it can close in and attack). Takes precedence
+## over the waypoint graph in both the chase and follow paths.
+func _rail_steer(body: Node3D) -> Vector3:
+	if not rail_follow_enabled:
+		return Vector3.ZERO
+	var tree := body.get_tree()
+	if tree == null:
+		return Vector3.ZERO
+	var rail := tree.get_first_node_in_group(&"nav_trail")
+	if rail == null or not rail.has_method(&"has_trail") or not rail.has_trail():
+		return Vector3.ZERO
+	var body_pos: Vector3 = body.global_position
+	if rail.distance_to(body_pos) > rail_snap_radius:
+		return Vector3.ZERO
+	# Dismount near the head: let normal chase/attack take over so the pawn
+	# doesn't ride the rail past the player and back off again.
+	var head: Vector3 = rail.head_position()
+	var hx: float = head.x - body_pos.x
+	var hz: float = head.z - body_pos.z
+	if hx * hx + hz * hz < rail_dismount_dist * rail_dismount_dist:
+		return Vector3.ZERO
+	return rail.steer_along(body_pos)
 
 
 ## Returns a horizontal direction toward the closest reachable "ally_waypoints"
@@ -1429,6 +1549,113 @@ func _navigation_target(body: Node3D) -> Node3D:
 	return null
 
 
+# ── Stuck-escape: Bug-algorithm deadlock breaker ──────────────────────────
+# Runs after _navigate each real tick. Watches ACTUAL displacement (cheap and
+# target-motion-independent): a pawn that wants to reach a target but can't
+# walk the direct line (concave corner-gap → ledge-brake fights chase) stops
+# moving and flickers. On a stall we COMMIT to a ledge-tested escape cardinal
+# for escape_duration — the latch is what actually stops the oscillation.
+func _update_stuck_escape(body: Node3D, delta: float) -> void:
+	if not stuck_escape_enabled:
+		return
+
+	# Committed escape window: keep steering the latched direction, re-probing
+	# it each tick so the escape itself can never walk off a ledge.
+	if _escape_timer > 0.0:
+		_escape_timer -= delta
+		if not _dir_has_ground(body, _escape_dir):
+			_escape_timer = 0.0
+			_intent.move_direction = Vector3.ZERO
+			_intent.hard_brake = true
+			_stuck_ref_pos = body.global_position
+			_no_progress_timer = 0.0
+			return
+		_intent.move_direction = _escape_dir * chase_speed_fraction
+		_intent.hard_brake = false
+		_intent.jump_pressed = false
+		if _escape_timer <= 0.0:
+			_stuck_ref_pos = body.global_position
+			_no_progress_timer = 0.0
+		return
+
+	# Only watch while actively trying to REACH something: chasing a target, or
+	# a follower engaged toward its subject. Idle/wander/suspect never trigger.
+	var pursuing: bool = _state == State.CHASE or _state == State.WIND_UP
+	var following: bool = follow_subject_group != &"" and _follow_engaged
+	if not (pursuing or following):
+		_no_progress_timer = 0.0
+		_stuck_ref_pos = body.global_position
+		return
+
+	var target: Node3D = _navigation_target(body)
+	if target == null or not is_instance_valid(target):
+		_no_progress_timer = 0.0
+		_stuck_ref_pos = body.global_position
+		return
+
+	# Close enough to fight → arrived, not stuck.
+	var to_t: Vector3 = target.global_position - body.global_position
+	var horiz_dist: float = Vector2(to_t.x, to_t.z).length()
+	if horiz_dist <= attack_range * stuck_attack_range_mult:
+		_no_progress_timer = 0.0
+		_stuck_ref_pos = body.global_position
+		return
+
+	# Displacement watchdog: any real step resets the timer (so a pawn that's
+	# genuinely walking, even chasing a fleeing player, never trips); staying
+	# within stuck_move_epsilon accrues toward the trigger.
+	if _stuck_ref_pos == Vector3.INF \
+			or body.global_position.distance_to(_stuck_ref_pos) > stuck_move_epsilon:
+		_stuck_ref_pos = body.global_position
+		_no_progress_timer = 0.0
+		return
+	_no_progress_timer += delta
+	if _no_progress_timer >= stuck_no_progress_time:
+		_begin_escape(body, target)
+
+
+# Choose + commit an escape direction: the walkable cardinal most aligned with
+# the target (axis-snap) with probability escape_axis_bias, else a random
+# walkable cardinal (perpendicular wall-follow / back-off). Every candidate is
+# ledge-probed first; if none are walkable, back off the way we came.
+func _begin_escape(body: Node3D, target: Node3D) -> void:
+	var to_t: Vector3 = target.global_position - body.global_position
+	to_t.y = 0.0
+	if to_t.length_squared() < 0.0001:
+		return
+	var desired: Vector3 = to_t.normalized()
+	# The four cardinals, most target-aligned first — viable[0] is the axis-snap.
+	var cardinals: Array = [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]
+	cardinals.sort_custom(func(a: Vector3, b: Vector3) -> bool:
+		return a.dot(desired) > b.dot(desired))
+	var viable: Array = []
+	for c: Vector3 in cardinals:
+		if _dir_has_ground(body, c):
+			viable.append(c)
+	if viable.is_empty():
+		# Nowhere safe forward — back off toward the solid ground we just left.
+		_escape_dir = -desired
+		_escape_timer = escape_duration * 0.5
+		_nav_log(body, "STUCK → no viable cardinal, back off")
+		return
+	if randf() < escape_axis_bias:
+		_escape_dir = viable[0]
+	else:
+		_escape_dir = viable[randi() % viable.size()]
+	_escape_timer = escape_duration
+	_nav_log(body, "STUCK → escape dir=(%.0f,%.0f) viable=%d" % [_escape_dir.x, _escape_dir.z, viable.size()])
+
+
+# True if there's ground a step ahead in `dir`. Reuses _has_ground_ahead's
+# swept probe by borrowing its _direction input (same pattern as _nav_smart).
+func _dir_has_ground(body: Node3D, dir: Vector3) -> bool:
+	var prior: Vector3 = _direction
+	_direction = dir
+	var ok: bool = _has_ground_ahead(body)
+	_direction = prior
+	return ok
+
+
 # DUMB nav: blind faith jump. Target above + on floor + cooldown → jump.
 # No landing-arc check, no drop logic. Naive but predictable. Per-target
 # attempt cache prevents re-jumping at unreachable walls.
@@ -1472,8 +1699,6 @@ func _nav_smart(body: Node3D) -> void:
 	var towards: Node3D = _navigation_target(body)
 	if towards == null or not is_instance_valid(towards):
 		return
-	if towards.has_method(&"is_on_floor") and not towards.is_on_floor():
-		return
 	var towards_dir: Vector3 = (towards.global_position - body.global_position)
 	towards_dir.y = 0.0
 	if towards_dir.length_squared() > 0.0001:
@@ -1491,8 +1716,23 @@ func _nav_smart(body: Node3D) -> void:
 	var ground_ahead: bool = _has_ground_ahead(body)
 	_direction = prior_direction
 	var at_ledge: bool = not ground_ahead
+	# Subject airborne (e.g. player jumped off a cliff): the target's Y is
+	# transient, so jump-up / drop-down arc math is meaningless — but we must
+	# STILL brake at a ledge here. This guard used to early-return above the
+	# ledge probe, so a following gold kept the raw over-the-edge move_direction
+	# from _follow_direction and walked straight off after the player. Brake if
+	# at a ledge, then bail before any jump/drop initiation.
+	if towards.has_method(&"is_on_floor") and not towards.is_on_floor():
+		if at_ledge:
+			_intent.hard_brake = true
+			_intent.move_direction = Vector3.ZERO
+			_nav_log(body, "airborne-subj + AT_LEDGE → BRAKE (dy=%.1f)" % dy)
+		else:
+			_nav_log(body, "airborne-subj + no_ledge → WALKS ON (dy=%.1f) *** off-level risk" % dy)
+		return
 	# CASE 1 — Drop-down: at a ledge with target below threshold.
 	if at_ledge and dy < -smart_drop_threshold:
+		_nav_log(body, "CASE1 drop-down attempt (dy=%.1f)" % dy)
 		if _drop_attempted_target != towards:
 			if _smart_drop_landing_safe(body, towards, towards_dir):
 				_intent.hard_brake = false
@@ -1505,12 +1745,14 @@ func _nav_smart(body: Node3D) -> void:
 		return
 	# CASE 2 — Jump-up: target above threshold (any position, not just ledge).
 	if dy >= jump_height_threshold:
+		_nav_log(body, "CASE2 jump-up (dy=%.1f at_ledge=%s)" % [dy, at_ledge])
 		_try_jump(body, towards, towards_dir, at_ledge)
 		return
 	# CASE 3 — Same-level gap: at a ledge with target roughly same Y, jump
 	# across if the arc lands on the far side. Only fires AT a ledge so
 	# sentinels don't randomly hop on flat ground.
 	if at_ledge and absf(dy) < jump_height_threshold:
+		_nav_log(body, "CASE3 gap-jump (dy=%.1f)" % dy)
 		_try_jump(body, towards, towards_dir, at_ledge)
 		return
 	# CASE 4 — Default: ledge with no jump/drop path. Brake. Catches
@@ -1590,33 +1832,127 @@ func _smart_jump_arc_lands(body: Node3D, towards: Node3D, dir: Vector3) -> bool:
 	if "_faction_speed_mult" in body:
 		speed_mult = float(body.get(&"_faction_speed_mult"))
 	max_speed *= speed_mult
-	horiz_speed = maxf(horiz_speed, max_speed * 0.5)
+	# Horizontal launch boost: the body SETS launch speed to max_speed + boost
+	# at the jump instant and PRESERVES it through the arc (velocity never bleeds
+	# below it while airborne). So a boosted pawn crosses at that full speed
+	# REGARDLESS of its pre-jump velocity — including from a dead standstill after
+	# braking at the ledge. The old estimate used maxf(current, max_speed*0.5),
+	# a ramp-from-standstill assumption that under-counts reach by ~35% exactly
+	# when the pawn has braked (the common ledge case) — so it rejected gaps it
+	# would physically clear and never jumped. With a boost, estimate from the
+	# real launch ceiling; without one, keep the ramp-up assumption (player etc).
+	var boost: float = 0.0
+	if "jump_horizontal_boost" in body:
+		boost = float(body.get(&"jump_horizontal_boost"))
+	if boost > 0.0:
+		horiz_speed = max_speed + boost
+	else:
+		horiz_speed = maxf(horiz_speed, max_speed * 0.5)
 	var reach: float = horiz_speed * air_time * smart_jump_safety_factor
 	var apex: float = (jump_v * jump_v) / (2.0 * gravity_y)
-	var landing: Vector3 = body.global_position + dir * reach + Vector3.UP * apex
 	var space := body.get_world_3d().direct_space_state
-	var query := PhysicsRayQueryParameters3D.create(landing, landing + Vector3.DOWN * (apex + 5.0))
+	var body_pos: Vector3 = body.global_position
+	var exclude: Array[RID] = []
 	if body is CollisionObject3D:
-		query.exclude = [(body as CollisionObject3D).get_rid()]
-	var hit := space.intersect_ray(query)
-	if hit.is_empty():
-		return false
-	# Filter wall-grazes: a ray hitting the SIDE of a platform's collision
-	# returns a hit with a near-horizontal normal. Floor surfaces have an
-	# upward-pointing normal (y ≈ 1.0). 0.5 cutoff = at least 60° from
-	# vertical, allowing slight slopes but rejecting walls.
-	var hit_normal: Vector3 = hit.normal as Vector3
-	if hit_normal.y < 0.5:
-		return false
-	# Landing must be NEAR the target's Y — within 1m above or below.
-	# Looser rules (any surface between body and target) caused sentinels
-	# to jump onto whatever "lower" platform was in arc range — typically
-	# elevators at base position — and call that progress. They never
-	# actually reached the target's elevation, just landed somewhere
-	# random and got stuck.
-	var hit_y: float = (hit.position as Vector3).y
-	var target_y: float = towards.global_position.y
-	return absf(hit_y - target_y) <= 1.0
+		exclude.append((body as CollisionObject3D).get_rid())
+	# The jump clears the GAP, not the distance to the target. The player may
+	# stand far across the far platform (gap-to-player 12m) while the actual
+	# break in the floor is a 2m hop. Sweep outward along the travel direction:
+	# skip our own near platform, cross the break (floor missing / wall face),
+	# and accept the FIRST foothold on the far side that we can physically land
+	# on (≤ apex up, ≤ max_safe_drop down). `reach` (which includes the launch
+	# boost) bounds how wide a break we'll commit to — so tuning the boost tunes
+	# the max gap width, which is the quantity that actually matters.
+	var step: float = 0.5
+	var down_len: float = apex + max_safe_drop + 1.0
+	# Scan out to a DIAGNOSTIC max (well past reach) so that when the far edge is
+	# beyond jump range we can still report WHERE it is and how much boost it'd
+	# take — the landing decision itself stays gated at `reach`.
+	var diag_max: float = maxf(reach, 16.0)
+	var n_steps: int = maxi(1, int(ceil(diag_max / step)))
+	var saw_gap: bool = false
+	var verdict := false
+	var reason := "no foothold within reach %.2f" % reach
+	var far_ground_d: float = -1.0  # first landable-height ground across the gap, any dist
+	# DEBUG sweep trace: one char per step — n=near(own floor,skip) v=void
+	# w=wall x=out-of-band(ground but unreachable) L=landing X=landable-but-past-reach.
+	var trace := ""
+	for i in range(1, n_steps + 1):
+		var d: float = step * float(i)
+		var probe_top: Vector3 = body_pos + dir * d + Vector3.UP * apex
+		var q := PhysicsRayQueryParameters3D.create(probe_top, probe_top + Vector3.DOWN * down_len)
+		q.exclude = exclude
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			saw_gap = true  # floor missing here — we're over the break
+			trace += "v"
+			continue
+		var nrm: Vector3 = hit.normal as Vector3
+		if nrm.y < 0.5:
+			saw_gap = true  # wall face, not landable — keep scanning past it
+			trace += "w"
+			continue
+		var hy: float = (hit.position as Vector3).y
+		# Before crossing any break, skip footholds at ~our own height — that's
+		# the platform we're standing on; landing there would be a hop in place.
+		# (A step UP more than 0.75m above us isn't "our platform" — allow it so
+		# jump-ups onto a higher tier, which have no floor break, still pass.)
+		if not saw_gap and hy <= body_pos.y + 0.75:
+			trace += "n"
+			continue
+		# Reachable landing band: not higher than we can jump, not a fatal drop.
+		if hy <= body_pos.y + apex + 0.5 and hy >= body_pos.y - max_safe_drop:
+			if far_ground_d < 0.0:
+				far_ground_d = d  # remember the far edge regardless of reach
+			if d <= reach:
+				verdict = true
+				trace += "L"
+				reason = "LANDING d=%.2f landing_y=%.2f body_y=%.2f crossed_gap=%s sweep=%s" \
+					% [d, hy, body_pos.y, saw_gap, trace]
+				break
+			trace += "X"  # landable height but past jump reach — diagnostic only
+			break
+		trace += "x"  # ground present but outside reachable height band
+	if not verdict:
+		if far_ground_d > 0.0:
+			# far edge exists but out of reach — report the boost that would close it.
+			var need_reach: float = far_ground_d
+			var need_boost: float = need_reach / (air_time * smart_jump_safety_factor) - max_speed
+			reason = "far edge d=%.2f > reach=%.2f — set jump_horizontal_boost≈%.1f (sweep=%s)" \
+				% [far_ground_d, reach, maxf(need_boost, 0.0), trace]
+		else:
+			reason = "NO far ground out to %.1f — sweep aimed into open void (dir off-gap): sweep=%s dir=(%.2f,%.2f)" \
+				% [diag_max, trace, dir.x, dir.z]
+	# gap-to-target kept in the log only for context — it's NOT the gate anymore.
+	var to_t := towards.global_position - body_pos
+	var horiz_gap := Vector2(to_t.x, to_t.z).length()
+	_arc_log(body, horiz_gap, reach, verdict, reason)
+	return verdict
+
+
+# Dedup'd arc-decision log — fires only when the composed line changes for this
+# brain, so a pawn parked at a ledge re-evaluating every tick prints ONE line
+# per distinct decision. Strip once the boost value converges.
+var _last_arc_log: String = ""
+func _arc_log(body: Node3D, gap: float, reach: float, verdict: bool, reason: String) -> void:
+	var s := "[arc] %s gap=%.2f reach=%.2f %s → %s" % \
+		[body.name, gap, reach, reason, "JUMP" if verdict else "no"]
+	if s == _last_arc_log:
+		return
+	_last_arc_log = s
+	print(s)
+
+
+# Dedup'd nav-decision log — one line per distinct branch taken by a body.
+# Reveals WHY a pawn follows off the level: WALKS ON (undetected ledge) vs a
+# CASE2/3 boost-jump vs CASE1 drop. Strip with the rest of the debug logging.
+var _last_nav_log: String = ""
+func _nav_log(body: Node3D, tag: String) -> void:
+	var s := "[nav] %s state=%d %s" % [body.name, _state, tag]
+	if s == _last_nav_log:
+		return
+	_last_nav_log = s
+	print(s)
 
 
 # Probe whether walking off the ledge in `dir` lands on a safe surface

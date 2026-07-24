@@ -18,18 +18,6 @@ script = ExtResource("4_wait")
 seconds = 7.0
 label = "wait 7"
 
-[sub_resource type="Resource" id="line_dialtone_1"]
-script = ExtResource("2_line")
-character = &"DialTone"
-text = "Channel's open. She wanted to hear me admit it."
-channel = "walkie"
-label = "DialTone: channel's open"
-
-[sub_resource type="Resource" id="wait_2"]
-script = ExtResource("4_wait")
-seconds = 7.0
-label = "wait 7"
-
 [sub_resource type="Resource" id="line_dialtone_2"]
 script = ExtResource("2_line")
 character = &"DialTone"
@@ -66,56 +54,6 @@ script = ExtResource("4_wait")
 seconds = 7.0
 label = "wait 7"
 
-[sub_resource type="Resource" id="line_nyx_2"]
-script = ExtResource("2_line")
-character = &"Nyx"
-text = "I told myself I'd read you right. ...that's twice now. I won't be doing this again."
-channel = "walkie"
-label = "Nyx: that's twice now"
-
-[sub_resource type="Resource" id="wait_7"]
-script = ExtResource("4_wait")
-seconds = 7.0
-label = "wait 7"
-
-[sub_resource type="Resource" id="line_nyx_3"]
-script = ExtResource("2_line")
-character = &"Nyx"
-text = "Goodbye, runner."
-channel = "walkie"
-label = "Nyx: bye runner"
-
-[sub_resource type="Resource" id="wait_8"]
-script = ExtResource("4_wait")
-seconds = 7.0
-label = "wait 7"
-
-[sub_resource type="Resource" id="line_splice_2"]
-script = ExtResource("2_line")
-character = &"Splice"
-text = "You wanted in. You're in it now."
-channel = "walkie"
-bus_override = &"Companion"
-label = "Splice: you wanted in"
-
-[sub_resource type="Resource" id="wait_9"]
-script = ExtResource("4_wait")
-seconds = 7.0
-label = "wait 7"
-
-[sub_resource type="Resource" id="line_splice_3"]
-script = ExtResource("2_line")
-character = &"Splice"
-text = "Just you and the grid now. ...quiet, isn't it."
-channel = "walkie"
-bus_override = &"Companion"
-label = "Splice: anyone left to know it"
-
-[sub_resource type="Resource" id="wait_10"]
-script = ExtResource("4_wait")
-seconds = 7.0
-label = "wait 7"
-
 [sub_resource type="Resource" id="line_splice_great"]
 script = ExtResource("2_line")
 character = &"Splice"
@@ -129,17 +67,16 @@ script = ExtResource("4_wait")
 seconds = 7.0
 label = "wait 7"
 
-[sub_resource type="Resource" id="line_splice_4"]
+[sub_resource type="Resource" id="line_nyx_3"]
 script = ExtResource("2_line")
-character = &"Splice"
-text = "Don't stop walking."
+character = &"Nyx"
+text = "Goodbye, runner."
 channel = "walkie"
-bus_override = &"Companion"
-label = "Splice: don't stop walking"
+label = "Nyx: bye runner"
 
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_1"), SubResource("wait_2"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_nyx_2"), SubResource("wait_7"), SubResource("line_nyx_3"), SubResource("wait_8"), SubResource("line_splice_2"), SubResource("wait_9"), SubResource("line_splice_3"), SubResource("wait_10"), SubResource("line_splice_great"), SubResource("wait_great"), SubResource("line_splice_4")])
+steps = Array[ExtResource("3_step")]([SubResource("line_splice_1"), SubResource("wait_1"), SubResource("line_dialtone_2"), SubResource("wait_3"), SubResource("line_glitch_2"), SubResource("wait_5"), SubResource("line_nyx_1"), SubResource("wait_6"), SubResource("line_splice_great"), SubResource("wait_great"), SubResource("line_nyx_3")])
 freeze_player = false
 scene_duration = 0.0
 done_flag = &"l5_walk_done"

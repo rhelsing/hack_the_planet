@@ -121,7 +121,15 @@ func _teleport_player() -> void:
 	# CharacterBody3D. Rotation copied separately so the player faces the
 	# direction the marker points.
 	player.global_position = target.global_position
-	player.global_rotation = target.global_rotation
+	# Rotation via face_marker_forward so the body yaw stays identity and the
+	# skin is rebuilt immediately — the teleport fires mid-cutscene while the
+	# player's _physics_process is frozen, so a plain global_rotation copy would
+	# leave the skin facing its stale pre-freeze direction (double-rotated).
+	# Aim the marker's blue +Z arrow at Splice to set where the player looks.
+	if player.has_method(&"face_marker_forward"):
+		player.call(&"face_marker_forward", target.global_transform)
+	else:
+		player.global_rotation = target.global_rotation
 
 
 func _stage_allies() -> void:

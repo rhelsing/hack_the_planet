@@ -488,6 +488,11 @@ func _freeze_player(on: bool) -> void:
 			return
 		_saved_player_physics = _saved_player.is_physics_processing()
 		_saved_player.set_physics_process(false)
+		# Freezing _physics_process leaves the last-chosen animation (e.g. the
+		# run cycle) looping and the velocity/lean pose stale, since that method
+		# is the only place they're reset. Snap to a neutral idle pose now.
+		if _saved_player.has_method(&"enter_cutscene_pose"):
+			_saved_player.call(&"enter_cutscene_pose")
 		# Disable the brain's input handling too so camera + interact don't
 		# fight the cutscene. The existing CutsceneSequence flagged this gap;
 		# we close it here.

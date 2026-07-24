@@ -354,9 +354,9 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 - [if GameState.get_flag("post_3_debriefed", false) /] What's the plan now?
 	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
 	DialTone: That's our window.
-	Nyx: He's cocky now. He'll take a bait we set.
-	DialTone: We know where the last disc is. He doesn't know we know.
-	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do. He doesn't know that either.
+	Nyx: He's cocky now. He'll take whatever bait we set.
+	DialTone: We know where the last disc is.
+	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do.
 	Nyx: We don't know what it does.
 	DialTone: But the breadcrumbs say it'll turn the tables.
 	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.

@@ -139,10 +139,10 @@ label = "Splice: who gets to keep using it"
 [sub_resource type="Resource" id="line_11"]
 script = ExtResource("2_line")
 character = &"Splice"
-text = "Your crew thinks they're the protagonists, runner."
+text = "Your crew thinks they're the protagonists."
 channel = "walkie"
 bus_override = &"Companion"
-label = "Splice: protagonists, runner"
+label = "Splice: protagonists"
 
 [sub_resource type="Resource" id="line_12"]
 script = ExtResource("2_line")

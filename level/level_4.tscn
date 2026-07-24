@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
 [ext_resource type="PackedScene" uid="uid://ccakx1qyctv2k" path="res://level/interactable/phone_booth/phone_booth.tscn" id="2_t4818"]
 [ext_resource type="Script" uid="uid://dolwonf6pfi0h" path="res://level/csg_collider_swap.gd" id="3_csgswap"]
+[ext_resource type="Script" uid="uid://cxxb5uwvy7bfu" path="res://level/interactable/nav_trail/nav_trail.gd" id="3_navtrail"]
 [ext_resource type="Script" uid="uid://cp156hyvoifj0" path="res://level/enemy_distance_sleep.gd" id="4_edsleep"]
 [ext_resource type="PackedScene" uid="uid://hk7q80hdkeke" path="res://level/interactable/control_portal/control_portal.tscn" id="5_portal"]
 [ext_resource type="PackedScene" uid="uid://dconvert00001" path="res://level/interactable/convert_zone/convert_zone.tscn" id="6_zone"]
@@ -53,7 +54,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_h0kaq"]
 
-[sub_resource type="Curve3D" id="Curve3D_ht88j"]
+[sub_resource type="Curve3D" id="Curve3D_e61q6"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -62,7 +63,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_e61q6"]
+[sub_resource type="Curve3D" id="Curve3D_c4upc"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -71,7 +72,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_c4upc"]
+[sub_resource type="Curve3D" id="Curve3D_0xqme"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -80,7 +81,7 @@ _data = {
 }
 point_count = 3
 
-[sub_resource type="Curve3D" id="Curve3D_0xqme"]
+[sub_resource type="Curve3D" id="Curve3D_4x6fr"]
 resource_local_to_scene = true
 bake_interval = 0.01
 _data = {
@@ -807,7 +808,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 252.95706, -17.398937, 39.582
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 268.5607, -17.398941, 39.11114)
 
 [node name="big28" type="CSGBox3D" parent="." index="145" unique_id=1515326313]
-transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 375.64893, -9.266081, -275.1534)
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 375.64893, -9.445843, -275.1534)
 material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(6.205887, 2.6129785, 10.827692)
@@ -828,14 +829,14 @@ size = Vector3(34.43814, 2.6129785, 36.29439)
 material = ExtResource("17_sdk3c")
 
 [node name="big27" type="CSGBox3D" parent="." index="148" unique_id=32052065]
-transform = Transform3D(-0.9232523, -0.38418254, -0.0030133796, -0.38418052, 0.9232572, -0.001253917, 0.0032638572, 0, -0.9999947, 359.5023, -14.728744, -275.40802)
+transform = Transform3D(-0.9232523, -0.38418254, -0.0030133796, -0.38418052, 0.9232572, -0.001253917, 0.0032638572, 0, -0.9999947, 359.5023, -14.981194, -275.40802)
 material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(29.36796, 2.6129785, 10.207743)
 material = ExtResource("17_sdk3c")
 
 [node name="big29" type="CSGBox3D" parent="." index="149" unique_id=69276229]
-transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 480.1719, -9.20052, -275.50385)
+transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 480.1719, -9.439405, -275.50385)
 material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(6.205887, 2.6129785, 10.827692)
@@ -856,14 +857,14 @@ size = Vector3(34.43814, 2.6129785, 36.29439)
 material = ExtResource("17_sdk3c")
 
 [node name="big32" type="CSGBox3D" parent="." index="152" unique_id=1947522198]
-transform = Transform3D(-0.9232523, -0.38418254, -0.0030133796, -0.38418052, 0.9232572, -0.001253917, 0.0032638572, 0, -0.9999947, 464.02527, -14.728744, -275.40802)
+transform = Transform3D(-0.9232523, -0.38418254, -0.0030133796, -0.38418052, 0.9232572, -0.001253917, 0.0032638572, 0, -0.9999947, 464.02527, -14.992242, -275.40802)
 material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(29.36796, 2.6129785, 10.207743)
 material = ExtResource("17_sdk3c")
 
 [node name="big33" type="CSGBox3D" parent="." index="153" unique_id=1991760012]
-transform = Transform3D(-0.017033443, 0, -0.9998549, 0, 1, 0, 0.9998549, 0, -0.017033443, 455.14432, 1.6902246, -271.5152)
+transform = Transform3D(-0.017033443, 0, -0.9998549, 0, 1, 0, 0.9998549, 0, -0.017033443, 455.14432, 1.4702904, -271.5152)
 material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(6.205887, 2.6129785, 10.827692)
@@ -884,7 +885,7 @@ size = Vector3(34.43814, 2.6129785, 36.29439)
 material = ExtResource("17_sdk3c")
 
 [node name="big36" type="CSGBox3D" parent="." index="156" unique_id=907683103]
-transform = Transform3D(-0.015475832, -0.00779764, -0.99984986, -0.38418055, 0.92325723, -0.0012539226, 0.92312837, 0.38410345, -0.017283857, 454.9124, -3.8215895, -255.36998)
+transform = Transform3D(-0.015475832, -0.00779764, -0.99984986, -0.38418055, 0.92325723, -0.0012539226, 0.92312837, 0.38410345, -0.017283857, 454.9124, -4.0609493, -255.36998)
 material_override = ExtResource("17_sdk3c")
 use_collision = true
 size = Vector3(29.36796, 2.6129785, 10.207743)
@@ -1026,15 +1027,15 @@ visible_when_flag = &"chain_hint:l4:phonebooth4"
 
 [node name="Rail" parent="." index="191" unique_id=584524852 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.05427049, 0, 0.9985263, 0, 1, 0, -0.9985263, 0, 0.05427049, 317.7961, -15.262541, -3.9363518)
-curve = SubResource("Curve3D_ht88j")
+curve = SubResource("Curve3D_e61q6")
 
 [node name="Rail2" parent="." index="192" unique_id=195334167 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.2513599, 0, 0.9678937, 0, 1, 0, -0.9678937, 0, 0.2513599, 323.27863, -16.471245, -142.0285)
-curve = SubResource("Curve3D_e61q6")
+curve = SubResource("Curve3D_c4upc")
 
 [node name="Rail3" parent="." index="193" unique_id=1223991201 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.03549255, 0, 0.9993699, 0, 1, 0, -0.9993699, 0, 0.03549255, 487.89822, 4.785468, -295.13412)
-curve = SubResource("Curve3D_c4upc")
+curve = SubResource("Curve3D_0xqme")
 
 [node name="EnemySpawner13" parent="." index="194" unique_id=1810548121 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.06946, 26.671904, -406.64682)
@@ -1089,7 +1090,7 @@ material = ExtResource("17_sdk3c")
 
 [node name="Rail4" parent="." index="204" unique_id=1161704299 instance=ExtResource("26_uwhkb")]
 transform = Transform3D(0.023280619, 0, 0.999729, 0, 1, 0, -0.999729, 0, 0.023280619, 475.61304, 28.395216, -440.52612)
-curve = SubResource("Curve3D_0xqme")
+curve = SubResource("Curve3D_4x6fr")
 
 [node name="GlitchPostPlatforms" parent="." index="205" unique_id=1299642312 instance=ExtResource("8_companion")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 365.06467, -8.128251, -249.55788)
@@ -1368,7 +1369,7 @@ done_flag = &"l4_battle_radio_arm"
 delay_seconds = 5.0
 
 [node name="PlayerStagePos" type="Marker3D" parent="." index="252" unique_id=808080808]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 475.5605, 34.299385, -523.7794)
+transform = Transform3D(-0.98970425, 0, 0.14312765, 0, 1, 0, -0.14312765, 0, -0.98970425, 475.5605, 34.299385, -523.7794)
 
 [node name="AlliesWipeOnCutsceneStart" parent="." index="253" unique_id=515151515 instance=ExtResource("55_scnsetup")]
 listen_flag = &"l4_splice_cutscene_started"
@@ -1472,8 +1473,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 410.12433, -17.334898, -286.3
 [node name="EnemyKayKit43" parent="." index="282" unique_id=732322400 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 401.8174, -17.3349, -243.41481)
 
-[node name="EnemyKayKit44" parent="." index="283" unique_id=1569453482 instance=ExtResource("18_02w31")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 399.33386, -17.3349, -250.22375)
+[node name="NavTrail" type="Node3D" parent="." index="283" unique_id=1076641452]
+script = ExtResource("3_navtrail")
 
 [node name="AllyWaypoint_BigRamp32_Top" type="Marker3D" parent="." index="284" unique_id=729887909 groups=["ally_waypoints"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 453.32825, -16.925812, -275.4)
@@ -1537,3 +1538,72 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.57523, 3.8106077, -261.38
 
 [node name="GlitchCamOverride" type="Marker3D" parent="." index="304" unique_id=1918273654]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7211776, -0.46212626, 7.6196966)
+
+[node name="EnemyKayKit44" parent="." index="305" unique_id=1569453482 instance=ExtResource("18_02w31")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 399.33386, -17.3349, -250.22375)
+
+[node name="Coin10" parent="." index="306" unique_id=1773962807 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.60796, -17.453745, 51.706245)
+
+[node name="Coin12" parent="." index="307" unique_id=15868182 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.140785, -17.453745, 51.412464)
+
+[node name="Coin13" parent="." index="308" unique_id=1487294029 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.25483, -17.280409, 51.622517)
+
+[node name="Coin15" parent="." index="309" unique_id=1195430686 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.97667, -17.280409, 50.873505)
+
+[node name="Coin16" parent="." index="310" unique_id=149208831 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 214.24496, -17.291172, 40.102783)
+
+[node name="Coin17" parent="." index="311" unique_id=1905524782 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 223.65878, -17.291172, 35.259132)
+
+[node name="Coin19" parent="." index="312" unique_id=1329647516 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 247.01169, -17.291172, 36.026455)
+
+[node name="Coin20" parent="." index="313" unique_id=1363518884 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.78293, -17.29117, 38.62536)
+
+[node name="Coin21" parent="." index="314" unique_id=1122505605 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 284.62958, -17.29117, 34.392673)
+
+[node name="Coin22" parent="." index="315" unique_id=2141539806 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 301.95288, -17.248075, 50.768936)
+
+[node name="Coin23" parent="." index="316" unique_id=1655434793 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 329.21072, -17.248075, 54.41333)
+
+[node name="Coin24" parent="." index="317" unique_id=93724285 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 330.82782, -17.248075, 24.229832)
+
+[node name="Coin25" parent="." index="318" unique_id=1450688807 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 330.40488, -17.248075, -87.588615)
+
+[node name="Coin26" parent="." index="319" unique_id=1810825617 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 303.48386, -17.248075, -84.89073)
+
+[node name="Coin28" parent="." index="320" unique_id=696786125 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 365.15384, -17.262516, -236.36496)
+
+[node name="Coin29" parent="." index="321" unique_id=2054599317 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 350.24014, -8.033703, -242.308)
+
+[node name="Coin30" parent="." index="322" unique_id=1736949512 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 378.59882, -8.033702, -236.71858)
+
+[node name="Coin31" parent="." index="323" unique_id=979098321 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 409.13348, -12.454192, -260.64902)
+
+[node name="Coin33" parent="." index="324" unique_id=1338335410 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 439.5213, -0.85705113, -254.48509)
+
+[node name="Coin34" parent="." index="325" unique_id=1242965619 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 439.783, -0.8570502, -263.4616)
+
+[node name="Coin35" parent="." index="326" unique_id=605918504 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 439.71478, -0.8570502, -271.229)
+
+[node name="Coin37" parent="." index="327" unique_id=1265282580 instance=ExtResource("49_h0kaq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 475.19672, 2.8734522, -270.90265)

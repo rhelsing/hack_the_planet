@@ -194,7 +194,13 @@ func add_slider(path: String, min_v: float, max_v: float, step: float, getter: C
 		setter.call(v)
 	)
 	_controls[path] = slider
-	_defaults[path] = initial
+	# Store the POST-snap/clamp value, not the raw getter value: HSlider
+	# quantizes `value` to the step grid and clamps to min/max on assignment.
+	# Storing the raw value made every off-grid @export default show a
+	# permanent phantom diff (0.785 → 0.800 etc.) the user never touched.
+	_defaults[path] = slider.value
+	if not is_equal_approx(slider.value, initial):
+		push_warning("DebugPanel: '%s' default %.3f off slider grid/range — displays as %.3f" % [path, initial, slider.value])
 	if source != "":
 		_sources[path] = source
 

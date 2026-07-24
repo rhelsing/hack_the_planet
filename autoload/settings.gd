@@ -78,6 +78,8 @@ func _ready() -> void:
 	load_from_disk()
 	# Deferred so any scene that wants to respond can connect first.
 	call_deferred(&"apply")
+	# Deferred so DebugPanel's _ready has built its UI (autoload order agnostic).
+	call_deferred(&"_register_env_debug_sliders")
 
 
 # ── Public API ───────────────────────────────────────────────────────────
@@ -232,6 +234,54 @@ func _apply_environment(quality: String) -> void:
 			env.sdfgi_enabled = false
 			env.volumetric_fog_density = 0.015
 			env.glow_enabled = true
+
+
+# Live glow / color-adjust tuning in the DebugPanel (` to toggle). One
+# registration for the whole session: getters/setters resolve the CURRENT
+# level's Environment on every call via _find_active_environment(), so the
+# sliders keep working across level swaps (each level duplicates its env at
+# _ready — we always write to the live copy). Values are session-only by
+# DebugPanel design: tweak, hit "Copy diff", stamp the numbers back into the
+# authored Environment sub-resources (hub.tscn, level_mockup.tscn, …).
+# NOTE: slider *initial* values are captured from whatever scene is mounted
+# at registration time (usually the main menu) — read the current value off
+# the label after entering a level, not the diff baseline.
+func _register_env_debug_sliders() -> void:
+	var src := "Environment sub_resource in hub.tscn / level_*.tscn"
+	DebugPanel.add_toggle("Environment/Glow/enabled",
+		func() -> bool: var e := _find_active_environment(); return e.glow_enabled if e != null else false,
+		func(v: bool) -> void: var e := _find_active_environment(); if e != null: e.glow_enabled = v,
+		src)
+	_env_slider("Environment/Glow/intensity", 0.0, 8.0, 0.005, &"glow_intensity", src)
+	_env_slider("Environment/Glow/strength", 0.0, 2.0, 0.005, &"glow_strength", src)
+	_env_slider("Environment/Glow/bloom", 0.0, 1.0, 0.005, &"glow_bloom", src)
+	_env_slider("Environment/Glow/hdr_threshold", 0.0, 4.0, 0.01, &"glow_hdr_threshold", src)
+	_env_slider("Environment/Glow/hdr_scale", 0.0, 4.0, 0.01, &"glow_hdr_scale", src)
+	_env_slider("Environment/Glow/hdr_luminance_cap", 0.0, 256.0, 0.5, &"glow_hdr_luminance_cap", src)
+	DebugPanel.add_enum("Environment/Glow/blend_mode",
+		PackedStringArray(["Additive", "Screen", "Softlight", "Replace", "Mix"]),
+		func() -> int: var e := _find_active_environment(); return e.glow_blend_mode if e != null else 0,
+		func(idx: int) -> void: var e := _find_active_environment(); if e != null: e.glow_blend_mode = idx,
+		src)
+	DebugPanel.add_toggle("Environment/Adjust/enabled",
+		func() -> bool: var e := _find_active_environment(); return e.adjustment_enabled if e != null else false,
+		func(v: bool) -> void: var e := _find_active_environment(); if e != null: e.adjustment_enabled = v,
+		src)
+	_env_slider("Environment/Adjust/brightness", 0.25, 2.0, 0.005, &"adjustment_brightness", src)
+	_env_slider("Environment/Adjust/contrast", 0.25, 2.0, 0.005, &"adjustment_contrast", src)
+	_env_slider("Environment/Adjust/saturation", 0.0, 3.0, 0.005, &"adjustment_saturation", src)
+
+
+func _env_slider(path: String, min_v: float, max_v: float, step: float, prop: StringName, src: String) -> void:
+	DebugPanel.add_slider(path, min_v, max_v, step,
+		func() -> float:
+			var env := _find_active_environment()
+			return float(env.get(prop)) if env != null else 0.0,
+		func(v: float) -> void:
+			var env := _find_active_environment()
+			if env != null:
+				env.set(prop, v),
+		src)
 
 
 func _override(mat: ShaderMaterial, key: String, v) -> void:

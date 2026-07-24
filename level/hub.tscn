@@ -32,6 +32,7 @@
 [ext_resource type="PackedScene" uid="uid://dhnuc5e3b6465" path="res://hud/components/beacon.tscn" id="31_beacon"]
 [ext_resource type="Script" uid="uid://dhiqbme07lowd" path="res://level/hub_terminal_sequence.gd" id="32_hubseq"]
 [ext_resource type="PackedScene" uid="uid://dcutscene0001" path="res://level/interactable/cutscene_sequence/cutscene_sequence.tscn" id="33_csseq"]
+[ext_resource type="CompressedTexture3D" uid="uid://backtq7ybg0nj" path="res://level/color_grade_lut.png" id="34_lut"]
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -83,14 +84,19 @@ tonemap_white = 0.975
 ssr_max_steps = 48
 ssao_radius = 2.0
 ssao_intensity = 1.4
-glow_intensity = 3.805
-glow_strength = 0.515
-glow_bloom = 0.32
+glow_intensity = 0.55
+glow_strength = 0.675
+glow_bloom = 0.4
 glow_blend_mode = 0
-glow_hdr_threshold = 0.26
-glow_hdr_scale = 1.48
-glow_hdr_luminance_cap = 66.26
+glow_hdr_threshold = 0.25
+glow_hdr_scale = 1.74
+glow_hdr_luminance_cap = 88.5
 glow_map_strength = 1.0
+adjustment_enabled = true
+adjustment_brightness = 0.98
+adjustment_contrast = 1.015
+adjustment_saturation = 1.075
+adjustment_color_correction = ExtResource("34_lut")
 fog_light_color = Color(0, 0, 0, 1)
 fog_light_energy = 2.31
 fog_density = 0.023
@@ -104,8 +110,6 @@ volumetric_fog_emission = Color(0.05, 0.05, 0.08, 1)
 volumetric_fog_emission_energy = 11.56
 volumetric_fog_gi_inject = 1.26
 volumetric_fog_anisotropy = 0.9
-adjustment_enabled = true
-adjustment_brightness = 1.19
 
 [sub_resource type="BoxMesh" id="BoxMesh_c3bbd"]
 size = Vector3(1.2, 1.8, 1.2)

@@ -223,14 +223,18 @@ func set_aggressive_buffs(active: bool) -> void:
 		if "attack_cooldown" in _brain:
 			if _brain_default_attack_cooldown < 0.0:
 				_brain_default_attack_cooldown = float(_brain.attack_cooldown)
-			if active and aggressive_zeros_brain_timers:
+			if active and aggressive_cooldown_override >= 0.0:
+				_brain.attack_cooldown = aggressive_cooldown_override
+			elif active and aggressive_zeros_brain_timers:
 				_brain.attack_cooldown = 0.0
 			else:
 				_brain.attack_cooldown = _brain_default_attack_cooldown
 		if "wind_up_duration" in _brain:
 			if _brain_default_wind_up < 0.0:
 				_brain_default_wind_up = float(_brain.wind_up_duration)
-			if active and aggressive_zeros_brain_timers:
+			if active and aggressive_wind_up_override >= 0.0:
+				_brain.wind_up_duration = aggressive_wind_up_override
+			elif active and aggressive_zeros_brain_timers:
 				_brain.wind_up_duration = 0.0
 			else:
 				_brain.wind_up_duration = _brain_default_wind_up
@@ -418,6 +422,14 @@ enum FollowMode { PARENTED, DETACHED }
 ## variants that want a visible 0.3s wind-up + normal cooldown despite the
 ## otherwise-red behavior.
 @export var aggressive_zeros_brain_timers: bool = true
+## Wind-up (telegraph) seconds during aggressive mode. >= 0 overrides both the
+## zeroing above AND the brain's authored value — set per-pawn so red can show a
+## short 0.1s tell without re-timing enemies that share its brain scene. < 0 =
+## fall through to the zeroing / authored logic.
+@export var aggressive_wind_up_override: float = -1.0
+## Cooldown seconds between swings during aggressive mode. Same precedence as
+## aggressive_wind_up_override. < 0 = zeroing / authored logic.
+@export var aggressive_cooldown_override: float = -1.0
 
 @export_group("Health")
 ## Hits the player can take from enemies before dying. Falling off the world
@@ -501,7 +513,7 @@ enum FollowMode { PARENTED, DETACHED }
 ## Max distance (m) from the rail curve at which the grab engages. The rail's
 ## Area3D box is only a broad-phase (its AABB bloats badly on curved/diagonal
 ## rails); this is the real, uniform grab tube around the curve.
-@export var rail_grab_radius: float = 1.5
+@export var rail_grab_radius: float = 2.5
 ## After leaving a grind (jump or end-of-rail), THAT rail can't re-grab
 ## until the body has moved at least this far (m) from its curve. Stops
 ## the "rail pulls me right back on" feel when you land beside it; other
@@ -762,6 +774,16 @@ var _natural_lean_roll := 0.0
 ## allies + skating enemies lose their speed on the halfpipe every time
 ## they decide to hop a gap. Player is exempt regardless of this flag.
 @export var disable_brain_jump_on_skates: bool = true
+## Extra horizontal launch speed (m/s) injected in the jump direction at the
+## instant of a ground jump, ON TOP of max_speed, and PRESERVED through the
+## whole arc (the in-air move_toward would otherwise bleed anything above
+## max_speed back down in ~2 frames). Lets a pawn clear a wider gap without a
+## taller/floatier arc or a faster ground chase — the reach adds purely on the
+## forward axis. 0 = off (player + default pawns unaffected). Set per-variant
+## in the inspector; greens use it to clear the level's ~3.5m platform gaps.
+## Reach gained ≈ boost × hang_time (hang_time = 2·jump_impulse/gravity ≈ 0.95s
+## for the enemy profile, so 1.5 ≈ +1.4m).
+@export var jump_horizontal_boost: float = 0.0
 ## Multiplier on horizontal friction while engaged on a curve surface.
 ## Friction is already skipped on the wall (curve_factor > 0.1) but the
 ## trough section still gets normal-ground friction, which kills the
@@ -890,6 +912,10 @@ var _grind_direction := 1.0
 var _grind_snap_t := 1.0
 var _grind_start_pos := Vector3.ZERO
 var _air_jump_available := false
+# True while airborne from a jump that fired jump_horizontal_boost. Gates the
+# in-air "preserve aligned speed above max_speed" branch so the launch boost
+# survives the arc instead of decaying to max_speed. Cleared on landing.
+var _jump_boost_active := false
 # Timestamp (Time.get_ticks_msec()/1000.0) until which jump input is ignored
 # by the body. Set externally (e.g. BouncyPlatform during squash) so only the
 # platform's timed-boost system can act on jump presses during a bounce.
@@ -2209,13 +2235,11 @@ func _is_invuln_against(attacker: Node) -> bool:
 			# damage normally, max_health gates how many hits to kill.
 			return false
 		&"splice_stealth":
-			# Stealth is invulnerable to gold ally attackers — the posse
-			# isn't allowed to clear stealth pawns for you; the player has
-			# to handle stealth themselves (typically via StealthKillTarget
-			# backstab, which calls stealth_kill() directly and bypasses
-			# this whole take_hit path). Player attacks + any other faction
-			# pass through and damage stealth normally.
-			return attacker_faction == &"gold"
+			# Stealth now takes damage from ALL attackers, gold posse included
+			# (gold's 3-dmg swing → 3 hits on stealth's max_health=9). The
+			# player's own kill path is still the StealthKillTarget backstab,
+			# which calls stealth_kill() directly and bypasses take_hit.
+			return false
 		&"gold":
 			# Dodge applies vs RED only — not vs splice_stealth. Preserved
 			# as-is: gold posse still has the coin-completion-scaled
@@ -2591,6 +2615,57 @@ func snap_camera_behind() -> void:
 	_snap_camera_to_player()
 
 
+## Compose and apply the skin's upright transform ONCE from the current
+## _yaw_state. The per-tick composition (see _physics_process, line ~2851) is
+## the only place this normally happens; a cutscene freeze stops
+## _physics_process, so without this call a pawn frozen mid-run keeps looping
+## the run cycle and never turns to its new facing. No lean/tilt — a frozen
+## cutscene pose is always upright.
+func _apply_idle_skin_pose() -> void:
+	if _skin == null:
+		return
+	var basis := Basis(Vector3.UP, _yaw_state)
+	var skin_scale: float = _skin.uniform_scale
+	if not is_equal_approx(skin_scale, 1.0):
+		basis = basis.scaled(Vector3.ONE * skin_scale)
+	_skin.transform = Transform3D(basis, Vector3.ZERO)
+
+
+## Snap the pawn to a neutral, upright idle pose for a cutscene freeze.
+## CutscenePlayer._freeze_player calls set_physics_process(false); that method
+## is the ONLY place the idle/run animation and the upright skin transform get
+## chosen, so a pawn frozen mid-run otherwise keeps looping the run cycle
+## forever. Mirrors the flag_reached handler (idle + dust off) plus a one-shot
+## skin transform rebuild. Safe to call when already idle.
+func enter_cutscene_pose() -> void:
+	velocity = Vector3.ZERO
+	if _skin == null:
+		return
+	_skin.idle()
+	_skin.set_dust_emitting(false)
+	_apply_idle_skin_pose()
+
+
+## Turn the pawn to face along a world marker's forward (blue +Z arrow, same
+## convention as snap_to_spawn) and rebuild the skin pose immediately. Zeros
+## the body's own rotation so the skin's world yaw equals its local yaw — see
+## snap_to_spawn for why body yaw must stay identity or the skin double-rotates.
+## Used by SceneSetupOnFlag to aim the player at Splice during the frozen
+## cutscene, where the per-tick yaw application never runs.
+func face_marker_forward(marker_xform: Transform3D) -> void:
+	var fwd: Vector3 = marker_xform.basis.z
+	fwd.y = 0.0
+	if fwd.length_squared() < 0.0001:
+		return
+	fwd = fwd.normalized()
+	_last_input_direction = fwd
+	var yaw: float = Vector3.BACK.signed_angle_to(fwd, Vector3.UP)
+	_yaw_state = yaw
+	_target_yaw = yaw
+	global_rotation = Vector3.ZERO
+	_apply_idle_skin_pose()
+
+
 # ---- Save/load (called by SaveService on save / scene_entered) ----------
 
 ## Serializes the per-pawn state that can't be reconstructed from flags alone:
@@ -2909,8 +2984,14 @@ func _physics_process(delta: float) -> void:
 		# forward makes me slower than coasting." Fix: when aligned, the
 		# effective target along the input direction is at least the current
 		# aligned speed, so move_toward only ever steers + accelerates.
+		# Same no-decel rule also covers an active horizontal jump boost: while
+		# airborne from a boosted launch, aligned speed above the max_speed
+		# ceiling is preserved (steer + accelerate only, never brake) so the
+		# boost carries the pawn across the gap instead of bleeding off in ~2
+		# frames.
 		var effective_target: Vector3 = target_vel
-		if _on_halfpipe and target_vel.length_squared() > 0.0001:
+		var preserve_over_ceiling: bool = _on_halfpipe or (_jump_boost_active and not on_floor)
+		if preserve_over_ceiling and target_vel.length_squared() > 0.0001:
 			var input_dir: Vector3 = target_vel.normalized()
 			var aligned_speed: float = h_vel.dot(input_dir)
 			if aligned_speed > target_vel.length():
@@ -2945,6 +3026,7 @@ func _physics_process(delta: float) -> void:
 	# Animations and FX.
 	if on_floor:
 		_air_jump_available = true
+		_jump_boost_active = false  # landed — end boost-preservation window
 		_coyote_timer = profile.coyote_time
 	else:
 		_coyote_timer = maxf(0.0, _coyote_timer - delta)
@@ -3012,6 +3094,24 @@ func _physics_process(delta: float) -> void:
 			if pawn_group == "player":
 				_jump_sound.play()
 			_coyote_timer = 0.0
+		# Horizontal launch boost: inject extra forward speed along the jump
+		# direction so the pawn clears wider gaps without a taller arc. Non-
+		# halfpipe only (that branch runs its own momentum-preserving launch).
+		# Sets aligned speed to max_speed*mult + boost in the jump direction;
+		# the in-air preserve branch above keeps it through the arc. Direction
+		# falls back to current horizontal velocity, then facing, if the brain
+		# supplied no move_direction this frame.
+		if jump_horizontal_boost > 0.0 and not _on_halfpipe:
+			var boost_dir := Vector3(move_direction.x, 0.0, move_direction.z)
+			if boost_dir.length() < 0.01:
+				boost_dir = Vector3(velocity.x, 0.0, velocity.z)
+			if boost_dir.length() < 0.01:
+				boost_dir = -global_transform.basis.z
+			boost_dir = boost_dir.normalized()
+			var launch_speed: float = profile.max_speed * _faction_speed_mult + jump_horizontal_boost
+			velocity.x = boost_dir.x * launch_speed
+			velocity.z = boost_dir.z * launch_speed
+			_jump_boost_active = true
 	elif is_air_jumping:
 		velocity.y = profile.jump_impulse
 		if pawn_group == "player":

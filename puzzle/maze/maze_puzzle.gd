@@ -98,36 +98,48 @@ const _INPUT_DEADZONE: float = 0.18
 # Junction grace: when the cursor crosses a node, perpendicular input above
 # this magnitude is treated as a turn intent (preferred over continuing
 # straight even when not strictly dominant). Lower = more eager to turn;
-# higher = sticks to the entry axis. 0.3 means a stick deflection of >~17°
-# off the entry axis counts as a turn — i.e. modest diagonals already
-# read as "I want to turn here."
-const _TURN_BIAS_THRESHOLD: float = 0.3
+# higher = sticks to the entry axis. Tuned "on" = 0.3 (a >~17° deflection
+# off the entry axis reads as a turn). 2.0 = OFF — input magnitude caps at
+# 1.0, so the layer never fires and only the dominant axis picks the edge.
+@export_group("Correction Layers (raise ≥ 1.0 to disable)")
+@export var turn_bias_threshold: float = 2.0
 # Pre-press input buffer (Witness-grace #1). Press = an axis crossing this
 # magnitude from below. Buffered direction wins over turn-bias / dominant
-# at the next junction commit if still fresh. Tightened to 0.18s
-# (was 0.22) — wide enough for genuine pre-presses to land but short
-# enough that stray stick-pull-back gestures don't get queued and fire
-# as accidental backtracks at the next node crossing.
+# at the next junction commit if still fresh. Tuned "on" = 0.18s — wide
+# enough for genuine pre-presses to land but short enough that stray
+# stick-pull-back gestures don't queue and fire as accidental backtracks.
+# 0.0 = OFF — the freshness check `< buffer_duration` never passes.
 const _AXIS_PRESS_THRESHOLD: float = 0.4
-const _BUFFER_DURATION: float = 0.18
+@export var buffer_duration: float = 0.0
 # Mid-edge turn-out (Witness-grace #2). When perpendicular input dominates
 # AND forward intent is weak, drive the cursor back to path[-1] at the
 # perp magnitude rate so the next loop iteration enters the new direction.
 # Same gesture as Witness's mouse-pulled-perpendicular cursor retreat.
-# Lowered thresholds: 0.45 perp + 0.45 forward gate (was 0.6 + 0.3) — the
-# cursor abandons the current lane sooner when the player clearly wants
-# to head elsewhere, even if they haven't fully released the original
-# direction. Less "I'm stuck on this edge" feel.
-const _PERP_TURN_THRESHOLD: float = 0.45
+# Tuned "on" = 0.45 perp + 0.45 forward gate — the cursor abandons the
+# current lane when the player clearly wants to head elsewhere. 2.0 = OFF —
+# perp_mag caps at 1.0 so the retreat branch never fires: no mid-edge turn,
+# you must back the cursor to the node yourself to change direction.
+@export var perp_turn_threshold: float = 2.0
 const _PERP_TURN_FORWARD_GATE: float = 0.45
 # Off-axis last-resort candidate at junctions, gated by magnitude. A blocked
 # dominant axis falls through to the other axis ONLY when the player is
 # meaningfully pressing it (≥ this threshold). Replaces the old boolean:
-# unconditional fallback felt "almost a bit too forgiving" (threaded corners
-# off ~0.1 stick noise), but fully off dead-stopped every diagonal whose
-# slightly-stronger axis pointed at a wall — a 0.58/0.55 press stalled on a
-# coin flip. 0.3 = same commitment bar as _TURN_BIAS_THRESHOLD.
-const _OFF_AXIS_FALLBACK_THRESHOLD: float = 0.3
+# Tuned "on" = 0.3 (same commitment bar as turn_bias_threshold). 2.0 = OFF —
+# a walled dominant axis dead-stops at the node instead of rescuing to the
+# perpendicular edge.
+@export var off_axis_fallback_threshold: float = 2.0
+# Corner snap. When the cursor is within this fraction of an edge from an
+# endpoint node AND you press perpendicular toward an open lane at that node,
+# the cursor jumps onto the corner and enters the lane. 0.3 = within 30% of a
+# corner (the default feel). Backward snap only fires near the trailing node;
+# forward snap only near the leading node — so it never drags you back across
+# the whole edge. 0.0 = OFF.
+@export_range(0.0, 0.5) var corner_snap_distance: float = 0.3
+# Perpendicular-press floor for corner snap — the off-edge input component
+# must exceed this (|cross| of the unit input vs the edge cardinal, so ~0.3 =
+# a >~17° press) before a snap is considered. Stops straight-line noise from
+# snapping you off the lane.
+const _CORNER_SNAP_PERP_FLOOR: float = 0.3
 # Sentinel — "no active edge" (cursor sitting on a node). Coordinates are
 # negative so they can never collide with a real grid node.
 const _NO_NEIGHBOR: Vector2i = Vector2i(-99, -99)
@@ -546,11 +558,30 @@ func _step_cursor(input_unit: Vector2, distance: float) -> void:
 		var edge_vec: Vector2 = Vector2(_active_neighbor - here)  # cardinal unit
 		var aligned: float = input_unit.dot(edge_vec)
 		var perp_mag: float = absf(input_unit.cross(edge_vec))
+		# Corner snap: near an endpoint, a perpendicular press toward an open
+		# lane at that corner jumps the cursor onto the corner and enters the
+		# lane. Trailing-node snap only within corner_snap_distance of _cursor_t
+		# = 0; leading-node snap only within that distance of _cursor_t = 1.
+		if corner_snap_distance > 0.0 and perp_mag >= _CORNER_SNAP_PERP_FLOOR:
+			var perp_dir: Vector2i = _perp_press_dir(input_unit, edge_vec)
+			if perp_dir != Vector2i.ZERO:
+				if _cursor_t <= corner_snap_distance \
+						and _data.has_edge(here, here + perp_dir):
+					_cursor_t = 0.0
+					_active_neighbor = _NO_NEIGHBOR
+					_try_enter_dir(here, perp_dir)
+					return
+				if _cursor_t >= 1.0 - corner_snap_distance \
+						and _data.has_edge(_active_neighbor, _active_neighbor + perp_dir):
+					_commit_active_edge()
+					if not _finished_local:
+						_try_enter_dir(_path[_path.size() - 1], perp_dir)
+					return
 		# Mid-edge turn-out (Witness-grace #2): if the player is pushing
 		# perpendicular hard with weak forward intent, treat the perp
 		# magnitude as a retreat force toward path[-1] so the next loop
 		# iteration can enter the new direction. Single gesture.
-		if perp_mag > _PERP_TURN_THRESHOLD and aligned > -0.05 and aligned < _PERP_TURN_FORWARD_GATE:
+		if perp_mag > perp_turn_threshold and aligned > -0.05 and aligned < _PERP_TURN_FORWARD_GATE:
 			var step: float = perp_mag * distance
 			var capacity: float = _cursor_t
 			if step <= capacity + 1.0e-6:
@@ -591,11 +622,24 @@ func _is_at_tip() -> bool:
 	return _active_neighbor == _NO_NEIGHBOR
 
 
+# The cardinal perpendicular to the current edge that the player is pressing.
+# On a horizontal edge the perpendicular axis is vertical (and vice versa);
+# returns ZERO if there's no meaningful off-edge component on that axis.
+func _perp_press_dir(input_unit: Vector2, edge_vec: Vector2) -> Vector2i:
+	if absf(edge_vec.x) > 0.5:
+		if absf(input_unit.y) < 1.0e-3:
+			return Vector2i.ZERO
+		return Vector2i(0, int(signf(input_unit.y)))
+	if absf(input_unit.x) < 1.0e-3:
+		return Vector2i.ZERO
+	return Vector2i(int(signf(input_unit.x)), 0)
+
+
 # Try to enter an edge from path[-1] using the player's input. Builds a
 # small priority list of candidate cardinal directions and tries each in
 # turn — the first that maps to an open + no-cross-safe edge wins. The
 # priority order encodes the "junction grace" rule: when leaving an edge,
-# perpendicular input above _TURN_BIAS_THRESHOLD is preferred over
+# perpendicular input above turn_bias_threshold is preferred over
 # continuing straight (so diagonal stick at junctions reads as a turn,
 # not as "keep going"). If no priority candidate is valid, falls back to
 # the dominant axis, then the off-axis. Returns true if an edge was
@@ -616,13 +660,13 @@ func _try_enter_edge_from_tip(input_unit: Vector2) -> bool:
 	# then off-axis as last resort.
 	var candidates: Array[Vector2i] = []
 	var now: float = Time.get_ticks_msec() / 1000.0
-	if _buffered_dir != Vector2i.ZERO and (now - _buffered_dir_time) < _BUFFER_DURATION \
+	if _buffered_dir != Vector2i.ZERO and (now - _buffered_dir_time) < buffer_duration \
 			and _buffered_dir != entry:
 		candidates.append(_buffered_dir)
-	if entry.x != 0 and ay >= _TURN_BIAS_THRESHOLD and y_dir != Vector2i.ZERO:
+	if entry.x != 0 and ay >= turn_bias_threshold and y_dir != Vector2i.ZERO:
 		if not (y_dir in candidates):
 			candidates.append(y_dir)
-	if entry.y != 0 and ax >= _TURN_BIAS_THRESHOLD and x_dir != Vector2i.ZERO:
+	if entry.y != 0 and ax >= turn_bias_threshold and x_dir != Vector2i.ZERO:
 		if not (x_dir in candidates):
 			candidates.append(x_dir)
 	# Dominant axis. Exact ties (keyboard diagonals: ax == ay == 0.707)
@@ -637,7 +681,7 @@ func _try_enter_edge_from_tip(input_unit: Vector2) -> bool:
 	if dom != Vector2i.ZERO and not (dom in candidates):
 		candidates.append(dom)
 	var off_mag: float = ay if off == y_dir else ax
-	if off != Vector2i.ZERO and off_mag >= _OFF_AXIS_FALLBACK_THRESHOLD \
+	if off != Vector2i.ZERO and off_mag >= off_axis_fallback_threshold \
 			and not (off in candidates):
 		candidates.append(off)
 	for d: Vector2i in candidates:

@@ -37,12 +37,19 @@ Splice: Keeps the rest of the **sheeple** chasing soda cans like it matters.
 Splice: I **was** them once. I **left** because I figured it out.
 Splice: Walk with me, you don't grind anymore. The Gibson responds when you blink. Sentinels, routing, the whole stack — yours.
 Splice: You didn't grab it. You saw it. DialTone's crew is still playing make-believe.
+=> splice_hub
+
+# HUB — menu only, no monologue. Every probe loops back HERE, not to
+# splice_consider, so the sheeple pitch above plays exactly once.
+
+~ splice_hub
+
 - They say you will destroy the Gibson.
 	Splice: It's not destruction. It's just **monetization**.
 	Splice: If I don't do it someone else will. This is just the way the world works.
 	Splice: DialTone's going to come to the same conclusion in about a month.
 	Splice: Just wait.
-	=> splice_consider
+	=> splice_hub
 - What's the catch?
 	=> splice_catch
 - [CANS 0%] What about Nyx? [if not GameState.get_flag("splice_nyx_door_rolled", false) /]
@@ -87,7 +94,7 @@ if Skills.roll("cans", 0)
 Splice: Nyx.
 Splice: No.
 Splice: We're here to talk about **you**.
-=> splice_consider
+=> splice_hub
 
 ~ splice_nyx
 
@@ -101,7 +108,7 @@ Splice: She's not part of this conversation, runner.
 Splice: Some things I keep mine.
 - "Almost"?
 	Splice: Long time ago. Doesn't matter.
-	=> splice_consider
+	=> splice_hub
 # CHECK — cans-driven roll (30% base + can% × 0.6). One-shot; pushes into
 # the sentence Splice cut off at "she -". Pass ties to dial_tone's backdoor
 # thread ("He found a backdoor. / He made one.") — Nyx burned it on sight.
@@ -114,10 +121,10 @@ Splice: Some things I keep mine.
 	else
 		Splice: No.
 		Splice: You get the pitch, runner. You don't get **me**.
-	=> splice_consider
+	=> splice_hub
 - [if GameState.coin_pct() >= 0.8 /] [CAN] Are you trying to get her back?
 	Splice: I'm trying to get the Gibson. Nyx made her call a long time ago.
-	=> splice_consider
+	=> splice_hub
 - Get off my channel. [#exit]
 	=> splice_refused
 

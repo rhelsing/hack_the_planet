@@ -80,7 +80,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -53.424747, 51.39068, 65.6984
 transform = Transform3D(-0.99997866, 0, -0.006527446, 0, 1, 0, 0.006527446, 0, -0.99997866, -41.698, 33.22149, 7.952879)
 maze_path = "res://puzzle/maze/mazes/hello_world_exe.maze"
 convert_zone_id = &"l2_splice"
-target_factions = Array[StringName]([&"red"])
 interactable_id = &"l2_hack_terminal"
 
 [node name="HackTerminalUnlockOtherHackTerminal" parent="." index="14" unique_id=816224979 instance=ExtResource("2_hackterm")]
@@ -750,3 +749,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -288.78445, 72.07551, 70.3429
 
 [node name="Coin21" parent="." index="146" unique_id=349126616 instance=ExtResource("23_3c4pw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -284.0227, 72.07551, 62.472775)
+
+[node name="Coin22" parent="." index="147" unique_id=941089798 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.881083, 1.1321437, -68.458725)
+
+[node name="Coin23" parent="." index="148" unique_id=90910497 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.135317, 1.1321447, -68.71128)
+
+[node name="Coin24" parent="." index="149" unique_id=888505414 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.113214, 1.1321456, -68.38307)
+
+[node name="Coin25" parent="." index="150" unique_id=1423972835 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -36.39482, 21.610992, -18.946344)
+
+[node name="Coin26" parent="." index="151" unique_id=1311675103 instance=ExtResource("23_3c4pw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.99136, 21.610992, -22.483364)
