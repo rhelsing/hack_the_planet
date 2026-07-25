@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://dypx2h8xpyi3y"]
+
+[ext_resource type="Script" path="res://enemy/nav_dummy_body.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://ccylskin0001aa" path="res://player/skins/cylinder/cylinder_skin.tscn" id="2_skin"]
+[ext_resource type="PackedScene" uid="uid://dypvx44mpyiuy" path="res://enemy/brains/nav_brain.tscn" id="3_brain"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_dummy"]
+radius = 0.4
+height = 1.8
+
+[node name="EnemyNavDummy" type="CharacterBody3D"]
+script = ExtResource("1_script")
+jump_horizontal_boost = 3.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_dummy")
+
+[node name="Visual" parent="." instance=ExtResource("2_skin")]
+
+[node name="NavBrain" parent="." instance=ExtResource("3_brain")]
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 1.5
+avoidance_enabled = true
+radius = 0.6
+max_speed = 5.0
+debug_enabled = true

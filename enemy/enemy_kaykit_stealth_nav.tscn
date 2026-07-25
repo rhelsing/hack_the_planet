@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://hyhh56bgmm1u" path="res://enemy/enemy_kaykit_splice_stealth.tscn" id="1_stealth"]
+[ext_resource type="PackedScene" path="res://enemy/brains/nav_stealth.tscn" id="2_brain"]
+[ext_resource type="Script" path="res://player/brains/nav_cone_visual.gd" id="3_cone"]
+[ext_resource type="Script" path="res://enemy/alert_tint.gd" id="4_tint"]
+
+[node name="EnemyKayKitStealthNav" instance=ExtResource("1_stealth")]
+brain_scene = ExtResource("2_brain")
+aggressive_while_chasing = true
+jump_horizontal_boost = 3.0
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 1.5
+avoidance_enabled = true
+radius = 0.6
+max_speed = 12.0
+
+[node name="ConeVisual" type="Node3D" parent="."]
+script = ExtResource("3_cone")
+radius_scale = 0.5
+
+[node name="AlertTint" type="Node" parent="."]
+script = ExtResource("4_tint")

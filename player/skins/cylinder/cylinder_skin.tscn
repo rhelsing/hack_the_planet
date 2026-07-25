@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://ccylskin0001aa"]
+
+[ext_resource type="Script" path="res://player/skins/skin.gd" id="1_skin"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(1, 0.5, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.45, 0.05, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_body"]
+top_radius = 0.4
+bottom_radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_nose"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_nose"]
+size = Vector3(0.16, 0.16, 0.3)
+
+[node name="CylinderSkin" type="Node3D"]
+script = ExtResource("1_skin")
+lean_pivot_height = 1.4
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+material_override = SubResource("StandardMaterial3D_body")
+mesh = SubResource("CylinderMesh_body")
+
+[node name="Nose" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0.5)
+material_override = SubResource("StandardMaterial3D_nose")
+mesh = SubResource("BoxMesh_nose")

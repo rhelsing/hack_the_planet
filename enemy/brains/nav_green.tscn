@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://dyp1x80mpyiuy"]
+
+[ext_resource type="Script" path="res://player/brains/nav_brain.gd" id="1_brain"]
+
+[node name="NavBrain" type="Node"]
+script = ExtResource("1_brain")
+target_groups = Array[StringName]([&"player", &"allies"])
+wind_up_duration = 0.3

@@ -171,8 +171,8 @@ func _load_audio_dir(path: String) -> Array[AudioStream]:
 func _play_random_bounce_sfx() -> void:
 	var n: int = _bounce_sound_pool_resolved.size()
 	if n == 0 or _bounce_sfx_player == null:
-		print("[bnc-aud-dbg] skip: pool=%d player=%s dir=%s" % [
-			n, _bounce_sfx_player, bounce_sound_auto_load_dir])
+		push_warning("BouncyPlatform %s: no bounce sfx (pool=%d dir=%s)" % [
+			name, n, bounce_sound_auto_load_dir])
 		return
 	var idx: int = randi() % n
 	if n > 1 and idx == _last_bounce_sfx_idx:
@@ -182,11 +182,6 @@ func _play_random_bounce_sfx() -> void:
 	_bounce_sfx_player.volume_db = bounce_sound_volume_db
 	_bounce_sfx_player.pitch_scale = 1.0 + randf_range(-bounce_sound_pitch_jitter, bounce_sound_pitch_jitter)
 	_bounce_sfx_player.play()
-	var sfx_idx := AudioServer.get_bus_index(&"SFX")
-	print("[bnc-aud-dbg] play: stream=%s vol_db=%.1f sfx_bus_db=%.1f muted=%s" % [
-		_bounce_sound_pool_resolved[idx].resource_path,
-		bounce_sound_volume_db, AudioServer.get_bus_volume_db(sfx_idx),
-		AudioServer.is_bus_mute(sfx_idx)])
 
 
 # Effective getters: panel override takes precedence, otherwise this
@@ -276,6 +271,11 @@ func _on_body_entered(body: Node) -> void:
 	# window and keep the base launch.
 	if not (body is CharacterBody3D):
 		return
+	# Landing means falling. Ignore bodies moving upward through the zone —
+	# in particular our own just-launched body, which the area re-detects for
+	# a few frames after the restore-reparent while it climbs out.
+	if (body as CharacterBody3D).velocity.y > 0.5:
+		return
 	_carried_body = body as Node3D
 	_original_parent = body.get_parent()
 	body.call_deferred(&"reparent", _deck, true)
@@ -286,6 +286,14 @@ func _on_body_exited(body: Node) -> void:
 	# Walked off the side mid-squash without launching — restore parent so
 	# the player doesn't keep riding a static deck.
 	if body != _carried_body:
+		return
+	# Our own deferred reparent under the deck fires a body_exited mid-move
+	# (the body still has its OLD parent at that instant). A real walk-off
+	# only happens once the body is already under the deck. Without this
+	# guard the phantom exit cancels the carry, the next-frame re-entry
+	# records _original_parent as the deck itself, and the body stays
+	# parented to the deck forever — every later squash drags it.
+	if body.get_parent() != _deck:
 		return
 	_restore_parent()
 	_carried_body = null
@@ -306,7 +314,11 @@ func _start_bounce() -> void:
 	# bypass the timing requirement and stack extra height.
 	_boost_target = _carried_body
 	_boost_consumed = false
-	if bounce_boost_velocity > 0.0 and _boost_target != null:
+	# Timed boost is a PLAYER skill mechanic. Gate the window on the player —
+	# without this, enemy bounces open the input-polling window too, and the
+	# player's jump presses get consumed as boosts applied to ENEMIES.
+	if bounce_boost_velocity > 0.0 and _boost_target != null \
+			and _boost_target.is_in_group(&"player"):
 		var half: float = bounce_boost_window * 0.5
 		var open_at: float = maxf(0.0, bounce_sound_delay - half)
 		if open_at > 0.0:

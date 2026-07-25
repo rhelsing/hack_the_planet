@@ -137,6 +137,22 @@ func set_faction(new_faction: StringName) -> void:
 		if _brain_default_chase_exit_radius < 0.0:
 			_brain_default_chase_exit_radius = float(_brain.chase_exit_radius)
 		_brain.chase_exit_radius = 46.0 if new_faction == &"gold" else _brain_default_chase_exit_radius
+	# Nav-stack stealth kit shed/restore (guarded — only NavBrain has these).
+	# Converting away from splice_stealth widens the cone to 360, drops the
+	# sentinel patrol scan, and makes detection instant; reverting restores
+	# the preset's authored values. Same cached-default pattern as above.
+	if _brain != null and "cone_deg" in _brain:
+		if _brain_default_cone_deg < 0.0:
+			_brain_default_cone_deg = float(_brain.cone_deg)
+		_brain.cone_deg = _brain_default_cone_deg if new_faction == &"splice_stealth" else 360.0
+	if _brain != null and "wander_style" in _brain:
+		if _brain_default_wander_style < 0:
+			_brain_default_wander_style = int(_brain.wander_style)
+		_brain.wander_style = _brain_default_wander_style if new_faction == &"splice_stealth" else 0
+	if _brain != null and "suspect_time" in _brain:
+		if _brain_default_suspect_time < 0.0:
+			_brain_default_suspect_time = float(_brain.suspect_time)
+		_brain.suspect_time = _brain_default_suspect_time if new_faction == &"splice_stealth" else 0.0
 	# Skate profile flip is no longer auto on gold conversion — moved to the
 	# explicit caller. ControlPortal converts walk; GodAbility converts ride.
 	# Apply the aggressive package (99 damage, 0 wind-up, 0 cooldown) to red
@@ -207,7 +223,11 @@ func set_aggressive_buffs(active: bool) -> void:
 	# values for damage, speed mult, and brain timer zeroing. < 0 / true =
 	# legacy behavior preserved.
 	if active and aggressive_speed_mult_override >= 0.0:
-		_faction_speed_mult = aggressive_speed_mult_override
+		if aggressive_speed_mult_jitter > 0.0 and _aggressive_speed_mult_rolled < 0.0:
+			_aggressive_speed_mult_rolled = maxf(0.0, aggressive_speed_mult_override \
+				+ randf_range(-aggressive_speed_mult_jitter, aggressive_speed_mult_jitter))
+		_faction_speed_mult = _aggressive_speed_mult_rolled \
+			if _aggressive_speed_mult_rolled >= 0.0 else aggressive_speed_mult_override
 	else:
 		_faction_speed_mult = float(buffs[0])
 	if active and aggressive_damage_override >= 0:
@@ -249,6 +269,38 @@ func set_aggressive_buffs(active: bool) -> void:
 		float(_brain.attack_cooldown) if _brain != null and "attack_cooldown" in _brain else -1.0,
 		float(_brain.wind_up_duration) if _brain != null and "wind_up_duration" in _brain else -1.0,
 	])
+
+
+## How audible this pawn is to NavPerception hearing (duck-typed seam — the
+## stack calls this when present, defaults to 1.0 otherwise). Crouching is
+## silent: that's the sneak-behind verb the stealth backstab depends on.
+## Future: skating / heavy landings can return > 1.0 (heard from farther).
+func noise_loudness() -> float:
+	return 0.0 if _was_crouched else 1.0
+
+
+## Forward a tint to the skin (no-op when the skin lacks set_faction_tint).
+## Public so visual listeners (alert_tint.gd) can drive state color without
+## reaching into body internals.
+func apply_tint(color: Color, amount: float) -> void:
+	if _skin != null and _skin.has_method(&"set_faction_tint"):
+		_skin.set_faction_tint(color, amount)
+
+
+## Body-side reaction to brain state transitions (docs/nav_stack.md: the
+## brain emits, the body applies). Wired to whichever brain is current.
+func _connect_brain_signals() -> void:
+	if not aggressive_while_chasing or _brain == null:
+		return
+	if not _brain.has_signal(&"state_changed"):
+		return
+	if _brain.state_changed.is_connected(_on_brain_state_changed):
+		return
+	_brain.state_changed.connect(_on_brain_state_changed)
+
+
+func _on_brain_state_changed(_previous: StringName, current: StringName) -> void:
+	set_aggressive_buffs(current == &"CHASE" or current == &"WIND_UP")
 
 
 ## Map pawn_group → default faction for backwards compat. Used by _ready
@@ -421,6 +473,12 @@ enum FollowMode { PARENTED, DETACHED }
 ## inheriting red's invuln + sphere detection but at 1.5× rather than red's
 ## entry-table speed.
 @export var aggressive_speed_mult_override: float = -1.0
+## ± jitter applied to aggressive_speed_mult_override, rolled ONCE per pawn
+## (sticky for its lifetime, like the gold-dodge roll) so a crowd of the same
+## variant moves at visibly different speeds instead of in lockstep. 0.5 with
+## override 2.3 = each pawn lands somewhere in 1.8–2.8. Requires the override
+## to be set (>= 0); ignored on table-driven pawns. 0 = no jitter.
+@export var aggressive_speed_mult_jitter: float = 0.0
 ## Attack damage applied during aggressive mode. < 0 = use red's FACTION_BUFFS
 ## row. Set per-pawn so a stealth that goes "red-mode" can deal a tunable
 ## (e.g. 2-hit-kill) blow instead of red's instant-kill 99.
@@ -439,6 +497,11 @@ enum FollowMode { PARENTED, DETACHED }
 ## Cooldown seconds between swings during aggressive mode. Same precedence as
 ## aggressive_wind_up_override. < 0 = zeroing / authored logic.
 @export var aggressive_cooldown_override: float = -1.0
+## When true, this body applies/removes the aggressive package as its brain
+## enters/leaves chase states (via the NavBrain `state_changed` signal — the
+## brain emits, the body applies; it never touches stats itself). Nav-stack
+## home of the legacy stealth `aggressive_while_chasing` brain flag.
+@export var aggressive_while_chasing: bool = false
 
 @export_group("Health")
 ## Hits the player can take from enemies before dying. Falling off the world
@@ -1001,6 +1064,8 @@ var _attack_impact_played: bool = false
 # _FACTION_BUFFS table. Speed mult is multiplied into the move_toward
 # target each tick; attack damage is passed to take_hit on every swing.
 var _faction_speed_mult: float = 1.0
+# One-time jittered roll of aggressive_speed_mult_override (-1 = not rolled yet).
+var _aggressive_speed_mult_rolled: float = -1.0
 var _faction_attack_damage: int = 1
 # Splice (red) is unkillable. take_hit early-returns when this is set.
 var _faction_invulnerable: bool = false
@@ -1017,6 +1082,10 @@ var _brain_default_wind_up: float = -1.0
 # -1.0 sentinel = "not captured yet".
 var _brain_default_detection_radius: float = -1.0
 var _brain_default_chase_exit_radius: float = -1.0
+# Nav-stack stealth kit caches (cone/patrol/suspect shed on conversion).
+var _brain_default_cone_deg: float = -1.0
+var _brain_default_wander_style: int = -1
+var _brain_default_suspect_time: float = -1.0
 var _footstep_player_a: AudioStreamPlayer3D
 # Looping wheel-roll bed (skate mode). Created in _ready when enabled;
 # volume/pitch chase speed each audio tick, stops once faded out.
@@ -1238,6 +1307,7 @@ func _ready() -> void:
 	# the initial profile before the player presses any toggle.
 	if _skin != null:
 		_skin.set_skate_mode(_current_profile == skate_profile)
+	_sync_nav_capability_mask()
 	# Camera rig setup is player-only — enemies / companions / duplicate
 	# players had their Camera3D freed above, so deref'ing _camera here
 	# would crash. Gate on is_active_player so duplicates (singleton check
@@ -1328,6 +1398,7 @@ func _swap_brain_if_overridden() -> void:
 			c.queue_free()
 	add_child(new_brain)
 	_brain = new_brain
+	_connect_brain_signals()
 
 
 ## Permanently replace the brain at runtime and re-apply the current
@@ -1354,6 +1425,10 @@ func replace_brain(scene: PackedScene) -> void:
 	_brain_default_chase_exit_radius = -1.0
 	_brain_default_attack_cooldown = -1.0
 	_brain_default_wind_up = -1.0
+	_brain_default_cone_deg = -1.0
+	_brain_default_wander_style = -1
+	_brain_default_suspect_time = -1.0
+	_connect_brain_signals()
 	print("[faction] %s brain replaced -> %s" % [name, scene.resource_path])
 	set_faction(faction)
 
@@ -1388,6 +1463,7 @@ func set_profile_skate() -> void:
 	_current_profile = skate_profile
 	if _skin != null:
 		_skin.set_skate_mode(true)
+	_sync_nav_capability_mask()
 
 
 ## Force-switch to the walking profile and hide the skin's skate gear.
@@ -1403,6 +1479,7 @@ func set_profile_walk() -> void:
 	# we want this hook to be idempotent for scripted scenes.
 	if _skin != null and _skin.has_method(&"set_skate_mode"):
 		_skin.set_skate_mode(false)
+	_sync_nav_capability_mask()
 	print("[player_body] set_profile_walk → walk_profile, skin=%s" % _skin)
 
 
@@ -1429,6 +1506,21 @@ func toggle_profile() -> void:
 		_current_profile = skate_profile
 	if _skin != null:
 		_skin.set_skate_mode(_current_profile == skate_profile)
+	_sync_nav_capability_mask()
+
+
+## Keep the NavigationAgent3D capability mask in step with the movement
+## profile: skating pawns (bigger jump envelope) may plan through skate-tier
+## links (NavLayers.SKATE_JUMP), walking pawns route around them. Routes
+## re-plan automatically on the mask flip — granting rollerblades IS the
+## capability grant. No-op without an agent child (player pawn, legacy AI).
+func _sync_nav_capability_mask() -> void:
+	for c: Node in get_children():
+		if c is NavigationAgent3D:
+			(c as NavigationAgent3D).navigation_layers = \
+				NavLayers.WALK_AND_SKATE if _current_profile == skate_profile \
+				else NavLayers.WALK
+			return
 
 
 ## Called by child Ability nodes when their owned-flag flips true. Re-emits

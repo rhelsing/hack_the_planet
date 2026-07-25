@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://player/brains/nav_brain.gd" id="1_brain"]
+
+[node name="NavBrain" type="Node"]
+script = ExtResource("1_brain")
+target_groups = Array[StringName]([&"player", &"allies"])
+detection_radius = 45.0
+chase_memory_duration = 8.0
+cone_deg = 100.0
+vertical_half_height = 1.0
+suspect_time = 1.2
+alert_broadcast_radius = 18.0
+alert_group = &"splice_enemies"
+attack_cooldown = 1.2
+wind_up_duration = 0.3
+wander_style = 1
+wander_speed_fraction = 0.6

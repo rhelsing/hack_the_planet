@@ -37,6 +37,8 @@ var _f12_return: Dictionary = {}
 var _f9_return: Dictionary = {}
 # F1 dev-toggle return state. Splice on level 3, full coins.
 var _f1_return: Dictionary = {}
+# F10 dev-toggle return state. Nav test scene (cylinder dummy + NavBrain).
+var _f10_return: Dictionary = {}
 
 
 func _ready() -> void:
@@ -107,6 +109,8 @@ func _input(event: InputEvent) -> void:
 		var key := (event as InputEventKey).keycode
 		if key == KEY_F12:
 			_toggle_sentinel_test()
+		elif key == KEY_F10:
+			_toggle_nav_test()
 		elif key == KEY_F9:
 			_toggle_level_5_start()
 		elif key == KEY_F8:
@@ -251,6 +255,55 @@ func _toggle_sentinel_test() -> void:
 		}
 	LevelProgression.goto_path(TEST_PATH)
 	print("[F12] entered sentinel_test (return stashed=%s)" % not _f12_return.is_empty())
+
+
+# F10 nav-gym ring (clean-room AI sandbox). From the game: stash + enter the
+# first gym. From a gym: advance to the next; from the last: restore the
+# stash (hub fallback when booted straight in). Same stash shape as F12.
+# F10 (not F11) because macOS binds F11 to Show Desktop by default.
+func _toggle_nav_test() -> void:
+	const NAV_GYMS: Array[String] = [
+		"res://level/nav_test.tscn",
+		"res://level/nav_gym_crowd.tscn",
+	]
+	const HUB_PATH: String = "res://level/hub.tscn"
+	var current_path: String = ""
+	if _current_level != null and is_instance_valid(_current_level):
+		current_path = _current_level.scene_file_path
+	var player: Node3D = get_node_or_null(^"Player") as Node3D
+	var gym_idx: int = NAV_GYMS.find(current_path)
+	if gym_idx >= 0 and gym_idx < NAV_GYMS.size() - 1:
+		LevelProgression.goto_path(NAV_GYMS[gym_idx + 1])
+		print("[F10] next gym: %s" % NAV_GYMS[gym_idx + 1])
+		return
+	if gym_idx == NAV_GYMS.size() - 1:
+		if not _f10_return.is_empty():
+			var stash: Dictionary = _f10_return
+			_f10_return = {}
+			await LevelProgression.goto_path(stash.get("path", ""))
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			if p != null and stash.has("position"):
+				p.global_position = stash["position"]
+			print("[F10] returned to %s" % stash.get("path", ""))
+		else:
+			# No stash — drop into hub at its PlayerSpawn marker.
+			await LevelProgression.goto_path(HUB_PATH)
+			var p: Node3D = get_node_or_null(^"Player") as Node3D
+			var spawn: Node3D = null
+			if _current_level != null and is_instance_valid(_current_level):
+				spawn = _current_level.get_node_or_null(^"PlayerSpawn") as Node3D
+			if p != null and spawn != null:
+				p.global_position = spawn.global_position
+			print("[F10] no stash — teleported to hub PlayerSpawn")
+		return
+	# Entering from the game: stash if we have a level + player to remember.
+	if player != null and current_path != "":
+		_f10_return = {
+			"path": current_path,
+			"position": player.global_position,
+		}
+	LevelProgression.goto_path(NAV_GYMS[0])
+	print("[F10] entered %s (return stashed=%s)" % [NAV_GYMS[0], not _f10_return.is_empty()])
 
 
 # F4–F8: editor-only progression warps. Each key drops you into the hub

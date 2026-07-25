@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="1_kaykit"]
+[ext_resource type="PackedScene" path="res://enemy/brains/nav_red.tscn" id="2_brain"]
+
+[node name="EnemyKayKitRedNav" instance=ExtResource("1_kaykit")]
+brain_scene = ExtResource("2_brain")
+faction = &"red"
+max_health = 5
+jump_horizontal_boost = 3.0
+aggressive_speed_mult_override = 2.3
+aggressive_speed_mult_jitter = 0.5
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 1.5
+avoidance_enabled = true
+radius = 0.6
+max_speed = 11.0

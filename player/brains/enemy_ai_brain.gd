@@ -286,6 +286,18 @@ enum NavMode { NONE, DUMB, SMART, COMPANION }
 ## close enough to fight and is never considered stuck (it arrived).
 @export var stuck_attack_range_mult: float = 1.5
 
+@export_subgroup("Local route")
+## On a stuck event, sample a small floor grid this far (m) around the pawn and
+## grid-BFS a way around the obstacle toward the target. Only runs on stuck, so
+## the cost is rare + local — never per-tick, never map-wide.
+@export var local_route_radius: float = 16.0
+## Grid spacing (m) for the local route sample. Coarser = fewer rays.
+@export var local_route_spacing: float = 3.0
+## Max height step (m) between adjacent local cells still treated as walkable.
+@export var local_route_step_height: float = 1.6
+## Max drop (m) below the pawn the local sample looks for floor.
+@export var local_route_max_drop: float = 4.0
+
 @export_group("Ledges")
 @export var turn_at_ledges := true
 @export var ledge_probe_distance := 1.5
@@ -377,6 +389,9 @@ var _stuck_ref_pos: Vector3 = Vector3.INF
 var _no_progress_timer: float = 0.0
 var _escape_timer: float = 0.0
 var _escape_dir: Vector3 = Vector3.ZERO
+# True when the current escape came from a validated local route (trust it, no
+# per-tick ledge veto); false for a blind cardinal guess (keep the veto).
+var _escape_is_route: bool = false
 # Last waypoint picked by _waypoint_steer. Per-brain so the dedup'd log
 # fires per pawn, not globally. Clears on null (no eligible waypoint) and
 # changes whenever the pick flips — gives a clean trace of each pawn's
@@ -719,26 +734,22 @@ func _effective_cone_deg() -> float:
 
 func _chase_direction(body: Node3D) -> Vector3:
 	var to_target: Vector3 = _target.global_position - body.global_position
+	# Vertical delta gates the (elevation) waypoint router; same-level corner-gaps
+	# are handled instead by the local-on-stuck route in the stuck-escape.
+	var vertical_delta: float = absf(to_target.y)
 	to_target.y = 0.0
 	if to_target.length_squared() < 0.0001:
 		return Vector3.ZERO
 	var travel_dir: Vector3 = to_target.normalized()
 	_following_waypoint_path = false
 	# Rail takes precedence when the pawn is close to it: drive along the
-	# player-laid trail toward the player. Otherwise consult the waypoint router.
+	# player-laid trail toward the player. Otherwise, for an elevation change,
+	# consult the waypoint graph (inert unless nav_graph markers exist).
 	var rail_dir: Vector3 = _rail_steer(body)
 	if rail_dir != Vector3.ZERO:
 		travel_dir = rail_dir
 		_following_waypoint_path = true  # walk the rail; no rabbit-hopping
-	else:
-		# Consult the router whenever the target isn't DIRECTLY WALK-REACHABLE —
-		# not only across an elevation change (the old `vertical_delta >
-		# jump_height_threshold` gate skipped it for EVERY same-level chase, which
-		# is exactly why a pawn at a same-level corner-gap steered into the ledge
-		# and stood there instead of routing around). _waypoint_steer self-gates:
-		# it returns ZERO (→ direct steer) when the straight line is walkable, and
-		# ZERO when nav is off (no nav_graph nodes) — so this is a no-op on open
-		# ground and while the nav system is disabled.
+	elif vertical_delta > jump_height_threshold:
 		var wp_dir: Vector3 = _waypoint_steer(body, _target)
 		if wp_dir != Vector3.ZERO:
 			travel_dir = wp_dir
@@ -1035,38 +1046,6 @@ func _build_node_edges(a: Node3D, wps: Array[Node3D], space: PhysicsDirectSpaceS
 	for i in mini(waypoint_graph_k, candidates.size()):
 		neighbors.append(candidates[i].wp)
 	return neighbors
-
-
-## Resumable graph build — processes chunk_size nodes per physics frame, so the
-## full K-NN bake spreads across load frames instead of hanging one. Awaited by
-## AutoNavGraph while the loading bar is up, so the cost lives in the loading
-## screen, never on a gameplay frame. Uses the brain's parent as the query body.
-func build_graph_async(chunk_size: int = 250) -> void:
-	var body := get_parent()
-	if not (body is Node3D):
-		return
-	var body3d := body as Node3D
-	var space := body3d.get_world_3d().direct_space_state
-	var tree := body3d.get_tree()
-	if space == null or tree == null or tree.current_scene == null:
-		return
-	var wps: Array[Node3D] = []
-	for n in tree.get_nodes_in_group(&"nav_graph"):
-		if n is Node3D:
-			wps.append(n as Node3D)
-	if wps.is_empty():
-		return
-	_wp_graph.clear()
-	_wp_graph_scene_path = tree.current_scene.scene_file_path
-	_wp_graph_node_count = wps.size()
-	var max_connect_sq: float = waypoint_max_connect_dist * waypoint_max_connect_dist
-	var processed: int = 0
-	for a: Node3D in wps:
-		_wp_graph[a] = _build_node_edges(a, wps, space, max_connect_sq)
-		processed += 1
-		if processed % chunk_size == 0:
-			await tree.physics_frame
-	print("[wp] graph built async (%s): %d nodes, k=%d" % [_wp_graph_scene_path, wps.size(), waypoint_graph_k])
 
 
 ## Pick the waypoint anchoring `origin` to the chain: the one on the
@@ -1663,7 +1642,11 @@ func _update_stuck_escape(body: Node3D, delta: float) -> void:
 	# it each tick so the escape itself can never walk off a ledge.
 	if _escape_timer > 0.0:
 		_escape_timer -= delta
-		if not _dir_has_ground(body, _escape_dir):
+		# Cardinal (blind) escapes get a per-tick ledge veto; a validated local
+		# route does NOT — its ground was already checked with the correct drop
+		# tolerance, and the stricter _has_ground_ahead probe would otherwise
+		# veto legit step-downs and brake the pawn in place (the stuck-loop).
+		if not _escape_is_route and not _dir_has_ground(body, _escape_dir):
 			_escape_timer = 0.0
 			_intent.move_direction = Vector3.ZERO
 			_intent.hard_brake = true
@@ -1719,6 +1702,19 @@ func _update_stuck_escape(body: Node3D, delta: float) -> void:
 # walkable cardinal (perpendicular wall-follow / back-off). Every candidate is
 # ledge-probed first; if none are walkable, back off the way we came.
 func _begin_escape(body: Node3D, target: Node3D) -> void:
+	# First try a REAL route: sample a small floor grid on the spot and BFS a way
+	# around the obstacle toward the target. Only runs on this stuck event, only
+	# locally — so it's rare and cheap, never per-tick or map-wide.
+	var route_dir: Vector3 = _local_route(body, target)
+	if route_dir != Vector3.ZERO:
+		_escape_dir = route_dir
+		_escape_timer = escape_duration
+		_escape_is_route = true
+		_nav_log(body, "STUCK → local route dir=(%.2f,%.2f)" % [route_dir.x, route_dir.z])
+		return
+
+	# Fallback: cardinal wall-follow (no local path found, e.g. dead-end island).
+	_escape_is_route = false
 	var to_t: Vector3 = target.global_position - body.global_position
 	to_t.y = 0.0
 	if to_t.length_squared() < 0.0001:
@@ -1754,6 +1750,111 @@ func _dir_has_ground(body: Node3D, dir: Vector3) -> bool:
 	var ok: bool = _has_ground_ahead(body)
 	_direction = prior
 	return ok
+
+
+# On-demand local route around an obstacle. Samples a small floor grid around the
+# stuck pawn (a gap/void produces no cell — that's how the route avoids it),
+# grid-BFS from the pawn's cell to the cell nearest the target, and returns the
+# horizontal direction toward the farthest path cell it can still walk to
+# directly (string-pulled). ZERO when there's no local path. Runs ONLY on a
+# stuck event, so its raycast cost is rare and bounded to the local grid.
+const _LOCAL_NEIGHBORS: Array[Vector2i] = [
+	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1),
+]
+func _local_route(body: Node3D, target: Node3D) -> Vector3:
+	var space := body.get_world_3d().direct_space_state
+	if space == null:
+		return Vector3.ZERO
+	var origin: Vector3 = body.global_position
+	var goal_pos: Vector3 = target.global_position
+	var body_rid: RID = (body as CollisionObject3D).get_rid() if body is CollisionObject3D else RID()
+	var span: int = maxi(1, int(ceil(local_route_radius / local_route_spacing)))
+
+	# Sample floor cells around the pawn: cell (ix,iz) → floor position. A gap
+	# (no floor within the band) simply yields no cell, so BFS can't cross it.
+	var cells: Dictionary = {}
+	for ix in range(-span, span + 1):
+		for iz in range(-span, span + 1):
+			var wx: float = origin.x + float(ix) * local_route_spacing
+			var wz: float = origin.z + float(iz) * local_route_spacing
+			var q := PhysicsRayQueryParameters3D.create(
+				Vector3(wx, origin.y + local_route_step_height + 1.0, wz),
+				Vector3(wx, origin.y - local_route_max_drop, wz))
+			if body_rid != RID():
+				q.exclude = [body_rid]
+			var hit: Dictionary = space.intersect_ray(q)
+			if hit.is_empty() or (hit.normal as Vector3).y < 0.5:
+				continue
+			cells[Vector2i(ix, iz)] = hit.position as Vector3
+
+	var start_key := Vector2i(0, 0)
+	if not cells.has(start_key):
+		return Vector3.ZERO
+	var goal_key: Vector2i = _nearest_cell_to(cells, goal_pos)
+	if goal_key == start_key:
+		return Vector3.ZERO
+
+	# Grid BFS. Adjacency: neighbor exists, small height step, no wall between.
+	var came_from: Dictionary = {start_key: start_key}
+	var queue: Array[Vector2i] = [start_key]
+	var found: bool = false
+	while not queue.is_empty():
+		var cur: Vector2i = queue.pop_front()
+		if cur == goal_key:
+			found = true
+			break
+		var cur_pos: Vector3 = cells[cur]
+		for off: Vector2i in _LOCAL_NEIGHBORS:
+			var nk: Vector2i = cur + off
+			if came_from.has(nk) or not cells.has(nk):
+				continue
+			var np: Vector3 = cells[nk]
+			if absf(np.y - cur_pos.y) > local_route_step_height:
+				continue
+			# WALK-reachable (ground-continuous), not just clear line-of-sight —
+			# else two cells straddling a sub-spacing gap would connect across it.
+			if not _walk_reachable(cur_pos, np, space, body_rid):
+				continue
+			came_from[nk] = cur
+			queue.append(nk)
+	if not found:
+		return Vector3.ZERO
+
+	# Reconstruct start→goal, then string-pull toward the farthest visible cell.
+	var path: Array[Vector2i] = []
+	var node: Vector2i = goal_key
+	while node != start_key:
+		path.append(node)
+		node = came_from[node]
+	path.reverse()
+	if path.is_empty():
+		return Vector3.ZERO
+	# String-pull toward the farthest cell we can actually WALK to in a straight
+	# line — not merely see. Using LOS here let the pawn steer straight across
+	# the corner gap (clear sightline, void below) and stall; walk-reachability
+	# keeps the steer along the walkable arm around the corner.
+	var target_cell: Vector2i = path[0]
+	for i in range(path.size() - 1, -1, -1):
+		if _walk_reachable(origin, cells[path[i]], space, body_rid):
+			target_cell = path[i]
+			break
+	var to_cell: Vector3 = cells[target_cell] - origin
+	to_cell.y = 0.0
+	if to_cell.length_squared() < 0.0001:
+		return Vector3.ZERO
+	return to_cell.normalized()
+
+
+func _nearest_cell_to(cells: Dictionary, goal_pos: Vector3) -> Vector2i:
+	var best_key := Vector2i(0, 0)
+	var best_d: float = INF
+	for key: Vector2i in cells:
+		var d: float = (cells[key] as Vector3).distance_squared_to(goal_pos)
+		if d < best_d:
+			best_d = d
+			best_key = key
+	return best_key
 
 
 # DUMB nav: blind faith jump. Target above + on floor + cooldown → jump.

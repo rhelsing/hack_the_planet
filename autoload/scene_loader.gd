@@ -119,10 +119,6 @@ func _on_loaded() -> void:
 	var tree := get_tree()
 	tree.change_scene_to_packed(packed)
 	await tree.process_frame
-	# Keep the loading bar up while the nav graph bakes (spread across frames) so
-	# the K-NN build never lands on a live gameplay frame. No-op when the nav
-	# system is disabled or the scene has no AutoNavGraph.
-	await _await_nav_build(tree)
 	scene_entered.emit(tree.current_scene)
 	# Free the loader UI before the transition fades out — the UI shouldn't
 	# flash visibly when the glitch pulls back. Transition sits on layer 2000,
@@ -135,36 +131,6 @@ func _on_loaded() -> void:
 		_transition = null
 	_target_path = ""
 	set_process(false)
-
-
-## Hold the loading bar while a scene's AutoNavGraph bakes its graph. Returns
-## immediately when nav is disabled, absent, or already done — so it's inert
-## while AutoNavGraph.enabled is false. Shows the indeterminate spinner during
-## the bake since the graph build has no fine-grained progress.
-func _await_nav_build(tree: SceneTree) -> void:
-	var cs := tree.current_scene
-	if cs == null:
-		return
-	var angs := cs.find_children("*", "AutoNavGraph", true, false)
-	if angs.is_empty():
-		return
-	var ang := angs[0]
-	if not bool(ang.get(&"enabled")):
-		return
-	if ang.has_method(&"is_done") and bool(ang.call(&"is_done")):
-		return
-	if _ui != null and _ui.has_method(&"set_progress"):
-		_ui.call(&"set_progress", -1.0)
-	if ang.has_signal(&"build_finished"):
-		# Race build_finished against a hard timeout so a stuck/failed bake can
-		# NEVER freeze the loading transition (a hung await here leaves the glitch
-		# overlay on screen forever — the exact failure this guards).
-		var got: Array = [false]
-		var mark: Callable = func() -> void: got[0] = true
-		ang.build_finished.connect(mark, CONNECT_ONE_SHOT)
-		get_tree().create_timer(20.0).timeout.connect(mark, CONNECT_ONE_SHOT)
-		while not got[0]:
-			await get_tree().process_frame
 
 
 func _cleanup() -> void:

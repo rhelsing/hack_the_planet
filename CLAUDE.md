@@ -147,6 +147,7 @@ Menu sort order: unpicked above the fold → exit option → dimmed visited (re-
 3. Read `sync_up.md` for the latest cross-dev decisions (boundaries, open asks, unresolved questions).
 4. Read `docs/interactables.md` if touching interactables, `docs/menus.md` if touching UI/save/pause.
 5. Read `docs/dialogue_dry_pattern.md` if touching any `.dialogue` file. The three-type framework (CANON / VECTOR / WORLD-BUILD) is the contract, not a suggestion.
-6. Check `git status` and recent commits — the user may have made edits between sessions.
-7. If the user describes a bug, apply the debugging protocol from the global CLAUDE.md: logs before code.
-8. Before non-trivial code changes: state the one-sentence design decision and wait for confirmation.
+6. Read `docs/nav_stack.md` if touching the AI/nav sandbox (`player/brains/nav_*.gd`, `enemy/nav_dummy_body.gd`, `level/nav/`, `tools/bake_nav.sh`, nav_test). The layer boundaries and migration map in that doc are the contract; every addition lands in exactly one layer.
+7. Check `git status` and recent commits — the user may have made edits between sessions.
+8. If the user describes a bug, apply the debugging protocol from the global CLAUDE.md: logs before code.
+9. Before non-trivial code changes: state the one-sentence design decision and wait for confirmation.

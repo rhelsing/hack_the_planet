@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://bahr4t08j3up8"]
+
+[ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
+[ext_resource type="PackedScene" uid="uid://dypx2h8xpyi3y" path="res://enemy/enemy_nav_dummy.tscn" id="2_dummy"]
+[ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_x3f7p"]
+[ext_resource type="Script" uid="uid://0uvnfq8id6ua" path="res://level/nav/nav_region_bake.gd" id="3_navbake"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_navtest"]
+geometry_parsed_geometry_type = 1
+agent_radius = 1.0
+filter_baking_aabb = AABB(-30, -4, -70, 80, 14, 110)
+
+[node name="NavTest" unique_id=1521830276 instance=ExtResource("1_base")]
+
+[node name="Ground6" type="CSGBox3D" parent="." index="6" unique_id=1398527816]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.651245, -0.5, -11.948381)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(35.6958, 1, 9.029175)
+
+[node name="Ground8" type="CSGBox3D" parent="." index="7" unique_id=1327496082]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.651245, -0.5, -57.095695)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(35.6958, 1, 9.029175)
+
+[node name="Ground7" type="CSGBox3D" parent="." index="8" unique_id=1597970605]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.897297, -0.5, -34.590755)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 37.28656)
+
+[node name="Ground9" type="CSGBox3D" parent="." index="9" unique_id=1203544912]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.190144, -0.5, -44.08739)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 19.293808)
+
+[node name="Ground10" type="CSGBox3D" parent="." index="11" unique_id=1606051472]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.706593, -0.5, -48.862087)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground11" type="CSGBox3D" parent="." index="12" unique_id=2088729778]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.713493, -2.3904004, -48.862087)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground12" type="CSGBox3D" parent="." index="13" unique_id=497695640]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.180016, 0.046868324, -50.233536)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground14" type="CSGBox3D" parent="." index="14" unique_id=1051427708]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.180016, 6.119295, 1.6179428)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground15" type="CSGBox3D" parent="." index="15" unique_id=755825776]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.180016, 4.130121, 12.825732)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground16" type="CSGBox3D" parent="." index="16" unique_id=47509761]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.180016, 2.4034963, 24.305943)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground17" type="CSGBox3D" parent="." index="17" unique_id=177572938]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.671555, 0.47548246, 24.305943)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 9.029175)
+
+[node name="Ground13" type="CSGBox3D" parent="." index="18" unique_id=702857379]
+transform = Transform3D(1, 0, 0, 0, 0.9770642, 0.21294512, 0, -0.21294512, 0.9770642, -21.180016, 3.134475, -24.133667)
+material_override = ExtResource("2_x3f7p")
+use_collision = true
+size = Vector3(8, 1, 38.02826)
+
+[node name="Title_Label" type="Label3D" parent="." index="26" unique_id=1283169883]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 25)
+billboard = 1
+no_depth_test = true
+text = "NAV TEST (F10)"
+font_size = 64
+
+[node name="NavDummy" parent="." index="27" unique_id=1398765374 instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 21.5)
+
+[node name="NavRegion" type="NavigationRegion3D" parent="." index="28" unique_id=496037674]
+navigation_mesh = SubResource("NavigationMesh_navtest")
+script = ExtResource("3_navbake")

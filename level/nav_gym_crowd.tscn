@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://dyp16hxqeuuuq"]
+
+[ext_resource type="PackedScene" uid="uid://bd64p6b2raccq" path="res://level/level_mockup.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://enemy/enemy_nav_dummy.tscn" id="2_dummy"]
+[ext_resource type="Script" path="res://level/nav/nav_region_bake.gd" id="3_navbake"]
+[ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="4_sleep"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_gym"]
+geometry_parsed_geometry_type = 1
+agent_radius = 1.0
+filter_baking_aabb = AABB(-30, -4, -70, 80, 14, 110)
+
+[node name="NavGymCrowd" instance=ExtResource("1_base")]
+
+[node name="Title_Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 25)
+billboard = 1
+no_depth_test = true
+text = "CROWD GYM — 8 brains + RVO
+F10 cycles gyms"
+font_size = 64
+
+[node name="NavRegion" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_gym")
+script = ExtResource("3_navbake")
+
+[node name="EnemyDistanceSleep" type="Node" parent="."]
+script = ExtResource("4_sleep")
+sleep_distance = 45.0
+wake_distance = 40.0
+
+[node name="Dummy1" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.1, 28)
+
+[node name="Dummy2" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.1, 27)
+
+[node name="Dummy3" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.1, 23)
+
+[node name="Dummy4" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.1, 22)
+
+[node name="Dummy5" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0.1, 14)
+
+[node name="Dummy6" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.1, 12)
+
+[node name="Dummy7" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 9)
+
+[node name="Dummy8" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 2)

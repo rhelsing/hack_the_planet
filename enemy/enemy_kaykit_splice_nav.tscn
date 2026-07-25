@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://b8ayghr4dct3u" path="res://enemy/enemy_kaykit_splice.tscn" id="1_splice"]
+[ext_resource type="PackedScene" path="res://enemy/brains/nav_red.tscn" id="2_brain"]
+
+[node name="EnemyKayKitSpliceNav" instance=ExtResource("1_splice")]
+brain_scene = ExtResource("2_brain")
+jump_horizontal_boost = 3.0
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 1.5
+avoidance_enabled = true
+radius = 0.6
+max_speed = 17.0
+navigation_layers = 3

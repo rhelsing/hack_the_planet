@@ -11,7 +11,6 @@
 [ext_resource type="Script" path="res://level/world_environment_runtime_boost.gd" id="11_envboost"]
 [ext_resource type="PackedScene" uid="uid://dmotes0001" path="res://level/fx/floating_motes/floating_motes.tscn" id="12_motes"]
 [ext_resource type="CompressedTexture3D" uid="uid://backtq7ybg0nj" path="res://level/color_grade_lut.png" id="13_lut"]
-[ext_resource type="Script" path="res://level/nav/auto_nav_graph.gd" id="14_autonav"]
 
 [sub_resource type="Curve" id="Curve_kyl5q"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -67,8 +66,8 @@ ssao_radius = 2.0
 ssao_intensity = 1.4
 ssil_enabled = false
 glow_enabled = false
-glow_intensity = 0.55
-glow_strength = 0.675
+glow_intensity = 0.18
+glow_strength = 0.53
 glow_bloom = 0.4
 glow_blend_mode = 0
 glow_hdr_threshold = 0.25
@@ -76,9 +75,9 @@ glow_hdr_scale = 1.74
 glow_hdr_luminance_cap = 88.5
 glow_map_strength = 1.0
 adjustment_enabled = true
-adjustment_brightness = 0.98
-adjustment_contrast = 1.015
-adjustment_saturation = 1.075
+adjustment_brightness = 1.13
+adjustment_contrast = 0.84
+adjustment_saturation = 1.02
 adjustment_color_correction = ExtResource("13_lut")
 fog_enabled = false
 fog_light_color = Color(0, 0, 0, 1)
@@ -169,5 +168,3 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
 amount = 80
 visibility_aabb = AABB(-12, -10, -40, 24, 20, 80)
 
-[node name="AutoNavGraph" type="Node3D" parent="."]
-script = ExtResource("14_autonav")
