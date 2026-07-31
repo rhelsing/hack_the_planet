@@ -14,6 +14,9 @@ var _defaults: Dictionary = {}
 # `# source.gd` so you know where to update the @export default.
 var _sources: Dictionary = {}
 var _readouts: Array[Dictionary] = []
+# Companion label nodes for controls that build one (sliders), keyed by
+# path, so remove_source can free the pair together.
+var _labels: Dictionary = {}
 var _config := ConfigFile.new()
 
 
@@ -98,7 +101,16 @@ func _input(event: InputEvent) -> void:
 func _process(_dt: float) -> void:
 	if not _canvas.visible:
 		return
-	for r in _readouts:
+	# Registrants are game objects that die (pawn brains, per-level boards)
+	# while this panel is a persistent autoload — a getter bound to a freed
+	# instance is expected, not exceptional. Prune, never call it.
+	for i in range(_readouts.size() - 1, -1, -1):
+		var r: Dictionary = _readouts[i]
+		if not (r.getter as Callable).is_valid():
+			if is_instance_valid(r.label):
+				(r.label as Label).queue_free()
+			_readouts.remove_at(i)
+			continue
 		r.label.text = "%s: %s" % [r.name, str(r.getter.call())]
 
 
@@ -191,9 +203,11 @@ func add_slider(path: String, min_v: float, max_v: float, step: float, getter: C
 	parent.add_child(slider)
 	slider.value_changed.connect(func(v: float) -> void:
 		label.text = "%s: %.3f" % [leaf, v]
-		setter.call(v)
+		if setter.is_valid():
+			setter.call(v)
 	)
 	_controls[path] = slider
+	_labels[path] = label
 	# Store the POST-snap/clamp value, not the raw getter value: HSlider
 	# quantizes `value` to the step grid and clamps to min/max on assignment.
 	# Storing the raw value made every off-grid @export default show a
@@ -219,7 +233,8 @@ func add_toggle(path: String, getter: Callable, setter: Callable, source: String
 	check.button_pressed = initial
 	parent.add_child(check)
 	check.toggled.connect(func(pressed: bool) -> void:
-		setter.call(pressed)
+		if setter.is_valid():
+			setter.call(pressed)
 	)
 	_controls[path] = check
 	_defaults[path] = initial
@@ -248,7 +263,8 @@ func add_enum(path: String, options: PackedStringArray, getter: Callable, setter
 	parent.add_child(row)
 
 	option.item_selected.connect(func(idx: int) -> void:
-		setter.call(idx)
+		if setter.is_valid():
+			setter.call(idx)
 	)
 	_controls[path] = option
 	_defaults[path] = initial
@@ -265,11 +281,13 @@ func add_button(path: String, action: Callable) -> void:
 	var btn := Button.new()
 	btn.text = leaf
 	parent.add_child(btn)
-	btn.pressed.connect(func() -> void: action.call())
+	btn.pressed.connect(func() -> void:
+		if action.is_valid():
+			action.call())
 	_controls[path] = btn
 
 
-func add_readout(path: String, getter: Callable) -> void:
+func add_readout(path: String, getter: Callable, source: String = "") -> void:
 	if not _ui_ready(): return
 	if _warn_duplicate(path): return
 	var sp := _split_path(path)
@@ -278,8 +296,44 @@ func add_readout(path: String, getter: Callable) -> void:
 	var label := Label.new()
 	label.text = "%s: -" % leaf
 	parent.add_child(label)
-	_readouts.append({"name": leaf, "label": label, "getter": getter})
+	_readouts.append({"name": leaf, "label": label, "getter": getter, "source": source})
 	_controls[path] = label
+	if source != "":
+		_sources[path] = source
+
+
+## Remove every control registered under `source` (the filename callers
+## pass to add_*). Registrants whose objects die mid-session — pawn brains,
+## per-level boards — call this from _exit_tree so the panel drops their
+## rows instead of keeping dead sliders around; the pruning in _process is
+## the backstop for registrants that never do.
+func remove_source(source: String) -> void:
+	if not _ui_ready() or source == "":
+		return
+	for path: String in _controls.keys().duplicate():
+		if String(_sources.get(path, "")) != source:
+			continue
+		var ctrl: Node = _controls[path]
+		if is_instance_valid(ctrl):
+			# Enum rows nest the OptionButton in an HBox with its label —
+			# free the row so no orphan label lingers.
+			var victim: Node = ctrl
+			if ctrl is OptionButton and ctrl.get_parent() is HBoxContainer:
+				victim = ctrl.get_parent()
+			victim.queue_free()
+		if _labels.has(path):
+			if is_instance_valid(_labels[path]):
+				(_labels[path] as Node).queue_free()
+			_labels.erase(path)
+		_controls.erase(path)
+		_defaults.erase(path)
+		_sources.erase(path)
+	for i in range(_readouts.size() - 1, -1, -1):
+		if String(_readouts[i].get("source", "")) != source:
+			continue
+		if is_instance_valid(_readouts[i].label):
+			(_readouts[i].label as Node).queue_free()
+		_readouts.remove_at(i)
 
 
 # Walks all registered controls, compares current value to the value we

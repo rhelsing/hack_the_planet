@@ -24,6 +24,12 @@ signal ability_enabled_changed(ability_id: StringName, enabled: bool)
 ## replaced with this at _ready. Lets the same body run as Sophia, cop_riot,
 ## KayKit, etc. without any code changes — just drag a different scene in.
 @export var skin_scene: PackedScene
+## Uniform scale forwarded into the instanced skin's `uniform_scale` (the
+## skin-side knob the per-frame basis bake actually respects — raw .scale
+## on the skin root gets wiped every tick by the yaw/lean transform write).
+## Visual only; the physics capsule is untouched. Lets a body VARIANT size
+## a shared skin: pawn-Nyx matches dialogue-Nyx at 1.771. 1.0 = authored.
+@export var skin_scale: float = 1.0
 
 @export_group("Brain")
 ## Optional brain scene override. If set, the default PlayerBrain child is
@@ -153,6 +159,45 @@ func set_faction(new_faction: StringName) -> void:
 		if _brain_default_suspect_time < 0.0:
 			_brain_default_suspect_time = float(_brain.suspect_time)
 		_brain.suspect_time = _brain_default_suspect_time if new_faction == &"splice_stealth" else 0.0
+	# Nav stealth-kit part 2 (parity plan R2): crouch envelope, hostile
+	# zone, tucker, hostile lock — all stealth-only behaviors; a converted
+	# pawn keeping a 20m instant-hostile zone or a no-LOS chase lock would
+	# be a hyper-aggressive ally bug.
+	if _brain != null and "crouch_range_multiplier" in _brain:
+		if _brain_default_crouch_range_mult < 0.0:
+			_brain_default_crouch_range_mult = float(_brain.crouch_range_multiplier)
+		_brain.crouch_range_multiplier = _brain_default_crouch_range_mult if new_faction == &"splice_stealth" else 1.0
+	if _brain != null and "crouch_cone_multiplier" in _brain:
+		if _brain_default_crouch_cone_mult < 0.0:
+			_brain_default_crouch_cone_mult = float(_brain.crouch_cone_multiplier)
+		_brain.crouch_cone_multiplier = _brain_default_crouch_cone_mult if new_faction == &"splice_stealth" else 1.0
+	if _brain != null and "hostile_zone_radius" in _brain:
+		if _brain_default_hostile_zone < 0.0:
+			_brain_default_hostile_zone = float(_brain.hostile_zone_radius)
+		_brain.hostile_zone_radius = _brain_default_hostile_zone if new_faction == &"splice_stealth" else 0.0
+	if _brain != null and "chase_max_duration" in _brain:
+		if _brain_default_chase_max < 0.0:
+			_brain_default_chase_max = float(_brain.chase_max_duration)
+		_brain.chase_max_duration = _brain_default_chase_max if new_faction == &"splice_stealth" else 0.0
+	if _brain != null and "hostile_lock_ignores_los" in _brain:
+		if _brain_default_lock_los < 0:
+			_brain_default_lock_los = 1 if bool(_brain.hostile_lock_ignores_los) else 0
+		_brain.hostile_lock_ignores_los = (_brain_default_lock_los == 1) if new_faction == &"splice_stealth" else false
+	if _brain != null and "hostile_lock_radius" in _brain:
+		if _brain_default_lock_radius < 0.0:
+			_brain_default_lock_radius = float(_brain.hostile_lock_radius)
+		_brain.hostile_lock_radius = _brain_default_lock_radius if new_faction == &"splice_stealth" else 0.0
+	# Squad blackboard membership follows faction: golds coordinate on the
+	# "allies" board; reverting restores the preset's authored squad.
+	if _brain != null and "squad_group" in _brain:
+		if not _brain_default_squad_cached:
+			_brain_default_squad_cached = true
+			_brain_default_squad_group = StringName(_brain.squad_group)
+		_brain.squad_group = &"allies" if new_faction == &"gold" else _brain_default_squad_group
+		# Force a board re-search on the next tick (different squad = different board).
+		if "_board_searched" in _brain:
+			_brain._board_searched = false
+			_brain._board = null
 	# Skate profile flip is no longer auto on gold conversion — moved to the
 	# explicit caller. ControlPortal converts walk; GodAbility converts ride.
 	# Apply the aggressive package (99 damage, 0 wind-up, 0 cooldown) to red
@@ -279,12 +324,61 @@ func noise_loudness() -> float:
 	return 0.0 if _was_crouched else 1.0
 
 
+# Stamped each time this pawn swings (-1 = never). Read by companions.
+var _last_attack_at_ms: int = -1
+
+## Seconds since this pawn last attacked (INF = never). Duck-typed seam:
+## companion brains mirror their follow subject's aggression through this —
+## "she only fights when I've been fighting recently."
+func seconds_since_attack() -> float:
+	if _last_attack_at_ms < 0:
+		return INF
+	return (Time.get_ticks_msec() - _last_attack_at_ms) / 1000.0
+
+
+## Duck-typed stance read for NavPerception (crouching shrinks stealth
+## cones — plan §2). Same contract family as noise_loudness(): the stack
+## duck-types the method, the game attaches meaning.
+func is_crouched() -> bool:
+	return _was_crouched
+
+
 ## Forward a tint to the skin (no-op when the skin lacks set_faction_tint).
 ## Public so visual listeners (alert_tint.gd) can drive state color without
 ## reaching into body internals.
 func apply_tint(color: Color, amount: float) -> void:
 	if _skin != null and _skin.has_method(&"set_faction_tint"):
 		_skin.set_faction_tint(color, amount)
+
+
+## Teleport beside the nearest fall_recovery_group member, snapped to the
+## ground via a downward ray (never left floating — a recovered companion
+## must LAND, not hover). Velocity zeroed; NavSteering's teleport detection
+## (>5m jump) forces a repath next tick, so pathing self-heals.
+func _recover_beside_group() -> void:
+	var best: Node3D = null
+	var best_d: float = INF
+	for n: Node in get_tree().get_nodes_in_group(fall_recovery_group):
+		if n == self or not (n is Node3D):
+			continue
+		var d: float = (n as Node3D).global_position.distance_squared_to(global_position)
+		if d < best_d:
+			best_d = d
+			best = n as Node3D
+	if best == null:
+		return
+	velocity = Vector3.ZERO
+	var target: Vector3 = best.global_position + Vector3(1.5, 0.0, 0.0)
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(
+		target + Vector3.UP * 2.0, target + Vector3.DOWN * 12.0)
+	query.exclude = [get_rid()]
+	var hit := space.intersect_ray(query)
+	if not hit.is_empty():
+		target = (hit.position as Vector3) + Vector3.UP * 0.05
+	global_position = target
+	print("[companion] %s fell below %.0f — recovered beside %s (grounded=%s)" % [
+		name, fall_recovery_y, best.name, not hit.is_empty()])
 
 
 ## Body-side reaction to brain state transitions (docs/nav_stack.md: the
@@ -507,6 +601,18 @@ enum FollowMode { PARENTED, DETACHED }
 ## Hits the player can take from enemies before dying. Falling off the world
 ## (kill_plane) still skips straight to the death sequence regardless.
 @export var max_health := 3
+## Absolute damage immunity — take_hit aggros the brain (they fight back)
+## but never applies damage. The companion rule: Nyx never dies, never
+## becomes an escort mission. Distinct from faction invuln (red/stealth),
+## which is table-driven and conditional on the attacker.
+@export var invulnerable: bool = false
+## Below fall_recovery_y, teleport beside the nearest member of this group
+## and snap to the GROUND there (downward ray — never left floating).
+## Empty = off: pawns fall and are lost (golds, enemies — by design; a
+## convert lost to a cliff is a reason to convert another). Companions set
+## "player". NavSteering self-heals the >5m jump with a forced repath.
+@export var fall_recovery_group: StringName = &""
+@export var fall_recovery_y: float = -60.0
 ## Upward velocity applied at the start of the death sequence — the player
 ## pops into a jump and arcs through gravity before bursting into confetti.
 @export var death_rise_speed := 9.0
@@ -1086,6 +1192,17 @@ var _brain_default_chase_exit_radius: float = -1.0
 var _brain_default_cone_deg: float = -1.0
 var _brain_default_wander_style: int = -1
 var _brain_default_suspect_time: float = -1.0
+# Nav stealth-kit part 2 (parity plan R2): crouch envelope, hostile zone,
+# tucker, and hostile lock are stealth-only — shed on conversion, restored
+# on revert. Same cached-default pattern as the block above.
+var _brain_default_crouch_range_mult: float = -1.0
+var _brain_default_crouch_cone_mult: float = -1.0
+var _brain_default_hostile_zone: float = -1.0
+var _brain_default_chase_max: float = -1.0
+var _brain_default_lock_los: int = -1  # -1 uncached, else 0/1
+var _brain_default_lock_radius: float = -1.0
+var _brain_default_squad_cached: bool = false
+var _brain_default_squad_group: StringName = &""
 var _footstep_player_a: AudioStreamPlayer3D
 # Looping wheel-roll bed (skate mode). Created in _ready when enabled;
 # volume/pitch chase speed each audio tick, stops once faded out.
@@ -1428,9 +1545,21 @@ func replace_brain(scene: PackedScene) -> void:
 	_brain_default_cone_deg = -1.0
 	_brain_default_wander_style = -1
 	_brain_default_suspect_time = -1.0
+	_brain_default_crouch_range_mult = -1.0
+	_brain_default_crouch_cone_mult = -1.0
+	_brain_default_hostile_zone = -1.0
+	_brain_default_chase_max = -1.0
+	_brain_default_lock_los = -1
+	_brain_default_lock_radius = -1.0
 	_connect_brain_signals()
 	print("[faction] %s brain replaced -> %s" % [name, scene.resource_path])
 	set_faction(faction)
+	# Visual/tint listener components cached the old (now dying) brain —
+	# hand them the replacement (duck-typed; components without the hook
+	# are skipped). Without this the cone visual freezes on a freed ref.
+	for c: Node in get_children():
+		if c.has_method(&"rewire_brain"):
+			c.call(&"rewire_brain", _brain)
 
 
 ## If skin_scene is set, replace the default skin child with a fresh instance
@@ -1449,6 +1578,8 @@ func _swap_skin_if_overridden() -> void:
 	_skin.queue_free()
 	parent.add_child(new_skin)
 	new_skin.transform = anchor_xform
+	if skin_scale != 1.0:
+		(new_skin as CharacterSkin).uniform_scale = skin_scale
 	_skin = new_skin
 
 
@@ -2342,6 +2473,9 @@ func take_hit(impact_direction: Vector3, force: float, damage: int = 1, attacker
 	# purpose — we want the aggro reaction whether or not damage applied.
 	if _brain != null and attacker != null and _brain.has_method(&"aggro_to"):
 		_brain.call(&"aggro_to", attacker)
+	# Companion rule: absolute immunity, after aggro (she still fights back).
+	if invulnerable:
+		return
 	# Faction-aware invuln. Red blocks player attacks (you can't punch them
 	# yourself — recruit golds). Splice_stealth blocks everything via this
 	# path; only StealthKillTarget's backstab calls stealth_kill() directly.
@@ -2886,6 +3020,12 @@ func load_save_dict(d: Dictionary) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Companion fall recovery: fell out of the world → reappear beside the
+	# recovery subject, ON the ground. Runs before the brain tick so the
+	# recovered position is what this frame's steering sees.
+	if fall_recovery_group != &"" and global_position.y < fall_recovery_y:
+		_recover_beside_group()
+
 	# Brain pushes per-tick intent (movement direction, jump/attack edges).
 	# Body never touches Input directly — same code path drives player, AI, net.
 	var intent: Intent = _brain.tick(self, delta)
@@ -2939,6 +3079,7 @@ func _physics_process(delta: float) -> void:
 
 	# Attack: edge-triggered from intent (formerly handled in _input).
 	if intent.attack_pressed:
+		_last_attack_at_ms = Time.get_ticks_msec()
 		_start_attack_jostle()
 
 	var profile := _current_profile

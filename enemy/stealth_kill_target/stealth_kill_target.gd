@@ -236,6 +236,10 @@ func _eligible_for_highlight(actor: Node3D) -> bool:
 # Cached brain reference — found by walking the parent pawn's children
 # for one with `set_hack_active`. Set lazily on first push.
 var _brain_cached: Node = null
+# One-shot flag for the missing-brain warning below. A silent lookup miss
+# here is exactly how the nav-port regression shipped (no freeze, no cone
+# flicker, no is_chasing gate) — surface it, don't swallow it.
+var _warned_no_brain: bool = false
 func _push_hack_state_to_brain(active: bool, progress: float) -> void:
 	if _brain_cached == null or not is_instance_valid(_brain_cached):
 		var pawn: Node = get_parent()
@@ -246,6 +250,9 @@ func _push_hack_state_to_brain(active: bool, progress: float) -> void:
 				_brain_cached = child
 				break
 		if _brain_cached == null:
+			if not _warned_no_brain:
+				_warned_no_brain = true
+				push_warning("StealthKillTarget %s: no sibling brain with set_hack_active — hack freeze + cone flicker + is_chasing gate are all inert" % get_path())
 			return
 	_brain_cached.call(&"set_hack_active", active, progress)
 

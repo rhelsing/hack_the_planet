@@ -18,7 +18,7 @@
 [ext_resource type="PackedScene" uid="uid://delevpltf0001" path="res://level/interactable/elevator_platform/elevator_platform.tscn" id="17_elevpltf"]
 [ext_resource type="Resource" uid="uid://cnclpp0hu1d8b" path="res://dialogue/dial_tone.dialogue" id="18_dialtonedlg"]
 [ext_resource type="PackedScene" uid="uid://b5vy2cnxyrab5" path="res://player/skins/anime_character/anime_character_skin.tscn" id="19_animeskin"]
-[ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="20_62dii"]
+[ext_resource type="PackedScene" uid="uid://ys5po88lyiuy" path="res://enemy/enemy_kaykit_nav.tscn" id="20_62dii"]
 [ext_resource type="Material" uid="uid://ucfwprjqe6oq" path="res://level/buildings.tres" id="20_kie8i"]
 [ext_resource type="PackedScene" uid="uid://dsplskin0001" path="res://player/skins/splice/splice_skin.tscn" id="21_c3bbd"]
 [ext_resource type="PackedScene" uid="uid://dflbrtskin001" path="res://player/skins/floating_robot/floating_robot_skin.tscn" id="21_robot"]
@@ -33,6 +33,13 @@
 [ext_resource type="Script" uid="uid://dhiqbme07lowd" path="res://level/hub_terminal_sequence.gd" id="32_hubseq"]
 [ext_resource type="PackedScene" uid="uid://dcutscene0001" path="res://level/interactable/cutscene_sequence/cutscene_sequence.tscn" id="33_csseq"]
 [ext_resource type="CompressedTexture3D" uid="uid://backtq7ybg0nj" path="res://level/color_grade_lut.png" id="34_lut"]
+[ext_resource type="Script" uid="uid://0uvnfq8id6ua" path="res://level/nav/nav_region_bake.gd" id="90_navbake"]
+[ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="91_blackboard"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_hubnav"]
+geometry_parsed_geometry_type = 1
+agent_radius = 1.0
+filter_baking_aabb = AABB(-50, -40, -100, 80, 80, 220)
 
 [sub_resource type="Curve" id="Curve_hafxc"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -435,3 +442,11 @@ done_flag = &"post_3_overheard_seen"
 stop_flag = &"post_3_overheard_cut"
 dialogue_file = ExtResource("18_dialtonedlg")
 dialogue_start = "post_3_overheard"
+
+[node name="NavRegion" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_hubnav")
+script = ExtResource("90_navbake")
+
+[node name="SquadBoardEnemies" type="Node" parent="."]
+script = ExtResource("91_blackboard")
+group = &"enemies"

@@ -5,6 +5,7 @@
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="3_platforms"]
 [ext_resource type="Script" uid="uid://djklpw4x8hhd" path="res://level/city_builder.gd" id="5_2s704"]
 [ext_resource type="Script" uid="uid://kksm7n3u24i" path="res://menu/menu_camera_driver.gd" id="5_driver"]
+[ext_resource type="CompressedTexture3D" uid="uid://backtq7ybg0nj" path="res://level/color_grade_lut.png" id="6_lut"]
 
 [sub_resource type="Curve" id="Curve_2s704"]
 _data = [Vector2(0.331719, 0.0391753), 0.0, 0.0, 0, 0, Vector2(0.697336, 1), 0.51276, 0.0, 0, 0]
@@ -66,6 +67,11 @@ glow_blend_mode = 0
 glow_hdr_threshold = 0.26
 glow_hdr_scale = 1.48
 glow_hdr_luminance_cap = 66.26
+adjustment_enabled = true
+adjustment_brightness = 1.13
+adjustment_contrast = 0.84
+adjustment_saturation = 1.02
+adjustment_color_correction = ExtResource("6_lut")
 glow_map_strength = 1.0
 fog_enabled = true
 fog_light_color = Color(0, 0, 0, 1)

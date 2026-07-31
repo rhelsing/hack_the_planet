@@ -21,7 +21,7 @@
 [ext_resource type="PackedScene" uid="uid://c8aaill4ns1rl" path="res://level/interactable/rail/rail.tscn" id="21_krmuh"]
 [ext_resource type="PackedScene" uid="uid://r4ed0j7155go" path="res://library/interactables/hacking_terminal.tscn" id="22_krmuh"]
 [ext_resource type="PackedScene" uid="uid://b8ayghr4dct3u" path="res://enemy/enemy_kaykit_splice.tscn" id="23_b30fa"]
-[ext_resource type="PackedScene" uid="uid://b450u2nk6dism" path="res://enemy/brains/default_enemy_ai_idle.tscn" id="24_idlebrain"]
+[ext_resource type="PackedScene" path="res://enemy/brains/nav_idle_red.tscn" id="24_navidle"]
 [ext_resource type="PackedScene" uid="uid://dconvert00001" path="res://level/interactable/convert_zone/convert_zone.tscn" id="25_convzone"]
 [ext_resource type="PackedScene" uid="uid://do5lwyjafwlki" path="res://enemy/enemy_kaykit.tscn" id="26_dq5ba"]
 [ext_resource type="PackedScene" uid="uid://rc8jkbviisn5" path="res://level/interactable/flag_set_zone/flag_set_zone.tscn" id="26_flagzone"]
@@ -39,6 +39,7 @@
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_nav.tscn" id="81_kaykitnav"]
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_splice_nav.tscn" id="82_splicenav"]
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_stealth_nav.tscn" id="83_stealthnav"]
+[ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="90_blackboard"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_lnav"]
 geometry_parsed_geometry_type = 1
@@ -766,11 +767,11 @@ interactable_id = &"l3_terminal_1"
 
 [node name="EnemyKayKitSplice" parent="." index="127" unique_id=1999257081 instance=ExtResource("82_splicenav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.672, 25.661652, -60.42832)
-brain_scene = ExtResource("24_idlebrain")
+brain_scene = ExtResource("24_navidle")
 
 [node name="EnemyKayKitSplice2" parent="." index="128" unique_id=258033231 instance=ExtResource("82_splicenav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -59.565746, 25.661652, -62.075146)
-brain_scene = ExtResource("24_idlebrain")
+brain_scene = ExtResource("24_navidle")
 
 [node name="walkie" parent="." index="129" unique_id=894097875 instance=ExtResource("9_walkie")]
 transform = Transform3D(2.652267, 0, 0, 0, 2.4110703, 0, 0, 0, 1, -1.4829183, 0.6830478, 12.580291)
@@ -1145,3 +1146,13 @@ script = ExtResource("35_spliceglitch")
 [node name="NavRegion" type="NavigationRegion3D" parent="." index="219"]
 navigation_mesh = SubResource("NavigationMesh_lnav")
 script = ExtResource("80_navbake")
+[node name="SquadBoardSplice" type="Node" parent="." index="220"]
+script = ExtResource("90_blackboard")
+group = &"splice_enemies"
+
+[node name="SquadBoardAllies" type="Node" parent="." index="221"]
+script = ExtResource("90_blackboard")
+group = &"allies"
+[node name="SquadBoardEnemies" type="Node" parent="." index="222"]
+script = ExtResource("90_blackboard")
+group = &"enemies"

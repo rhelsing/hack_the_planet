@@ -18,7 +18,6 @@ max_speed = 12.0
 
 [node name="ConeVisual" type="Node3D" parent="."]
 script = ExtResource("3_cone")
-radius_scale = 0.5
 
 [node name="AlertTint" type="Node" parent="."]
 script = ExtResource("4_tint")

@@ -13,6 +13,15 @@ class QuietTarget extends Node3D:
 		return 0.0
 
 
+## Full crouched stance: silent AND sight-shrinking (plan §2 seam —
+## is_crouched() is what PlayerBody exposes).
+class CrouchedTarget extends Node3D:
+	func noise_loudness() -> float:
+		return 0.0
+	func is_crouched() -> bool:
+		return true
+
+
 var _failures: Array[String] = []
 
 
@@ -24,12 +33,14 @@ func _check(cond: bool, msg: String) -> void:
 func _init() -> void:
 	var target := Node3D.new()
 	var quiet := QuietTarget.new()
+	var crouched := CrouchedTarget.new()
 	root.add_child(target)
 	root.add_child(quiet)
-	target.ready.connect(func() -> void: _run(target, quiet))
+	root.add_child(crouched)
+	target.ready.connect(func() -> void: _run(target, quiet, crouched))
 
 
-func _run(target: Node3D, quiet: Node3D) -> void:
+func _run(target: Node3D, quiet: Node3D, crouched: Node3D) -> void:
 	var origin := Vector3.ZERO
 
 	# 1. Parity collapse: suspect_time=0 + any sense → hostile instantly;
@@ -123,6 +134,67 @@ func _run(target: Node3D, quiet: Node3D) -> void:
 	pn.suspicion = 0.9
 	pn.notify(Vector3(1, 0, 1), 0.5)
 	_check(absf(pn.suspicion - 0.9) < 0.001, "notify never lowers suspicion")
+
+	# 9. Crouch-stealth sight (plan §2): a crouched target shrinks the range
+	#    and narrows the arc for its evaluation; a standing target at the
+	#    same spot is judged by the full envelope; sustain lifts both.
+	var ps := NavPerception.new()
+	ps.sight_range = 30.0
+	ps.crouch_range_multiplier = 0.5
+	ps.hearing_radius = 0.0
+	crouched.global_position = Vector3(20, 0, 0)  # inside 30, outside 15
+	target.global_position = Vector3(20, 0, 0)
+	_check(ps._sight_strength(origin, crouched, true, false) == 0.0,
+		"crouched target beyond the crouch-shrunk range must be unseen")
+	_check(ps._sight_strength(origin, target, true, false) > 0.0,
+		"standing target at the same spot is seen (stance-gated range)")
+	crouched.global_position = Vector3(10, 0, 0)  # inside 15
+	_check(ps._sight_strength(origin, crouched, true, false) > 0.0,
+		"crouched target inside the shrunk range is still seen")
+	crouched.global_position = Vector3(20, 0, 0)
+	_check(ps._sight_strength(origin, crouched, true, true) > 0.0,
+		"sustain must lift the crouch-shrunk range cap (committed pursuit)")
+	var pa := NavPerception.new()
+	pa.cone_deg = 100.0
+	pa.crouch_cone_multiplier = 0.3
+	pa.facing = Vector3(0, 0, 1)
+	pa.hearing_radius = 0.0
+	crouched.global_position = Vector3(3.4, 0, 4.0)  # ~40° off +Z
+	target.global_position = Vector3(3.4, 0, 4.0)
+	_check(pa._sight_strength(origin, crouched, true, false) == 0.0,
+		"crouched at 40° must be outside the narrowed 30° arc")
+	_check(pa._sight_strength(origin, target, true, false) > 0.0,
+		"standing at 40° is inside the 100° arc")
+
+	# 10. Hostile zone (plan §3): STANDING + seen + inside the zone snaps
+	#     hostile in one tick; crouched inside the zone accumulates; standing
+	#     outside the zone accumulates.
+	var pz := NavPerception.new()
+	pz.suspect_time = 1.2
+	pz.hostile_zone_radius = 20.0
+	pz.sight_range = 45.0
+	pz.hearing_radius = 0.0
+	target.global_position = Vector3(19, 0, 0)
+	crouched.global_position = Vector3(19, 0, 0)
+	pz.integrate(pz.sense_strength(origin, target, true, false), 0.016)
+	_check(pz.is_hostile(), "standing inside the hostile zone must snap in one tick")
+	var pz2 := NavPerception.new()
+	pz2.suspect_time = 1.2
+	pz2.hostile_zone_radius = 20.0
+	pz2.sight_range = 45.0
+	pz2.hearing_radius = 0.0
+	pz2.integrate(pz2.sense_strength(origin, crouched, true, false), 0.016)
+	_check(not pz2.is_hostile() and pz2.suspicion > 0.0,
+		"crouched inside the zone must accumulate, not snap")
+	var pz3 := NavPerception.new()
+	pz3.suspect_time = 1.2
+	pz3.hostile_zone_radius = 20.0
+	pz3.sight_range = 45.0
+	pz3.hearing_radius = 0.0
+	target.global_position = Vector3(30, 0, 0)
+	pz3.integrate(pz3.sense_strength(origin, target, true, false), 0.016)
+	_check(not pz3.is_hostile() and pz3.suspicion > 0.0,
+		"standing outside the zone must accumulate, not snap")
 
 	_finish()
 

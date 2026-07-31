@@ -5,14 +5,25 @@
 [node name="NavBrain" type="Node"]
 script = ExtResource("1_brain")
 target_groups = Array[StringName]([&"player", &"allies"])
+priority_target_groups = Array[StringName]([&"allies"])
+priority_target_radius = 10.0
 detection_radius = 45.0
+eye_height = 1.0
 chase_memory_duration = 8.0
-cone_deg = 100.0
+chase_max_duration = 8.0
+tucker_recover_duration = 3.0
+hostile_lock_ignores_los = true
+hostile_lock_radius = 54.0
+cone_deg = 200.0
 vertical_half_height = 1.0
 suspect_time = 1.2
+crouch_range_multiplier = 0.33
+crouch_cone_multiplier = 0.3
+hostile_zone_radius = 20.0
 alert_broadcast_radius = 18.0
 alert_group = &"splice_enemies"
 attack_cooldown = 1.2
 wind_up_duration = 0.3
 wander_style = 1
 wander_speed_fraction = 0.6
+squad_group = &"splice_enemies"

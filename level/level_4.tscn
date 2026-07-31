@@ -52,9 +52,7 @@
 [ext_resource type="PackedScene" uid="uid://ddelayflag001" path="res://level/interactable/delayed_flag/delayed_flag.tscn" id="56_delayflag"]
 [ext_resource type="Script" uid="uid://dqlc6lgpdwkw4" path="res://level/interactable/glitch_reveal/glitch_reveal.gd" id="57_glitchreveal"]
 [ext_resource type="Script" uid="uid://0uvnfq8id6ua" path="res://level/nav/nav_region_bake.gd" id="80_navbake"]
-[ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_nav.tscn" id="81_kaykitnav"]
-[ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_splice_nav.tscn" id="82_splicenav"]
-[ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_stealth_nav.tscn" id="83_stealthnav"]
+[ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="90_blackboard"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_lnav"]
 geometry_parsed_geometry_type = 1
@@ -459,19 +457,19 @@ size = Vector3(5, 1, 5)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.192898, -9.977741, 17.489632)
 size = Vector3(5, 1, 5)
 
-[node name="EnemyKayKit" parent="." index="56" unique_id=94915355 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit" parent="." index="56" unique_id=94915355 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.001137, -8.103248, 33.18333)
 
-[node name="EnemyKayKit2" parent="." index="57" unique_id=856782852 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit2" parent="." index="57" unique_id=856782852 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.30544, -14.375901, 44.450188)
 
-[node name="EnemyKayKit3" parent="." index="58" unique_id=238087379 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit3" parent="." index="58" unique_id=238087379 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.96931, -14.3759, 43.209854)
 
-[node name="EnemyKayKit4" parent="." index="59" unique_id=1011180015 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit4" parent="." index="59" unique_id=1011180015 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.004684, -8.873094, 20.165283)
 
-[node name="EnemyKayKit5" parent="." index="60" unique_id=1089876889 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit5" parent="." index="60" unique_id=1089876889 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -38.394535, -14.21927, 17.425003)
 
 [node name="Walkie1" parent="." index="61" unique_id=60497897 instance=ExtResource("13_walkie")]
@@ -654,79 +652,79 @@ reveal_flag = &"l4_glitch_pitched"
 bury_depth = 4.0
 reveal_after_walkie_line_ends = true
 
-[node name="EnemyKayKit6" parent="." index="93" unique_id=1270424192 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit6" parent="." index="93" unique_id=1270424192 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.07148, -16.935965, 5.4262276)
 
-[node name="EnemyKayKit7" parent="." index="94" unique_id=379254019 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit7" parent="." index="94" unique_id=379254019 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.268723, -16.935965, 14.917279)
 
-[node name="EnemyKayKit8" parent="." index="95" unique_id=1411113933 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit8" parent="." index="95" unique_id=1411113933 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.753416, -16.935965, 0.31038857)
 
-[node name="EnemyKayKit9" parent="." index="96" unique_id=1610595429 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit9" parent="." index="96" unique_id=1610595429 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.25364, -16.935965, 36.71357)
 
-[node name="EnemyKayKit10" parent="." index="97" unique_id=1824295093 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit10" parent="." index="97" unique_id=1824295093 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25.725431, -16.935965, 38.196457)
 
-[node name="EnemyKayKitSplice" parent="." index="98" unique_id=2091929594 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice" parent="." index="98" unique_id=2091929594 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38.3769, -16.935965, -0.11922073)
 
-[node name="EnemyKayKitSplice2" parent="." index="99" unique_id=1489404965 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice2" parent="." index="99" unique_id=1489404965 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 43.43942, -16.935965, 16.445057)
 
-[node name="EnemyKayKitSplice3" parent="." index="100" unique_id=1849845176 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice3" parent="." index="100" unique_id=1849845176 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.97679, -16.935965, 7.4958115)
 
-[node name="EnemyKayKitSplice4" parent="." index="101" unique_id=1889429660 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice4" parent="." index="101" unique_id=1889429660 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 36.73286, -16.935965, 32.178154)
 
-[node name="EnemyKayKitSplice5" parent="." index="102" unique_id=72422868 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice5" parent="." index="102" unique_id=72422868 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.83186, -16.935965, 41.662205)
 
-[node name="EnemyKayKitSplice6" parent="." index="103" unique_id=1688034562 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice6" parent="." index="103" unique_id=1688034562 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.748642, -16.935965, 4.9913654)
 
-[node name="EnemyKayKitSplice7" parent="." index="104" unique_id=1333236422 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice7" parent="." index="104" unique_id=1333236422 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.127348, -16.935965, 18.09856)
 
-[node name="EnemyKayKitSplice8" parent="." index="105" unique_id=2026016690 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice8" parent="." index="105" unique_id=2026016690 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.078623, -16.935965, 39.62629)
 
-[node name="EnemyKayKitSplice9" parent="." index="106" unique_id=948075327 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice9" parent="." index="106" unique_id=948075327 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.386837, -4.41593, 19.016216)
 
-[node name="EnemyKayKitSplice10" parent="." index="107" unique_id=778788514 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice10" parent="." index="107" unique_id=778788514 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.673256, -17.377993, 37.46127)
 
-[node name="EnemyKayKitSplice11" parent="." index="108" unique_id=932700238 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice11" parent="." index="108" unique_id=932700238 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.63005, -17.377989, 33.82141)
 
-[node name="EnemyKayKitSplice47" parent="." index="109" unique_id=57678590 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice47" parent="." index="109" unique_id=57678590 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.63005, -17.377989, 38.660843)
 
-[node name="EnemyKayKitSplice48" parent="." index="110" unique_id=1967580693 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice48" parent="." index="110" unique_id=1967580693 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.63005, -17.377989, 38.660843)
 
-[node name="EnemyKayKitSplice49" parent="." index="111" unique_id=8101275 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice49" parent="." index="111" unique_id=8101275 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.13105, -16.120722, 45.898106)
 
-[node name="EnemyKayKitSplice12" parent="." index="112" unique_id=500316054 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice12" parent="." index="112" unique_id=500316054 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.65302, -17.377996, 45.976524)
 
-[node name="EnemyKayKitSplice50" parent="." index="113" unique_id=1983198076 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice50" parent="." index="113" unique_id=1983198076 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.65302, -17.377996, 34.698765)
 
-[node name="EnemyKayKitSplice51" parent="." index="114" unique_id=871235664 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice51" parent="." index="114" unique_id=871235664 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.65302, -17.377996, 39.80617)
 
-[node name="EnemyKayKitSplice13" parent="." index="115" unique_id=1839016659 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice13" parent="." index="115" unique_id=1839016659 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.462296, -17.377996, 32.945374)
 
-[node name="EnemyKayKitSplice14" parent="." index="116" unique_id=1705199246 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice14" parent="." index="116" unique_id=1705199246 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 139.30945, -17.377993, 39.398552)
 
-[node name="EnemyKayKitSplice15" parent="." index="117" unique_id=1488279284 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice15" parent="." index="117" unique_id=1488279284 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 154.51968, -17.377993, 33.789497)
 
 [node name="BouncyPlatform6" parent="." index="118" unique_id=260379718 instance=ExtResource("17_m36c5")]
@@ -753,73 +751,68 @@ size = Vector3(7, 1, 7)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.6323, -17.88818, 50.508232)
 size = Vector3(7, 1, 7)
 
-[node name="EnemyKayKitSplice16" parent="." index="124" unique_id=387754080 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice16" parent="." index="124" unique_id=387754080 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 290.52283, -17.377989, 38.374817)
 
-[node name="EnemyKayKitSplice17" parent="." index="125" unique_id=449812249 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice17" parent="." index="125" unique_id=449812249 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 289.43323, -17.377993, 34.875546)
 
-[node name="EnemyKayKitSplice18" parent="." index="126" unique_id=1277749701 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice18" parent="." index="126" unique_id=1277749701 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 284.1929, -17.377993, 37.746918)
 
-[node name="EnemyKayKitSplice19" parent="." index="127" unique_id=1063148371 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice19" parent="." index="127" unique_id=1063148371 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 278.30948, -17.377989, 35.33502)
 
-[node name="EnemyKayKitSplice20" parent="." index="128" unique_id=1423887840 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice20" parent="." index="128" unique_id=1423887840 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 275.4282, -17.377993, 38.826385)
 
-[node name="EnemyKayKitSplice21" parent="." index="129" unique_id=439391336 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice21" parent="." index="129" unique_id=439391336 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 271.83112, -17.377989, 36.23388)
 
-[node name="EnemyKayKit11" parent="." index="130" unique_id=1624789455 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit11" parent="." index="130" unique_id=1624789455 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 262.75296, -17.377989, 34.563477)
 
-[node name="EnemyKayKit12" parent="." index="131" unique_id=1252195381 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit12" parent="." index="131" unique_id=1252195381 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 257.79065, -17.377993, 39.653748)
 
-[node name="EnemyKayKit13" parent="." index="132" unique_id=142911268 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit13" parent="." index="132" unique_id=142911268 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 251.47025, -17.377993, 35.483326)
 
-[node name="EnemyKayKit14" parent="." index="133" unique_id=1829584133 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit14" parent="." index="133" unique_id=1829584133 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 241.80547, -17.377989, 39.554714)
 
-[node name="EnemyKayKit15" parent="." index="134" unique_id=1949311239 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit15" parent="." index="134" unique_id=1949311239 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 237.32663, -17.377989, 35.414925)
 
-[node name="EnemyKayKit16" parent="." index="135" unique_id=1828151074 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit16" parent="." index="135" unique_id=1828151074 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 233.58788, -17.377989, 38.869835)
 
-[node name="EnemyKayKit17" parent="." index="136" unique_id=169400344 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit17" parent="." index="136" unique_id=169400344 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 227.02208, -17.377989, 35.44578)
 
-[node name="EnemyKayKit18" parent="." index="137" unique_id=1642646051 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit18" parent="." index="137" unique_id=1642646051 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 222.1283, -17.377993, 39.54662)
 
-[node name="EnemyKayKit19" parent="." index="138" unique_id=2032406795 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit19" parent="." index="138" unique_id=2032406795 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 218.36707, -17.377993, 36.469448)
 
-[node name="EnemyKayKit20" parent="." index="139" unique_id=2052074386 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit20" parent="." index="139" unique_id=2052074386 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 209.6033, -17.377993, 37.969753)
 
 [node name="EnemySpawner" parent="." index="140" unique_id=96146603 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 203.09235, -17.398945, 35.90646)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner2" parent="." index="141" unique_id=315329273 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 229.13878, -17.398941, 39.048714)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner3" parent="." index="142" unique_id=1535803156 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 246.33298, -17.398945, 34.135124)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner4" parent="." index="143" unique_id=1573270704 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 252.95706, -17.398937, 39.582443)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner5" parent="." index="144" unique_id=884918476 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 268.5607, -17.398941, 39.11114)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="big28" type="CSGBox3D" parent="." index="145" unique_id=1515326313]
 transform = Transform3D(-0.9999947, 0, -0.0032638572, 0, 1, 0, 0.0032638572, 0, -0.9999947, 375.64893, -9.445843, -275.1534)
@@ -905,102 +898,95 @@ use_collision = true
 size = Vector3(29.36796, 2.6129785, 10.207743)
 material = ExtResource("17_sdk3c")
 
-[node name="EnemyKayKit21" parent="." index="157" unique_id=1735236022 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit21" parent="." index="157" unique_id=1735236022 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 392.49426, -17.334896, -258.72546)
 
-[node name="EnemyKayKit22" parent="." index="158" unique_id=671562145 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit22" parent="." index="158" unique_id=671562145 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 411.43878, -17.334896, -251.88777)
 
-[node name="EnemyKayKit23" parent="." index="159" unique_id=1058144785 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit23" parent="." index="159" unique_id=1058144785 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 422.55234, -17.334896, -257.33243)
 
-[node name="EnemyKayKit24" parent="." index="160" unique_id=1287233792 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit24" parent="." index="160" unique_id=1287233792 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 402.09634, -17.334896, -253.73674)
 
-[node name="EnemyKayKitSplice22" parent="." index="161" unique_id=1012777667 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice22" parent="." index="161" unique_id=1012777667 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 437.08386, -17.334898, -254.98857)
 
-[node name="EnemyKayKit25" parent="." index="162" unique_id=891622970 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit25" parent="." index="162" unique_id=891622970 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 430.50262, -17.334896, -260.50235)
 
-[node name="EnemyKayKitSplice23" parent="." index="163" unique_id=864208836 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice23" parent="." index="163" unique_id=864208836 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 426.26855, -17.334898, -252.66495)
 
-[node name="EnemyKayKitSpliceStealth" parent="." index="164" unique_id=1714591750 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth" parent="." index="164" unique_id=1714591750 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 368.14413, -8.120527, -266.85812)
 
-[node name="EnemyKayKitSpliceStealth2" parent="." index="165" unique_id=1822835353 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth2" parent="." index="165" unique_id=1822835353 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 351.23865, -8.120523, -255.23137)
 
-[node name="EnemyKayKitSpliceStealth3" parent="." index="166" unique_id=1502526920 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth3" parent="." index="166" unique_id=1502526920 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 373.50507, -8.120527, -249.67294)
 
-[node name="EnemyKayKitSpliceStealth4" parent="." index="167" unique_id=960223615 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth4" parent="." index="167" unique_id=960223615 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 347.95303, -17.3349, -261.62057)
 
-[node name="EnemyKayKitSpliceStealth5" parent="." index="168" unique_id=1679772660 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth5" parent="." index="168" unique_id=1679772660 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 375.17197, -17.334898, -267.8672)
 
-[node name="EnemyKayKitSpliceStealth6" parent="." index="169" unique_id=827624864 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth6" parent="." index="169" unique_id=827624864 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 367.6275, -17.334898, -272.4472)
 
-[node name="EnemyKayKitSpliceStealth7" parent="." index="170" unique_id=704901558 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth7" parent="." index="170" unique_id=704901558 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 452.96555, -17.334898, -241.86752)
 
-[node name="EnemyKayKitSpliceStealth8" parent="." index="171" unique_id=1839575249 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth8" parent="." index="171" unique_id=1839575249 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 470.6082, -17.334898, -243.30434)
 
-[node name="EnemyKayKitSpliceStealth9" parent="." index="172" unique_id=2105509351 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth9" parent="." index="172" unique_id=2105509351 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 451.12482, -17.334898, -260.075)
 
-[node name="EnemyKayKitSpliceStealth10" parent="." index="173" unique_id=1593915034 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth10" parent="." index="173" unique_id=1593915034 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.73984, -8.120526, -238.57591)
 
-[node name="EnemyKayKitSpliceStealth11" parent="." index="174" unique_id=202082096 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth11" parent="." index="174" unique_id=202082096 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 476.1082, -8.120526, -244.13164)
 
-[node name="EnemyKayKitSpliceStealth12" parent="." index="175" unique_id=1273040779 instance=ExtResource("83_stealthnav")]
+[node name="EnemyKayKitSpliceStealth12" parent="." index="175" unique_id=1273040779 instance=ExtResource("25_kusp1")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 462.31927, -8.120527, -251.17447)
 
-[node name="EnemyKayKitSplice24" parent="." index="176" unique_id=396418234 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice24" parent="." index="176" unique_id=396418234 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 325.49274, -17.3349, -113.990295)
 
-[node name="EnemyKayKitSplice25" parent="." index="177" unique_id=1837012707 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice25" parent="." index="177" unique_id=1837012707 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 310.6317, -17.334898, -113.36343)
 
-[node name="EnemyKayKit26" parent="." index="178" unique_id=1807414961 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit26" parent="." index="178" unique_id=1807414961 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 321.5059, -17.3349, -104.99922)
 
-[node name="EnemyKayKit27" parent="." index="179" unique_id=446338161 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit27" parent="." index="179" unique_id=446338161 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 310.092, -17.334898, -93.53507)
 
 [node name="EnemySpawner6" parent="." index="180" unique_id=882289766 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 326.93677, -17.355848, -95.671295)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner7" parent="." index="181" unique_id=1583826739 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 317.7298, -17.355848, -98.923294)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner8" parent="." index="182" unique_id=69469959 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 312.45688, -17.355846, 31.422321)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner9" parent="." index="183" unique_id=568384857 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 307.51297, -17.355846, 42.989494)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner10" parent="." index="184" unique_id=1501557280 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 316.62305, -17.355846, 44.346127)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner11" parent="." index="185" unique_id=1293573729 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 321.32068, -17.355846, 30.878693)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner12" parent="." index="186" unique_id=500679982 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 324.7997, -17.355846, 38.23795)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="PhoneBooth" parent="." index="187" unique_id=1235759636 instance=ExtResource("2_t4818")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 315.5181, -17.342625, 38.969822)
@@ -1060,39 +1046,30 @@ curve = SubResource("Curve3D_0xqme")
 
 [node name="EnemySpawner13" parent="." index="194" unique_id=1810548121 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.06946, 26.671904, -406.64682)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner14" parent="." index="195" unique_id=123185814 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 483.8513, 26.671904, -409.87125)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawnerSplice" parent="." index="196" unique_id=403198255 instance=ExtResource("27_5htj5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 466.31824, 26.6719, -416.8105)
-enemy_scene = ExtResource("82_splicenav")
 
 [node name="EnemySpawner15" parent="." index="197" unique_id=2043375988 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 474.6593, 26.671904, -399.52536)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner16" parent="." index="198" unique_id=1622557211 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.6148, 26.671904, -391.0657)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner17" parent="." index="199" unique_id=1255754486 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 482.93103, 26.671904, -399.40018)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner18" parent="." index="200" unique_id=1235993941 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 477.9324, 26.671904, -390.30057)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner19" parent="." index="201" unique_id=562009716 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 470.2819, 26.671904, -382.572)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="EnemySpawner20" parent="." index="202" unique_id=1985539471 instance=ExtResource("24_5pkig")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 490.16037, 26.671904, -391.04486)
-enemy_scene = ExtResource("81_kaykitnav")
 
 [node name="HalfPipe" type="CSGCombiner3D" parent="." index="203" unique_id=1156301406]
 transform = Transform3D(-9.426917e-08, 0.99999994, 8.505705e-08, 0, -4.3711385e-08, 1.9458785, 2.1566272, 4.3711385e-08, 3.7179618e-15, 465.61432, 24.400019, -566.78)
@@ -1216,67 +1193,67 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 467.01965, 19.042662, -565.14
 [node name="Grappleable3" parent="." index="216" unique_id=124070957 instance=ExtResource("36_ese2s")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 446.11676, 19.042662, -565.1418)
 
-[node name="EnemyKayKitSplice26" parent="." index="217" unique_id=1337159034 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice26" parent="." index="217" unique_id=1337159034 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 493.89673, 2.1537685, -554.889)
 
-[node name="EnemyKayKitSplice27" parent="." index="218" unique_id=796926908 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice27" parent="." index="218" unique_id=796926908 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 487.71112, 0.68913364, -561.5232)
 
-[node name="EnemyKayKitSplice28" parent="." index="219" unique_id=1160848430 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice28" parent="." index="219" unique_id=1160848430 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 501.34567, 11.445459, -543.30927)
 
-[node name="EnemyKayKitSplice29" parent="." index="220" unique_id=839255542 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice29" parent="." index="220" unique_id=839255542 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 498.42722, 0.36385345, -567.8137)
 
-[node name="EnemyKayKitSplice30" parent="." index="221" unique_id=13859756 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice30" parent="." index="221" unique_id=13859756 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 502.94217, 6.073068, -587.2445)
 
-[node name="EnemyKayKitSplice31" parent="." index="222" unique_id=775480775 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice31" parent="." index="222" unique_id=775480775 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 487.4649, 6.9608192, -588.7171)
 
-[node name="EnemyKayKitSplice32" parent="." index="223" unique_id=1355642795 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice32" parent="." index="223" unique_id=1355642795 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 475.4701, 7.6323094, -546.88794)
 
-[node name="EnemyKayKitSplice33" parent="." index="224" unique_id=638458532 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice33" parent="." index="224" unique_id=638458532 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 468.99005, 2.1537685, -554.889)
 
-[node name="EnemyKayKitSplice34" parent="." index="225" unique_id=1979566873 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice34" parent="." index="225" unique_id=1979566873 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 462.80444, 0.68913364, -561.5232)
 
-[node name="EnemyKayKitSplice35" parent="." index="226" unique_id=1727682665 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice35" parent="." index="226" unique_id=1727682665 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 476.439, 10.760043, -543.30927)
 
-[node name="EnemyKayKitSplice36" parent="." index="227" unique_id=549413656 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice36" parent="." index="227" unique_id=549413656 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 473.52054, 0.36385345, -567.8137)
 
-[node name="EnemyKayKitSplice37" parent="." index="228" unique_id=791188538 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice37" parent="." index="228" unique_id=791188538 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 478.0355, 6.073068, -587.2445)
 
-[node name="EnemyKayKitSplice38" parent="." index="229" unique_id=1584552124 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice38" parent="." index="229" unique_id=1584552124 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 462.55823, 6.9608192, -588.7171)
 
-[node name="EnemyKayKitSplice39" parent="." index="230" unique_id=276160403 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice39" parent="." index="230" unique_id=276160403 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 450.56342, 8.837837, -546.88794)
 
-[node name="EnemyKayKitSplice40" parent="." index="231" unique_id=587071930 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice40" parent="." index="231" unique_id=587071930 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 439.49573, 2.1537685, -554.889)
 
-[node name="EnemyKayKitSplice41" parent="." index="232" unique_id=621080729 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice41" parent="." index="232" unique_id=621080729 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 433.31012, 0.68913364, -561.5232)
 
-[node name="EnemyKayKitSplice42" parent="." index="233" unique_id=670261991 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice42" parent="." index="233" unique_id=670261991 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 446.94467, 11.32169, -555.95776)
 
-[node name="EnemyKayKitSplice43" parent="." index="234" unique_id=71596705 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice43" parent="." index="234" unique_id=71596705 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 444.0262, 0.36385345, -567.8137)
 
-[node name="EnemyKayKitSplice44" parent="." index="235" unique_id=1070379370 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice44" parent="." index="235" unique_id=1070379370 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 448.54117, 6.073068, -587.2445)
 
-[node name="EnemyKayKitSplice45" parent="." index="236" unique_id=1467437512 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice45" parent="." index="236" unique_id=1467437512 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 433.0639, 6.9608192, -588.7171)
 
-[node name="EnemyKayKitSplice46" parent="." index="237" unique_id=1684185456 instance=ExtResource("82_splicenav")]
+[node name="EnemyKayKitSplice46" parent="." index="237" unique_id=1684185456 instance=ExtResource("21_dpqqc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 421.0691, 11.568703, -546.88794)
 
 [node name="SpliceMinionSpawner" parent="." index="238" unique_id=382949826 instance=ExtResource("37_repspawn")]
@@ -1414,22 +1391,22 @@ ally_skate_mode = true
 rails_to_disable = Array[NodePath]([NodePath("../Rail4")])
 freeze_pawns_until_flag = &"l4_splice_cutscene_done"
 
-[node name="EnemyKayKit28" parent="." index="255" unique_id=1460279179 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit28" parent="." index="255" unique_id=1460279179 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 469.8564, 2.7866259, -248.4473)
 
-[node name="EnemyKayKit29" parent="." index="256" unique_id=1447837571 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit29" parent="." index="256" unique_id=1447837571 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 483.22986, 2.7866259, -250.47505)
 
-[node name="EnemyKayKit30" parent="." index="257" unique_id=520369194 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit30" parent="." index="257" unique_id=520369194 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 469.55215, 2.7866266, -257.65787)
 
-[node name="EnemyKayKit31" parent="." index="258" unique_id=1157463075 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit31" parent="." index="258" unique_id=1157463075 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 481.07755, 2.7866256, -258.58163)
 
-[node name="EnemyKayKit32" parent="." index="259" unique_id=2074414230 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit32" parent="." index="259" unique_id=2074414230 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 472.07343, 2.7866275, -263.12546)
 
-[node name="EnemyKayKit33" parent="." index="260" unique_id=1356626302 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit33" parent="." index="260" unique_id=1356626302 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 476.8357, 2.7866268, -246.62347)
 
 [node name="ThirtyKillsCounter" parent="." index="261" unique_id=303030303 instance=ExtResource("53_killctr")]
@@ -1473,34 +1450,34 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.22288, -15.289081, 29.675
 [node name="Coin9" parent="." index="272" unique_id=1247097048 instance=ExtResource("49_h0kaq")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.69391, -15.289079, 46.955765)
 
-[node name="EnemyKayKit34" parent="." index="273" unique_id=1615160797 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit34" parent="." index="273" unique_id=1615160797 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 413.6154, -17.334898, -241.60439)
 
-[node name="EnemyKayKit35" parent="." index="274" unique_id=1231260755 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit35" parent="." index="274" unique_id=1231260755 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 419.71323, -17.334896, -247.92258)
 
-[node name="EnemyKayKit36" parent="." index="275" unique_id=57927100 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit36" parent="." index="275" unique_id=57927100 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 406.82275, -17.334896, -248.75826)
 
-[node name="EnemyKayKit37" parent="." index="276" unique_id=1512293720 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit37" parent="." index="276" unique_id=1512293720 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 408.90402, -17.334898, -242.38927)
 
-[node name="EnemyKayKit38" parent="." index="277" unique_id=1830099856 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit38" parent="." index="277" unique_id=1830099856 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 425.0741, -17.334898, -247.39499)
 
-[node name="EnemyKayKit39" parent="." index="278" unique_id=1904130938 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit39" parent="." index="278" unique_id=1904130938 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 429.71796, -17.334898, -268.8917)
 
-[node name="EnemyKayKit40" parent="." index="279" unique_id=1526232876 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit40" parent="." index="279" unique_id=1526232876 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 425.93628, -17.3349, -284.28812)
 
-[node name="EnemyKayKit41" parent="." index="280" unique_id=718740086 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit41" parent="." index="280" unique_id=718740086 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 417.73975, -17.3349, -283.27896)
 
-[node name="EnemyKayKit42" parent="." index="281" unique_id=300120370 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit42" parent="." index="281" unique_id=300120370 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 410.12433, -17.334898, -286.33188)
 
-[node name="EnemyKayKit43" parent="." index="282" unique_id=732322400 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit43" parent="." index="282" unique_id=732322400 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 401.8174, -17.3349, -243.41481)
 
 [node name="NavTrail" type="Node3D" parent="." index="283" unique_id=1076641452]
@@ -1569,7 +1546,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 463.57523, 3.8106077, -261.38
 [node name="GlitchCamOverride" type="Marker3D" parent="." index="304" unique_id=1918273654]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7211776, -0.46212626, 7.6196966)
 
-[node name="EnemyKayKit44" parent="." index="305" unique_id=1569453482 instance=ExtResource("81_kaykitnav")]
+[node name="EnemyKayKit44" parent="." index="305" unique_id=1569453482 instance=ExtResource("18_02w31")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 399.33386, -17.3349, -250.22375)
 
 [node name="Coin10" parent="." index="306" unique_id=1773962807 instance=ExtResource("49_h0kaq")]
@@ -1641,3 +1618,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 475.19672, 2.8734522, -270.90
 [node name="NavRegion" type="NavigationRegion3D" parent="." index="328"]
 navigation_mesh = SubResource("NavigationMesh_lnav")
 script = ExtResource("80_navbake")
+[node name="SquadBoardSplice" type="Node" parent="." index="329"]
+script = ExtResource("90_blackboard")
+group = &"splice_enemies"
+
+[node name="SquadBoardAllies" type="Node" parent="." index="330"]
+script = ExtResource("90_blackboard")
+group = &"allies"
+[node name="SquadBoardEnemies" type="Node" parent="." index="331"]
+script = ExtResource("90_blackboard")
+group = &"enemies"

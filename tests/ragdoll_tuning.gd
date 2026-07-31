@@ -36,6 +36,9 @@ const KNOBS := [
 	["freeze_land", "Freeze on land (0/1)", 0.0, 1.0, 1.0, 1.0],
 	["freeze_drop", "Freeze min drop m", 0.0, 1.0, 0.05, 0.2],
 	["freeze_delay", "Freeze delay s", 0.0, 2.0, 0.05, 0.3],
+	["slide_damp", "Slide damp on land", 0.0, 20.0, 0.5, 6.0],
+	["rest_speed", "Rest speed m/s", 0.0, 2.0, 0.05, 0.4],
+	["rest_lift", "Rest lift m", 0.0, 0.8, 0.05, 0.3],
 	["spin_yaw", "Spin yaw max rad/s", 0.0, 30.0, 0.25, 15.0],
 	["spin_roll", "Backroll max rad/s", 0.0, 30.0, 0.25, 15.0],
 ]
@@ -192,6 +195,9 @@ func _kill() -> void:
 	_skin.set(&"ragdoll_freeze_rotation_on_land", _values.freeze_land >= 0.5)
 	_skin.set(&"ragdoll_freeze_min_drop", _values.freeze_drop)
 	_skin.set(&"ragdoll_freeze_delay", _values.freeze_delay)
+	_skin.set(&"ragdoll_slide_damp", _values.slide_damp)
+	_skin.set(&"ragdoll_rest_speed", _values.rest_speed)
+	_skin.set(&"ragdoll_rest_lift", _values.rest_lift)
 	_skin.set(&"ragdoll_spin_yaw_max", _values.spin_yaw)
 	_skin.set(&"ragdoll_spin_roll_max", _values.spin_roll)
 	for c: Node in skel.get_children():

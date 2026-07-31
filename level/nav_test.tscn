@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://dypx2h8xpyi3y" path="res://enemy/enemy_nav_dummy.tscn" id="2_dummy"]
 [ext_resource type="Material" uid="uid://da188d7yrcfr8" path="res://level/platforms.tres" id="2_x3f7p"]
 [ext_resource type="Script" uid="uid://0uvnfq8id6ua" path="res://level/nav/nav_region_bake.gd" id="3_navbake"]
+[ext_resource type="PackedScene" path="res://companion/nyx_companion.tscn" id="4_nyx"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_navtest"]
 geometry_parsed_geometry_type = 1
@@ -91,9 +92,11 @@ no_depth_test = true
 text = "NAV TEST (F10)"
 font_size = 64
 
-[node name="NavDummy" parent="." index="27" unique_id=1398765374 instance=ExtResource("2_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 21.5)
-
 [node name="NavRegion" type="NavigationRegion3D" parent="." index="28" unique_id=496037674]
 navigation_mesh = SubResource("NavigationMesh_navtest")
 script = ExtResource("3_navbake")
+
+[node name="NyxCompanion" parent="." instance=ExtResource("4_nyx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.6, 22)
+start_in_walk_mode = false
+disable_brain_jump_on_skates = false

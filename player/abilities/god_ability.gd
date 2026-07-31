@@ -46,8 +46,12 @@ extends Ability
 # Groups whose members are eligible for conversion. Allies (gold) skipped
 # since they're already on our side; player skipped to avoid self-conversion.
 const _TARGET_GROUPS: Array[StringName] = [&"enemies", &"splice_enemies"]
-# Standard enemy brain, swapped in wholesale when converting a stealth pawn.
+# Standard enemy brain, swapped in wholesale when converting a legacy
+# stealth pawn (level 4 runs the legacy roster by design).
 const _GOLD_BRAIN_SCENE: PackedScene = preload("res://enemy/brains/default_enemy_ai.tscn")
+## Nav-stack pawns get their own gold brain: NavBrain preset with
+## follow_subject_group so the convert actually escorts the player.
+const _GOLD_NAV_BRAIN_SCENE: PackedScene = preload("res://enemy/brains/nav_gold.tscn")
 
 
 var _cooldown_remaining: float = 0.0
@@ -130,6 +134,12 @@ func _convert_in_radius(player: Node3D, radius: float) -> void:
 			# so the gold config lands on the replacement brain.
 			if node.get(&"_brain") is StealthSentinelBrain and node.has_method(&"replace_brain"):
 				node.call(&"replace_brain", _GOLD_BRAIN_SCENE)
+			# Nav pawns: total conversion (parity plan R2). The whole
+			# stealth/patrol kit dies with the brain; nav_gold brings
+			# follow_subject_group so the convert escorts instead of
+			# wandering (fixes the non-following nav gold).
+			elif node.get(&"_brain") is NavBrain and node.has_method(&"replace_brain"):
+				node.call(&"replace_brain", _GOLD_NAV_BRAIN_SCENE)
 			node.call(&"set_faction", &"gold")
 			# GOD-power converts get the rollerblade visual + skate profile.
 			# (ControlPortal converts skip this path → they walk.)

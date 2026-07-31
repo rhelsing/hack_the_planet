@@ -32,6 +32,7 @@
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_nav.tscn" id="71_kaykitnav"]
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_red_nav.tscn" id="72_rednav"]
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_stealth_nav.tscn" id="73_stealthnav"]
+[ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="90_blackboard"]
 
 [sub_resource type="Curve3D" id="Curve3D_tetk6"]
 resource_local_to_scene = true
@@ -764,3 +765,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.99136, 21.610992, -22.483
 [node name="NavRegion" type="NavigationRegion3D" parent="." index="152" unique_id=1460930904]
 navigation_mesh = SubResource("NavigationMesh_l2nav")
 script = ExtResource("70_navbake")
+[node name="SquadBoardSplice" type="Node" parent="." index="153"]
+script = ExtResource("90_blackboard")
+group = &"splice_enemies"
+
+[node name="SquadBoardAllies" type="Node" parent="." index="154"]
+script = ExtResource("90_blackboard")
+group = &"allies"
+[node name="SquadBoardEnemies" type="Node" parent="." index="155"]
+script = ExtResource("90_blackboard")
+group = &"enemies"

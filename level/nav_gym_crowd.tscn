@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://enemy/enemy_nav_dummy.tscn" id="2_dummy"]
 [ext_resource type="Script" path="res://level/nav/nav_region_bake.gd" id="3_navbake"]
 [ext_resource type="Script" path="res://level/enemy_distance_sleep.gd" id="4_sleep"]
+[ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="90_blackboard"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_gym"]
 geometry_parsed_geometry_type = 1
@@ -52,3 +53,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 9)
 
 [node name="Dummy8" parent="." instance=ExtResource("2_dummy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 2)
+[node name="SquadBoard" type="Node" parent="."]
+script = ExtResource("90_blackboard")
+group = &"enemies"

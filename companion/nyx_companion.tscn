@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://b1ot6gn6tms6h" path="res://player/body/player_body.tscn" id="1_body"]
+[ext_resource type="PackedScene" uid="uid://dnyxskin0001" path="res://player/skins/nyx/nyx_skin.tscn" id="2_skin"]
+[ext_resource type="PackedScene" path="res://companion/nav_companion.tscn" id="3_brain"]
+[ext_resource type="Resource" uid="uid://ci4wbmqukcq7y" path="res://enemy/enemy_profile.tres" id="4_profile"]
+[ext_resource type="Resource" uid="uid://csentinelskate1" path="res://enemy/sentinel_skate_profile.tres" id="5_skate"]
+
+[node name="NyxCompanion" instance=ExtResource("1_body")]
+skin_scene = ExtResource("2_skin")
+skin_scale = 1.771
+brain_scene = ExtResource("3_brain")
+pawn_group = "allies"
+faction = &"gold"
+walk_profile = ExtResource("4_profile")
+skate_profile = ExtResource("5_skate")
+start_in_walk_mode = true
+walk_anim_speed_scaling = false
+invulnerable = true
+fall_recovery_group = &"player"
+jump_horizontal_boost = 3.0
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 1.5
+avoidance_enabled = true
+radius = 0.6
+max_speed = 8.5

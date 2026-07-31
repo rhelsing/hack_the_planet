@@ -496,6 +496,21 @@ func _process(delta: float) -> void:
 ## the corpse its impact tumble before it goes rigid and slides.
 @export var ragdoll_freeze_delay := 0.3
 
+## Linear damping applied to every bone at the landing freeze — bleeds the
+## statue's slide so it comes to rest instead of coasting indefinitely
+## (bone friction is already authored at 1.0, the documented max, so
+## damping is the remaining slide knob). 0 = legacy coast-on-friction.
+@export var ragdoll_slide_damp := 6.0
+## Hips speed (m/s) below which the frozen, sliding statue counts as at
+## rest — linear axes lock (corpse goes fully static) and the rest lift
+## applies. Only reachable via the landing freeze pipeline.
+@export var ragdoll_rest_speed := 0.4
+## Raise the whole rig this many meters at final rest. The thin bone
+## capsules sit inside the visual mesh, so the corpse reads sunken into
+## the floor — this is the "where the floor is for the ragdoll" offset.
+## Applied after the linear lock, so gravity can't re-sink it.
+@export var ragdoll_rest_lift := 0.3
+
 ## Random spin injected at launch, as one coherent whole-body rotation.
 ## Yaw: [-max, max] rad/s about vertical — helicopter spin, either way.
 ## Roll: [0, max] rad/s about the horizontal axis perpendicular to travel,
@@ -508,6 +523,7 @@ var _ragdoll_active := false
 var _ragdoll_bones: Array[PhysicalBone3D] = []
 var _ragdoll_hips: PhysicalBone3D = null
 var _ragdoll_frozen := false
+var _ragdoll_resting := false
 var _ragdoll_start_hips_y := 0.0
 # -1 = not landed yet; >= 0 counts up from first contact toward freeze_delay.
 var _ragdoll_land_timer := -1.0
@@ -533,6 +549,7 @@ func start_ragdoll(launch_velocity: Vector3) -> void:
 	_ragdoll_active = true
 	_ragdoll_bones = bones
 	_ragdoll_frozen = false
+	_ragdoll_resting = false
 	_ragdoll_land_timer = -1.0
 	for pb: PhysicalBone3D in bones:
 		if pb.get("bone_name") == "hips":
@@ -581,6 +598,13 @@ func _physics_process(delta: float) -> void:
 	if not _ragdoll_active:
 		return
 	if _ragdoll_frozen:
+		if _ragdoll_resting:
+			return  # fully static corpse — nothing left to do
+		# Slid out → final rest: lock linear, lift to the visual floor.
+		if _ragdoll_hips != null \
+				and _ragdoll_hips.linear_velocity.length() < ragdoll_rest_speed:
+			_settle_to_rest()
+			return
 		# Frozen statue: every bone shares the hips' linear velocity, zero
 		# spin. Axis locks alone leave linear DOFs free — segments can still
 		# orbit-translate around their joint pivots (parallelogram flail)
@@ -628,6 +652,26 @@ func _tick_land_freeze(delta: float) -> void:
 		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_ANGULAR_Y, true)
 		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_ANGULAR_Z, true)
 		pb.angular_velocity = Vector3.ZERO
+		# Bleed the slide — friction is maxed in the rig, damping is what
+		# actually brings the statue to rest.
+		pb.linear_damp = ragdoll_slide_damp
+
+
+## Final rest: the statue has slid out. Lock the linear axes too (a fully
+## locked body ignores gravity, so the lift below sticks), zero residual
+## velocity, and raise the rig so the visual mesh rests ON the floor
+## instead of the capsules' depth inside it.
+func _settle_to_rest() -> void:
+	_ragdoll_resting = true
+	for pb: PhysicalBone3D in _ragdoll_bones:
+		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_LINEAR_X, true)
+		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_LINEAR_Y, true)
+		pb.set_axis_lock(PhysicsServer3D.BODY_AXIS_LINEAR_Z, true)
+		pb.linear_velocity = Vector3.ZERO
+		pb.angular_velocity = Vector3.ZERO
+	if ragdoll_rest_lift != 0.0:
+		for pb: PhysicalBone3D in _ragdoll_bones:
+			pb.global_position += Vector3.UP * ragdoll_rest_lift
 
 
 func is_ragdolled() -> bool:

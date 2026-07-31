@@ -30,6 +30,7 @@
 [ext_resource type="PackedScene" uid="uid://dyp1x80mpyiuy" path="res://enemy/brains/nav_green.tscn" id="40_navgreen"]
 [ext_resource type="Script" uid="uid://0uvnfq8id6ua" path="res://level/nav/nav_region_bake.gd" id="41_navbake"]
 [ext_resource type="PackedScene" path="res://enemy/enemy_kaykit_nav.tscn" id="42_kaykitnav"]
+[ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="90_blackboard"]
 
 [sub_resource type="BoxShape3D" id="GlitchLiftCarry"]
 size = Vector3(7.5, 2, 8.5)
@@ -847,3 +848,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -58.628735, -1.5, 116.71659)
 transform = Transform3D(1, 0, 0, 0, 2.5585573, 0, 0, 0, 1.137998, 0, 16.77712, 0)
 navigation_mesh = SubResource("NavigationMesh_l1nav")
 script = ExtResource("41_navbake")
+[node name="SquadBoardEnemies" type="Node" parent="." index="142"]
+script = ExtResource("90_blackboard")
+group = &"enemies"
+
+[node name="SquadBoardAllies" type="Node" parent="." index="143"]
+script = ExtResource("90_blackboard")
+group = &"allies"

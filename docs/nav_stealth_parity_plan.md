@@ -1,8 +1,10 @@
 # Nav stealth parity plan — restoring what the port dropped
 
-Status: **draft for review**. Companion to `docs/nav_stack.md` — every fix
-below lands in exactly **one** layer per the stack contract. If a fix wants
-two layers, the cut is wrong; that's flagged, not smuggled.
+Status: **executed 2026-07-25** (§1–§9 landed with R1–R10 folded in; §10
+debug labels and §11 perf governor remain open — see Resolutions at the
+bottom). Companion to `docs/nav_stack.md` — every fix below lands in
+exactly **one** layer per the stack contract. If a fix wants two layers,
+the cut is wrong; that's flagged, not smuggled.
 
 Source comparison: `player/brains/enemy_ai_brain.gd` (2,811 lines) +
 `enemy/brains/stealth_sentinel_brain.gd` + `enemy/brains/stealth_sentinel_ai.tscn`
@@ -179,10 +181,17 @@ requires LOS, so ducking behind a wall starts the forget clock — the escape
 rules changed under the player.
 
 **Fix (NavBrain awareness).** Exports `hostile_lock_ignores_los := false`
-(preset true) + `hostile_lock_radius := 0.0` (preset 36; 0 = distance never
-breaks it). In the holding-target branch of `_update_awareness`, when the
-flag is set: bypass `sense_strength` entirely — `s2 = 1.0` if flat distance
-≤ radius else `0.0`. Mirrors the old code shape one-for-one, and beyond the
+(preset true) + `hostile_lock_radius := 0.0` (preset **54**; 0 = distance
+never breaks it). **Invariant (R5 fold-in): `hostile_lock_radius ≥
+detection_radius`.** A lock smaller than acquisition decays a
+plainly-visible target into a stale-LKP zombie chase (acquire at 40m →
+sphere says gone → chase old LKP for 8s in plain sight → forget →
+re-acquire → repeat); 54 preserves the old 1.2× detect→exit ratio at the
+45m cone. While the flag is set and a target is HELD, the sphere is the
+ONLY sustain — no falling back to sight outside it (that reopens the same
+oscillation at the sphere edge). In the holding-target branch of
+`_update_awareness`: bypass `sense_strength` entirely — `s2 = 1.0` if flat
+distance ≤ radius else `0.0`. Mirrors the old code shape one-for-one, and beyond the
 radius the normal memory decay takes over (old snapped to ALERT; with §5's
 tucker also in play the practical difference is a softer tail — flagged for
 the A/B pass).
@@ -268,22 +277,22 @@ never mutates brain state — is already structural (no writes exist).
 Numbers drifted during the port and some were compensating for the missing
 crouch model:
 
-| knob | old sentinel | current nav | proposed |
+| knob | old sentinel | current nav | resolved (R5 synthesis) |
 |---|---|---|---|
-| detection range | 30 (×0.5 crouched = 15) | 45, stance-blind | **30** + crouch mult 0.5 |
+| detection range | 30 (×0.5 crouched = 15) | 45, stance-blind | **45** standing + crouch mult **0.33** (= 15 crouched, the exact old sneak envelope) |
 | cone arc | 100° (×0.3 crouched) | 100°, stance-blind | 100° + crouch mult 0.3 |
-| eye height | 1.0 (waist — low cover blocks) | 1.4 default (chest) | **1.0** |
+| eye height | 1.0 (waist — low cover blocks) | brain default 1.4 (preset doesn't set it — R10) | explicit `eye_height = 1.0` in the preset |
 | hostile zone | 20m instant | none | 20m (§3) |
 | chase give-up | 8s tucker | never | 8s (§5) |
-| chase lock | sphere 36m, no LOS | LOS-gated | ignores-LOS + 36m (§6) |
+| chase lock | sphere 36m, no LOS | LOS-gated | ignores-LOS + **54m** (§6 invariant: lock ≥ detection; 1.2× ratio preserved) |
 | cone draw scale | 1.0 (truth) | 0.5 (half-size lie) | **1.0** |
 | cone colors | green/yellow/red @ 0.30-0.40α | cyan/amber/red | old palette |
 
-Open question for review: 45m/stance-blind was the ported preset's call —
-if that hotter cone was intentional, keep 45 and only restore the crouch
-multipliers; my recommendation is the old envelope (30/15) because the
-whole sneak loop was tuned against it. Either way it's two numbers in
-`nav_stealth.tscn`, live-tunable via the F10 + Remote-tree workflow.
+RESOLVED (Ryan, 2026-07-25): 45m standing was the intentional direction
+(paired with skin-tint telegraphing), so the synthesis stands — keep 45,
+restore the crouched 15m via the multiplier. If the A/B says standing-45
+reads unfair even with color telegraphing, drop to 30/0.5 then — as an A/B
+outcome, not a default. All live-tunable via F10 + Remote-tree.
 
 Acceptance: A/B on level_2 against a hand-restored old sentinel (old brain
 preset is one inspector revert away, per the port procedure) — cone reads
@@ -427,3 +436,60 @@ low-cover LOS behavior actually changes with the retune.
 
 With R1–R3 folded in, I'd call this plan ready to execute in the proposed
 sequence.
+
+---
+
+## Resolutions (accepted 2026-07-25, Ryan sign-off — plan is now executable)
+
+- **R1 accepted +addendum**: freeze gate sits after edge-flag clearing,
+  BEFORE the wander stagger (§1 text updated implicitly). Addendum: the
+  frozen branch also **consumes `_skip_accum`** so unfreezing doesn't flush
+  the whole freeze duration as one giant delta into suspicion decay and
+  wander timers; attack/aggro cooldowns still tick inside the frozen branch
+  (old brain ticked cooldowns during a hack but froze the alert machine —
+  `enemy_ai_brain.gd:560` vs `:581`). Dedicated test included.
+- **R2 accepted, replace_brain chosen**: verified `replace_brain` exists
+  (`player_body.gd:1409`) and `god_ability.gd:131` already routes legacy
+  stealth through it. NavBrain has since grown `follow_subject_group` /
+  `follow_distance` + State.FOLLOW, so `nav_gold.tscn` is a pure preset.
+  Scope: author the preset; god_ability replaces NavBrain pawns' brains on
+  gold conversion; the four new stealth-kit exports (crouch mults, hostile
+  zone, chase_max, lock pair) ALSO join the set_faction guarded-poke list
+  for non-gold conversions; visual/tint components get a `rewire_brain()`
+  hook called by replace_brain (legacy freed its brain-internal cone on
+  swap — nav components must re-resolve instead of crashing on a freed
+  ref); NavConeVisual hides at cone_deg ≥ 360 (a full disc isn't a cone —
+  covers converted pawns and omni brains). Bonus: this fixes the
+  already-live bug where god-blasting a nav sentinel yields a
+  non-following gold.
+- **R3 accepted +addendum**: tucker cooldown suppresses hostile-zone snap,
+  positive integration, AND `receive_alert`. Addendum: **`aggro_to`
+  punches through** — damage always woke the old brain; it clears the
+  cooldown.
+- **R4 accepted**: §6 now states the lock suspends LKP anti-wallhack inside
+  the sphere; A/B checks cover-ducking inside the radius feels like the
+  old game.
+- **R5 accepted with consequence fix**: 45m standing confirmed
+  intentional; crouch mult 0.33 restores the exact old 15m sneak envelope.
+  The synthesis exposed a radius inversion in §6 (lock 36 < detect 45 →
+  hostile-decay oscillation on a visible target) — fixed via the new
+  invariant `hostile_lock_radius ≥ detection_radius`, preset 54.
+- **R6 accepted**: brain computes a per-tick view memo — stance of
+  `_target` if held, else the nearest scan candidate — and
+  `perception_view()` reports effective range/arc from it. Deduped by the
+  brain, so no crowd flicker.
+- **R7 accepted/blessed**: hearing-triggered stare stays. Parity footnote:
+  the old cone already diverged from the skin during SUSPECT
+  (`stealth_sentinel_brain.gd:189` aimed the cone at the target while body
+  yaw stayed), so cone-turns-toward-noise-while-skin-doesn't matches the
+  old presentation.
+- **R8 accepted**: rays skipped in NEVER mode, in WHEN_SUSPICIOUS's hidden
+  state, and beyond the camera-distance guard; per-frame body-space
+  ImmediateMesh rebuild confirmed as planned. Raycasts + rebuild run at
+  physics rate (`_physics_process`) — same cadence the old brain used, and
+  direct-space-state queries belong there.
+- **R9 accepted**: composed sequence test added to step 3's gate (stare →
+  LOS cut → LKP walk → reacquire → tucker → no-reacquire window → clean
+  reacquire).
+- **R10 accepted**: explicit `eye_height = 1.0` in the preset diff (§9
+  table updated).

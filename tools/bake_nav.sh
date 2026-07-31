@@ -18,6 +18,7 @@ LEVELS=(
   "level/level_2.tscn"
   "level/level_3.tscn"
   "level/level_4.tscn"
+  "level/hub.tscn"
 )
 
 fail=0

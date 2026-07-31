@@ -117,7 +117,7 @@ func report_lkp(pos: Vector3) -> void:
 func squad_lkp() -> Vector3:
 	if not enabled or _lkp_at_ms < 0:
 		return Vector3.INF
-	if (Time.get_ticks_msec() - _lkp_at_ms) / 1000.0 > lkp_max_age:
+	if (Time.get_ticks_msec() - _lkp_at_ms) / 1000.0 >= lkp_max_age:
 		return Vector3.INF
 	return _lkp
 

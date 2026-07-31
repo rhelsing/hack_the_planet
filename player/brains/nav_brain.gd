@@ -27,6 +27,12 @@ extends Brain
 ## (PlayerBody.set_faction writes `target_groups` when present), so runtime
 ## conversions rewire this brain with no faction knowledge leaking in here.
 @export var target_groups: Array[StringName] = [&"player"]
+## Groups that OVERRIDE nearest-wins while a member is inside
+## priority_target_radius — the sentinel "execute the gold in my bubble
+## before the player" rule (plan §7). Empty = plain nearest-wins.
+@export var priority_target_groups: Array[StringName] = []
+## Radius (m) for the priority override. 0 = disabled.
+@export var priority_target_radius: float = 0.0
 ## Stop steering when within this horizontal distance (m) of the target.
 @export var arrive_distance: float = 1.5
 
@@ -53,6 +59,25 @@ extends Brain
 ## behind the pawn or behind thin cover within this range, scaled by the
 ## target's duck-typed noise_loudness() (crouched = 0 = silent). 0 = deaf.
 @export var hearing_radius: float = 10.0
+## Maximum seconds of continuous chase before the pawn "tuckers out" and
+## gives up — drops to an amber cool-down, then calm (plan §5, the legacy
+## escape valve vs locked pursuit). 0 = never (greens/reds parity default).
+@export var chase_max_duration: float = 0.0
+## Seconds after a tucker-out during which this pawn cannot reacquire —
+## hostile-zone snap, accumulation, and peer alerts are all suppressed
+## (the legacy ALERT scan window). Damage (aggro_to) punches through.
+@export var tucker_recover_duration: float = 3.0
+## Once HOSTILE with a held target, sustain the lock by a raw sphere
+## instead of senses: no LOS, no cone, no crouch — cover does NOT break the
+## chase (plan §6, the legacy aggressive-stealth escape ruleset; this
+## deliberately suspends LKP anti-wallhack inside the sphere). Only
+## distance beyond hostile_lock_radius, the tucker, or memory decay ends it.
+@export var hostile_lock_ignores_los: bool = false
+## Sphere radius (m) for the hostile lock. INVARIANT: keep this ≥
+## detection_radius — a lock smaller than acquisition oscillates on a
+## visible target between the radii (parity plan §6). 0 = the lock never
+## breaks by distance.
+@export var hostile_lock_radius: float = 0.0
 
 @export_group("Perception")
 ## Vision cone arc (degrees). 360 = no arc gate (greens/reds see all around).
@@ -66,6 +91,18 @@ extends Brain
 @export var suspect_time: float = 0.0
 ## Suspicion level (0..1) that counts as SUSPECT (investigate the stimulus).
 @export var suspect_threshold: float = 0.5
+## Sight-range multiplier when the evaluated target is crouched (duck-typed
+## is_crouched()). <1 = crouching shrinks how far this pawn sees — the
+## sneak-past verb. 1 = stance-blind (greens/reds parity default).
+## Stealth preset: 0.33 (45m standing → the legacy 15m crouched envelope).
+@export_range(0.0, 1.0) var crouch_range_multiplier: float = 1.0
+## Cone-arc multiplier when the evaluated target is crouched. <1 collapses
+## the arc to a forward sliver. Stealth preset: 0.3 (100° → 30°).
+@export_range(0.0, 1.0) var crouch_cone_multiplier: float = 1.0
+## STANDING target with LOS inside this radius (m) → instant HOSTILE, no
+## suspect grace (the sphere IS the danger — the legacy hostile zone).
+## Crouched targets always get the accumulator. 0 = off.
+@export var hostile_zone_radius: float = 0.0
 
 @export_group("Alerts")
 ## On going hostile, shout to same-group peers within this radius so they
@@ -83,6 +120,26 @@ extends Brain
 @export var follow_subject_group: StringName = &""
 ## Stop this far (m) from the follow subject.
 @export var follow_distance: float = 3.5
+## Combat consent: when > 0, this pawn only acquires combat targets (and
+## drops held ones) while its follow subject attacked within this many
+## seconds — read duck-typed via `seconds_since_attack()` on the subject
+## (absent method = no gate). The companion mirrors its charge's
+## aggression: you swing, she fights; you stop, she breaks off and returns
+## to your side. Being hit while passive doesn't provoke her either (the
+## next tick drops any aggro target). 0 = always engage (golds, enemies).
+@export var engage_requires_subject_combat: float = 0.0
+
+@export_group("Squad")
+## NavBlackboard squad this brain joins (a board node with matching `group`
+## must exist in the level). Empty = solo: no board lookups at all —
+## provably the pre-blackboard behavior (the off-switch is structural).
+## Enemies and allies use the identical mechanism; conversions may poke
+## this (gold → "allies") like any other guarded export.
+@export var squad_group: StringName = &""
+## Unclaimed engagers hold a spread perimeter this far (m) from the target
+## instead of piling into the same doorway; a freed claim slot (death,
+## target loss) rotates the next pawn in automatically.
+@export var standoff_distance: float = 6.0
 
 @export_group("Attack")
 ## Horizontal strike range (m). 0 disables the attack layer (nav-only pawn).
@@ -187,14 +244,50 @@ var _wander_timer: float = 0.0
 var _attack_cooldown_timer: float = 0.0
 var _aggro_timer: float = 0.0
 var _wind_up_timer: float = 0.0
+# Tucker-out bookkeeping (plan §5): seconds spent holding the current
+# target (reset on every target change) and the post-give-up window during
+# which reacquisition is suppressed.
+var _chase_elapsed: float = 0.0
+var _tucker_cooldown: float = 0.0
 # Perf staggering: random offset picked lazily so a crowd spawned together
 # doesn't think on the same physics frame; -1 = not yet picked.
 var _tick_offset: int = -1
 var _skip_accum: float = 0.0
+# External CONTROL state (hack freeze / future stuns). While _frozen the
+# tick early-returns a zero-move intent — no patrol, no senses, no swing.
+# _freeze_progress is presentation data only (the cone visual's dying-
+# signal flicker envelope reads it via perception_view).
+var _frozen: bool = false
+var _freeze_progress: float = 0.0
+# Plan R6 view memo: the stance perception_view reports effective numbers
+# for — held target wins, else the nearest scan candidate. Deduped by the
+# brain each tick so the cone visual never flickers between candidates.
+var _last_nearest: Node3D = null
+var _view_crouched: bool = false
+# Squad blackboard (null = solo; every board read has a solo fallback).
+var _board: NavBlackboard = null
+var _board_searched: bool = false
+# This tick's engage-claim verdict; true in solo (no board = no gating).
+var _engage_claimed: bool = true
 # First NavBrain instance to tick claims the DebugPanel section (backtick
 # toggles the panel in-game). Static so 8 dummies don't fight over it —
 # sliders tune THAT pawn; bank values via the panel's "Copy diff" button.
 static var _panel_claimed: bool = false
+# True only on the instance that actually claimed the panel — its
+# _exit_tree releases the claim (and the panel rows) so the next ticking
+# brain re-registers with LIVE callables instead of leaving the panel bound
+# to a freed instance (the backtick crash).
+var _panel_claimed_by_me: bool = false
+
+
+func _exit_tree() -> void:
+	if not _panel_claimed_by_me:
+		return
+	_panel_claimed_by_me = false
+	_panel_claimed = false
+	var panel: Node = get_node_or_null(^"/root/DebugPanel")
+	if panel != null and panel.has_method(&"remove_source"):
+		panel.call(&"remove_source", "nav_brain.gd")
 
 
 func _register_debug_panel() -> void:
@@ -204,6 +297,7 @@ func _register_debug_panel() -> void:
 	if panel == null or not panel.has_method(&"add_slider"):
 		return
 	_panel_claimed = true
+	_panel_claimed_by_me = true
 	const SRC := "nav_brain.gd"
 	panel.add_toggle("Nav/Detection/omniscient (ally)",
 		func(): return omniscient, func(v): omniscient = v, SRC)
@@ -248,7 +342,8 @@ func _register_debug_panel() -> void:
 	panel.add_readout("Nav/state",
 		func(): return "%s target=%s susp=%.2f" % [State.keys()[_state],
 			_target.name if _target != null and is_instance_valid(_target) else "-",
-			_perception.suspicion])
+			_perception.suspicion],
+		SRC)
 
 
 func tick(body: Node3D, delta: float) -> Intent:
@@ -260,6 +355,20 @@ func tick(body: Node3D, delta: float) -> Intent:
 	# is_inside_tree guard: group scans + world queries need the tree; brains
 	# tick pre-spawn in unit tests.
 	if not body.is_inside_tree():
+		_intent.move_direction = Vector3.ZERO
+		return _intent
+
+	# External freeze (hack/stun). Sits BEFORE the wander stagger so a frozen
+	# pawn can never replay a stale move on a skipped frame (plan R1).
+	# Cooldowns keep ticking (old-brain parity: enemy_ai_brain ticked them
+	# above its hack gate); senses/patrol/attack all stop, so suspicion
+	# holds. _skip_accum is consumed so unfreezing doesn't flush the whole
+	# freeze span into suspicion decay and wander timers in one tick.
+	if _frozen:
+		_skip_accum = 0.0
+		_attack_cooldown_timer = maxf(0.0, _attack_cooldown_timer - delta)
+		_aggro_timer = maxf(0.0, _aggro_timer - delta)
+		_tucker_cooldown = maxf(0.0, _tucker_cooldown - delta)
 		_intent.move_direction = Vector3.ZERO
 		return _intent
 
@@ -278,6 +387,7 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_intent.move_direction = Vector3.ZERO
 	_attack_cooldown_timer = maxf(0.0, _attack_cooldown_timer - delta)
 	_aggro_timer = maxf(0.0, _aggro_timer - delta)
+	_tucker_cooldown = maxf(0.0, _tucker_cooldown - delta)
 
 	_nav.repath_distance = repath_distance
 	_nav.debug_log = debug_log
@@ -285,14 +395,36 @@ func tick(body: Node3D, delta: float) -> Intent:
 	_register_debug_panel()
 	_sync_perception()
 	_update_awareness(body, delta)
+	# View memo (plan R6): stance the cone should size against this tick.
+	var view_subject: Node3D = _target \
+		if _target != null and is_instance_valid(_target) else _last_nearest
+	_view_crouched = NavPerception.crouched_of(view_subject)
 
 	if _target != null:
+		var board := _get_board(body)
+		_engage_claimed = board == null or board.claim_engage(body, _target)
 		if _state == State.WIND_UP:
 			_tick_wind_up(body, delta)
 		else:
 			_set_state(body, State.CHASE)
 			_intent.move_direction = _chase(body) * chase_speed_fraction
-			_maybe_start_wind_up(body)
+			# Only claimed engagers swing; perimeter holders contain.
+			if _engage_claimed:
+				_maybe_start_wind_up(body)
+	elif _sensed_this_tick and _perception.suspicion > 0.0 \
+			and not _perception.is_hostile():
+		# SUSPECT freeze-and-stare (plan §4): actively sensing something
+		# sub-hostile — stand still and lock the cone on it while the fuse
+		# burns (the legacy readable "I'm being noticed" beat; also fires on
+		# a heard-but-unseen noise, blessed in review R7). Unreachable for
+		# suspect_time=0 archetypes: they snap hostile the same tick they
+		# sense, so greens/reds are provably unchanged.
+		_set_state(body, State.SUSPECT)
+		_intent.move_direction = Vector3.ZERO
+		var to_stim := _perception.lkp - body.global_position
+		to_stim.y = 0.0
+		if to_stim.length() > 0.1:
+			_facing = to_stim.normalized()
 	elif _perception.is_suspect() and _perception.lkp != Vector3.INF:
 		_set_state(body, State.SUSPECT)
 		_intent.move_direction = _investigate(body) * wander_speed_fraction
@@ -328,10 +460,30 @@ func perception_view() -> Dictionary:
 		"facing": _facing,
 		"suspicion": _perception.suspicion,
 		"suspect_threshold": suspect_threshold,
-		"cone_deg": cone_deg,
-		"range": detection_radius,
+		# Effective (stance-gated) numbers — the picture shrinks with the
+		# truth when the target crouches, with zero cone logic here.
+		"cone_deg": _perception.effective_cone_deg(_view_crouched),
+		"range": _perception.effective_range(_view_crouched),
+		"target_crouched": _view_crouched,
+		"eye_height": eye_height,
 		"state": StringName(State.keys()[_state]),
+		"hack_active": _frozen,
+		"hack_progress": _freeze_progress,
 	}
+
+
+## Freeze channel (external CONTROL state): any system can push
+## "frozen/stunned". StealthKillTarget drives it each tick during a hack
+## with the hold progress; releasing pre-completion drops it the same tick.
+func set_hack_active(active: bool, progress: float = 0.0) -> void:
+	_frozen = active
+	_freeze_progress = clampf(progress, 0.0, 1.0)
+
+
+## True while committed to a fight. StealthKillTarget gates the hack prompt
+## on this — sneak windows close the moment the pawn goes hostile.
+func is_chasing() -> bool:
+	return _state == State.CHASE or _state == State.WIND_UP
 
 
 ## Forward brain exports into the perception model (presets own numbers).
@@ -343,6 +495,9 @@ func _sync_perception() -> void:
 	_perception.suspect_time = suspect_time
 	_perception.suspect_threshold = suspect_threshold
 	_perception.memory_duration = chase_memory_duration
+	_perception.crouch_range_multiplier = crouch_range_multiplier
+	_perception.crouch_cone_multiplier = crouch_cone_multiplier
+	_perception.hostile_zone_radius = hostile_zone_radius
 	_perception.facing = _facing
 
 
@@ -390,6 +545,10 @@ func aggro_to(attacker: Node) -> void:
 	if attacker == null or not (attacker is Node3D) or not is_instance_valid(attacker):
 		return
 	_aggro_timer = aggro_grace
+	# Damage punches through the tucker window (plan R3) and starts a fresh
+	# chase clock — getting hit always wakes the pawn.
+	_tucker_cooldown = 0.0
+	_chase_elapsed = 0.0
 	# Damage is a full sense: snap hostile and remember where it came from.
 	_perception.suspicion = 1.0
 	_perception.mark_sensed((attacker as Node3D).global_position)
@@ -407,6 +566,10 @@ func _chase(body: Node3D) -> Vector3:
 	var goal: Vector3 = _target.global_position if _sensed_this_tick else _perception.lkp
 	if goal == Vector3.INF:
 		goal = _target.global_position
+	# Unclaimed squad members hold a spread standoff perimeter instead of
+	# piling into the same approach; claims rotate them in when slots free.
+	if not _engage_claimed and _board != null and is_instance_valid(_board):
+		goal += _board.search_offset_for(body, standoff_distance)
 	var to_goal := goal - body.global_position
 	to_goal.y = 0.0
 	var arrived := to_goal.length() <= arrive_distance
@@ -422,12 +585,21 @@ func _chase(body: Node3D) -> Vector3:
 ## reacquiring drops suspicion under the threshold — that IS the v1 search
 ## (docs/nav_stack.md build plan #8); decay handles the rest.
 func _investigate(body: Node3D) -> Vector3:
-	var to := _perception.lkp - body.global_position
+	var goal: Vector3 = _perception.lkp
+	# Squad search: hunt the squad's freshest shared LKP, approaching from a
+	# per-pawn spread direction so investigators fan out instead of
+	# converging on one point. Solo = own LKP, no offset — today's behavior.
+	var board := _get_board(body)
+	if board != null:
+		var shared: Vector3 = board.squad_lkp()
+		if shared != Vector3.INF:
+			goal = shared + board.search_offset_for(body, 2.5)
+	var to := goal - body.global_position
 	to.y = 0.0
 	if to.length() <= arrive_distance:
 		_perception.suspicion = minf(_perception.suspicion, suspect_threshold - 0.01)
 		return Vector3.ZERO
-	var dir := _nav.steer_to(body, _perception.lkp, arrive_distance)
+	var dir := _nav.steer_to(body, goal, arrive_distance)
 	# No usable route to the stimulus — give up rather than stand suspicious
 	# forever. (Transient holds — map sync, crowd jams — also abort; the
 	# pawn just resumes patrol, which reads fine and can't deadlock.)
@@ -436,12 +608,26 @@ func _investigate(body: Node3D) -> Vector3:
 	return dir
 
 
+## Lazy squad-board lookup. Null = solo (empty squad_group, no matching
+## board in the level, or the board freed) — every caller has a solo path.
+func _get_board(body: Node3D) -> NavBlackboard:
+	if squad_group == &"":
+		return null
+	if _board != null and not is_instance_valid(_board):
+		_board = null
+	if _board == null and not _board_searched:
+		_board_searched = true
+		_board = NavBlackboard.find_for(body.get_tree(), squad_group)
+	return _board
+
+
 # ── Awareness ────────────────────────────────────────────────────────────
 
 func _update_awareness(body: Node3D, delta: float) -> void:
 	_sensed_this_tick = false
 	if omniscient:
 		var nearest_o := _nearest_candidate(body, INF)
+		_last_nearest = nearest_o
 		if nearest_o != null:
 			_perception.suspicion = 1.0
 			_perception.mark_sensed(nearest_o.global_position)
@@ -450,16 +636,25 @@ func _update_awareness(body: Node3D, delta: float) -> void:
 		return
 	var scan_radius: float = maxf(detection_radius, hearing_radius)
 	var nearest: Node3D = _nearest_candidate(body, scan_radius)
+	_last_nearest = nearest
+	# Combat consent (companions): passive subject = no acquisition, and any
+	# held target (including aggro retaliation) is dropped below.
+	var combat_ok: bool = _subject_combat_ok(body)
 	if _target == null or not is_instance_valid(_target):
 		_target = null
 		# Acquisition: the nearest candidate feeds the accumulator. With
 		# suspect_time = 0 this snaps hostile in one tick (v3 parity); with
 		# > 0 the pawn climbs through SUSPECT on the way up.
 		var s: float = 0.0
-		if nearest != null:
+		if nearest != null and combat_ok:
 			s = _perception.sense_strength(
 				body.global_position, nearest,
 				not require_line_of_sight or _can_see(body, nearest), false)
+		# Tucker recover window (plan §5/R3): no reacquisition — the
+		# hostile-zone snap and accumulation are both suppressed here, and
+		# receive_alert is gated at its entry. aggro_to punches through.
+		if _tucker_cooldown > 0.0:
+			s = 0.0
 		if s > 0.0:
 			_perception.integrate(s, delta)
 			_perception.mark_sensed(nearest.global_position)
@@ -471,23 +666,55 @@ func _update_awareness(body: Node3D, delta: float) -> void:
 			_perception.integrate(0.0, delta)
 		if _perception.is_hostile() and nearest != null:
 			_set_target(body, nearest)
+			var board := _get_board(body)
+			if board != null:
+				board.report_alert(1.0)
+				board.report_lkp(nearest.global_position)
 			_maybe_broadcast_alert(body, nearest)
+		return
+	# Combat consent expired mid-hold (or an aggro hit landed while the
+	# subject is passive): break off, forget, return to the subject's side.
+	if not combat_ok:
+		_set_target(body, null)
+		_perception.forget()
+		_alert_sent = false
 		return
 	# Holding a target: "radius acquires, sight sustains, time forgets."
 	# Sight-driven sustain lifts range/cone/vertical gates (committed pursuit
 	# never drops mid-route); radius-driven setups (require_line_of_sight
 	# off) sustain inside the detection radius, exactly as v3 did. Aggro
 	# grace counts as fully sensed. Decay reaching zero = forgotten.
-	var s2: float = _perception.sense_strength(
-		body.global_position, _target,
-		not require_line_of_sight or _can_see(body, _target),
-		require_line_of_sight)
+	# Tucker-out (plan §5): a chase runs at most chase_max_duration seconds,
+	# then the pawn gives up regardless of senses — the player's earned
+	# escape against a lock that would otherwise never end.
+	_chase_elapsed += delta
+	if chase_max_duration > 0.0 and _chase_elapsed >= chase_max_duration:
+		_tucker_out(body)
+		return
+	var s2: float
+	if hostile_lock_ignores_los:
+		# Hostile lock (plan §6): while a target is HELD, the sphere is the
+		# ONLY sense — no fallback to sight outside it (that reopens the
+		# edge oscillation the §6 invariant exists to prevent).
+		var flat_d := _target.global_position - body.global_position
+		flat_d.y = 0.0
+		s2 = 1.0 if (hostile_lock_radius <= 0.0 \
+			or flat_d.length() <= hostile_lock_radius) else 0.0
+	else:
+		s2 = _perception.sense_strength(
+			body.global_position, _target,
+			not require_line_of_sight or _can_see(body, _target),
+			require_line_of_sight)
 	if _aggro_timer > 0.0:
 		s2 = maxf(s2, 1.0)
 	_perception.integrate(s2, delta)
 	if s2 > 0.0:
 		_perception.mark_sensed(_target.global_position)
 		_sensed_this_tick = true
+		# The squad hunts one truth: freshest sighting wins.
+		var hold_board := _get_board(body)
+		if hold_board != null:
+			hold_board.report_lkp(_target.global_position)
 	if _perception.suspicion <= 0.0:
 		_set_target(body, null)
 		_alert_sent = false
@@ -501,10 +728,27 @@ func _update_awareness(body: Node3D, delta: float) -> void:
 
 ## Peer went hostile nearby and shouted this position: investigate it.
 ## Already-hostile pawns ignore the shout — they have their own fight.
+## A tucker-recovering pawn ignores it too (plan R3): the give-up window is
+## the player's earned escape, a shout must not un-earn it.
 func receive_alert(pos: Vector3) -> void:
 	if _perception.is_hostile():
 		return
+	if _tucker_cooldown > 0.0:
+		return
 	_perception.notify(pos, suspect_threshold)
+
+
+## The chase ran its course (plan §5): drop the target, cool to an amber
+## scan (suspicion just under threshold, decaying — visually the legacy
+## ALERT→CALM), and refuse reacquisition for tucker_recover_duration.
+func _tucker_out(body: Node3D) -> void:
+	if debug_log:
+		print("[nav] %s tuckered out (%.1fs chase)" % [body.name, _chase_elapsed])
+	_set_target(body, null)
+	_alert_sent = false
+	_tucker_cooldown = tucker_recover_duration
+	_perception.suspicion = minf(_perception.suspicion, suspect_threshold - 0.01)
+	_perception.lkp = Vector3.INF  # scan in place — don't investigate
 
 
 func _maybe_broadcast_alert(body: Node3D, target: Node3D) -> void:
@@ -534,6 +778,18 @@ func _can_see(body: Node3D, target: Node3D) -> bool:
 	return _has_los(body, target)
 
 
+## Combat consent check (see engage_requires_subject_combat). True when the
+## gate is off, the subject is absent/ungateable, or the subject fought
+## within the window.
+func _subject_combat_ok(body: Node3D) -> bool:
+	if engage_requires_subject_combat <= 0.0:
+		return true
+	var subject: Node3D = _follow_subject(body) if follow_subject_group != &"" else null
+	if subject == null or not subject.has_method(&"seconds_since_attack"):
+		return true
+	return float(subject.call(&"seconds_since_attack")) <= engage_requires_subject_combat
+
+
 ## Nearest member of follow_subject_group at any range, or null. The subject
 ## is this pawn's charge — no detection gating applies to knowing where your
 ## own group is.
@@ -551,10 +807,22 @@ func _follow_subject(body: Node3D) -> Node3D:
 
 
 ## Nearest member across all target_groups within `radius`, or null.
+## Priority pre-pass (plan §7): a priority_target_groups member inside
+## priority_target_radius wins outright, even when a regular target is
+## closer — the sentinel executes the gold in its bubble first.
 func _nearest_candidate(body: Node3D, radius: float) -> Node3D:
+	if priority_target_radius > 0.0 and not priority_target_groups.is_empty():
+		var p := _nearest_in_groups(
+			body, priority_target_groups, minf(priority_target_radius, radius))
+		if p != null:
+			return p
+	return _nearest_in_groups(body, target_groups, radius)
+
+
+func _nearest_in_groups(body: Node3D, groups: Array[StringName], radius: float) -> Node3D:
 	var best: Node3D = null
 	var best_dist_sq: float = radius * radius
-	for group: StringName in target_groups:
+	for group: StringName in groups:
 		for n: Node in body.get_tree().get_nodes_in_group(group):
 			if not (n is Node3D) or n == body:
 				continue
@@ -581,7 +849,14 @@ func _has_los(body: Node3D, target: Node3D) -> bool:
 func _set_target(body: Node3D, new_target: Node3D) -> void:
 	if new_target == _target:
 		return
+	if new_target == null:
+		# Free our engage slot so the next perimeter pawn rotates in.
+		var board := _get_board(body)
+		if board != null:
+			board.release_engage(body)
+		_engage_claimed = true
 	_target = new_target
+	_chase_elapsed = 0.0  # fresh target, fresh tucker clock (plan §5)
 	if debug_log:
 		print("[nav] %s target -> %s" % [
 			body.name, new_target.name if new_target != null else "<none>"])

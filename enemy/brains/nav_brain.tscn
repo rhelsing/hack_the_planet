@@ -4,3 +4,4 @@
 
 [node name="NavBrain" type="Node"]
 script = ExtResource("1_brain")
+squad_group = &"enemies"

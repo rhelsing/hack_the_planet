@@ -37,6 +37,20 @@ var suspect_threshold: float = 0.5
 ## Seconds for suspicion to decay 1 → 0 when nothing is sensed. This is the
 ## same knob as NavBrain.chase_memory_duration — decay IS forgetting.
 var memory_duration: float = 6.0
+## Sight-range multiplier when the evaluated target is crouched (duck-typed
+## is_crouched(); absent method = standing). <1 = crouching shrinks how far
+## the pawn sees — the sneak-past verb. 1 = stance-blind (parity default).
+var crouch_range_multiplier: float = 1.0
+## Cone-arc multiplier when the evaluated target is crouched. <1 collapses
+## the arc to a forward sliver (legacy stealth: 0.3).
+var crouch_cone_multiplier: float = 1.0
+## STANDING target with LOS inside this flat radius (m) → snap strength
+## (instant HOSTILE, no suspect grace — the sphere IS the danger, the legacy
+## hostile zone). Crouched targets always get the accumulator. 0 = off.
+var hostile_zone_radius: float = 0.0
+# Strength that saturates the accumulator in a single tick for any sane
+# suspect_time/delta combo (60Hz, suspect_time 4 → 4.2× overshoot).
+const _SNAP_STRENGTH: float = 1000.0
 ## Pawn facing (world, horizontal) — the cone axis. The brain owns facing
 ## (it commanded the movement / the patrol scan), so no body reads needed.
 var facing: Vector3 = Vector3.FORWARD
@@ -74,20 +88,26 @@ func _hearing_strength(body_pos: Vector3, target: Node3D) -> float:
 func _sight_strength(body_pos: Vector3, target: Node3D, can_see: bool, sustain: bool) -> float:
 	if not can_see:
 		return 0.0
+	# Stance-gated envelope (plan §2): a crouched target shrinks the range
+	# and narrows the arc for THIS evaluation — per-candidate, so a crouched
+	# player and a standing gold are judged by different cones the same tick.
+	var crouched: bool = crouched_of(target)
+	var eff_range: float = effective_range(crouched)
+	var eff_cone: float = effective_cone_deg(crouched)
 	var to_target: Vector3 = target.global_position - body_pos
 	var flat := Vector3(to_target.x, 0.0, to_target.z)
 	var dist: float = flat.length()
 	var centrality: float = 1.0
-	# Sustain = committed pursuit: range, cone, and vertical gates all lift
-	# (mirrors the legacy rule that a committed chase never drops because the
-	# target circled behind or hopped a ledge) — only LOS still decides.
+	# Sustain = committed pursuit: range, cone, vertical AND crouch gates all
+	# lift (mirrors the legacy rule that a committed chase never drops because
+	# the target circled behind or hopped a ledge) — only LOS still decides.
 	if not sustain:
 		if vertical_half_height > 0.0 and absf(to_target.y) > vertical_half_height:
 			return 0.0
-		if dist > sight_range:
+		if dist > eff_range:
 			return 0.0
-		if cone_deg < 360.0 and dist > 0.001:
-			var half_rad: float = deg_to_rad(cone_deg) * 0.5
+		if eff_cone < 360.0 and dist > 0.001:
+			var half_rad: float = deg_to_rad(eff_cone) * 0.5
 			var flat_facing := Vector3(facing.x, 0.0, facing.z)
 			if flat_facing.length() < 0.001:
 				return 0.0
@@ -96,10 +116,33 @@ func _sight_strength(body_pos: Vector3, target: Node3D, can_see: bool, sustain: 
 				return 0.0
 			# 1.0 dead-center → 0.5 at the cone edge.
 			centrality = 1.0 - 0.5 * (angle / half_rad)
+	# Hostile-zone snap (plan §3): a STANDING, seen target inside the zone
+	# skips the accumulator entirely — the legacy step-function. Runs after
+	# the gates so an out-of-cone target can never snap.
+	if not crouched and hostile_zone_radius > 0.0 and dist <= hostile_zone_radius:
+		return _SNAP_STRENGTH
 	# 1.0 up close → 0.35 at range; sustained-beyond-range holds the floor.
 	var distance_factor: float = clampf(
-		1.0 - 0.65 * (dist / maxf(sight_range, 0.001)), 0.35, 1.0)
+		1.0 - 0.65 * (dist / maxf(eff_range, 0.001)), 0.35, 1.0)
 	return distance_factor * centrality
+
+
+## Effective sight range for a target of the given stance.
+func effective_range(crouched: bool) -> float:
+	return sight_range * (crouch_range_multiplier if crouched else 1.0)
+
+
+## Effective cone arc (degrees) for a target of the given stance.
+func effective_cone_deg(crouched: bool) -> float:
+	return cone_deg * (crouch_cone_multiplier if crouched else 1.0)
+
+
+## Duck-typed stance: is this target crouched right now? Mirrors
+## loudness_of — games attach meaning via a public is_crouched(); absent
+## method = standing, so bare test nodes and other games work unmodified.
+static func crouched_of(target: Node3D) -> bool:
+	return target != null and target.has_method(&"is_crouched") \
+		and bool(target.call(&"is_crouched"))
 
 
 ## Advance the accumulator one tick. strength 0 = decay.

@@ -41,6 +41,19 @@ func _hook_brain() -> void:
 	_brain.connect(&"suspicion_changed", _on_suspicion)
 
 
+## Re-point at a replacement brain — PlayerBody.replace_brain broadcasts
+## this after a runtime brain swap (the cached ref dies with the old node).
+func rewire_brain(brain: Node) -> void:
+	if _brain != null and is_instance_valid(_brain) \
+			and _brain.has_signal(&"suspicion_changed") \
+			and _brain.is_connected(&"suspicion_changed", _on_suspicion):
+		_brain.disconnect(&"suspicion_changed", _on_suspicion)
+	_brain = null
+	if brain != null and brain.has_signal(&"suspicion_changed"):
+		_brain = brain
+		_brain.connect(&"suspicion_changed", _on_suspicion)
+
+
 func _on_suspicion(value: float) -> void:
 	if _body == null or not _body.has_method(&"apply_tint"):
 		return

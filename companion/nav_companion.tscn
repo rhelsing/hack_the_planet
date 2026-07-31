@@ -8,6 +8,7 @@ target_groups = Array[StringName]([&"enemies", &"splice_enemies"])
 detection_radius = 40.0
 chase_memory_duration = 8.0
 follow_subject_group = &"player"
+engage_requires_subject_combat = 6.0
 attack_cooldown = 1.2
 wind_up_duration = 0.2
 squad_group = &"allies"

@@ -1,7 +1,15 @@
 # The Nav Stack — pawn platform architecture
 
-Status: **active build-out** (sandbox-proven, pre-port). Owner doc for the
-clean-room AI rebuild. Read this before touching `player/brains/nav_*.gd`,
+Status: **primary pawn AI, coexisting with legacy by design** (2026-07-25).
+Hub + levels 1–3 + Nyx-the-companion run this stack. **Level 4 runs the
+LEGACY brains on purpose** — Ryan's playtest verdict: for level 4's
+specific feel (a 95-pawn swarm + dense set-pieces) the old AI is better.
+The legacy brains were archived, then restored: base variant scenes default
+to legacy presets again; nav variants (`*_nav.tscn`) carry their own brain
+overrides, so both families coexist per-variant. The retirement ceremony
+stays a one-session job whenever (if) nav wins the level-4 A/B later — do
+NOT re-archive without a fresh feel pass on level 4.
+Read this before touching `player/brains/nav_*.gd`,
 `enemy/nav_dummy_body.gd`, `level/nav/`, or `tools/bake_nav.sh`.
 
 ---
@@ -41,6 +49,7 @@ two layers, the design is wrong; stop and re-cut the seam.
 | bake | `level/nav/baked/<level>.res` | artifacts; **only** thing the bake writes |
 | decide | `player/brains/nav_brain.gd` | `NavBrain` |
 | decide (senses) | `player/brains/nav_perception.gd` | `NavPerception` (RefCounted): sight cone + hearing×loudness + suspicion accumulator + LKP + `notify()` stimuli. suspect_time=0 collapses to the binary v3 model (parity by preset) |
+| decide (squad) | `player/brains/nav_blackboard.gd` | `NavBlackboard`: level-placed node per squad (`group` matches brains' `squad_group`). Engage claims (perimeter/rotation), shared LKP, stateless search spread, squad alert. OFF-SWITCH IS STRUCTURAL: no board / disabled / empty squad_group = solo semantics, provably pre-blackboard behavior (existing tests run board-less). Enemies and allies use the identical mechanism |
 | plan | `player/brains/nav_steering.gd` | `NavSteering` (RefCounted) |
 | look | `player/brains/nav_cone_visual.gd` | `NavConeVisual`: optional, tunable cone renderer reading `perception_view()` — STRICTLY read-only, toggling can't affect behavior |
 | act (sandbox) | `enemy/nav_dummy_body.gd` + `enemy/enemy_nav_dummy.tscn` | independent test body — **never ships**; ship body is PlayerBody |
@@ -48,11 +57,22 @@ two layers, the design is wrong; stop and re-cut the seam.
 | sandbox | `level/nav_test.tscn` | F10 round-trip (`game.gd`, editor-only) |
 | test | `tests/test_nav_brain.gd` | awareness/steer/arrive + suspect/alert contract |
 | test | `tests/test_nav_perception.gd` | accumulator/cone/hearing/stimulus contract (pure logic, no physics) |
+| test | `tests/test_nav_blackboard.gd` | claims/LKP/spread/disabled contract |
 
 Game-side listeners (NOT stack — this game's mapping of stack signals):
 `enemy/alert_tint.gd` (suspicion → skin tint), PlayerBody's
-`aggressive_while_chasing` connect (state_changed → buffs), `noise_loudness()`
-(crouch = silent), and set_faction's guarded cone/patrol shed pokes.
+`aggressive_while_chasing` connect (state_changed → buffs), and set_faction's
+guarded cone/patrol shed pokes.
+
+Duck-typed SUBJECT seams (stack reads these off target/subject nodes when
+present; absent = neutral default — the whole game-facing surface):
+`noise_loudness()` (hearing scale; crouch = 0), `is_crouched()` (sight
+envelope shrink), `seconds_since_attack()` (companion combat consent —
+`engage_requires_subject_combat` gates engagement on the follow subject
+having fought recently; companions mirror their charge's aggression).
+Companion archetype: `companion/nav_companion.tscn` preset +
+`companion/nyx_companion.tscn` body variant (invulnerable,
+fall-recovery-to-subject, skin_scale — all ACT-layer exports).
 
 ## Growth recipe — one home per addition
 
@@ -143,9 +163,12 @@ queued link-jumps firing seconds late near edges (500ms TTL in NavSteering).
    overhead reads as "arrived" (pawn parks underneath). Fine pre-combat;
    the attack layer must add vertical range (learned lesson — see
    CLAUDE.md anti-patterns).
-5. **No crowd behavior.** Agent avoidance off; multiple pawns pile and
-   contest links. Wire RVO (`avoidance_enabled` + `velocity_computed`) +
-  target claims when >1 pawn hunts.
+5. ~~No crowd behavior~~ **DONE in two parts:** RVO avoidance (build plan
+   #5) + NavBlackboard engage claims — unclaimed squad members hold a
+   spread standoff perimeter and rotate in as slots free. Squads live:
+   stealth (`splice_enemies` boards, levels 2–4), gold converts (`allies`
+   boards), gym dummies (`enemies`). Reds deliberately stay board-less —
+   the mob IS the red identity (one preset line to change).
 6. **No perf governance.** Old brain has tick LOD / anim LOD / offscreen
    pause. Required before porting swarms; design as a shared PerfGovernor,
    not per-brain code.
@@ -253,7 +276,7 @@ mid-chase → bank good values into the preset tscn.
 
 | Archetype | Preset | Body variant | Live in |
 |---|---|---|---|
-| green | `enemy/brains/nav_green.tscn` | `enemy/enemy_kaykit_nav.tscn` | level_1 (placed + spawners), levels 2/3/4 (placed + spawners) |
+| green | `enemy/brains/nav_green.tscn` | `enemy/enemy_kaykit_nav.tscn` | hub (3 placed), level_1 (placed + spawners), levels 2/3/4 (placed + spawners) |
 | red (walking) | `enemy/brains/nav_red.tscn` | `enemy/enemy_kaykit_red_nav.tscn` | level_2 (13 placed; speed jitter 1.8–2.8) |
 | red (skating) | `nav_red.tscn` | `enemy/enemy_kaykit_splice_nav.tscn` (agent mask 3 — SKATE tier) | level_3 (9 placed, idle-brain set-pieces keep their per-node override; 3 spawners), level_4 (51 placed + 1 spawner) |
 | gold (ally) | `enemy/brains/nav_gold.tscn` | conversion product (set_faction pokes) | GOD blast / portals; FOLLOW state + follow_subject_group live |

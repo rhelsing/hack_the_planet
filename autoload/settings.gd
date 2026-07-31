@@ -186,10 +186,22 @@ func _apply_graphics() -> void:
 	_apply_environment(q)
 
 
+## The one global color-grade slot. Swap this file (level/luts/ holds the
+## library) and every scene follows — no per-scene wiring needed.
+const _COLOR_GRADE_LUT_PATH := "res://level/color_grade_lut.png"
+
+
 func _apply_environment(quality: String) -> void:
 	var env := _find_active_environment()
 	if env == null:
 		return
+	# Global LUT enforcement: runs on every level mount (Settings.apply in
+	# game.gd), so any scene whose Environment didn't author its OWN color
+	# correction inherits the shipped grade. Authored references win —
+	# per-level custom grades stay possible. Needs the env's authored
+	# adjustment_enabled = true to show (all current envs set it).
+	if env.adjustment_color_correction == null:
+		env.adjustment_color_correction = load(_COLOR_GRADE_LUT_PATH)
 	match quality:
 		"low":
 			# SSR on at 8 steps — minimum trace length so the cheapest preset
@@ -248,6 +260,38 @@ func _apply_environment(quality: String) -> void:
 # the label after entering a level, not the diff baseline.
 func _register_env_debug_sliders() -> void:
 	var src := "Environment sub_resource in hub.tscn / level_*.tscn"
+	# LUT selector, registered FIRST so it sits at the top of the panel.
+	# "off" = no color correction (the old kill-switch); "active" = the
+	# shipped slot (level/color_grade_lut.png); the rest is the library in
+	# level/luts/, scanned at registration so new files appear with zero
+	# code. Selection is session-only (DebugPanel philosophy) — to make one
+	# permanent, copy it over the active slot. Library files must be
+	# imported as Texture3D (16-slice strips); a 2D-imported strip would be
+	# silently misread as a 1D ramp.
+	var lut_options := PackedStringArray(["off", "active"])
+	var lut_paths: Array[String] = ["", "res://level/color_grade_lut.png"]
+	var lut_dir := DirAccess.open("res://level/luts")
+	if lut_dir != null:
+		var lut_files := lut_dir.get_files()
+		lut_files.sort()
+		for f: String in lut_files:
+			if f.ends_with(".png"):
+				lut_options.append(f.get_basename())
+				lut_paths.append("res://level/luts/" + f)
+	DebugPanel.add_enum("Environment/LUT", lut_options,
+		func() -> int:
+			var e := _find_active_environment()
+			if e == null or e.adjustment_color_correction == null:
+				return 0
+			var i := lut_paths.find(e.adjustment_color_correction.resource_path)
+			return i if i >= 0 else 1,
+		func(idx: int) -> void:
+			var e := _find_active_environment()
+			if e == null:
+				return
+			e.adjustment_color_correction = \
+				null if idx <= 0 or idx >= lut_paths.size() else load(lut_paths[idx]),
+		src)
 	DebugPanel.add_toggle("Environment/Glow/enabled",
 		func() -> bool: var e := _find_active_environment(); return e.glow_enabled if e != null else false,
 		func(v: bool) -> void: var e := _find_active_environment(); if e != null: e.glow_enabled = v,
