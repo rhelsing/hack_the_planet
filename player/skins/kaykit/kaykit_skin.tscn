@@ -310,9 +310,9 @@ joint_type = 2
 joint_rotation = Vector3(0, 0, -1.5707964)
 "joint_constraints/swing_span" = 25.0
 "joint_constraints/twist_span" = 20.0
-"joint_constraints/bias" = 0.01
-"joint_constraints/softness" = 1.5
-"joint_constraints/relaxation" = 0.7
+"joint_constraints/bias" = 0.3
+"joint_constraints/softness" = 0.8
+"joint_constraints/relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone chest"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
@@ -333,9 +333,9 @@ joint_type = 2
 joint_rotation = Vector3(0, 0, -1.5707964)
 "joint_constraints/swing_span" = 30.0
 "joint_constraints/twist_span" = 25.0
-"joint_constraints/bias" = 0.01
-"joint_constraints/softness" = 1.5
-"joint_constraints/relaxation" = 0.7
+"joint_constraints/bias" = 0.3
+"joint_constraints/softness" = 0.8
+"joint_constraints/relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 0)
@@ -356,9 +356,9 @@ joint_type = 2
 joint_rotation = Vector3(0, 0, -1.5707964)
 "joint_constraints/swing_span" = 50.0
 "joint_constraints/twist_span" = 20.0
-"joint_constraints/bias" = 0.01
-"joint_constraints/softness" = 1.5
-"joint_constraints/relaxation" = 0.7
+"joint_constraints/bias" = 0.3
+"joint_constraints/softness" = 0.8
+"joint_constraints/relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperarm_l"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
@@ -379,9 +379,9 @@ joint_type = 2
 joint_rotation = Vector3(0, 0, -1.5707964)
 "joint_constraints/swing_span" = 50.0
 "joint_constraints/twist_span" = 20.0
-"joint_constraints/bias" = 0.01
-"joint_constraints/softness" = 1.5
-"joint_constraints/relaxation" = 0.7
+"joint_constraints/bias" = 0.3
+"joint_constraints/softness" = 0.8
+"joint_constraints/relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperarm_r"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.12, 0)
@@ -402,9 +402,9 @@ joint_type = 3
 "joint_constraints/angular_limit_enabled" = true
 "joint_constraints/angular_limit_lower" = -110.0
 "joint_constraints/angular_limit_upper" = 10.0
-"joint_constraints/angular_limit_bias" = 0.01
-"joint_constraints/angular_limit_softness" = 1.5
-"joint_constraints/angular_limit_relaxation" = 0.7
+"joint_constraints/angular_limit_bias" = 0.3
+"joint_constraints/angular_limit_softness" = 0.9
+"joint_constraints/angular_limit_relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerarm_l"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19, 0)
@@ -425,9 +425,9 @@ joint_type = 3
 "joint_constraints/angular_limit_enabled" = true
 "joint_constraints/angular_limit_lower" = -10.0
 "joint_constraints/angular_limit_upper" = 110.0
-"joint_constraints/angular_limit_bias" = 0.01
-"joint_constraints/angular_limit_softness" = 1.5
-"joint_constraints/angular_limit_relaxation" = 0.7
+"joint_constraints/angular_limit_bias" = 0.3
+"joint_constraints/angular_limit_softness" = 0.9
+"joint_constraints/angular_limit_relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerarm_r"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19, 0)
@@ -448,9 +448,9 @@ joint_type = 2
 joint_rotation = Vector3(0, 0, -1.5707964)
 "joint_constraints/swing_span" = 40.0
 "joint_constraints/twist_span" = 15.0
-"joint_constraints/bias" = 0.01
-"joint_constraints/softness" = 1.5
-"joint_constraints/relaxation" = 0.7
+"joint_constraints/bias" = 0.3
+"joint_constraints/softness" = 0.8
+"joint_constraints/relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperleg_l"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0)
@@ -471,9 +471,9 @@ joint_type = 2
 joint_rotation = Vector3(0, 0, -1.5707964)
 "joint_constraints/swing_span" = 40.0
 "joint_constraints/twist_span" = 15.0
-"joint_constraints/bias" = 0.01
-"joint_constraints/softness" = 1.5
-"joint_constraints/relaxation" = 0.7
+"joint_constraints/bias" = 0.3
+"joint_constraints/softness" = 0.8
+"joint_constraints/relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone upperleg_r"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11, 0)
@@ -495,9 +495,9 @@ joint_rotation = Vector3(0, 1.5707964, 0)
 "joint_constraints/angular_limit_enabled" = true
 "joint_constraints/angular_limit_lower" = -10.0
 "joint_constraints/angular_limit_upper" = 120.0
-"joint_constraints/angular_limit_bias" = 0.01
-"joint_constraints/angular_limit_softness" = 1.5
-"joint_constraints/angular_limit_relaxation" = 0.7
+"joint_constraints/angular_limit_bias" = 0.3
+"joint_constraints/angular_limit_softness" = 0.9
+"joint_constraints/angular_limit_relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerleg_l"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)
@@ -519,9 +519,9 @@ joint_rotation = Vector3(0, 1.5707964, 0)
 "joint_constraints/angular_limit_enabled" = true
 "joint_constraints/angular_limit_lower" = -10.0
 "joint_constraints/angular_limit_upper" = 120.0
-"joint_constraints/angular_limit_bias" = 0.01
-"joint_constraints/angular_limit_softness" = 1.5
-"joint_constraints/angular_limit_relaxation" = 0.7
+"joint_constraints/angular_limit_bias" = 0.3
+"joint_constraints/angular_limit_softness" = 0.9
+"joint_constraints/angular_limit_relaxation" = 1.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Model/Rig_Medium/Skeleton3D/Physical Bone lowerleg_r"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13, 0)

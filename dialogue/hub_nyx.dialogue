@@ -139,8 +139,7 @@ Nyx: Anything else, runner?
 	do GameState.set_flag("nyx_post_2_opened", true)
 - [if GameState.get_flag("nyx_post_2_asked_save", false) /] You make it sound routine.
 	Nyx: It's not routine.
-	Nyx: You're not the first runner I've yanked off a hot wire. Won't be the last.
-	Nyx: ...probably.
+	Nyx: But you're not the first. Won't be the last.
 - [if GameState.get_flag("nyx_post_2_asked_save", false) /] Thanks anyway.
 	Nyx: Mm.
 	do GameState.set_flag("nyx_post_2_thanked", true)
@@ -294,7 +293,7 @@ else
 
 - You're really dancing in front of him.
 	Nyx: We absolutely are.
-	Nyx: Splice spent a year in the static planning this. He gets to see us happy. That's the bit.
+	Nyx: Splice spent a year in the static planning this. He gets to see us happy.
 - He's quarantined for good?
 	Nyx: For now. Yes. But he's been there before.
 - See you on the wire. [#exit]

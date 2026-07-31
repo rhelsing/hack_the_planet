@@ -469,6 +469,7 @@ func perception_view() -> Dictionary:
 		"state": StringName(State.keys()[_state]),
 		"hack_active": _frozen,
 		"hack_progress": _freeze_progress,
+		"stall": _nav.last_stall_reason,  # TEMP DEBUG — crowd-pause categorization
 	}
 
 
@@ -640,6 +641,11 @@ func _update_awareness(body: Node3D, delta: float) -> void:
 	# Combat consent (companions): passive subject = no acquisition, and any
 	# held target (including aggro retaliation) is dropped below.
 	var combat_ok: bool = _subject_combat_ok(body)
+	# Held target died — drop the corpse (releases its engage claim) so we
+	# re-acquire a LIVE enemy/ally below instead of fixating on the death spot
+	# (the dead body node freezes where it fell; only the ragdoll skin flies off).
+	if _target != null and is_instance_valid(_target) and _is_dead(_target):
+		_set_target(body, null)
 	if _target == null or not is_instance_valid(_target):
 		_target = null
 		# Acquisition: the nearest candidate feeds the accumulator. With
@@ -819,12 +825,19 @@ func _nearest_candidate(body: Node3D, radius: float) -> Node3D:
 	return _nearest_in_groups(body, target_groups, radius)
 
 
+## Duck-typed death seam: a pawn reporting is_dead() is a corpse, never a valid
+## target. Absent method = always alive (neutral default — the stack stays
+## game-agnostic; the game decides what "dead" means).
+func _is_dead(node: Node) -> bool:
+	return node != null and node.has_method(&"is_dead") and node.call(&"is_dead")
+
+
 func _nearest_in_groups(body: Node3D, groups: Array[StringName], radius: float) -> Node3D:
 	var best: Node3D = null
 	var best_dist_sq: float = radius * radius
 	for group: StringName in groups:
 		for n: Node in body.get_tree().get_nodes_in_group(group):
-			if not (n is Node3D) or n == body:
+			if not (n is Node3D) or n == body or _is_dead(n):
 				continue
 			var dist_sq := (n as Node3D).global_position.distance_squared_to(body.global_position)
 			if dist_sq < best_dist_sq:

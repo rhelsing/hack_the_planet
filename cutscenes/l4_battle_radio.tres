@@ -45,13 +45,6 @@ text = "He really thinks numbers will save him."
 channel = "walkie"
 label = "Nyx: numbers will save him"
 
-[sub_resource type="Resource" id="line_g2_dialtone"]
-script = ExtResource("2_line")
-character = &"DialTone"
-text = "They won't. He's bluffing."
-channel = "walkie"
-label = "DialTone: he's bluffing"
-
 [sub_resource type="Resource" id="wait_g2"]
 script = ExtResource("4_wait")
 seconds = 8.0
@@ -74,9 +67,9 @@ label = "Splice: reserves are infinite"
 [sub_resource type="Resource" id="line_g3_nyx"]
 script = ExtResource("2_line")
 character = &"Nyx"
-text = "They are extremely not."
+text = "They are absolutely not."
 channel = "walkie"
-label = "Nyx: extremely not"
+label = "Nyx: absolutely not"
 
 [sub_resource type="Resource" id="wait_g3"]
 script = ExtResource("4_wait")
@@ -105,9 +98,9 @@ label = "wait 8"
 [sub_resource type="Resource" id="line_g5_dialtone"]
 script = ExtResource("2_line")
 character = &"DialTone"
-text = "Six left in the arena. Then four."
+text = "Six left in the arena."
 channel = "walkie"
-label = "DialTone: six left, then four"
+label = "DialTone: six left"
 
 [sub_resource type="Resource" id="line_g5_splice"]
 script = ExtResource("2_line")
@@ -123,11 +116,6 @@ text = "There is no next wave."
 channel = "walkie"
 label = "Nyx: there is no next wave"
 
-[sub_resource type="Resource" id="wait_g5"]
-script = ExtResource("4_wait")
-seconds = 6.0
-label = "wait 6"
-
 [sub_resource type="Resource" id="line_g6_splice"]
 script = ExtResource("2_line")
 character = &"Splice"
@@ -141,13 +129,6 @@ character = &"DialTone"
 text = "His spawn queue's empty. He's just... shouting."
 channel = "walkie"
 label = "DialTone: spawn queue empty"
-
-[sub_resource type="Resource" id="line_g6_nyx"]
-script = ExtResource("2_line")
-character = &"Nyx"
-text = "Listen to him. He sees it now!"
-channel = "walkie"
-label = "Nyx: he sees it now"
 
 [sub_resource type="Resource" id="wait_g6"]
 script = ExtResource("4_wait")
@@ -177,7 +158,7 @@ label = "DialTone: last set finish them"
 
 [resource]
 script = ExtResource("1_tl")
-steps = Array[ExtResource("3_step")]([SubResource("line_g1_nyx"), SubResource("line_g1_dialtone"), SubResource("line_g1_splice"), SubResource("wait_g1"), SubResource("line_g2_splice"), SubResource("line_g2_nyx"), SubResource("line_g2_dialtone"), SubResource("wait_g2"), SubResource("line_g3_dialtone"), SubResource("line_g3_splice"), SubResource("line_g3_nyx"), SubResource("wait_g3"), SubResource("line_g4_splice"), SubResource("line_g4_nyx"), SubResource("wait_g4"), SubResource("line_g5_dialtone"), SubResource("line_g5_splice"), SubResource("line_g5_nyx"), SubResource("wait_g5"), SubResource("line_g6_splice"), SubResource("line_g6_dialtone"), SubResource("line_g6_nyx"), SubResource("wait_g6"), SubResource("line_g7_splice"), SubResource("line_g7_nyx"), SubResource("line_g7_dialtone")])
+steps = Array[ExtResource("3_step")]([SubResource("line_g1_nyx"), SubResource("line_g1_dialtone"), SubResource("line_g1_splice"), SubResource("wait_g1"), SubResource("line_g2_splice"), SubResource("line_g2_nyx"), SubResource("wait_g2"), SubResource("line_g3_dialtone"), SubResource("line_g3_splice"), SubResource("line_g3_nyx"), SubResource("wait_g3"), SubResource("line_g4_splice"), SubResource("line_g4_nyx"), SubResource("wait_g4"), SubResource("line_g5_dialtone"), SubResource("line_g5_splice"), SubResource("line_g5_nyx"), SubResource("line_g6_splice"), SubResource("line_g6_dialtone"), SubResource("wait_g6"), SubResource("line_g7_splice"), SubResource("line_g7_nyx"), SubResource("line_g7_dialtone")])
 freeze_player = false
 scene_duration = 0.0
 done_flag = &"l4_battle_radio_done"

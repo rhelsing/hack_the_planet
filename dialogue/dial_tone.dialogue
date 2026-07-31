@@ -283,15 +283,9 @@ do GameState.set_flag("level_3_unlocked", true)
 
 Nyx: We shouldn't have sent him in. That was too dangerous.
 DialTone: But we got it. He got the disc.
-Nyx: He almost didn't.
-DialTone: He did, though.
-Nyx: He was off the channel for ninety seconds. Splice had him in a room.
-DialTone: And he walked out. With the disc.
-Nyx: Because he said no. Not because of us. Because of him.
-DialTone: ...yeah.
-DialTone: ...yeah, that's true.
-DialTone: We were sloppy. We owe him better.
-Nyx: We can't do that again. We just **can't** 
+Nyx: He almost didn't. He was off the channel for ninety seconds. Splice had him in a room.
+DialTone: He got it though, it's all good.
+Nyx: We can't do that again. We just can't.
 Nyx: sorry. I'm sorry.
 DialTone: ...nothing to be sorry about.
 => END
@@ -352,14 +346,12 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 	Nyx: It's fine. He's wrong about whatever he said. Anyway.
 	do GameState.set_flag("post_3_debriefed", true)
 - [if GameState.get_flag("post_3_debriefed", false) /] What's the plan now?
-	DialTone: Splice showed his hand. He didn't mean to — he thought he'd already won.
-	DialTone: That's our window.
-	Nyx: He's cocky now. He'll take whatever bait we set.
-	DialTone: We know where the last disc is.
-	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back. You do.
+	DialTone: Splice showed his hand. He thought he'd already won.
+	DialTone: And that's our window.
+	DialTone: Thanks to you, we know the sector where the last disc is.
 	Nyx: We don't know what it does.
-	DialTone: But the breadcrumbs say it'll turn the tables.
-	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
+	DialTone: But I have a hunch it'll turn the tables.
+	DialTone: So we bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
 	do GameState.set_flag("post_3_plan_revealed", true)
 - [if GameState.get_flag("post_3_debriefed", false) /] I'm ready for the next one. [#exit]
 	=> post_3_done
@@ -372,14 +364,17 @@ DialTone: What's up, {{HandlePicker.chosen_name()}}?
 # flag also guards re-entry so this never plays twice.
 if !GameState.get_flag("post_3_plan_revealed", false)
 	DialTone: Before you go.
-	DialTone: We know where the last disc is. Splice doesn't know we know.
-	DialTone: It's stack-locked. Only fires if you've got the disc you just brought back.
-	DialTone: We bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
+	DialTone: Splice showed his hand. He thought he'd already won.
+	DialTone: And that's our window.
+	DialTone: Thanks to you, we know the sector where the last disc is.
+	Nyx: We don't know what it does.
+	DialTone: But I have a hunch it'll turn the tables.
+	DialTone: So we bait him. He walks in expecting another easy win. You hit him with whatever this thing is.
 	do GameState.set_flag("post_3_plan_revealed", true)
 DialTone: We've got him, runner.
 DialTone: Last sector.
 DialTone: **Your** call when we move.
-Nyx: {{HandlePicker.chosen_name()}}, do you have a sec?
+Nyx: {{HandlePicker.chosen_name()}}, do you have a second?
 do GameState.set_flag("level_4_unlocked", true)
 => END
 
@@ -414,16 +409,20 @@ DialTone: Hey {{HandlePicker.chosen_name()}}.
 
 DialTone: Anything else?
 - What now?
-	DialTone: Honestly? You take a week off. Then we'll see who shows up at the channel.
+	DialTone: Honestly? Why don't you take a break? I'm excited to see who shows up at the channel next.
+	do GameState.set_flag("post_4_asked_now", true)
+- [if GameState.get_flag("post_4_asked_now", false) /] Take a break?
+	DialTone: Yeah, now that I can travel freely, I can handle this stuff just fine.
+	DialTone: Plus, I want to see what Splice was doing to those sentinels. See if I can use them somehow.
 - About Splice — he's still in there.
 	DialTone: Quarantine holds as long as the perimeter does. Let's not talk about what happens if it doesn't.
-- Sign me out. [#exit]
+- All right, see you later. [#exit]
 	=> post_4_done
 => post_4_questions
 
 
 ~ post_4_done
 
-DialTone: Catch you around, runner.
+DialTone: Yeah, see you.
 do GameState.set_flag("game_completed", true)
 => END

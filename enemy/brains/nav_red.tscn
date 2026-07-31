@@ -10,3 +10,4 @@ chase_memory_duration = 8.0
 attack_cooldown = 1.2
 wind_up_duration = 0.4
 wander_speed_fraction = 0.1
+squad_group = &"enemies"

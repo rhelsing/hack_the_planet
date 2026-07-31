@@ -26,4 +26,4 @@ attack_cooldown = 1.2
 wind_up_duration = 0.3
 wander_style = 1
 wander_speed_fraction = 0.6
-squad_group = &"splice_enemies"
+squad_group = &"enemies"

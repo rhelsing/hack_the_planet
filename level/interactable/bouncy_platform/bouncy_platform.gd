@@ -41,7 +41,8 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 @export_range(0.0, 0.5) var bounce_sound_pitch_jitter: float = 0.06
 ## Delay between the squash impact and the boing playing. Lets the audio
 ## land on the spring-back rather than the compression. 0 = play immediately.
-@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.2
+## Matched to squash_duration so the boing lands right on the launch.
+@export_range(0.0, 2.0) var bounce_sound_delay: float = 0.1
 
 @export_group("Timed Boost")
 ## Extra Y velocity (m/s) added to the launched body when the player presses
@@ -62,8 +63,9 @@ const _PLATFORM_MATERIAL: ShaderMaterial = preload("res://level/platforms.tres")
 @export var gravity: float = 30.0
 ## How far the deck dips before springing back.
 @export var squash_depth: float = 0.5
-## Compression time. Slower = more anticipation before the launch.
-@export var squash_duration: float = 0.18
+## Compression time. Slower = more anticipation before the launch. The launch
+## fires at the END of the squash, so this also = the delay from land to launch.
+@export var squash_duration: float = 0.1
 ## Spring-back duration; the player has already left at this point — the
 ## elastic ringing is purely cosmetic. Longer = more wobble after launch.
 @export var spring_duration: float = 1.0
@@ -81,6 +83,13 @@ var _deck_base_y: float = 0.0
 # is still ringing kicks off a fresh bounce (continuous trampoline feel).
 var _carried_body: Node3D = null
 var _original_parent: Node = null
+# Latch: true from the instant a bounce starts until _launch. While set, ALL
+# body_entered signals are ignored. This is the engine-agnostic fix for the
+# Jolt "reparent thrash" — under Jolt the deferred reparent re-fires entry
+# every physics frame, and each re-entry killed the squash tween before its
+# _launch callback (so the platform never actually launched anyone). The latch
+# guarantees the tween runs to completion. Cleared in _launch.
+var _bouncing: bool = false
 var _tween: Tween = null
 var _bounce_sound_pool_resolved: Array[AudioStream] = []
 var _last_bounce_sfx_idx: int = -1
@@ -117,7 +126,9 @@ func _ready() -> void:
 	_apply_size()
 	_deck_base_y = _deck.position.y
 	_carry_zone.body_entered.connect(_on_body_entered)
-	_carry_zone.body_exited.connect(_on_body_exited)
+	# No body_exited handler: the _bouncing latch runs every bounce to
+	# completion (0.18s squash), so a mid-squash walk-off can't cancel it —
+	# and the phantom exit the reparent used to fire is now simply ignored.
 	_setup_bounce_audio()
 	_register_debug_panel()
 
@@ -262,8 +273,8 @@ func _apply_size() -> void:
 
 
 func _on_body_entered(body: Node) -> void:
-	if _carried_body != null:
-		return  # mid-squash already; ignore secondary entries.
+	if _bouncing:
+		return  # a bounce is already running — ignore every entry until _launch.
 	# Any CharacterBody3D bounces — player AND sentinels. Drop them on a
 	# bouncy platform (or lure them onto one mid-chase) and they fly. The
 	# timed-boost path is gated by has_method("suppress_jump_for") below,
@@ -273,31 +284,25 @@ func _on_body_entered(body: Node) -> void:
 		return
 	# Landing means falling. Ignore bodies moving upward through the zone —
 	# in particular our own just-launched body, which the area re-detects for
-	# a few frames after the restore-reparent while it climbs out.
+	# a few frames after launch while it climbs out.
 	if (body as CharacterBody3D).velocity.y > 0.5:
 		return
+	_bouncing = true
 	_carried_body = body as Node3D
 	_original_parent = body.get_parent()
+	# Reparenting onto the deck re-registers the body's collider in the physics
+	# space, which under Jolt spuriously trips the KillPlane Area3D (phantom
+	# "fell off the world" death while sitting safely on the platform). Arm the
+	# body's kill-plane immunity across the whole bounce window so those phantom
+	# deaths are dropped; a real fall after launch lands well past this window.
+	if body.has_method(&"suppress_kill_plane_for"):
+		body.call(&"suppress_kill_plane_for", _eff_squash_duration() + 0.4)
+	# Ride the deck down: reparent so the squash cascades via transform (dip +
+	# camera ride for free). The body keeps running its own physics/animation —
+	# the _bouncing latch is what keeps this Jolt-safe (it stops the deferred
+	# reparent from re-firing entry every frame and killing the squash tween).
 	body.call_deferred(&"reparent", _deck, true)
 	_start_bounce()
-
-
-func _on_body_exited(body: Node) -> void:
-	# Walked off the side mid-squash without launching — restore parent so
-	# the player doesn't keep riding a static deck.
-	if body != _carried_body:
-		return
-	# Our own deferred reparent under the deck fires a body_exited mid-move
-	# (the body still has its OLD parent at that instant). A real walk-off
-	# only happens once the body is already under the deck. Without this
-	# guard the phantom exit cancels the carry, the next-frame re-entry
-	# records _original_parent as the deck itself, and the body stays
-	# parented to the deck forever — every later squash drags it.
-	if body.get_parent() != _deck:
-		return
-	_restore_parent()
-	_carried_body = null
-	_original_parent = null
 
 
 func _start_bounce() -> void:
@@ -340,10 +345,13 @@ func _start_bounce() -> void:
 
 
 func _launch() -> void:
-	# Hand the player back to the world and apply velocity. The cosmetic
-	# spring-back continues after this, but the player is no longer carried —
-	# if they land back on the deck mid-spring it kicks off a new bounce.
+	# Hand the body back to the world and apply velocity. The cosmetic
+	# spring-back continues after this, but the body is no longer carried —
+	# clearing _bouncing here means landing back on the deck mid-spring kicks
+	# off a fresh bounce (the velocity.y > 0.5 guard ignores the body while it
+	# is still climbing out).
 	if _carried_body == null or not is_instance_valid(_carried_body):
+		_bouncing = false
 		return
 	var body: Node3D = _carried_body
 	# Compensate launch velocity for the squash dip so the configured
@@ -362,6 +370,7 @@ func _launch() -> void:
 		body.set(&"velocity", Vector3(v.x, launch_v, v.z))
 	_carried_body = null
 	_original_parent = null
+	_bouncing = false
 
 
 func _open_boost_window() -> void:

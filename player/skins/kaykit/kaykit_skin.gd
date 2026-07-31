@@ -186,6 +186,8 @@ func _ready() -> void:
 	if _wheels_left != null: _wheels_left.visible = false
 	if _wheels_right != null: _wheels_right.visible = false
 
+	_restore_godot_physics_joint_tuning()
+
 
 func _collect_mannequin_meshes(n: Node) -> void:
 	if n is MeshInstance3D and str(n.name).begins_with("Mannequin_"):
@@ -280,6 +282,34 @@ func _find_skeleton(n: Node) -> Skeleton3D:
 		if r != null:
 			return r
 	return null
+
+
+## Ragdoll joint feel, engine-split. The rig stores bias/softness/relaxation at
+## Jolt's defaults (0.3 / 0.8-0.9 / 1.0) so Jolt doesn't spam "not supported"
+## warnings — one per joint per bone per spawn, thousands over a session (it
+## only warns on NON-default values). Godot Physics honors those params, and
+## the rig was authored floppy (0.01 / 1.5 / 0.7), so re-apply the authored
+## values here ONLY when Godot Physics is active. No-op under Jolt — leaves the
+## rig at defaults, silent. Keeps a switch back to Godot Physics feel-identical.
+func _restore_godot_physics_joint_tuning() -> void:
+	if ProjectSettings.get_setting("physics/3d/physics_engine", "DEFAULT") == "Jolt Physics":
+		return
+	var skel := _find_skeleton(self)
+	if skel == null:
+		return
+	for c: Node in skel.get_children():
+		if not (c is PhysicalBone3D):
+			continue
+		var pb := c as PhysicalBone3D
+		match pb.joint_type:
+			PhysicalBone3D.JOINT_TYPE_CONE:
+				pb.set(&"joint_constraints/bias", 0.01)
+				pb.set(&"joint_constraints/softness", 1.5)
+				pb.set(&"joint_constraints/relaxation", 0.7)
+			PhysicalBone3D.JOINT_TYPE_HINGE:
+				pb.set(&"joint_constraints/angular_limit_bias", 0.01)
+				pb.set(&"joint_constraints/angular_limit_softness", 1.5)
+				pb.set(&"joint_constraints/angular_limit_relaxation", 0.7)
 
 
 ## Force loop_mode = LOOP_LINEAR on named clips in the player's library.
@@ -476,6 +506,19 @@ func _process(delta: float) -> void:
 ## 9.8 — without this the corpse floats at a third of game gravity.
 @export var ragdoll_gravity_scale: float = 4.2
 
+## Angular damping applied to every bone at start_ragdoll, OVERRIDING whatever the
+## authored rig baked in. The KayKit rig ships angular_damp = 29 (an extreme
+## rotational brake from the old "stiff action figure" look) which locks all
+## freeform ragdoll motion dead — the limbs can't flail. ~1.5 gives a live,
+## floppy ragdoll that still settles. Raise toward the authored 29 for a stiffer,
+## more controlled corpse.
+@export var ragdoll_angular_damp: float = 1.5
+
+## Influence ease-in speed for the ragdoll (Engine B). The corpse blends from its
+## frozen pose into physics over ~1/ease_speed seconds; higher = snappier. Tuned
+## in tests/ragdoll_tuning.tscn.
+@export var ragdoll_ease_speed: float = 6.0
+
 ## Per-tick speed caps while ragdolled. Ground impact can spike GodotPhysics
 ## bone velocities into the hundreds of m/s (solver depenetration + joint
 ## snapback); clamping every physics tick makes detonation impossible — the
@@ -487,7 +530,11 @@ func _process(delta: float) -> void:
 ## contact after the hips have dropped ragdoll_freeze_min_drop below their
 ## launch height). The statue keeps its linear momentum and slides out on
 ## friction — no post-landing tumbling.
-@export var ragdoll_freeze_rotation_on_land := true
+## OFF: corpses settle via normal physics (bone damping/friction) instead of
+## the scripted freeze→settle. Disabled because the settle step locked all six
+## axes, which Jolt rejects and re-errors every frame — and the freeze feel
+## isn't wanted. When false, _tick_land_freeze/_settle_to_rest never run.
+@export var ragdoll_freeze_rotation_on_land := false
 ## Hips must fall this far (m) below their launch height before the landing
 ## freeze can arm — otherwise a stealth-killed pawn whose feet already touch
 ## the floor would freeze while still upright.
@@ -509,7 +556,9 @@ func _process(delta: float) -> void:
 ## capsules sit inside the visual mesh, so the corpse reads sunken into
 ## the floor — this is the "where the floor is for the ragdoll" offset.
 ## Applied after the linear lock, so gravity can't re-sink it.
-@export var ragdoll_rest_lift := 0.3
+## 0 = no lift (also moot now that the landing freeze is off — _settle_to_rest,
+## the only caller, no longer runs).
+@export var ragdoll_rest_lift := 0.0
 
 ## Random spin injected at launch, as one coherent whole-body rotation.
 ## Yaw: [-max, max] rad/s about vertical — helicopter spin, either way.
@@ -518,6 +567,23 @@ func _process(delta: float) -> void:
 ## off the hit, never a forward flip.
 @export var ragdoll_spin_yaw_max := 15.0
 @export var ragdoll_spin_roll_max := 15.0
+
+## Ragdoll collision-shape scaling, applied at start_ragdoll (the live pawn keeps
+## the authored capsules — these only size the corpse's hitboxes). Body bones use
+## the _collider_* scales; the head has its own track + an up-axis offset so a
+## bigger head grows AWAY from the chest instead of shoving off the neck. A
+## capsule enforces radius <= height/2, so height grows to fit the radius.
+## Tuned in tests/ragdoll_tuning.tscn.
+@export var ragdoll_collider_radius_scale := 1.4
+@export var ragdoll_collider_length_scale := 1.25
+@export var ragdoll_head_radius_scale := 3.0
+@export var ragdoll_head_length_scale := 3.0
+@export var ragdoll_head_offset := 0.21
+
+# The SHIPPING ragdoll runs the SAME Engine B the tuner runs (player/ragdoll/),
+# so tuning in tests/ragdoll_tuning.tscn == the enemy death, no drift.
+const _RagdollEngineB := preload("res://player/ragdoll/engine_b_passive.gd")
+var _ragdoll_engine
 
 var _ragdoll_active := false
 var _ragdoll_bones: Array[PhysicalBone3D] = []
@@ -546,30 +612,60 @@ func start_ragdoll(launch_velocity: Vector3) -> void:
 	if bones.is_empty():
 		push_error("KayKitSkin.start_ragdoll: no PhysicalBone3D rig in %s" % get_path())
 		return
+	# Scale the corpse hitboxes on the authored bones BEFORE Engine B reparents
+	# them under its simulator (the scaled shapes ride along).
+	_apply_ragdoll_collider_scale(bones)
 	_ragdoll_active = true
 	_ragdoll_bones = bones
-	_ragdoll_frozen = false
-	_ragdoll_resting = false
-	_ragdoll_land_timer = -1.0
 	for pb: PhysicalBone3D in bones:
 		if pb.get("bone_name") == "hips":
 			_ragdoll_hips = pb
 			break
-	animation_tree.active = false
-	for pb: PhysicalBone3D in bones:
-		pb.gravity_scale = ragdoll_gravity_scale
-		# Landing detection reads real contacts off the direct body state —
-		# works at any ground height, unlike a global-y threshold.
-		PhysicsServer3D.body_set_max_contacts_reported(pb.get_rid(), 1)
-		for s: Node in pb.get_children():
-			if s is CollisionShape3D:
-				(s as CollisionShape3D).disabled = false
-	skel.physical_bones_start_simulation()
-	var v: Vector3 = launch_velocity * ragdoll_impulse_scale
-	for pb: PhysicalBone3D in bones:
-		pb.apply_central_impulse(v * pb.mass)
-	_apply_launch_spin(bones, v)
+	# Run Engine B — the SAME class the tuner runs (player/ragdoll/). It freezes
+	# the anim, reparents the rig under a PhysicalBoneSimulator3D, applies the
+	# anatomical limits + segment masses + influence ease-in, and launches. All
+	# feel flows through the tuning dict, so the tuner and the enemy death agree.
+	_ragdoll_engine = _RagdollEngineB.new()
+	_ragdoll_engine.setup(self, skel)
+	_ragdoll_engine.apply_tuning(_ragdoll_tuning_dict())
+	_ragdoll_engine.start(launch_velocity)
 	_ragdoll_start_hips_y = ragdoll_reference_position().y
+
+
+## Tuning handed to Engine B — the keys it reads. Same names the sandbox uses,
+## so a value tuned in the tuner applies verbatim here.
+func _ragdoll_tuning_dict() -> Dictionary:
+	return {
+		"gravity": ragdoll_gravity_scale,
+		"ease_speed": ragdoll_ease_speed,
+		"damp_all": ragdoll_angular_damp,
+		"spin_yaw": ragdoll_spin_yaw_max,
+		"spin_roll": ragdoll_spin_roll_max,
+		"impulse_scale": ragdoll_impulse_scale,
+	}
+
+
+## Size the corpse's collision capsules from the ragdoll_collider_* exports —
+## one-shot at ragdoll start. Duplicates each shape so the shared authored
+## resource isn't mutated. Head gets its own scale + up-axis offset. Capsule
+## radius <= height/2, so height grows to fit an enlarged radius.
+func _apply_ragdoll_collider_scale(bones: Array[PhysicalBone3D]) -> void:
+	for pb: PhysicalBone3D in bones:
+		var is_head: bool = pb.get("bone_name") == "head"
+		var rscale: float = ragdoll_head_radius_scale if is_head else ragdoll_collider_radius_scale
+		var lscale: float = ragdoll_head_length_scale if is_head else ragdoll_collider_length_scale
+		for cs: Node in pb.get_children():
+			if not (cs is CollisionShape3D):
+				continue
+			var holder := cs as CollisionShape3D
+			if holder.shape is CapsuleShape3D:
+				var cap := (holder.shape as CapsuleShape3D).duplicate() as CapsuleShape3D
+				var target_r: float = cap.radius * rscale
+				cap.height = maxf(cap.height * lscale, target_r * 2.0)
+				cap.radius = target_r
+				holder.shape = cap
+			if is_head and ragdoll_head_offset != 0.0:
+				holder.position += holder.transform.basis.y.normalized() * ragdoll_head_offset
 
 
 ## Give the rig a coherent random tumble: same angular velocity on every
@@ -593,38 +689,11 @@ func _apply_launch_spin(bones: Array[PhysicalBone3D], launch: Vector3) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	# Ragdoll stabilizer: hard speed cap per bone per tick (see the export
-	# comment — GodotPhysics ground impacts can otherwise explode the rig).
-	if not _ragdoll_active:
-		return
-	if _ragdoll_frozen:
-		if _ragdoll_resting:
-			return  # fully static corpse — nothing left to do
-		# Slid out → final rest: lock linear, lift to the visual floor.
-		if _ragdoll_hips != null \
-				and _ragdoll_hips.linear_velocity.length() < ragdoll_rest_speed:
-			_settle_to_rest()
-			return
-		# Frozen statue: every bone shares the hips' linear velocity, zero
-		# spin. Axis locks alone leave linear DOFs free — segments can still
-		# orbit-translate around their joint pivots (parallelogram flail)
-		# and the settling torso presses the thin arm capsules through the
-		# floor. Velocity sync makes the assembly translate as one piece.
-		if _ragdoll_hips != null:
-			var hv: Vector3 = _ragdoll_hips.linear_velocity
-			for pb: PhysicalBone3D in _ragdoll_bones:
-				if pb != _ragdoll_hips:
-					pb.linear_velocity = hv
-				pb.angular_velocity = Vector3.ZERO
-		return
-	for pb: PhysicalBone3D in _ragdoll_bones:
-		var lv: Vector3 = pb.linear_velocity
-		if lv.length_squared() > ragdoll_max_bone_speed * ragdoll_max_bone_speed:
-			pb.linear_velocity = lv.normalized() * ragdoll_max_bone_speed
-		var av: Vector3 = pb.angular_velocity
-		if av.length_squared() > ragdoll_max_bone_spin * ragdoll_max_bone_spin:
-			pb.angular_velocity = av.normalized() * ragdoll_max_bone_spin
-	_tick_land_freeze(delta)
+	# The ragdoll is Engine B (player/ragdoll/) — hand it the per-tick work
+	# (influence ease-in). The old stabilizer (clamp / land-freeze / settle) is
+	# retired; B doesn't need it.
+	if _ragdoll_active and _ragdoll_engine != null:
+		_ragdoll_engine.physics_tick(delta)
 
 
 ## Landing freeze: once the hips have fallen far enough and any bone touches

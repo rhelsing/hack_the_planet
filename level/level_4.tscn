@@ -53,6 +53,7 @@
 [ext_resource type="Script" uid="uid://dqlc6lgpdwkw4" path="res://level/interactable/glitch_reveal/glitch_reveal.gd" id="57_glitchreveal"]
 [ext_resource type="Script" uid="uid://0uvnfq8id6ua" path="res://level/nav/nav_region_bake.gd" id="80_navbake"]
 [ext_resource type="Script" path="res://player/brains/nav_blackboard.gd" id="90_blackboard"]
+[ext_resource type="Script" path="res://enemy/enemy_ai_switch.gd" id="91_aiswitch"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_lnav"]
 geometry_parsed_geometry_type = 1
@@ -1625,6 +1626,12 @@ group = &"splice_enemies"
 [node name="SquadBoardAllies" type="Node" parent="." index="330"]
 script = ExtResource("90_blackboard")
 group = &"allies"
+max_engagers_per_target = 99
 [node name="SquadBoardEnemies" type="Node" parent="." index="331"]
 script = ExtResource("90_blackboard")
 group = &"enemies"
+max_engagers_per_target = 99
+
+[node name="EnemyAiSwitch" type="Node" parent="." index="332"]
+script = ExtResource("91_aiswitch")
+use_new_ai = true

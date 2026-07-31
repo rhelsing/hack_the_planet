@@ -34,6 +34,9 @@ func _ready() -> void:
 
 	var scene: PackedScene = load(ENEMY_SCENE)
 	_enemy = scene.instantiate()
+	# This test verifies the death cleanup/despawn, so skip the corpse-linger
+	# delay (its default is 10s for kick tuning).
+	_enemy.ragdoll_corpse_delay = 0.0
 	add_child(_enemy)
 	_enemy.global_position = Vector3(0, 0.1, 0)
 	_enemy_ref = weakref(_enemy)

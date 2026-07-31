@@ -37,6 +37,9 @@ var _last_body_pos: Vector3 = Vector3.INF
 var _waiting_for_path: bool = false
 # DEBUG: deduped waypoint trace anchor.
 var _last_waypoint_logged: Vector3 = Vector3.INF
+# TEMP DEBUG — why the last steer_to returned zero (or moved). Read by the
+# group probe to categorize crowd pauses. Values: moving/arrived/rvo_wait/no_path.
+var last_stall_reason: StringName = &"moving"
 
 
 ## Type-based one-shot agent lookup (house style: no %UniqueName for
@@ -68,8 +71,10 @@ func steer_to(body: Node3D, dest: Vector3, arrive: float) -> Vector3:
 	to_dest.y = 0.0
 	var dist := to_dest.length()
 	if dist <= arrive or dist < 0.001:
+		last_stall_reason = &"arrived"
 		return Vector3.ZERO
 	if _agent == null:
+		last_stall_reason = &"moving"
 		return to_dest / dist
 	# Teleport detection (kill-plane respawn): the current path is for a
 	# position we no longer occupy — force a fresh request.
@@ -98,10 +103,12 @@ func steer_to(body: Node3D, dest: Vector3, arrive: float) -> Vector3:
 		if debug_log and not _waiting_for_path:
 			print("[nav] %s no usable path — holding position" % body.name)
 		_waiting_for_path = true
+		last_stall_reason = &"no_path"
 		return Vector3.ZERO
 	if _waiting_for_path and debug_log:
 		print("[nav] %s path acquired — moving" % body.name)
 	_waiting_for_path = false
+	last_stall_reason = &"moving"
 	dir = dir.normalized()
 	# RVO: hand the desired velocity to the server; steer along the crowd-
 	# safe velocity it computed last frame. Near-zero safe velocity = the
@@ -113,6 +120,7 @@ func steer_to(body: Node3D, dest: Vector3, arrive: float) -> Vector3:
 		if _has_safe_velocity:
 			var safe := Vector3(_safe_velocity.x, 0.0, _safe_velocity.z)
 			if safe.length() < 0.05:
+				last_stall_reason = &"rvo_wait"
 				return Vector3.ZERO
 			return safe.normalized()
 	return dir

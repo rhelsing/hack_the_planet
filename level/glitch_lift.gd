@@ -30,6 +30,13 @@ extends CSGBox3D
 var _carry_zone: Area3D = null
 var _original_player_parent: Node = null
 var _has_fired: bool = false
+# Latch: true once a player is reparented onto us, until they genuinely leave.
+# Under Jolt the deferred reparent re-registers the body in the physics space
+# and fires a PHANTOM body_exited (the old `get_parent() != self` guard assumed
+# Godot Physics' timing and no longer holds). The latch + deferred real-overlap
+# re-check in _verify_exit make un-riding depend on actual overlap, not signal
+# timing — so the player keeps riding the lift instead of being dropped.
+var _riding: bool = false
 
 
 func _ready() -> void:
@@ -110,17 +117,30 @@ func _snap_to_destination() -> void:
 func _on_carry_body_entered(body: Node) -> void:
 	if not body.is_in_group("player"):
 		return
-	if body.get_parent() == self:
-		return
+	if _riding:
+		return  # already carrying — ignore re-entries (incl. the reparent's).
+	_riding = true
 	_original_player_parent = body.get_parent()
+	# Defer the reparent — running it during a body_entered signal can race
+	# with the player's own _physics_process (mid-move_and_slide).
 	body.call_deferred(&"reparent", self, true)
 
 
 func _on_carry_body_exited(body: Node) -> void:
-	if not body.is_in_group("player"):
+	if not body.is_in_group("player") or not _riding:
 		return
-	if body.get_parent() != self:
+	# Don't trust the exit signal directly: the deferred reparent re-registers
+	# the body and fires a phantom exit while the player is still standing on
+	# us. Defer + re-check ACTUAL overlap so only a real walk-off un-rides.
+	call_deferred(&"_verify_exit", body)
+
+
+func _verify_exit(body: Node) -> void:
+	if not _riding or not is_instance_valid(body):
 		return
-	if _original_player_parent == null or not is_instance_valid(_original_player_parent):
-		return
-	body.call_deferred(&"reparent", _original_player_parent, true)
+	if _carry_zone != null and _carry_zone.overlaps_body(body):
+		return  # still on the platform — phantom exit from the reparent, ignore.
+	_riding = false
+	if _original_player_parent != null and is_instance_valid(_original_player_parent) \
+			and body.get_parent() == self:
+		body.call_deferred(&"reparent", _original_player_parent, true)

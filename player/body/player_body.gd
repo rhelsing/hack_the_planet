@@ -524,12 +524,35 @@ const _FACTION_TINT: Dictionary = {
 ## up to this speed (m/s), with a half-strength recoil on us. Capped, not
 ## accumulated, so sustained contact can't launch anyone. 0 disables.
 @export var pawn_bump_speed: float = 2.5
-## Impulse scale for kicking ragdoll corpse bones we walk or skate through.
-## Impulse = our horizontal speed × bone mass × this — skating through a
-## corpse pile scatters it, creeping through nudges it. 0 disables.
-@export var ragdoll_kick_scale: float = 1.0
+## Walk/run-THROUGH nudge strength: as we pass through a corpse the push-Area3D
+## shoves the overlapped bones by (our speed × bone mass × this). A small fixed
+## fraction — a gentle scatter, NOT a kick. 0 disables.
+@export var ragdoll_pushthrough_scale: float = 0.2
+
+## Extra multiplier on the KICK (= the attack) vs corpse bones, on top of the
+## baked "4x the walk-through" base. 1.0 = exactly 4x the walk-through nudge.
+@export var ragdoll_kick_scale: float = 3.0
+
+## Seconds a corpse ragdolls (kickable) before the normal confetti / glitch-out
+## despawn sequence fires. 0 = despawn immediately as before.
+@export var ragdoll_corpse_delay: float = 10.0
+
+## Grace window (s) right after death where a corpse CANNOT be kicked — so the
+## same attack that killed an enemy doesn't also kick its fresh corpse (which
+## already took the death knockback). Only already-downed corpses get kicked.
+@export var ragdoll_kick_invuln: float = 0.5
 
 @export_group("Crouch")
+
+# Ragdoll = project physics layer 4 (value 8). Pawns do NOT collide with corpse
+# bones (removed from our mask at _ready), so a corpse never blocks or shoves us
+# — we walk clean through. This Area3D instead DETECTS the bones our capsule
+# overlaps and shoves them along our travel, so they scatter as we pass through.
+const _RAGDOLL_MASK_BIT := 8
+var _ragdoll_push_area: Area3D
+# Kick (= the attack) boots corpse bones at 4x the walk-through nudge, computed
+# at this nominal kick speed so the 4x ratio holds as pushthrough_scale changes.
+const _KICK_REF_SPEED := 8.0
 ## max_speed multiplier while crouch_held is true. Only applied in walk mode.
 @export_range(0.0, 1.0) var crouch_speed_multiplier: float = 0.45
 
@@ -655,8 +678,8 @@ enum FollowMode { PARENTED, DETACHED }
 ## Ragdoll launch velocity (m/s), separate from death_knockback_* so
 ## cop_riot's scripted knockback death keeps its own numbers. Mostly
 ## backward, barely up: a low hard blast-away rather than an arc.
-@export var ragdoll_launch_backward := 19.0
-@export var ragdoll_launch_vertical := 4.5
+@export var ragdoll_launch_backward := 7.5
+@export var ragdoll_launch_vertical := 4.75
 ## Sideways bias blended into the launch so the hit reads as sweeping across
 ## the body right-to-left (toward the victim's OWN left). 0 = launch straight
 ## along the knockback direction, 1 = 45° between backward and left, bigger =
@@ -965,10 +988,11 @@ var _natural_lean_roll := 0.0
 ## penetrate it by ~(skin_height/2 - capsule_radius). 0.5m is roughly
 ## that mismatch for a standard humanoid rig.
 @export var halfpipe_skin_wall_lift: float = 0.5
-## When true, AI brains can't fire jump on a skating non-player pawn.
-## Brain-driven jumps zero the carve momentum through gravity arc, so
-## allies + skating enemies lose their speed on the halfpipe every time
-## they decide to hop a gap. Player is exempt regardless of this flag.
+## When true, AI brains can't fire jump on a skating non-player pawn
+## WHILE IT IS ON THE HALFPIPE. Brain-driven jumps zero the carve momentum
+## through the gravity arc, so allies + skating enemies would lose their speed
+## every time they hopped there. Off the halfpipe, skaters jump freely — they
+## need it to traverse nav jump-links. Player is exempt regardless of this flag.
 @export var disable_brain_jump_on_skates: bool = true
 ## Extra horizontal launch speed (m/s) injected in the jump direction at the
 ## instant of a ground jump, ON TOP of max_speed, and PRESERVED through the
@@ -1134,6 +1158,9 @@ var _attack_active_timer := 0.0
 var _attack_visual_timer := 0.0
 var _attack_forward := Vector3.ZERO
 var _attack_hit_enemies: Array[Node] = []
+# Ragdoll bones already booted this swing — one kick per bone per attack, same
+# dedup discipline as _attack_hit_enemies.
+var _attack_hit_bones: Array[Node] = []
 var _health := 3
 var _dying := false
 var _dying_timer := 0.0
@@ -1242,6 +1269,9 @@ var _death_glitch_value := 0.0
 # The body node freezes in place — no gravity/move_and_slide — while the
 # bones simulate; effects anchor to the skin's ragdoll_reference_position.
 var _ragdoll_death := false
+# Seconds since this ragdoll death began — drives the kick-invuln grace window
+# and the corpse persist-then-glitch-out delay.
+var _ragdoll_persist_timer := 0.0
 var _death_landed := false
 var _death_pose_timer := 0.0
 var _death_flight_time := 0.0
@@ -1352,6 +1382,7 @@ func _ready() -> void:
 	# runtime group membership.
 	_swap_skin_if_overridden()
 	_swap_brain_if_overridden()
+	_setup_ragdoll_pushthrough()
 	# Resolve initial faction. Empty @export = derive from pawn_group;
 	# otherwise the inspector value wins (e.g. splice-controlled enemies
 	# explicitly set "red").
@@ -1640,17 +1671,21 @@ func toggle_profile() -> void:
 	_sync_nav_capability_mask()
 
 
-## Keep the NavigationAgent3D capability mask in step with the movement
-## profile: skating pawns (bigger jump envelope) may plan through skate-tier
-## links (NavLayers.SKATE_JUMP), walking pawns route around them. Routes
-## re-plan automatically on the mask flip — granting rollerblades IS the
-## capability grant. No-op without an agent child (player pawn, legacy AI).
+## Nav capability mask. Everyone plans WALK-tier only — even on skates.
+## Skate-tier links (long jumps + one-way drops) are DISABLED for AI: the body
+## can't reliably execute them (skaters overshoot the grounded-jump window and
+## slide off ledges; the skate links themselves are also suspect vs the reach
+## envelope — see docs/nav_stack.md). Walk links are short/low and always
+## jumpable, so a pawn holds at a ledge instead of diving off it. Jumping stays
+## enabled off the halfpipe (see disable_brain_jump_on_skates). Re-grant
+## skate-tier here once link generation + link-jump execution are made reliable.
 func _sync_nav_capability_mask() -> void:
 	for c: Node in get_children():
 		if c is NavigationAgent3D:
-			(c as NavigationAgent3D).navigation_layers = \
-				NavLayers.WALK_AND_SKATE if _current_profile == skate_profile \
-				else NavLayers.WALK
+			(c as NavigationAgent3D).navigation_layers = NavLayers.WALK
+			print("[navmask-dbg] %s nav_layers=%d profile=%s" % [
+				name, (c as NavigationAgent3D).navigation_layers,
+				"skate" if _current_profile == skate_profile else "walk"])
 			return
 
 
@@ -1697,6 +1732,20 @@ func suppress_jump_for(duration: float) -> void:
 	_jump_suppressed_until = maxf(_jump_suppressed_until, now + duration)
 
 
+## Make this body ignore kill_plane_touched for `duration` seconds. Used by
+## BouncyPlatform: reparenting a body onto the deck re-registers its collider
+## in the physics space, which under Jolt spuriously trips the KillPlane
+## Area3D even though the body is safely on the platform. Arming this over the
+## bounce window drops those phantom deaths; a genuine fall (launched off into
+## a pit ~1s+ later) lands well after the window and still kills. Reuses the
+## same _kill_plane_invuln_until_time gate the respawn grace uses.
+func suppress_kill_plane_for(duration: float) -> void:
+	if duration <= 0.0:
+		return
+	var now: float = Time.get_ticks_msec() / 1000.0
+	_kill_plane_invuln_until_time = maxf(_kill_plane_invuln_until_time, now + duration)
+
+
 func _start_attack_jostle() -> void:
 	if _attack_timer > 0.0:
 		return
@@ -1740,6 +1789,7 @@ func _start_attack_jostle() -> void:
 	_attack_visual_timer = maxf(attack_active_duration, attack_visual_duration)
 	_attack_forward = forward
 	_attack_hit_enemies.clear()
+	_attack_hit_bones.clear()
 	# Tell the skin to play its attack animation. Skins with a real punch /
 	# kick clip (KayKit) fire their state; minimal skins (Sophia, cop_riot)
 	# fall back to the EdgeGrab pose or inherit the no-op.
@@ -2140,6 +2190,13 @@ func _play_random_attack_impact_sfx() -> void:
 	_impact_sfx_player.play()
 
 
+## Duck-typed death seam read by AI brains (NavBrain._is_dead): true from the
+## moment death starts until respawn clears it, so corpses drop out of targeting
+## and pawns move on instead of fixating on the body.
+func is_dead() -> bool:
+	return _dying
+
+
 func _start_death(impact_direction: Vector3) -> void:
 	_dying = true
 	# Drop out of the collision layer immediately so the player can't bump
@@ -2164,6 +2221,7 @@ func _start_death(impact_direction: Vector3) -> void:
 		_death_impact_dir = rdir.normalized() if rdir.length_squared() > 0.0001 else Vector3.BACK
 		velocity = Vector3.ZERO
 		_death_pose_timer = 0.0
+		_ragdoll_persist_timer = 0.0
 		# Blend the victim's own left (+X in skin space — where the .l bones
 		# live) into the launch so the blast sweeps across the body right-to-
 		# left instead of flying straight back. Direction only; speed stays
@@ -2642,12 +2700,74 @@ func _sweep_attack() -> void:
 				enemy.hit(impact_dir, attack_knockback)
 			_attack_hit_enemies.append(enemy)
 			hit_any = true
+	# The kick IS the attack — also boot any corpse bones within reach (they're
+	# not pawns/groups, so a shape query finds them).
+	_kick_ragdolls_in_reach()
 	# One impact play per swing if anything connected. _sweep_attack runs
 	# every tick of the active window; the _attack_impact_played gate makes
 	# the sfx fire on the first connecting tick only.
 	if hit_any and not _attack_impact_played:
 		_play_random_attack_impact_sfx()
 		_attack_impact_played = true
+
+
+## Boot corpse bones within attack_range, once per swing, away from us, at
+## ragdoll_kick_scale (its own strength, separate from the pawn attack_knockback
+## and the walk-through nudge). A shape query on the ragdoll layer finds the
+## bones since they're physics bodies, not group members.
+func _kick_ragdolls_in_reach() -> void:
+	if ragdoll_kick_scale <= 0.0:
+		return
+	var space := get_world_3d().direct_space_state
+	if space == null:
+		return
+	var q := PhysicsShapeQueryParameters3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = attack_range
+	q.shape = sphere
+	q.transform = Transform3D(Basis(), global_position)
+	q.collision_mask = _RAGDOLL_MASK_BIT
+	q.collide_with_areas = false
+	# 4x the walk-through nudge (shared pushthrough scale keeps the ratio), at a
+	# nominal kick speed; ragdoll_kick_scale is the final dial.
+	var kick_strength: float = _KICK_REF_SPEED * ragdoll_pushthrough_scale * 4.0 * ragdoll_kick_scale
+	var kicked: int = 0
+	for hit: Dictionary in space.intersect_shape(q, 24):
+		var col: Object = hit.get("collider")
+		if not (col is PhysicalBone3D) or _attack_hit_bones.has(col):
+			continue
+		var bone := col as PhysicalBone3D
+		# Only ALREADY-downed corpses get kicked. A freshly-killed corpse is
+		# kick-immune for ragdoll_kick_invuln secs, so the same attack that killed
+		# it (and already applied the death knockback) doesn't also kick it.
+		if _bone_owner_kick_immune(bone):
+			continue
+		var to_bone: Vector3 = bone.global_position - global_position
+		to_bone.y = 0.0
+		var kdir: Vector3 = to_bone.normalized() if to_bone.length_squared() > 0.0001 else _attack_forward
+		bone.apply_central_impulse(kdir * bone.mass * kick_strength)
+		_attack_hit_bones.append(bone)
+		kicked += 1
+	# TEMP diagnostic — confirms the kick is firing + how hard. Strip once happy.
+	if kicked > 0:
+		print("[kick] booted %d corpse bone(s) Δv=%.1f reach=%.1fm" % [kicked, kick_strength, attack_range])
+
+
+## Walk up from a corpse bone to its owning pawn; true if that corpse is still in
+## its post-death kick-immune window — so the kick skips it.
+func _bone_owner_kick_immune(bone: Node) -> bool:
+	var n: Node = bone.get_parent()
+	while n != null:
+		if n is CharacterBody3D:
+			return n.has_method(&"ragdoll_kick_immune") and bool(n.call(&"ragdoll_kick_immune"))
+		n = n.get_parent()
+	return false
+
+
+## True while a fresh corpse is inside its post-death kick grace window, so the
+## killing blow doesn't double as a kick and it settles a beat before it's bootable.
+func ragdoll_kick_immune() -> bool:
+	return _ragdoll_death and _ragdoll_persist_timer < ragdoll_kick_invuln
 
 
 func _apply_follow_mode() -> void:
@@ -3031,11 +3151,12 @@ func _physics_process(delta: float) -> void:
 	var intent: Intent = _brain.tick(self, delta)
 
 	# Non-player skaters: AI brains fire jump_pressed for gap traversal +
-	# chase, but on skates the jump pop kills the carve momentum (zeroes
-	# tangent velocity through gravity arc). Strip brain-driven jumps so
-	# gold allies + hostile skaters keep their speed on the halfpipe.
-	# Player is exempt — they need their jump.
-	if disable_brain_jump_on_skates and pawn_group != "player" \
+	# chase — jumping is a nav capability the (game-agnostic) brain legitimately
+	# asks for, and skaters MUST keep it or they roll off jump-links they were
+	# routed onto. The one exception is the halfpipe, where the jump pop zeroes
+	# carve momentum through the gravity arc; there (and only there) we strip it
+	# so gold allies + hostile skaters keep their speed. Player is always exempt.
+	if disable_brain_jump_on_skates and _on_halfpipe and pawn_group != "player" \
 			and skate_profile != null and _current_profile == skate_profile:
 		intent.jump_pressed = false
 
@@ -3059,6 +3180,13 @@ func _physics_process(delta: float) -> void:
 		intent.face_yaw_override_set = true
 
 	if _dying:
+		if _ragdoll_death and _ragdoll_persist_timer < ragdoll_corpse_delay:
+			# Corpse lingers as a kickable ragdoll for ragdoll_corpse_delay secs —
+			# no timer countdown, no burst/glitch. Once elapsed, fall through to
+			# the normal death sequence below (burst → glitch dissolve → despawn).
+			_ragdoll_persist_timer += delta
+			_update_follow_camera(delta)
+			return
 		_dying_timer -= delta
 		if _ragdoll_death:
 			# Body stays frozen; the skin's physical bones carry the corpse.
@@ -3531,6 +3659,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_slide_off_enemy_head()
 	_apply_contact_physics()
+	_push_overlapped_ragdolls()
 
 	_update_follow_camera(delta)
 
@@ -3557,16 +3686,9 @@ func _apply_contact_physics() -> void:
 		if away.length_squared() < 0.0001:
 			continue
 		away = away.normalized()
-		if other is PhysicalBone3D:
-			if ragdoll_kick_scale <= 0.0:
-				continue
-			var h: Vector3 = velocity
-			h.y = 0.0
-			var speed: float = maxf(h.length(), 1.0)
-			var bone := other as PhysicalBone3D
-			bone.apply_central_impulse(
-				(away + Vector3.UP * 0.2) * speed * bone.mass * ragdoll_kick_scale)
-		elif other is CharacterBody3D and other != self \
+		# Corpse bones live on the ragdoll layer, which we no longer mask, so they
+		# never appear as slide collisions here — the push Area3D shoves them.
+		if other is CharacterBody3D and other != self \
 				and (other as Node).has_method(&"take_hit"):
 			if pawn_bump_speed <= 0.0:
 				continue
@@ -3578,6 +3700,46 @@ func _apply_contact_physics() -> void:
 			var our_push: float = pawn_bump_speed * 0.5 - velocity.dot(recoil_dir)
 			if our_push > 0.0:
 				velocity += recoil_dir * our_push
+
+
+## Decouple us from corpses: stop colliding with the ragdoll layer (so a corpse
+## can't block or shove us) and build an Area3D that only WATCHES that layer, to
+## detect the bones our capsule overlaps so we can shove them one-way.
+func _setup_ragdoll_pushthrough() -> void:
+	collision_mask &= ~_RAGDOLL_MASK_BIT
+	_ragdoll_push_area = Area3D.new()
+	_ragdoll_push_area.name = "RagdollPushArea"
+	_ragdoll_push_area.collision_layer = 0
+	_ragdoll_push_area.collision_mask = _RAGDOLL_MASK_BIT
+	_ragdoll_push_area.monitorable = false
+	var cs := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.5
+	cap.height = 1.7
+	cs.shape = cap
+	cs.position = Vector3(0.0, 0.85, 0.0)
+	_ragdoll_push_area.add_child(cs)
+	add_child(_ragdoll_push_area)
+
+
+## Shove every corpse bone our capsule is passing through, along our travel
+## (horizontal). We're kinematic and don't mask them, so they never push back:
+## a one-way 'walk / run through and scatter them' shove, scaled by our speed.
+func _push_overlapped_ragdolls() -> void:
+	if _ragdoll_push_area == null or ragdoll_pushthrough_scale <= 0.0 or _dying:
+		return
+	var h: Vector3 = velocity
+	h.y = 0.0
+	var speed: float = h.length()
+	if speed < 0.5:
+		return
+	var dir: Vector3 = h / speed
+	# Just a gentle walk/run-through nudge — a small fixed fraction of raw force,
+	# NOT a kick (kicks are a separate mechanism, TBD). Tune ragdoll_pushthrough_scale.
+	for body: Node3D in _ragdoll_push_area.get_overlapping_bodies():
+		if body is PhysicalBone3D:
+			(body as PhysicalBone3D).apply_central_impulse(
+				dir * speed * (body as PhysicalBone3D).mass * ragdoll_pushthrough_scale)
 
 
 ## Push this pawn horizontally off any OTHER pawn it's currently standing on.
