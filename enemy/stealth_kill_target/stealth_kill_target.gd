@@ -113,6 +113,14 @@ func _ready() -> void:
 		prompt_verb = "hack"
 
 
+func _exit_tree() -> void:
+	# The donut billboard is parented to the PAWN (it floats above the body),
+	# not to us — so free it here or it orphans when we're torn down (e.g. the
+	# pawn converts off stealth and set_faction frees this target).
+	if _billboard != null and is_instance_valid(_billboard):
+		_billboard.queue_free()
+
+
 ## InteractionSensor calls this with on=true when this target becomes the
 ## focused interactable. With layer-gated visibility (see _physics_process)
 ## focus only happens when we're eligible, so this is essentially a

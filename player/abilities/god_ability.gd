@@ -140,7 +140,9 @@ func _convert_in_radius(player: Node3D, radius: float) -> void:
 			# wandering (fixes the non-following nav gold).
 			elif node.get(&"_brain") is NavBrain and node.has_method(&"replace_brain"):
 				node.call(&"replace_brain", _GOLD_NAV_BRAIN_SCENE)
+			print("[god-dbg] post-replace %s brain=%s faction=%s" % [node.name, node.get(&"_brain"), node.get(&"faction")])  # TEMP
 			node.call(&"set_faction", &"gold")
+			print("[god-dbg] post-faction %s faction=%s allies=%s splice=%s" % [node.name, node.get(&"faction"), node.is_in_group(&"allies"), node.is_in_group(&"splice_enemies")])  # TEMP
 			# GOD-power converts get the rollerblade visual + skate profile.
 			# (ControlPortal converts skip this path → they walk.)
 			if node.has_method(&"set_profile_skate"):

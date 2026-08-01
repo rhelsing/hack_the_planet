@@ -46,6 +46,14 @@ extends NavigationRegion3D
 @export var min_link_spacing: float = 3.0
 ## Height (m) above samples for the wall-blockage ray.
 @export var los_clearance: float = 1.2
+## Travel-cost multiplier for SKATE_JUMP-tier links (rails + long skate
+## gaps). A* costs a link as `length × travel_cost`; < 1.0 makes skating a
+## rail cheaper per meter than walking around it, so skate-capable pawns
+## (golds, skating reds) PREFER rails instead of only taking them when
+## they already lie on the shortest route — the "ride the rail with me"
+## bias. 1.0 = the old indifferent behavior. Applied at link spawn (both
+## live bake AND sidecar load), so existing bakes get it with no re-bake.
+@export_range(0.05, 1.0) var skate_link_travel_cost: float = 0.5
 
 
 func _ready() -> void:
@@ -181,7 +189,13 @@ func _spawn_links(records: Array) -> void:
 		link.start_position = r.from
 		link.end_position = r.to
 		link.bidirectional = r.bidir
-		link.navigation_layers = int(r.get("layers", NavLayers.WALK))
+		var layers: int = int(r.get("layers", NavLayers.WALK))
+		link.navigation_layers = layers
+		# Rails / long skate gaps come in as SKATE_JUMP links; discounting
+		# their travel_cost makes A* PREFER them over a ground detour. WALK
+		# links stay at the default 1.0 so walking pawns are unaffected.
+		if layers == NavLayers.SKATE_JUMP:
+			link.travel_cost = skate_link_travel_cost
 		add_child(link)
 
 

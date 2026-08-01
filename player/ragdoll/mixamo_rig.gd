@@ -34,13 +34,20 @@ const SPECS := [
 static func build(skel: Skeleton3D, layer: int, mask: int) -> int:
 	if skel.get_node_or_null("hips") != null:
 		return 0
+	# Mixamo skeletons are often authored in centimeters with the ARMATURE scaled
+	# 0.01 to render at meters. Jolt ignores that parent scale on physics shapes,
+	# so build the capsules in WORLD meters (raw rest length x this scale) — else
+	# the bones are ~100x too big and the ragdoll explodes.
+	var s := skel.global_transform.basis.get_scale().x
+	if s <= 0.0:
+		s = 1.0
 	var built := 0
 	for spec: Array in SPECS:
 		var bidx := skel.find_bone(spec[1])
 		if bidx == -1:
 			push_warning("mixamo_rig: bone '%s' not found on %s" % [spec[1], skel])
 			continue
-		var length := _bone_length(skel, spec[2])
+		var length := _bone_length(skel, spec[2], s)
 		var pb := PhysicalBone3D.new()
 		pb.name = spec[0]           # canonical key (engines match on this)
 		pb.bone_name = spec[1]      # real mixamo skeleton bone
@@ -57,11 +64,11 @@ static func build(skel: Skeleton3D, layer: int, mask: int) -> int:
 
 # Bone length = the child bone's local rest offset magnitude (Mixamo bones point
 # +Y toward their child, so this is the segment length along the capsule axis).
-static func _bone_length(skel: Skeleton3D, child_bone: String) -> float:
+static func _bone_length(skel: Skeleton3D, child_bone: String, scale: float) -> float:
 	var ci := skel.find_bone(child_bone)
 	if ci == -1:
 		return TERMINAL_LEN
-	return maxf(skel.get_bone_rest(ci).origin.length(), 0.06)
+	return maxf(skel.get_bone_rest(ci).origin.length() * scale, 0.06)
 
 
 static func _attach_capsule(pb: PhysicalBone3D, length: float) -> void:

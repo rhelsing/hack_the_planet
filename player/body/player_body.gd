@@ -221,9 +221,35 @@ func set_faction(new_faction: StringName) -> void:
 		_gold_dodges_splice = randf() < dodge
 		print("[gold-dodge] %s rolled %s (chance=%.2f, coin_ratio=%.2f)" % [
 			get_path(), _gold_dodges_splice, dodge, GameState.coin_completion_ratio()])
+	# Leaving stealth is permanent (GOD / portal convert). Tear down the whole
+	# stealth-identity kit so nothing outlives the identity:
+	#  • AlertTint — would keep repainting the pawn its old purple off every
+	#    suspicion_changed (clobbering the gold tint below).
+	#  • NavConeVisual — would keep the vision fan node alive (the legacy brain
+	#    freed its fan on conversion; this is parity for the nav stack).
+	#  • StealthKillTarget — a gold ally isn't backstabbable, AND freeing it
+	#    stops the InteractionSensor from calling set_highlighted() a frame
+	#    later on the now-freed cone mesh it had cached in its highlight walk
+	#    (the sensor normalizes a freed focus to null, so no _apply_highlight
+	#    ever runs on the dead mesh — the "previously freed" crash).
+	if prior_faction == &"splice_stealth" and new_faction != &"splice_stealth":
+		for c: Node in get_children():
+			if c is AlertTint:
+				# Disconnect the suspicion handler SYNCHRONOUSLY before the
+				# deferred free: the fresh gold brain emits suspicion_changed(0)
+				# on its first tick THIS frame, and a not-yet-deleted AlertTint
+				# would catch it and repaint the pawn stealth-purple AFTER the
+				# gold tint below — the "stays purple" half-conversion. Severing
+				# the signal now makes the gold tint the last word.
+				(c as AlertTint).rewire_brain(null)
+				c.queue_free()
+			elif c is NavConeVisual or c is StealthKillTarget:
+				c.queue_free()
 	# Tint the skin (no-op on skins that haven't implemented set_faction_tint).
 	if _skin != null and _skin.has_method(&"set_faction_tint"):
 		var tint: Array = _FACTION_TINT[new_faction]
+		print("[tint-dbg] %s set_faction_tint faction=%s color=%s amt=%.1f" % [
+			name, new_faction, tint[0], float(tint[1])])  # TEMP
 		_skin.set_faction_tint(tint[0] as Color, float(tint[1]))
 	# Broadcast for listeners (HUD, mission triggers, etc.).
 	Events.faction_changed.emit(self, new_faction)
@@ -1683,9 +1709,6 @@ func _sync_nav_capability_mask() -> void:
 	for c: Node in get_children():
 		if c is NavigationAgent3D:
 			(c as NavigationAgent3D).navigation_layers = NavLayers.WALK
-			print("[navmask-dbg] %s nav_layers=%d profile=%s" % [
-				name, (c as NavigationAgent3D).navigation_layers,
-				"skate" if _current_profile == skate_profile else "walk"])
 			return
 
 

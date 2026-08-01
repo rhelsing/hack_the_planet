@@ -1,3 +1,4 @@
+class_name AlertTint
 extends Node
 
 ## Game-side listener: paints a sibling NavBrain's suspicion onto the parent
@@ -73,4 +74,9 @@ func _on_suspicion(value: float) -> void:
 		c = suspect_color
 	else:
 		c = calm_color
+	# TEMP: only fires when this listener repaints a pawn that has already left
+	# stealth — i.e. the "converted gold got repainted purple" bug.
+	if "faction" in _body and StringName(_body.get(&"faction")) != &"splice_stealth":
+		print("[tint-dbg] AlertTint REPAINT non-stealth %s faction=%s susp=%.2f -> %s" % [
+			_body.name, _body.get(&"faction"), value, c])
 	_body.call(&"apply_tint", c, tint_amount)

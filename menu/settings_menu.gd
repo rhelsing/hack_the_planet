@@ -13,6 +13,7 @@ signal back_requested
 @onready var _sfx:      HSlider = %SfxSlider
 @onready var _quality:  OptionButton = %QualityOption
 @onready var _transition: OptionButton = %TransitionOption
+@onready var _crt: CheckButton = %CrtCheck
 @onready var _hud_scale: HSlider = %HudScaleSlider
 @onready var _hud_scale_value: Label = %HudScaleValue
 @onready var _back_btn: Button = %BackBtn
@@ -58,6 +59,7 @@ func _bind_from_settings() -> void:
 	_quality.selected = _quality_index(q)
 	var t: String = String(s.call(&"get_value", "graphics", "transition_style", "instant"))
 	_transition.selected = 1 if t == "glitch" else 0
+	_crt.button_pressed = bool(s.call(&"get_value", "graphics", "crt_enabled", false))
 	var hs: float = float(s.call(&"get_value", "hud", "scale", 1.5))
 	_hud_scale.value = hs
 	_hud_scale_value.text = "%.1fx" % hs
@@ -78,6 +80,9 @@ func _wire_signals() -> void:
 	)
 	_transition.item_selected.connect(func(idx: int) -> void:
 		_apply("graphics", "transition_style", "instant" if idx == 0 else "glitch")
+	)
+	_crt.toggled.connect(func(on: bool) -> void:
+		_apply("graphics", "crt_enabled", on)
 	)
 	_hud_scale.value_changed.connect(func(v: float) -> void:
 		_hud_scale_value.text = "%.1fx" % v

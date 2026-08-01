@@ -102,6 +102,16 @@ text = "Scene Transition"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 0)
 
+[node name="CrtRow" type="HBoxContainer" parent="Center/Panel/Column/Tabs/Graphics"]
+
+[node name="CrtLabel" type="Label" parent="Center/Panel/Column/Tabs/Graphics/CrtRow"]
+custom_minimum_size = Vector2(200, 0)
+text = "CRT Filter"
+
+[node name="CrtCheck" type="CheckButton" parent="Center/Panel/Column/Tabs/Graphics/CrtRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+
 [node name="HudScaleRow" type="HBoxContainer" parent="Center/Panel/Column/Tabs/Graphics"]
 
 [node name="HudScaleLabel" type="Label" parent="Center/Panel/Column/Tabs/Graphics/HudScaleRow"]

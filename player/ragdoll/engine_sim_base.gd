@@ -25,6 +25,23 @@ const _EASE_INSTANT := 1.0e9
 var _ease_speed := _EASE_INSTANT
 var _influence := 1.0
 
+# Canonical bone key from a physical bone's bone_name. KayKit rigs already use
+# the canonical short names ("hips", "chest", "upperarm.l", ...); Mixamo rigs
+# (AjSkin, via mixamo_rig.gd) use "mixamorig_*", mapped here — so the SAME
+# _configure_bone anatomy applies to both.
+const _MIXAMO_KEY := {
+	"mixamorig_Hips": "hips", "mixamorig_Spine1": "chest", "mixamorig_Head": "head",
+	"mixamorig_LeftArm": "upperarm.l", "mixamorig_LeftForeArm": "lowerarm.l",
+	"mixamorig_RightArm": "upperarm.r", "mixamorig_RightForeArm": "lowerarm.r",
+	"mixamorig_LeftUpLeg": "upperleg.l", "mixamorig_LeftLeg": "lowerleg.l",
+	"mixamorig_RightUpLeg": "upperleg.r", "mixamorig_RightLeg": "lowerleg.r",
+}
+
+
+func _canon_key(pb: PhysicalBone3D) -> String:
+	var bn := String(pb.get("bone_name"))
+	return _MIXAMO_KEY.get(bn, bn)
+
 
 ## Subclass hook: set joint_type / limits / mass / damping on one physical bone.
 func _configure_bone(_pb: PhysicalBone3D, _bone: String) -> void:
@@ -65,7 +82,7 @@ func start(launch_velocity: Vector3) -> void:
 		for s: Node in pb.get_children():
 			if s is CollisionShape3D:
 				(s as CollisionShape3D).disabled = false
-		var bone := String(pb.get("bone_name"))
+		var bone := _canon_key(pb)
 		_configure_bone(pb, bone)
 		if bone == "hips":
 			_hips = pb

@@ -35,6 +35,7 @@ const DEFAULTS := {
 	"graphics": {
 		"quality": "medium",
 		"transition_style": "glitch",  # "glitch" = palette-tinted scanline fade; "instant" disables
+		"crt_enabled": false,          # full-screen VHS/CRT monitor filter (off by default)
 	},
 	"hud": {
 		# Single uniform scaler for all HUD content: powerup pills, coin/
@@ -107,6 +108,7 @@ func get_hud_scale() -> float:
 
 func apply() -> void:
 	_apply_graphics()
+	_apply_crt()
 	Events.settings_applied.emit()
 
 
@@ -128,6 +130,26 @@ func save_to_disk() -> void:
 
 
 # ── Internals ────────────────────────────────────────────────────────────
+
+# Persistent full-screen VHS/CRT filter. Parented to the tree root (not the
+# current scene) so it survives level swaps, and sits at layer 1900 — above
+# HUD/menus (1000), below scene transitions (2000). apply() runs on every
+# level mount and on each set_value, so this is idempotent: show once, remove
+# once, no-op otherwise.
+const _CRT_SHADER := "res://menu/effects/vhs_crt.gdshader"
+const _CRT_LAYER := 1900
+var _crt_overlay: ScreenShaderOverlay = null
+
+
+func _apply_crt() -> void:
+	var on := bool(get_value("graphics", "crt_enabled", false))
+	if on:
+		if _crt_overlay == null or not is_instance_valid(_crt_overlay):
+			_crt_overlay = ScreenShaderOverlay.spawn(get_tree().root, _CRT_SHADER, _CRT_LAYER)
+	elif _crt_overlay != null and is_instance_valid(_crt_overlay):
+		_crt_overlay.queue_free()
+		_crt_overlay = null
+
 
 func _capture_authored_values() -> void:
 	var plat := load("res://level/platforms.tres") as ShaderMaterial

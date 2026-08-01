@@ -641,10 +641,14 @@ func _update_awareness(body: Node3D, delta: float) -> void:
 	# Combat consent (companions): passive subject = no acquisition, and any
 	# held target (including aggro retaliation) is dropped below.
 	var combat_ok: bool = _subject_combat_ok(body)
-	# Held target died — drop the corpse (releases its engage claim) so we
-	# re-acquire a LIVE enemy/ally below instead of fixating on the death spot
-	# (the dead body node freezes where it fell; only the ragdoll skin flies off).
-	if _target != null and is_instance_valid(_target) and _is_dead(_target):
+	# Held target died OR left all target groups — drop it (releases its engage
+	# claim) so we re-acquire a LIVE valid target below instead of fixating.
+	# The group check catches a target that converts factions mid-chase (a GOD
+	# blast flips a splice_enemy into an "allies" gold): without it, this pawn
+	# keeps swinging at its brand-new ally until the corpse check or memory
+	# decay eventually fires — the "first gold attacks the second" friendly fire.
+	if _target != null and is_instance_valid(_target) \
+			and (_is_dead(_target) or not _in_any_target_group(_target)):
 		_set_target(body, null)
 	if _target == null or not is_instance_valid(_target):
 		_target = null
@@ -830,6 +834,19 @@ func _nearest_candidate(body: Node3D, radius: float) -> Node3D:
 ## game-agnostic; the game decides what "dead" means).
 func _is_dead(node: Node) -> bool:
 	return node != null and node.has_method(&"is_dead") and node.call(&"is_dead")
+
+
+## True while `node` still belongs to a group this pawn targets (regular or
+## priority). A held target that leaves every one of them (faction conversion)
+## is no longer valid prey and gets dropped — see _update_awareness.
+func _in_any_target_group(node: Node) -> bool:
+	for g: StringName in target_groups:
+		if node.is_in_group(g):
+			return true
+	for g: StringName in priority_target_groups:
+		if node.is_in_group(g):
+			return true
+	return false
 
 
 func _nearest_in_groups(body: Node3D, groups: Array[StringName], radius: float) -> Node3D:
